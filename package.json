@@ -1,0 +1,58 @@
+{
+  "name": "se-enablement-platform",
+  "version": "1.0.0",
+  "description": "Internal SailPoint SE enablement and onboarding platform MVP.",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/m-giblin/cv.git"
+  },
+  "keywords": [
+    "sailpoint",
+    "enablement",
+    "onboarding"
+  ],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/m-giblin/cv/issues"
+  },
+  "homepage": "https://github.com/m-giblin/cv#readme",
+  "dependencies": {
+    "@ai-sdk/openai": "^4.0.5",
+    "@ai-sdk/xai": "^4.0.4",
+    "@hookform/resolvers": "^5.4.0",
+    "@supabase/ssr": "^0.12.0",
+    "@supabase/supabase-js": "^2.110.0",
+    "@tailwindcss/postcss": "^4.3.2",
+    "@tanstack/react-query": "^5.101.2",
+    "ai": "^7.0.11",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.4.0",
+    "lucide-react": "^1.23.0",
+    "next": "^15.5.20",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-hook-form": "^7.80.0",
+    "sonner": "^2.0.7",
+    "tailwind-merge": "^3.6.0",
+    "tailwindcss": "^4.3.2",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.0",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "eslint": "^9.39.4",
+    "eslint-config-next": "^15.5.20",
+    "typescript": "^6.0.3"
+  }
+}
