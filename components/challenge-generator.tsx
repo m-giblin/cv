@@ -16,7 +16,7 @@ const formSchema = z.object({
   level: z.enum(["Basic", "Senior", "Advisory"]),
   topic: z.string().min(2, "Choose a topic or solution area"),
   difficulty: z.enum(["foundational", "intermediate", "advanced"]),
-  recentActivity: z.string().default(""),
+  recentActivity: z.string(),
 });
 
 type FormValues = z.infer<typeof formSchema>;

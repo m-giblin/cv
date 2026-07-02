@@ -54,10 +54,6 @@ export async function POST(request: Request) {
     experimental_telemetry: {
       isEnabled: true,
       functionId: "generate-challenge",
-      metadata: {
-        provider,
-        modelName,
-      },
     },
   });
 
