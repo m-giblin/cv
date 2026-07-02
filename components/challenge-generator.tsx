@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { SaveChallengeButton } from "@/components/admin/admin-tools";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,7 +22,7 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-export function ChallengeGenerator() {
+export function ChallengeGenerator({ showSave = false }: { showSave?: boolean }) {
   const [challenge, setChallenge] = useState<GeneratedChallenge | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const form = useForm<FormValues>({
@@ -120,13 +121,13 @@ export function ChallengeGenerator() {
         {challenge ? (
           <div className="space-y-5">
             <div>
-              <p className="text-sm font-semibold text-slate-950">Steps</p>
+              <p className="text-sm font-semibold text-sp-navy">Steps</p>
               <ol className="mt-2 list-decimal space-y-2 pl-5 text-sm leading-6 text-slate-500">
                 {challenge.steps.map((step) => <li key={step}>{step}</li>)}
               </ol>
             </div>
             <div>
-              <p className="text-sm font-semibold text-slate-950">Success criteria</p>
+              <p className="text-sm font-semibold text-sp-navy">Success criteria</p>
               <ul className="mt-2 list-disc space-y-2 pl-5 text-sm leading-6 text-slate-500">
                 {challenge.successCriteria.map((criterion) => <li key={criterion}>{criterion}</li>)}
               </ul>
@@ -134,6 +135,7 @@ export function ChallengeGenerator() {
             <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
               {challenge.estimatedMinutes} minutes • {challenge.difficulty} • {challenge.linkedSolutions.join(", ")}
             </div>
+            {showSave ? <SaveChallengeButton challenge={challenge} /> : null}
           </div>
         ) : (
           <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">

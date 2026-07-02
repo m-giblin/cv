@@ -4,6 +4,7 @@ import { z } from "zod";
 import { challengePrompt } from "@/lib/ai/prompts";
 import { generatedChallengeSchema } from "@/lib/ai/schemas";
 import { getConfiguredProvider } from "@/lib/ai/provider";
+import { requireAuthenticatedSession } from "@/lib/auth/require-authenticated";
 
 const requestSchema = z.object({
   level: z.enum(["Basic", "Senior", "Advisory"]).default("Basic"),
@@ -13,6 +14,11 @@ const requestSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const session = await requireAuthenticatedSession();
+  if (session instanceof NextResponse) {
+    return session;
+  }
+
   const parsed = requestSchema.safeParse(await request.json());
 
   if (!parsed.success) {

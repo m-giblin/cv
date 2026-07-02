@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
+import { AUTH_ROUTES } from "@/lib/auth/routes";
 
 export default function HomePage() {
-  redirect("/dashboard");
+  redirect(AUTH_ROUTES.dashboard);
 }

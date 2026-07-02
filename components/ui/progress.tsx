@@ -10,11 +10,8 @@ export function Progress({
   const clamped = Math.max(0, Math.min(100, value));
 
   return (
-    <div className={cn("h-2 overflow-hidden rounded-full bg-slate-100", className)}>
-      <div
-        className="h-full rounded-full bg-blue-600 transition-all"
-        style={{ width: `${clamped}%` }}
-      />
+    <div className={cn("h-2 overflow-hidden rounded-full bg-sp-blue-soft", className)}>
+      <div className="sp-progress-fill h-full rounded-full transition-all" style={{ width: `${clamped}%` }} />
     </div>
   );
 }

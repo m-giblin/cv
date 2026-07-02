@@ -18,7 +18,24 @@ cp .env.example .env.local
 npm run dev
 ```
 
-The UI renders with realistic demo data if Supabase and AI keys are not configured. AI endpoints return deterministic structured fallback payloads without provider secrets.
+The UI renders with realistic demo data only when Supabase is not configured. Once Supabase env vars are present, sign-in and mandatory MFA are enforced.
+
+## Authentication and mandatory MFA
+
+1. In Supabase Dashboard → **Authentication → Providers**, enable **Email** and create your user (or invite team members).
+2. In **Authentication → Multi-Factor**, enable **TOTP (Authenticator app)**.
+3. Run the MFA enforcement migration: `supabase/migrations/20260702120000_require_mfa_aal2.sql`
+4. Start the app and visit `/login`.
+
+Sign-in flow:
+
+- `/login` — `@sailpoint.com` email + password only
+- `/auth/mfa/enroll` — first-time TOTP setup (QR code + verification code)
+- `/auth/mfa/verify` — enter authenticator code on every subsequent sign-in
+
+Only `@sailpoint.com` accounts are accepted. Non-SailPoint sessions are signed out automatically.
+
+Users cannot reach dashboards until they complete MFA (AAL2). Database RLS policies also require `aal2` in the JWT.
 
 ## Supabase
 

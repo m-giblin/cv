@@ -27,6 +27,19 @@ export const simulationTurnSchema = z.object({
   objectionLevel: z.enum(["low", "medium", "high"]),
 });
 
+export const dealPrepSchema = z.object({
+  accountName: z.string().min(2),
+  industry: z.string().min(2),
+  solutions: z.array(z.string()).min(1),
+  accountContext: z.string().min(20),
+  likelyObjections: z.array(z.string().min(5)).min(2),
+  discoveryQuestions: z.array(z.string().min(5)).min(3),
+  talkTrackOutline: z.array(z.string().min(5)).min(3),
+  linkedResources: z.array(z.string()).default([]),
+  executiveSummary: z.string().min(40),
+});
+
 export type GeneratedChallenge = z.infer<typeof generatedChallengeSchema>;
 export type CoachingCardOutput = z.infer<typeof coachingCardSchema>;
 export type SimulationTurn = z.infer<typeof simulationTurnSchema>;
+export type DealPrepOutput = z.infer<typeof dealPrepSchema>;

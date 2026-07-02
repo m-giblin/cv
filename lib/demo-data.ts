@@ -330,8 +330,11 @@ export const coachingCards: CoachingCard[] = [
     ],
     score: 78,
     linkedCompetencies: ["objections", "demo"],
+    managerSummary:
+      "Alex is progressing on persona language but should deepen discovery before solutioning in healthcare simulations.",
     seReflection: "I need to slow down and ask one more question before answering objections.",
     managerReviewStatus: "pending",
+    isPractice: false,
     managerComments: null,
     managerGrade: null,
     sentToManagerAt: "2026-07-01T20:00:00.000Z",
@@ -351,8 +354,10 @@ export const coachingCards: CoachingCard[] = [
     ],
     score: 91,
     linkedCompetencies: ["sled", "workflows"],
+    managerSummary: "Jordan delivered strong SLED-specific language and is ready for workshop shadowing with minor timing qualification improvements.",
     seReflection: "The SLED persona worked well; next time I will qualify timing earlier.",
     managerReviewStatus: "reviewed",
+    isPractice: false,
     managerComments: "Ready for advisory-level customer workshop shadowing.",
     managerGrade: 5,
     sentToManagerAt: "2026-06-28T17:00:00.000Z",
@@ -440,7 +445,7 @@ export function getSubtree(profileId: string, allProfiles = profiles) {
   return descendants;
 }
 
-export function getDashboardData(currentUserId = "priya"): DashboardData {
+export function getDemoDashboardData(currentUserId = "priya"): DashboardData {
   const currentUser = profiles.find((profile) => profile.id === currentUserId) ?? profiles[0];
   const myOrg = getSubtree(currentUser.id);
 

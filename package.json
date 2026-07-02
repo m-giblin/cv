@@ -8,7 +8,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "seed:demo": "node scripts/seed-demo-users.mjs",
+    "db:login": "supabase login",
+    "db:link": "supabase link --project-ref nznsjskqyupzlahivlwg",
+    "db:push": "supabase db push",
+    "db:status": "supabase migration list"
   },
   "repository": {
     "type": "git",
@@ -53,6 +59,8 @@
     "@types/react-dom": "^19.2.3",
     "eslint": "^9.39.4",
     "eslint-config-next": "^15.5.20",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^3.2.4",
+    "supabase": "^2.109.0"
   }
 }

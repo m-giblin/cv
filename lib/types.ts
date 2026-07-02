@@ -45,6 +45,7 @@ export type Competency = {
 
 export type PlanStep = {
   id: string;
+  assignmentStepId?: string;
   title: string;
   description: string;
   type: PlanStepType;
@@ -52,6 +53,9 @@ export type PlanStep = {
   status: AssignmentStatus;
   dueDate?: string;
   resourceUrl?: string;
+  contentAssetId?: string;
+  challengeId?: string;
+  simulationTemplateId?: string;
 };
 
 export type UserPlan = {
@@ -100,7 +104,13 @@ export type SimulationAssignment = {
   solutionFocus: string;
   difficulty: "foundational" | "intermediate" | "advanced";
   status: AssignmentStatus;
-  transcript: Array<{ speaker: "se" | "persona"; message: string }>;
+  transcript: Array<{ speaker: "se" | "persona" | "coach"; message: string }>;
+  templateId?: string | null;
+  promptSnapshot?: string;
+  aiRoleplay?: boolean;
+  startMessage?: string;
+  practiceRoundsRequired?: number;
+  practiceRoundsCompleted?: number;
 };
 
 export type CoachingCard = {
@@ -112,8 +122,17 @@ export type CoachingCard = {
   recommendedImprovements: string[];
   score: number;
   linkedCompetencies: string[];
+  managerSummary: string;
+  transcript?: string;
+  simulationContext?: {
+    persona: string;
+    vertical: string;
+    solutionFocus: string;
+    difficulty: string;
+  };
   seReflection: string | null;
-  managerReviewStatus: "pending" | "reviewed";
+  managerReviewStatus: "pending" | "reviewed" | "needs_revision";
+  isPractice: boolean;
   managerComments: string | null;
   managerGrade: number | null;
   sentToManagerAt: string;
@@ -140,7 +159,54 @@ export type Notification = {
   userId: string;
   title: string;
   body: string;
+  actionUrl?: string | null;
   readAt: string | null;
+  createdAt: string;
+};
+
+export type GoalStatus = "not_started" | "on_track" | "at_risk" | "achieved";
+export type GoalQuarter = "Q1" | "Q2" | "Q3" | "Q4";
+export type EvidenceType =
+  | "demo_recording"
+  | "customer_reference"
+  | "certification"
+  | "deal_support"
+  | "shadow_notes"
+  | "other";
+
+export type GoalQuarterlyReview = {
+  id: string;
+  goalId: string;
+  quarter: GoalQuarter;
+  year: number;
+  dueDate: string;
+  status: GoalStatus;
+  seEvidence: string | null;
+  seEvidenceUrl: string | null;
+  managerComments: string | null;
+  reviewedAt: string | null;
+  reviewedBy: string | null;
+};
+
+export type DevelopmentGoal = {
+  id: string;
+  planId: string;
+  competencyId: string | null;
+  title: string;
+  description: string | null;
+  evidenceType: EvidenceType;
+  sortOrder: number;
+  overallStatus: GoalStatus;
+  quarterlyReviews: GoalQuarterlyReview[];
+};
+
+export type DevelopmentPlan = {
+  id: string;
+  userId: string;
+  managerId: string | null;
+  year: number;
+  status: "active" | "archived";
+  goals: DevelopmentGoal[];
   createdAt: string;
 };
 
@@ -156,4 +222,5 @@ export type DashboardData = {
   activity: ActivityLog[];
   competencies: Competency[];
   notifications: Notification[];
+  developmentPlans?: DevelopmentPlan[];
 };

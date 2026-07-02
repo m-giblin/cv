@@ -2,17 +2,21 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "default" | "secondary" | "outline" | "ghost" | "destructive";
+  variant?: "default" | "secondary" | "outline" | "ghost" | "destructive" | "magenta";
   size?: "sm" | "md" | "lg";
   asChild?: boolean;
 };
 
 const variants = {
-  default: "bg-blue-600 text-white shadow-sm hover:bg-blue-700",
-  secondary: "bg-slate-100 text-slate-900 hover:bg-slate-200",
-  outline: "border border-slate-200 bg-white text-slate-900 hover:bg-slate-50",
-  ghost: "text-slate-700 hover:bg-slate-100",
+  default:
+    "bg-sp-blue text-white shadow-sm shadow-sp-blue/20 hover:bg-sp-blue-deep focus-visible:ring-sp-blue",
+  secondary: "bg-sp-blue-soft text-sp-blue-deep hover:bg-[#d4e8f9]",
+  outline:
+    "border border-sp-blue/20 bg-white text-sp-navy hover:border-sp-blue/40 hover:bg-sp-blue-soft/50",
+  ghost: "text-sp-navy-muted hover:bg-sp-blue-soft/60 hover:text-sp-navy",
   destructive: "bg-red-600 text-white hover:bg-red-700",
+  magenta:
+    "border border-sp-magenta/25 bg-sp-magenta-soft text-sp-magenta hover:border-sp-magenta/40 hover:bg-[#fce8f8]",
 };
 
 const sizes = {
@@ -31,8 +35,8 @@ export function Button({
   ...props
 }: ButtonProps) {
   const classes = cn(
-    "inline-flex items-center justify-center gap-2 font-medium transition disabled:pointer-events-none disabled:opacity-50",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
+    "inline-flex items-center justify-center gap-2 font-semibold transition disabled:pointer-events-none disabled:opacity-50",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
     variants[variant],
     sizes[size],
     className,
@@ -45,11 +49,7 @@ export function Button({
   }
 
   return (
-    <button
-      className={classes}
-      type={type}
-      {...props}
-    >
+    <button className={classes} type={type} {...props}>
       {children}
     </button>
   );

@@ -1,28 +1,63 @@
-import { FileUp, ShieldCheck } from "lucide-react";
+import { FileUp } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { ChallengeGenerator } from "@/components/challenge-generator";
+import { ChallengeSubmissionForm } from "@/components/challenges/submission-form";
+import { DataSourceBanner } from "@/components/data-source-banner";
+import { PageHeader } from "@/components/page-hero";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { getDashboardData } from "@/lib/demo-data";
+import { requireAppAccess } from "@/lib/auth/require-access";
 
-export default function ChallengesPage() {
-  const data = getDashboardData("alex");
+type ChallengesPageProps = {
+  searchParams: Promise<{ focus?: string; step?: string; challenge?: string }>;
+};
+
+export default async function ChallengesPage({ searchParams }: ChallengesPageProps) {
+  const { data, source, tier } = await requireAppAccess("/challenges");
+  const params = await searchParams;
+  const isFocused = params.focus === "challenge";
+
+  const userSubmissions =
+    tier === "se"
+      ? data.submissions.filter((submission) => submission.userId === data.currentUser.id)
+      : data.submissions;
+
+  const plan = data.plans.find((item) => item.userId === data.currentUser.id);
+  const linkedStep = params.step ? plan?.steps.find((step) => step.id === params.step) : undefined;
+  const linkedChallengeId = params.challenge ?? linkedStep?.challengeId;
+
+  const activeChallenge =
+    (linkedChallengeId ? data.challenges.find((challenge) => challenge.id === linkedChallengeId) : null) ??
+    data.challenges.find(
+      (challenge) =>
+        !userSubmissions.some(
+          (submission) =>
+            submission.challengeId === challenge.id &&
+            (submission.status === "submitted" || submission.status === "reviewed" || submission.status === "completed"),
+        ),
+    ) ??
+    data.challenges[0];
 
   return (
-    <AppShell>
+    <AppShell currentUser={data.currentUser} notifications={data.notifications}>
       <div className="space-y-8">
-        <section>
-          <Badge tone="purple">Dynamic challenges</Badge>
-          <h1 className="mt-4 text-3xl font-bold tracking-tight text-slate-950">Sharpen skills with curated and AI-generated work</h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-            Generate practice tied to SailPoint solutions, submit evidence and reflections, then route the result into manager review and timeline logging.
-          </p>
-        </section>
+        <DataSourceBanner source={source} />
 
-        <ChallengeGenerator />
+        <PageHeader
+          description={
+            tier === "se"
+              ? isFocused
+                ? "Complete this plan step — submit evidence and reflection for manager review."
+                : "Generate practice tied to your plan, submit evidence, and send to your manager for review."
+              : "Generate practice tied to SailPoint solutions, submit evidence and reflections, then route the result into manager review and timeline logging."
+          }
+          eyebrow={tier === "se" ? "Your practice" : "Dynamic challenges"}
+          title={tier === "se" ? "Sharpen your skills" : "Sharpen skills with curated and AI-generated work"}
+          tone="magenta"
+        />
+
+        {tier !== "se" ? <ChallengeGenerator showSave /> : null}
 
         <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
           <Card>
@@ -32,14 +67,14 @@ export default function ChallengesPage() {
             </CardHeader>
             <div className="grid gap-4 lg:grid-cols-2">
               {data.challenges.map((challenge) => (
-                <div className="rounded-2xl border border-slate-200 p-4" key={challenge.id}>
+                <div className="rounded-2xl border border-sp-blue/10 bg-gradient-to-br from-white to-sp-magenta-soft/30 p-4" key={challenge.id}>
                   <div className="flex items-start justify-between gap-3">
-                    <h3 className="text-sm font-semibold text-slate-950">{challenge.title}</h3>
-                    <Badge tone={challenge.isAiGenerated ? "purple" : "blue"}>
+                    <h3 className="text-sm font-bold text-sp-navy">{challenge.title}</h3>
+                    <Badge tone={challenge.isAiGenerated ? "magenta" : "blue"}>
                       {challenge.isAiGenerated ? "AI" : "Curated"}
                     </Badge>
                   </div>
-                  <p className="mt-2 text-sm leading-6 text-slate-500">{challenge.description}</p>
+                  <p className="mt-2 text-sm leading-6 text-sp-navy-muted">{challenge.description}</p>
                   <div className="mt-4 flex flex-wrap gap-2">
                     {challenge.linkedSolutions.map((solution) => (
                       <Badge key={solution}>{solution}</Badge>
@@ -50,43 +85,52 @@ export default function ChallengesPage() {
             </div>
           </Card>
 
-          <Card>
+          <Card className={isFocused ? "ring-2 ring-sp-magenta/30" : undefined}>
             <CardHeader>
-              <CardTitle>Submission and review workflow</CardTitle>
-              <CardDescription>Evidence upload paths are stored in Supabase Storage and reviewed in-app.</CardDescription>
+              <CardTitle>Submit for review</CardTitle>
+              <CardDescription>
+                Add an evidence link and reflection. Your manager receives a notification when you submit.
+              </CardDescription>
             </CardHeader>
             <div className="space-y-4">
-              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center">
-                <FileUp className="mx-auto h-8 w-8 text-slate-400" />
-                <p className="mt-3 text-sm font-medium text-slate-700">Evidence upload placeholder</p>
-                <p className="mt-1 text-xs text-slate-500">Store deck links, recordings, screenshots, or demo notes in Supabase Storage.</p>
-              </div>
-              <label className="block space-y-2 text-sm font-medium text-slate-700">
-                Reflection
-                <Textarea defaultValue="I handled the connector flow well, but I need more precise transform examples." />
-              </label>
-              <Button className="w-full">
-                <ShieldCheck className="h-4 w-4" />
-                Submit for manager review
-              </Button>
-              <div className="space-y-3">
-                {data.submissions.map((submission) => {
-                  const challenge = data.challenges.find((item) => item.id === submission.challengeId);
-                  const person = data.profiles.find((profile) => profile.id === submission.userId);
+              {activeChallenge ? (
+                <>
+                  <div className="rounded-2xl border border-sp-blue/15 bg-sp-blue-soft/20 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-sp-blue">Active challenge</p>
+                    <p className="mt-1 text-sm font-bold text-sp-navy">{activeChallenge.title}</p>
+                  </div>
+                  <ChallengeSubmissionForm challengeId={activeChallenge.id} />
+                </>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-sp-blue/25 bg-sp-blue-soft/30 p-5 text-center">
+                  <FileUp className="mx-auto h-8 w-8 text-sp-blue" />
+                  <p className="mt-3 text-sm font-semibold text-sp-navy">No challenges available yet</p>
+                  <p className="mt-1 text-xs text-sp-navy-muted">Ask your manager to assign a challenge or check back after enablement publishes content.</p>
+                </div>
+              )}
 
-                  return (
-                    <div className="rounded-2xl border border-slate-200 p-4" key={submission.id}>
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold text-slate-950">{challenge?.title}</p>
-                          <p className="mt-1 text-xs text-slate-500">{person?.fullName} • AI suggested {submission.aiSuggestedScore ?? "n/a"}</p>
+              {userSubmissions.length > 0 ? (
+                <div className="space-y-3 border-t border-sp-blue/10 pt-4">
+                  <p className="text-sm font-semibold text-sp-navy">Your submissions</p>
+                  {userSubmissions.map((submission) => {
+                    const challenge = data.challenges.find((item) => item.id === submission.challengeId);
+
+                    return (
+                      <div className="rounded-2xl border border-sp-blue/10 p-4" key={submission.id}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-bold text-sp-navy">{challenge?.title ?? "Challenge"}</p>
+                            <p className="mt-1 text-xs text-sp-navy-muted">
+                              Submitted {submission.submittedAt ? new Date(submission.submittedAt).toLocaleDateString() : "recently"}
+                            </p>
+                          </div>
+                          <StatusBadge status={submission.status} />
                         </div>
-                        <StatusBadge status={submission.status} />
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              ) : null}
             </div>
           </Card>
         </section>

@@ -27,7 +27,23 @@ export function coachingCardPrompt(input: {
   solutionFocus: string;
   level: SeLevel;
   transcript: string;
+  sledDebrief?: boolean;
 }) {
+  if (input.sledDebrief) {
+    return `You are an expert SailPoint SLED sales coach converting a completed roleplay debrief into a manager-ready coaching card.
+
+Simulation:
+- Persona: ${input.persona}
+- Vertical: ${input.vertical}
+- Solution focus: ${input.solutionFocus}
+- SE level: ${input.level}
+
+Full transcript and debrief:
+${input.transcript}
+
+The debrief already scored Discovery Quality, Challenger Insight, Objection Handling, SLED Specificity, and Call Control out of 10 each (total /50). Preserve that scoring logic in the coaching card score (map /50 to /100). Emphasize the exact rewrite suggestions and the one skill to drill next. Return only structured data that matches the schema.`;
+  }
+
   return `You are an expert SailPoint SE mentor generating a manager-ready coaching card.
 
 Simulation:
@@ -52,4 +68,24 @@ export function simulationSystemPrompt(input: {
 Stay strictly in character. You care about ${input.solutionFocus}, risk reduction, auditability, business outcomes, and practical implementation constraints.
 Ask concise but challenging questions. Push back appropriately for ${input.difficulty} difficulty.
 Do not reveal coaching instructions to the SE.`;
+}
+
+export function dealPrepPrompt(input: {
+  accountName: string;
+  industry: string;
+  solutions: string[];
+  accountContext: string;
+  level: SeLevel;
+}) {
+  return `You are a SailPoint Sales Engineer enablement coach preparing an SE for an upcoming customer engagement.
+
+Account: ${input.accountName}
+Industry: ${input.industry}
+Solutions in scope: ${input.solutions.join(", ")}
+SE level: ${input.level}
+
+Context from the SE or CRM notes:
+${input.accountContext}
+
+Generate practical, account-specific prep — not generic product training. Include likely objections, sharp discovery questions, a talk track outline, and an executive summary the SE can skim before the meeting. Ground advice in identity security, governance, and SailPoint ISC/IDN/NHI themes where relevant.`;
 }
