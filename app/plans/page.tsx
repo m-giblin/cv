@@ -1,3 +1,4 @@
+import dynamic from "next/dynamic";
 import { CalendarDays, GripVertical, UserCheck } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { DataSourceBanner } from "@/components/data-source-banner";
@@ -8,6 +9,15 @@ import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { getAccessTier } from "@/lib/auth/rbac";
 import { requireAppAccess } from "@/lib/auth/require-access";
+
+const ReleaseCoursesPanel = dynamic(
+  () => import("@/components/corpus/release-courses-panel").then((mod) => mod.ReleaseCoursesPanel),
+  { loading: () => <div className="h-32 animate-pulse rounded-2xl bg-stone-100" /> },
+);
+const ReleaseLaunchAnalytics = dynamic(
+  () => import("@/components/corpus/release-launch-analytics").then((mod) => mod.ReleaseLaunchAnalytics),
+  { loading: () => <div className="h-24 animate-pulse rounded-2xl bg-stone-100" /> },
+);
 
 export default async function PlansPage() {
   const { data, source, tier } = await requireAppAccess("/plans");
@@ -30,12 +40,23 @@ export default async function PlansPage() {
         <DataSourceBanner source={source} />
 
         <PageHeader
-          description="Build reusable templates, assign plans to SEs, and track step completion through the timeline."
+          description={
+            tier === "manager"
+              ? "Customize templates here. To assign a ramp, use Team overview → Onboarding plans beside your roster."
+              : "Build reusable templates, assign plans to SEs, and track step completion through the timeline."
+          }
           eyebrow="Onboarding plans"
-          title="Assignable mentor-supported plans"
+          title={tier === "manager" ? "Plan template editor" : "Assignable mentor-supported plans"}
         />
 
         <PlanManagementPanel assignees={assignees} mentors={mentors} />
+
+        {tier === "manager" || tier === "admin" ? (
+          <>
+            <ReleaseCoursesPanel assignees={assignees} />
+            <ReleaseLaunchAnalytics />
+          </>
+        ) : null}
 
         <section className="space-y-4">
           <h2 className="text-xl font-bold text-sp-navy">Active assignments</h2>

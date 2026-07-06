@@ -4,12 +4,57 @@ import { Loader2, Target } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { GoalStatusBadge } from "@/components/development/goal-status-badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SP_BLUE_BTN, SP_OUTLINE_BTN } from "@/components/se/sp-form-primitives";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { currentQuarter } from "@/lib/development/plan-utils";
-import { Competency, DevelopmentPlan, GoalQuarterlyReview, Profile } from "@/lib/types";
+import { Competency, DevelopmentPlan, GoalQuarterlyReview, GoalStatus, Profile } from "@/lib/types";
+import { cn } from "@/lib/utils";
+
+const CARD_SHELL = "rounded-xl border border-[#e2eaf5] bg-white";
+
+function NorthstarGoalStatusBadge({ status }: { status: GoalStatus }) {
+  const styles: Record<GoalStatus, string> = {
+    not_started: "bg-[#f1f5f9] text-[#64748b]",
+    on_track: "bg-[#dbeafe] text-[#1d4ed8]",
+    at_risk: "bg-[#fef3c7] text-[#b45309]",
+    achieved: "bg-[#dcfce7] text-[#15803d]",
+  };
+  const labels: Record<GoalStatus, string> = {
+    not_started: "Not started",
+    on_track: "In progress",
+    at_risk: "At risk",
+    achieved: "Achieved",
+  };
+  return (
+    <span className={cn("rounded-full px-2 py-0.5 text-[9.5px] font-bold", styles[status])}>{labels[status]}</span>
+  );
+}
+
+function quarterCellStyle(review: GoalQuarterlyReview, activeQuarter: string) {
+  if (review.reviewedAt || review.status === "achieved") {
+    return {
+      label: `${review.quarter} · Attested`,
+      labelColor: "#10b981",
+      textColor: "#475569",
+      bg: undefined as string | undefined,
+    };
+  }
+  if (review.quarter === activeQuarter) {
+    return {
+      label: `${review.quarter} · Active`,
+      labelColor: "#0071ce",
+      textColor: "#475569",
+      bg: "#f0f7ff",
+    };
+  }
+  return {
+    label: `${review.quarter} · Upcoming`,
+    labelColor: "#94a3b8",
+    textColor: "#94a3b8",
+    bg: undefined as string | undefined,
+  };
+}
 
 export function DevelopmentPlanPanel({
   competencies,
@@ -18,6 +63,7 @@ export function DevelopmentPlanPanel({
   viewerRole,
   focusReviewId,
   initialSelectedUserId,
+  northstar = false,
 }: {
   competencies: Competency[];
   assignees: Profile[];
@@ -25,6 +71,7 @@ export function DevelopmentPlanPanel({
   viewerRole: "se" | "manager" | "admin";
   focusReviewId?: string;
   initialSelectedUserId?: string;
+  northstar?: boolean;
 }) {
   const [plan, setPlan] = useState(initialPlan);
   const [isSaving, setIsSaving] = useState(false);
@@ -108,14 +155,16 @@ export function DevelopmentPlanPanel({
 
   if (showCreate) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <div className={cn(CARD_SHELL, "p-6")}>
+        <div className="mb-4 space-y-1">
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-[#0a1628]">
             <Target className="h-5 w-5 text-sp-magenta" />
             Create {year} development plan
-          </CardTitle>
-          <CardDescription>Max 5 goals. Quarterly reviews are scheduled automatically (Q1–Q4).</CardDescription>
-        </CardHeader>
+          </h2>
+          <p className="text-sm text-[#64748b]">
+            Max 5 goals. Quarterly reviews are scheduled automatically (Q1–Q4).
+          </p>
+        </div>
         <form className="space-y-4" onSubmit={createPlan}>
           <select
             className="h-10 w-full rounded-xl border border-sp-blue/15 bg-white px-3 text-sm"
@@ -191,7 +240,8 @@ export function DevelopmentPlanPanel({
             </div>
           ))}
           {goals.length < 5 ? (
-            <Button
+            <button
+              className={SP_OUTLINE_BTN}
               onClick={() =>
                 setGoals([
                   ...goals,
@@ -199,70 +249,170 @@ export function DevelopmentPlanPanel({
                 ])
               }
               type="button"
-              variant="outline"
             >
               Add goal
-            </Button>
+            </button>
           ) : null}
-          <Button className="w-full" disabled={isSaving} type="submit">
+          <button className={cn(SP_BLUE_BTN, "w-full")} disabled={isSaving} type="submit">
             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Create plan & schedule reviews
-          </Button>
+          </button>
         </form>
-      </Card>
+      </div>
     );
   }
 
   if (!plan) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>No development plan for {year}</CardTitle>
-          <CardDescription>
+      <div className={cn(CARD_SHELL, "p-6")}>
+        <div className="space-y-1">
+          <h2 className="text-lg font-semibold text-[#0a1628]">No development plan for {year}</h2>
+          <p className="text-sm text-[#64748b]">
             {viewerRole === "se"
               ? "Ask your manager to co-create your annual goals with quarterly checkpoints."
               : "Create a plan to set annual goals and auto-schedule Q1–Q4 reviews."}
-          </CardDescription>
-        </CardHeader>
+          </p>
+        </div>
         {viewerRole !== "se" ? (
-          <Button onClick={() => setShowCreate(true)}>Create development plan</Button>
+          <button className={cn(SP_BLUE_BTN, "mt-4")} onClick={() => setShowCreate(true)} type="button">
+            Create development plan
+          </button>
         ) : null}
-      </Card>
+      </div>
+    );
+  }
+
+  if (northstar) {
+    return (
+      <div className="flex flex-col gap-3">
+        {plan.goals.map((goal) => {
+          const competency = competencies.find((item) => item.id === goal.competencyId);
+          const isActive = goal.overallStatus === "on_track" || goal.overallStatus === "at_risk";
+          const headerReviewTarget =
+            goal.quarterlyReviews.find((review) => !review.reviewedAt && review.status !== "achieved") ?? goal.quarterlyReviews[0];
+
+          return (
+            <div
+              className="overflow-hidden rounded-[13px] bg-white"
+              key={goal.id}
+              style={
+                isActive
+                  ? { border: "1.5px solid rgba(0,113,206,0.2)", boxShadow: "0 2px 12px rgba(0,113,206,0.07)" }
+                  : { border: "1.5px solid #e2eaf5" }
+              }
+            >
+              <div className="flex items-center justify-between border-b border-[#f1f5f9] p-[14px_18px_12px]">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#e8f2fc]">
+                    <Target className="h-4 w-4 text-[#0071ce]" />
+                  </div>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <p className="text-[13px] font-bold text-[#0a1628]">{goal.title}</p>
+                      <NorthstarGoalStatusBadge status={goal.overallStatus} />
+                    </div>
+                    <p className="text-[10.5px] text-[#64748b]">
+                      {competency
+                        ? `Competency: ${competency.name} · FY${plan.year}`
+                        : `${goal.evidenceType.replaceAll("_", " ")} · FY${plan.year}`}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  className={SP_OUTLINE_BTN}
+                  disabled={!headerReviewTarget}
+                  onClick={() => {
+                    if (headerReviewTarget) setActiveReviewId(headerReviewTarget.id);
+                  }}
+                  type="button"
+                >
+                  Add evidence
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                {goal.quarterlyReviews.map((review, index) => {
+                  const cell = quarterCellStyle(review, quarter);
+                  return (
+                    <div
+                      className={cn(
+                        "border-[#f1f5f9] p-[11px_14px]",
+                        index < goal.quarterlyReviews.length - 1 ? "border-r" : "",
+                      )}
+                      key={review.id}
+                      style={{ background: cell.bg }}
+                    >
+                      <p
+                        className="mb-1 text-[9.5px] font-bold tracking-[0.04em]"
+                        style={{ color: cell.labelColor }}
+                      >
+                        {cell.label}
+                      </p>
+                      <p className="text-[11px] leading-[1.5]" style={{ color: cell.textColor }}>
+                        {review.seEvidence?.trim() ||
+                          review.managerComments?.trim() ||
+                          (review.reviewedAt ? "Checkpoint complete." : `Due ${review.dueDate}`)}
+                      </p>
+                      <button
+                        className="mt-2 text-[10.5px] font-semibold text-[#0071ce] hover:underline"
+                        onClick={() => setActiveReviewId(review.id)}
+                        type="button"
+                      >
+                        {review.reviewedAt ? "View" : "Add evidence"}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {activeReviewId && goal.quarterlyReviews.some((review) => review.id === activeReviewId) ? (
+                <div className="border-t border-[#f1f5f9] p-[10px_18px]">
+                  <ReviewEditor
+                    isManager={viewerRole !== "se"}
+                    isSaving={isSaving}
+                    onClose={() => setActiveReviewId("")}
+                    onSave={(payload) =>
+                      void updateReview(goal.quarterlyReviews.find((review) => review.id === activeReviewId)!, payload)
+                    }
+                    review={goal.quarterlyReviews.find((review) => review.id === activeReviewId)!}
+                  />
+                </div>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <Card className="border-sp-magenta/15 bg-gradient-to-br from-white to-sp-magenta-soft/20">
-        <CardHeader>
-          <CardTitle>
-            {plan.year} development plan
-          </CardTitle>
-          <CardDescription>
-            Current quarter: {quarter} • {plan.goals.length} goals • Quarterly manager checkpoints
-          </CardDescription>
-        </CardHeader>
-      </Card>
+      <div className={cn(CARD_SHELL, "border-sp-magenta/15 bg-gradient-to-br from-white to-sp-magenta-soft/20 p-6")}>
+        <h2 className="text-lg font-semibold text-[#0a1628]">{plan.year} development plan</h2>
+        <p className="mt-1 text-sm text-[#64748b]">
+          Current quarter: {quarter} • {plan.goals.length} goals • Quarterly manager checkpoints
+        </p>
+      </div>
 
       {plan.goals.map((goal) => {
         const competency = competencies.find((item) => item.id === goal.competencyId);
 
         return (
-          <Card key={goal.id}>
-            <CardHeader>
+          <div className={cn(CARD_SHELL, "overflow-hidden")} key={goal.id}>
+            <div className="border-b border-[#f1f5f9] p-6">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <CardTitle>{goal.title}</CardTitle>
-                  <CardDescription className="mt-1">
+                  <h3 className="text-lg font-semibold text-[#0a1628]">{goal.title}</h3>
+                  <p className="mt-1 text-sm text-[#64748b]">
                     {competency ? `${competency.category} • ${competency.name}` : goal.evidenceType.replaceAll("_", " ")}
-                  </CardDescription>
+                  </p>
                 </div>
                 <GoalStatusBadge status={goal.overallStatus} />
               </div>
               {goal.description ? <p className="mt-2 text-sm text-sp-navy-muted">{goal.description}</p> : null}
-            </CardHeader>
+            </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-3 p-6 sm:grid-cols-2 lg:grid-cols-4">
               {goal.quarterlyReviews.map((review) => (
                 <div
                   className={`rounded-2xl border p-3 text-sm ${
@@ -275,20 +425,20 @@ export function DevelopmentPlanPanel({
                     <GoalStatusBadge status={review.status} />
                   </div>
                   <p className="mt-1 text-xs text-sp-navy-muted">Due {review.dueDate}</p>
-                  <Button
-                    className="mt-2 w-full"
+                  <button
+                    className={cn(SP_OUTLINE_BTN, "mt-2 w-full justify-center")}
                     onClick={() => setActiveReviewId(review.id)}
-                    size="sm"
-                    variant="outline"
+                    type="button"
                   >
                     {review.reviewedAt ? "View" : "Update"}
-                  </Button>
+                  </button>
                 </div>
               ))}
             </div>
 
             {activeReviewId && goal.quarterlyReviews.some((review) => review.id === activeReviewId) ? (
-              <ReviewEditor
+              <div className="px-6 pb-6">
+                <ReviewEditor
                 isManager={viewerRole !== "se"}
                 isSaving={isSaving}
                 onClose={() => setActiveReviewId("")}
@@ -297,8 +447,9 @@ export function DevelopmentPlanPanel({
                 }
                 review={goal.quarterlyReviews.find((review) => review.id === activeReviewId)!}
               />
+              </div>
             ) : null}
-          </Card>
+          </div>
         );
       })}
     </div>
@@ -361,7 +512,8 @@ function ReviewEditor({
         </>
       )}
       <div className="flex gap-2">
-        <Button
+        <button
+          className={SP_BLUE_BTN}
           disabled={isSaving}
           onClick={() =>
             onSave(
@@ -370,13 +522,14 @@ function ReviewEditor({
                 : { seEvidence, seEvidenceUrl, status: "on_track" },
             )
           }
+          type="button"
         >
           {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           Save checkpoint
-        </Button>
-        <Button onClick={onClose} type="button" variant="ghost">
+        </button>
+        <button className={SP_OUTLINE_BTN} onClick={onClose} type="button">
           Cancel
-        </Button>
+        </button>
       </div>
     </div>
   );

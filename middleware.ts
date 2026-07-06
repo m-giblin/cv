@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { AUTH_ROUTES, isAuthRoute, isProtectedAppRoute } from "@/lib/auth/routes";
+import { AUTH_ROUTES, isAuthRoute, isProtectedAppRoute, isPublicApiRoute, isPublicAppRoute } from "@/lib/auth/routes";
 import { isAllowedEmail } from "@/lib/auth/email-domain";
 import { getMfaStatus, mfaRedirectPath } from "@/lib/auth/mfa";
 import {
@@ -26,6 +26,10 @@ async function getProfileRole(
   return role?.role ?? "basic_se";
 }
 
+function isMutationMethod(method: string) {
+  return method === "POST" || method === "PATCH" || method === "PUT" || method === "DELETE";
+}
+
 export async function middleware(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -36,6 +40,13 @@ export async function middleware(request: NextRequest) {
   }
 
   if (!url || !anonKey) {
+    if (
+      process.env.NODE_ENV === "production" &&
+      (isProtectedAppRoute(pathname) || pathname.startsWith("/api/"))
+    ) {
+      return NextResponse.json({ error: "Service misconfigured" }, { status: 503 });
+    }
+
     return NextResponse.next({ request });
   }
 
@@ -71,7 +82,15 @@ export async function middleware(request: NextRequest) {
   }
 
   if (!user) {
+    if (isPublicAppRoute(pathname) || isPublicApiRoute(pathname)) {
+      return response;
+    }
+
     if (isProtectedAppRoute(pathname) || pathname.startsWith("/api/")) {
+      if (pathname.startsWith("/api/")) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+
       const loginUrl = new URL(AUTH_ROUTES.login, request.url);
       loginUrl.searchParams.set("next", pathname);
       return NextResponse.redirect(loginUrl);
@@ -87,7 +106,18 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  const mfaStatus = await getMfaStatus(supabase);
+  if (
+    pathname.startsWith("/api/") &&
+    isMutationMethod(request.method) &&
+    request.headers.get("x-requested-with") !== "XMLHttpRequest"
+  ) {
+    const secFetchSite = request.headers.get("sec-fetch-site");
+    if (secFetchSite && secFetchSite !== "same-origin" && secFetchSite !== "same-site") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
+
+  const mfaStatus = await getMfaStatus(supabase, user);
   const requiredPath = mfaRedirectPath(mfaStatus);
 
   if (mfaStatus.state !== "aal2") {
@@ -111,6 +141,10 @@ export async function middleware(request: NextRequest) {
   if (isProtectedAppRoute(pathname) || pathname.startsWith("/account")) {
     const role = await getProfileRole(supabase, user.id);
     const tier: AccessTier = getAccessTier(role);
+
+    if (pathname.startsWith("/design") && tier !== "admin") {
+      return NextResponse.redirect(new URL(getHomeRoute(tier), request.url));
+    }
 
     if (!canAccessRoute(tier, pathname)) {
       return NextResponse.redirect(new URL(getHomeRoute(tier), request.url));

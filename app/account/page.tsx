@@ -11,14 +11,14 @@ export default async function AccountPage() {
   const { data, source } = await requireAppAccess("/account");
   const userCerts = await fetchCertificationsForUsers([data.currentUser.id]);
   const approvedCertCount = userCerts.filter((cert) => cert.status === "approved").length;
-  const badges = computeAccountBadges(data, approvedCertCount);
+  const { milestones, trophies } = computeAccountBadges(data, approvedCertCount);
   const plan = data.plans.find((item) => item.userId === data.currentUser.id);
 
   return (
     <AppShell currentUser={data.currentUser} notifications={data.notifications}>
       <div className="space-y-8">
         <PageHeader
-          description="Your profile, earned badges, and sign-in security — MFA is required before password changes."
+          description="Your profile, trophy case, career milestones, and sign-in security — MFA is required before password changes."
           eyebrow="Account"
           title="Your account"
           tone="magenta"
@@ -29,9 +29,10 @@ export default async function AccountPage() {
         ) : null}
 
         <AccountProfilePanel
-          badges={badges}
+          milestones={milestones}
           planProgress={plan?.progress ?? null}
           profile={data.currentUser}
+          trophies={trophies}
         />
 
         <Card>

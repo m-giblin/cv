@@ -65,7 +65,7 @@ export function ChallengeGenerator({ showSave = false }: { showSave?: boolean })
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
+    <div className="grid min-w-0 gap-6 lg:grid-cols-2">
       <Card>
         <CardHeader>
           <CardTitle>Generate a challenge</CardTitle>
@@ -73,7 +73,7 @@ export function ChallengeGenerator({ showSave = false }: { showSave?: boolean })
             Personalize by SE level, solution area, difficulty, and recent progress context.
           </CardDescription>
         </CardHeader>
-        <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
+        <form className="space-y-4 px-6 pb-6" onSubmit={form.handleSubmit(onSubmit)}>
           <label className="block space-y-2 text-sm font-medium text-slate-700">
             SE level
             <select
@@ -119,7 +119,7 @@ export function ChallengeGenerator({ showSave = false }: { showSave?: boolean })
           </CardDescription>
         </CardHeader>
         {challenge ? (
-          <div className="space-y-5">
+          <div className="space-y-5 px-6 pb-6">
             <div>
               <p className="text-sm font-semibold text-sp-navy">Steps</p>
               <ol className="mt-2 list-decimal space-y-2 pl-5 text-sm leading-6 text-slate-500">
@@ -138,7 +138,7 @@ export function ChallengeGenerator({ showSave = false }: { showSave?: boolean })
             {showSave ? <SaveChallengeButton challenge={challenge} /> : null}
           </div>
         ) : (
-          <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">
+          <div className="mx-6 mb-6 rounded-2xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">
             Submit the form to call the structured AI endpoint.
           </div>
         )}

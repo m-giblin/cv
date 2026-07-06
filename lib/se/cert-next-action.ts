@@ -36,8 +36,17 @@ export function computeCertNextAction(
   const record = certs.find((cert) => cert.certificationType === nextType);
   const status = record?.status ?? "not_started";
 
-  if (status === "approved" || status === "submitted") {
+  if (status === "approved") {
     return null;
+  }
+
+  if (status === "submitted") {
+    return {
+      certificationType: nextType,
+      label: CERT_LABELS[nextType] ?? nextType.replaceAll("_", " "),
+      status: "submitted",
+      href: "/certifications",
+    };
   }
 
   return {

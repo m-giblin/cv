@@ -1,13 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { Loader2, LockKeyhole, Mail } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { allowedEmailDomainsLabel, allowedEmailError } from "@/lib/auth/email-domain";
+import { ArrowRightIcon, GlobeIcon, LockIcon, MailIcon } from "@/components/auth/login-icons";
+import { allowedEmailError } from "@/lib/auth/email-domain";
 import { mapAuthErrorMessage } from "@/lib/auth/errors";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
 import { createClient } from "@/lib/supabase/client";
@@ -83,7 +82,7 @@ export function LoginForm({ initialError }: { initialError?: string | null }) {
 
     if (!user?.email || allowedEmailError(user.email)) {
       await supabase.auth.signOut();
-      toast.error(`Only ${allowedEmailDomainsLabel()} email addresses can sign in.`);
+      toast.error(allowedEmailError(user?.email ?? "") ?? "Sign-in was denied.");
       setIsSubmitting(false);
       return;
     }
@@ -113,62 +112,82 @@ export function LoginForm({ initialError }: { initialError?: string | null }) {
   }
 
   return (
-    <form className="space-y-4" onSubmit={handleSubmit}>
-      <div className="rounded-2xl border border-sp-blue/10 bg-sp-blue-soft/30 px-4 py-3 text-sm text-sp-navy-muted">
-        Access is restricted to <span className="font-semibold text-sp-navy">{allowedEmailDomainsLabel()}</span> accounts
-        only.
-      </div>
+    <form className="space-y-[16px]" onSubmit={handleSubmit}>
+      {ssoEnabled ? (
+        <div className="fade-up delay-2">
+          <button
+            className="flex w-full items-center justify-center gap-[8px] rounded-[10px] bg-white py-[12px] text-[14px] font-semibold text-[#1e293b] transition hover:border-[#0071ce] hover:text-[#0071ce] hover:shadow-[0_2px_10px_rgba(0,113,206,0.1)]"
+            disabled={isSubmitting}
+            onClick={() => void handleSsoSignIn()}
+            style={{ border: "1.5px solid #e2eaf5" }}
+            type="button"
+          >
+            <GlobeIcon />
+            Continue with SailPoint SSO
+          </button>
+        </div>
+      ) : null}
 
-      <label className="block space-y-2 text-sm font-semibold text-sp-navy-muted">
-        SailPoint email address
+      {ssoEnabled ? (
+        <div className="fade-up delay-2 flex items-center gap-[12px]">
+          <div className="h-px flex-1 bg-[#e2eaf5]" />
+          <span className="text-[12px] font-medium text-[#94a3b8]">or sign in with password</span>
+          <div className="h-px flex-1 bg-[#e2eaf5]" />
+        </div>
+      ) : null}
+
+      <div className="fade-up delay-3">
+        <label className="mb-[6px] block text-[12.5px] font-semibold text-[#475569]">
+          SailPoint email address
+        </label>
         <div className="relative">
-          <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-sp-blue/60" />
-          <Input
+          <MailIcon className="pointer-events-none absolute left-[13px] top-1/2 -translate-y-1/2" />
+          <input
             autoComplete="email"
-            className="pl-10"
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder={`you@sailpoint.com or demo.se@example.com`}
+            className="w-full rounded-[10px] border-[1.5px] border-[#e2eaf5] bg-white py-[11px] pl-[40px] pr-[14px] text-[14px] text-[#1e293b] outline-none transition placeholder:text-[#94a3b8] focus:border-[#0071ce] focus:shadow-[0_0_0_3px_rgba(0,113,206,0.12)]"
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@sailpoint.com or demo.se@example.com"
             required
             type="email"
             value={email}
           />
         </div>
-        <span className="text-xs font-normal text-sp-navy-muted/80">
-          Use your full email — not a username. Login checks Supabase Auth, not the profiles table alone.
-        </span>
-      </label>
+      </div>
 
-      <label className="block space-y-2 text-sm font-semibold text-sp-navy-muted">
-        Password
+      <div className="fade-up delay-3">
+        <div className="mb-[6px] flex items-center justify-between">
+          <label className="text-[12.5px] font-semibold text-[#475569]">Password</label>
+          <Link
+            className="text-[12px] font-semibold text-[#0071ce] hover:text-[#005aab]"
+            href="/login/forgot-password"
+          >
+            Forgot password?
+          </Link>
+        </div>
         <div className="relative">
-          <LockKeyhole className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-sp-blue/60" />
-          <Input
+          <LockIcon className="pointer-events-none absolute left-[13px] top-1/2 -translate-y-1/2" />
+          <input
             autoComplete="current-password"
-            className="pl-10"
-            onChange={(event) => setPassword(event.target.value)}
+            className="w-full rounded-[10px] border-[1.5px] border-[#e2eaf5] bg-white py-[11px] pl-[40px] pr-[14px] text-[14px] text-[#1e293b] outline-none transition placeholder:text-[#94a3b8] focus:border-[#0071ce] focus:shadow-[0_0_0_3px_rgba(0,113,206,0.12)]"
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
             required
             type="password"
             value={password}
           />
         </div>
-      </label>
+      </div>
 
-      <Button className="w-full" disabled={isSubmitting} size="lg" type="submit">
-        {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-        Sign in with password
-      </Button>
-
-      {ssoEnabled ? (
-        <Button className="w-full" disabled={isSubmitting} onClick={() => void handleSsoSignIn()} type="button" variant="outline">
-          Sign in with SailPoint SSO
-        </Button>
-      ) : null}
-
-      <p className="text-center text-sm">
-        <Link className="font-semibold text-sp-blue hover:text-sp-blue-deep" href="/login/forgot-password">
-          Forgot your password?
-        </Link>
-      </p>
+      <div className="fade-up delay-4">
+        <button
+          className="flex w-full items-center justify-center gap-[8px] rounded-[10px] bg-[#0071ce] py-[13px] text-[14px] font-bold text-white transition hover:-translate-y-px hover:bg-[#005aab] hover:shadow-[0_6px_20px_rgba(0,113,206,0.32)] disabled:opacity-60"
+          disabled={isSubmitting}
+          type="submit"
+        >
+          {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRightIcon />}
+          Sign in
+        </button>
+      </div>
     </form>
   );
 }

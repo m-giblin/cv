@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { submitAssignmentStep } from "@/lib/plans/complete-step";
+import { StepSegmentLockedError } from "@/lib/plans/segment-lock";
 import { createClient } from "@/lib/supabase/server";
 
 const schema = z.object({
@@ -41,6 +42,9 @@ export async function PATCH(
 
     return NextResponse.json({ success: true, ...result });
   } catch (error) {
+    if (error instanceof StepSegmentLockedError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Could not submit step" },
       { status: 400 },

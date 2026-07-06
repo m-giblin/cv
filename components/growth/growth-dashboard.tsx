@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { ArrowRight, Bot, CalendarClock, Target, Trophy } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityFeed } from "@/components/activity-feed";
+import { GapChallengeRecommendations } from "@/components/challenges/gap-challenge-recommendations";
+import { CompetencyFlightCheck } from "@/components/assessments/competency-flight-check";
 import { MetricCard } from "@/components/metric-card";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +16,9 @@ import {
   computeCareerProgress,
   practiceCadenceMessage,
 } from "@/lib/growth/career-readiness";
+import { ALL_CERT_ORDER } from "@/lib/certifications/gate-metadata";
 import { profileLevelLabel } from "@/lib/utils/level-label";
+import { recommendChallengesForGaps } from "@/lib/challenges/gap-recommendations";
 import { DashboardData } from "@/lib/types";
 
 export function GrowthDashboard({ data }: { data: DashboardData }) {
@@ -54,14 +58,27 @@ export function GrowthDashboard({ data }: { data: DashboardData }) {
     avgSimScore,
   });
 
+  const gapRecommendations = useMemo(() => {
+    const reviewed = new Set(
+      data.submissions
+        .filter((s) => s.userId === userId && s.status === "reviewed")
+        .map((s) => s.challengeId),
+    );
+    return recommendChallengesForGaps(data, userId, reviewed);
+  }, [data, userId]);
+
   return (
     <div className="space-y-8">
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard icon={Target} label="Plan progress" value={`${plan?.progress ?? 0}%`} helper={plan?.name ?? "No active plan"} />
         <MetricCard icon={Bot} label="Avg. sim score" value={avgSimScore !== null ? avgSimScore.toFixed(1) : "—"} helper={`${myCards.length} coaching cards`} accent="magenta" />
-        <MetricCard icon={Trophy} label="Certifications" value={`${approvedCerts.length} / 5`} helper="Approved gates" />
+        <MetricCard icon={Trophy} label="Certifications" value={`${approvedCerts.length} / ${ALL_CERT_ORDER.length}`} helper="Approved gates incl. agentic" />
         <MetricCard icon={CalendarClock} label="Practice cadence" value={lastSim ? "Active" : "Start"} helper={practiceCadenceMessage(lastSim?.createdAt ?? null)} accent="magenta" />
       </section>
+
+      <GapChallengeRecommendations recommendations={gapRecommendations} />
+
+      <CompetencyFlightCheck />
 
       <Card>
         <CardHeader>

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { generatedChallengeSchema } from "@/lib/ai/schemas";
+import { requireManagerSession } from "@/lib/auth/require-manager";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET() {
@@ -27,18 +28,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
-
-  if (!supabase) {
-    return NextResponse.json({ error: "Supabase not configured" }, { status: 503 });
-  }
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const session = await requireManagerSession();
+  if (session instanceof NextResponse) {
+    return session;
   }
 
   const parsed = generatedChallengeSchema.safeParse(await request.json());
@@ -49,7 +41,7 @@ export async function POST(request: Request) {
 
   const challenge = parsed.data;
 
-  const { data, error } = await supabase
+  const { data, error } = await session.supabase
     .from("challenges")
     .insert({
       title: challenge.title,
@@ -60,7 +52,7 @@ export async function POST(request: Request) {
       difficulty: challenge.difficulty,
       estimated_minutes: challenge.estimatedMinutes,
       is_ai_generated: true,
-      created_by: user.id,
+      created_by: session.user.id,
       ai_metadata: { linkedResources: challenge.linkedResources },
     })
     .select("id")

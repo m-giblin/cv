@@ -43,6 +43,7 @@ export type SeCoachingSummary = {
   talkingPoints: string[];
   quarterlyChip: string | null;
   quarterlyLabel: string | null;
+  certPendingChip: string | null;
   cohortShortLabel: string | null;
   certsLabel: string;
 };
@@ -259,6 +260,9 @@ export function buildSeCoachingSummary(params: {
     ? `${certSummary.approved}/${certSummary.total || certSummary.items.length} certs`
     : `${approvedCerts.length} certs`;
 
+  const pendingCerts = certSummary?.items.filter((item) => item.status === "submitted").length ?? 0;
+  const certPendingChip = pendingCerts > 0 ? `${pendingCerts} cert pending` : null;
+
   return {
     health,
     healthLabel: HEALTH_LABELS[health],
@@ -284,6 +288,7 @@ export function buildSeCoachingSummary(params: {
     talkingPoints,
     quarterlyChip: quarterlyAlert?.rosterChip ?? null,
     quarterlyLabel: quarterlyAlert?.label ?? null,
+    certPendingChip,
     cohortShortLabel,
     certsLabel,
   };

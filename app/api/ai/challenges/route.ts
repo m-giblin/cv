@@ -3,7 +3,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { challengePrompt } from "@/lib/ai/prompts";
 import { generatedChallengeSchema } from "@/lib/ai/schemas";
-import { getConfiguredProvider } from "@/lib/ai/provider";
+import { resolveAiProvider } from "@/lib/ai/provider";
+import { enforceAiRateLimit } from "@/lib/ai/enforce-rate-limit";
+import { logAiUsage } from "@/lib/ai/log-usage";
 import { requireAuthenticatedSession } from "@/lib/auth/require-authenticated";
 
 const requestSchema = z.object({
@@ -25,7 +27,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { model, provider, modelName } = getConfiguredProvider();
+  const rateLimited = await enforceAiRateLimit(session.supabase, session.user.id);
+  if (rateLimited) {
+    return rateLimited;
+  }
+
+  const { model, provider, modelName } = await resolveAiProvider();
 
   if (!model) {
     return NextResponse.json({
@@ -61,6 +68,14 @@ export async function POST(request: Request) {
       isEnabled: true,
       functionId: "generate-challenge",
     },
+  });
+
+  await logAiUsage(session.supabase, {
+    feature: "challenge",
+    provider,
+    model: modelName,
+    userId: session.user.id,
+    usage: result.usage,
   });
 
   return NextResponse.json({

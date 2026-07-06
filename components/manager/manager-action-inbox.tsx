@@ -1,14 +1,16 @@
 "use client";
 
 import { CheckCircle2, ChevronDown, ChevronUp, Loader2, RotateCcw } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import type { PlanStepReviewItem } from "@/components/manager/plan-step-review-panel";
+import type { CertReviewItem } from "@/components/manager/cert-review-item";
+import type { DealPrepReviewItem } from "@/components/manager/deal-prep-review-item";
 import type { ReviewItem } from "@/components/manager/review-queue";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ManagerCopilotDraft } from "@/components/manager/manager-copilot-draft";
+import { ManagerOutlineBtn } from "@/components/manager/manager-ui-primitives";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -20,34 +22,224 @@ type MentorItem = {
   seName?: string;
 };
 
+type PitchItem = {
+  id: string;
+  userId: string;
+  title: string;
+  personName: string;
+  reflectionText: string | null;
+  createdAt: string;
+};
+
 type InboxItem =
   | ({ inboxType: "submission" } & Extract<ReviewItem, { kind: "submission" }>)
   | ({ inboxType: "coaching" } & Extract<ReviewItem, { kind: "coaching" }>)
   | ({ inboxType: "plan_step" } & PlanStepReviewItem)
-  | ({ inboxType: "mentor" } & MentorItem);
+  | ({ inboxType: "mentor" } & MentorItem)
+  | ({ inboxType: "cert" } & CertReviewItem)
+  | ({ inboxType: "deal_prep" } & DealPrepReviewItem)
+  | ({ inboxType: "pitch" } & PitchItem);
 
-type Filter = "all" | "submission" | "coaching" | "plan_step" | "mentor";
+type Filter = "all" | "submission" | "coaching" | "plan_step" | "cert";
 
 const FILTER_LABELS: Record<Filter, string> = {
   all: "All",
   submission: "Challenges",
-  coaching: "Simulations",
+  coaching: "Sim cards",
   plan_step: "Plan steps",
-  mentor: "Mentor",
+  cert: "Cert sign-offs",
 };
+
+const SPEC_FILTERS: Filter[] = ["all", "submission", "coaching", "plan_step", "cert"];
+
+type InboxVisualConfig = {
+  type: string;
+  border: string;
+  typeBg: string;
+  typeColor: string;
+  iconBg: string;
+  iconColor: string;
+  approveBg: string;
+  approveColor: string;
+  approveLabel: string;
+  previewBg: string;
+  previewBorder: string;
+  urgColor: string;
+};
+
+function inboxVisualConfig(item: InboxItem): InboxVisualConfig {
+  switch (item.inboxType) {
+    case "submission":
+      return {
+        type: "Challenge",
+        border: "2px solid rgba(124,58,237,0.15)",
+        typeBg: "#ede9fe",
+        typeColor: "#5b21b6",
+        iconBg: "#ede9fe",
+        iconColor: "#7c3aed",
+        approveBg: "#dcfce7",
+        approveColor: "#15803d",
+        approveLabel: "Approve",
+        previewBg: "#faf5ff",
+        previewBorder: "rgba(124,58,237,0.1)",
+        urgColor: "#d97706",
+      };
+    case "coaching":
+      return {
+        type: "Sim card",
+        border: "1.5px solid #e2eaf5",
+        typeBg: "#fdf0fa",
+        typeColor: "#a51e8e",
+        iconBg: "#fdf0fa",
+        iconColor: "#cc27b0",
+        approveBg: "#fee2e2",
+        approveColor: "#dc2626",
+        approveLabel: "Flag for redo",
+        previewBg: "#fdf0fa",
+        previewBorder: "#f1f5f9",
+        urgColor: item.score < 70 ? "#ef4444" : "#64748b",
+      };
+    case "plan_step":
+      return {
+        type: "Plan step",
+        border: "1.5px solid #e2eaf5",
+        typeBg: "#dbeafe",
+        typeColor: "#1d4ed8",
+        iconBg: "#e8f2fc",
+        iconColor: "#0071ce",
+        approveBg: "#dcfce7",
+        approveColor: "#15803d",
+        approveLabel: "Validate",
+        previewBg: "#f0f7ff",
+        previewBorder: "#e2eaf5",
+        urgColor: "#0071ce",
+      };
+    case "cert":
+      return {
+        type: "Cert gate",
+        border: "1.5px solid rgba(16,185,129,0.2)",
+        typeBg: "#dcfce7",
+        typeColor: "#15803d",
+        iconBg: "#dcfce7",
+        iconColor: "#16a34a",
+        approveBg: "#0071ce",
+        approveColor: "white",
+        approveLabel: "Sign off →",
+        previewBg: "#f0fdf4",
+        previewBorder: "rgba(16,185,129,0.15)",
+        urgColor: "#16a34a",
+      };
+    default:
+      return {
+        type: "Review",
+        border: "1.5px solid #e2eaf5",
+        typeBg: "#f1f5f9",
+        typeColor: "#475569",
+        iconBg: "#f1f5f9",
+        iconColor: "#64748b",
+        approveBg: "#dcfce7",
+        approveColor: "#15803d",
+        approveLabel: "Approve",
+        previewBg: "#f8fafd",
+        previewBorder: "#e2eaf5",
+        urgColor: "#64748b",
+      };
+  }
+}
+
+function InboxTypeIcon({ color }: { color: string }) {
+  return (
+    <svg fill="none" height="16" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" viewBox="0 0 16 16" width="16">
+      <path d="M2 4h12v9H2z" />
+      <path d="M5 2h6v2H5z" />
+    </svg>
+  );
+}
+
+function buildInboxItems(
+  reviewItems: ReviewItem[],
+  planSteps: PlanStepReviewItem[],
+  certItems: CertReviewItem[],
+  dealPrepItems: DealPrepReviewItem[],
+  pitchItems: PitchItem[],
+  mentorItems: MentorItem[],
+): InboxItem[] {
+  return [
+    ...reviewItems.map((item) =>
+      item.kind === "submission"
+        ? ({ inboxType: "submission" as const, ...item } as InboxItem)
+        : ({ inboxType: "coaching" as const, ...item } as InboxItem),
+    ),
+    ...planSteps.map((item) => ({ inboxType: "plan_step" as const, ...item })),
+    ...certItems.map((item) => ({ inboxType: "cert" as const, ...item })),
+    ...dealPrepItems.map((item) => ({ inboxType: "deal_prep" as const, ...item })),
+    ...pitchItems.map((item) => ({ inboxType: "pitch" as const, ...item })),
+    ...mentorItems.map((item) => ({ inboxType: "mentor" as const, ...item })),
+  ];
+}
+
+function inboxItemKey(item: InboxItem) {
+  if (item.inboxType === "plan_step") return `plan-${item.assignmentStepId}`;
+  if (item.inboxType === "mentor") return `mentor-${item.id}`;
+  if (item.inboxType === "cert") return `cert-${item.id}`;
+  if (item.inboxType === "deal_prep") return `prep-${item.id}`;
+  if (item.inboxType === "pitch") return `pitch-${item.id}`;
+  if (item.inboxType === "coaching") return `coaching-${item.id}`;
+  return `submission-${item.id}`;
+}
+
+function itemTitle(item: InboxItem) {
+  if (item.inboxType === "mentor") return item.topic;
+  if (item.inboxType === "cert") return item.label;
+  if (item.inboxType === "deal_prep") return `${item.accountName} · ${item.industry}`;
+  if (item.inboxType === "pitch") return item.title;
+  if (item.inboxType === "plan_step") return item.title;
+  return item.title;
+}
+
+function itemSubtitle(item: InboxItem) {
+  if (item.inboxType === "mentor") return item.seName ?? "SE";
+  if (item.inboxType === "coaching") return `${item.personName} · Score ${item.score}`;
+  if (item.inboxType === "plan_step") return `${item.personName} · ${item.stepType.replaceAll("_", " ")}`;
+  if (item.inboxType === "cert") return item.personName;
+  if (item.inboxType === "deal_prep") return item.personName;
+  if (item.inboxType === "pitch") return item.personName;
+  return item.personName;
+}
+
+function itemPreview(item: InboxItem) {
+  if (item.inboxType === "coaching") {
+    return item.managerSummary || item.strengths[0] || item.gaps[0] || "Simulation coaching card awaiting review.";
+  }
+  if (item.inboxType === "mentor" && item.seNotes) return item.seNotes;
+  if (item.inboxType === "pitch" && item.reflectionText) return item.reflectionText;
+  if (item.inboxType === "deal_prep") return `Deal prep shared by ${item.personName}`;
+  return itemTitle(item);
+}
+
+function itemUrgency(item: InboxItem) {
+  if (item.inboxType === "coaching" && item.score < 70) return "Below target";
+  if (item.inboxType === "cert") return "Awaiting sign-off";
+  return "Needs review";
+}
 
 export function ManagerActionInbox({
   reviewItems,
   planSteps,
+  certItems = [],
+  dealPrepItems = [],
 }: {
   reviewItems: ReviewItem[];
   planSteps: PlanStepReviewItem[];
+  certItems?: CertReviewItem[];
+  dealPrepItems?: DealPrepReviewItem[];
 }) {
   const router = useRouter();
   const [mentorItems, setMentorItems] = useState<MentorItem[]>([]);
   const [mentorLoading, setMentorLoading] = useState(true);
-  const [localReviewItems, setLocalReviewItems] = useState(reviewItems);
-  const [localPlanSteps, setLocalPlanSteps] = useState(planSteps);
+  const [pitchItems, setPitchItems] = useState<PitchItem[]>([]);
+  const [pitchLoading, setPitchLoading] = useState(true);
+  const [removedKeys, setRemovedKeys] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<Filter>("all");
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const [feedback, setFeedback] = useState("");
@@ -55,14 +247,6 @@ export function ManagerActionInbox({
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [savingDecision, setSavingDecision] = useState<"approve" | "reject" | null>(null);
   const [expandedTranscript, setExpandedTranscript] = useState<string | null>(null);
-
-  useEffect(() => {
-    setLocalReviewItems(reviewItems);
-  }, [reviewItems]);
-
-  useEffect(() => {
-    setLocalPlanSteps(planSteps);
-  }, [planSteps]);
 
   useEffect(() => {
     void fetch("/api/mentor-reviews")
@@ -73,55 +257,51 @@ export function ManagerActionInbox({
       .finally(() => setMentorLoading(false));
   }, []);
 
+  useEffect(() => {
+    void fetch("/api/pitch/submissions/pending")
+      .then((response) => (response.ok ? response.json() : { pitches: [] }))
+      .then((body: { pitches: PitchItem[] }) => setPitchItems(body.pitches ?? []))
+      .finally(() => setPitchLoading(false));
+  }, []);
+
   const allItems: InboxItem[] = useMemo(
-    () => [
-      ...localReviewItems.map((item) =>
-        item.kind === "submission"
-          ? ({ inboxType: "submission" as const, ...item } as InboxItem)
-          : ({ inboxType: "coaching" as const, ...item } as InboxItem),
+    () =>
+      buildInboxItems(reviewItems, planSteps, certItems, dealPrepItems, pitchItems, mentorItems).filter(
+        (item) => !removedKeys.has(inboxItemKey(item)),
       ),
-      ...localPlanSteps.map((item) => ({ inboxType: "plan_step" as const, ...item })),
-      ...mentorItems.map((item) => ({ inboxType: "mentor" as const, ...item })),
-    ],
-    [localReviewItems, localPlanSteps, mentorItems],
+    [reviewItems, planSteps, certItems, dealPrepItems, pitchItems, mentorItems, removedKeys],
   );
 
   const counts = useMemo(
     () => ({
       all: allItems.length,
-      submission: localReviewItems.filter((item) => item.kind === "submission").length,
-      coaching: localReviewItems.filter((item) => item.kind === "coaching").length,
-      plan_step: localPlanSteps.length,
-      mentor: mentorItems.length,
+      submission: allItems.filter(
+        (item) => item.inboxType === "submission" || item.inboxType === "mentor" || item.inboxType === "pitch",
+      ).length,
+      coaching: allItems.filter((item) => item.inboxType === "coaching").length,
+      plan_step: allItems.filter((item) => item.inboxType === "plan_step").length,
+      cert: allItems.filter((item) => item.inboxType === "cert").length,
     }),
-    [allItems.length, localPlanSteps.length, localReviewItems, mentorItems.length],
+    [allItems],
   );
 
-  const visible = allItems.filter((item) => filter === "all" || item.inboxType === filter);
+  const visible = allItems.filter((item) => {
+    if (filter === "all") return true;
+    if (filter === "submission") {
+      return item.inboxType === "submission" || item.inboxType === "mentor" || item.inboxType === "pitch";
+    }
+    if (filter === "coaching") {
+      return item.inboxType === "coaching" || item.inboxType === "deal_prep";
+    }
+    return item.inboxType === filter;
+  });
 
   function itemKey(item: InboxItem) {
-    if (item.inboxType === "plan_step") return `plan-${item.assignmentStepId}`;
-    if (item.inboxType === "mentor") return `mentor-${item.id}`;
-    if (item.inboxType === "coaching") return `coaching-${item.id}`;
-    return `submission-${item.id}`;
+    return inboxItemKey(item);
   }
 
   function removeItemFromLocalState(item: InboxItem) {
-    if (item.inboxType === "plan_step") {
-      setLocalPlanSteps((current) =>
-        current.filter((step) => step.assignmentStepId !== item.assignmentStepId),
-      );
-    } else if (item.inboxType === "mentor") {
-      setMentorItems((current) => current.filter((request) => request.id !== item.id));
-    } else if (item.inboxType === "coaching") {
-      setLocalReviewItems((current) =>
-        current.filter((entry) => !(entry.kind === "coaching" && entry.id === item.id)),
-      );
-    } else {
-      setLocalReviewItems((current) =>
-        current.filter((entry) => !(entry.kind === "submission" && entry.id === item.id)),
-      );
-    }
+    setRemovedKeys((current) => new Set(current).add(itemKey(item)));
   }
 
   async function submitReview(item: InboxItem, decision: "approve" | "reject") {
@@ -162,6 +342,31 @@ export function ManagerActionInbox({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ decision, feedback: feedback.trim() }),
       });
+    } else if (item.inboxType === "cert") {
+      response = await fetch(`/api/certifications/${item.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: decision === "approve" ? "approved" : "revoked",
+          managerNotes: feedback.trim(),
+        }),
+      });
+    } else if (item.inboxType === "deal_prep") {
+      response = await fetch(`/api/deal-prep/sessions/${item.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ managerComment: feedback.trim() }),
+      });
+    } else if (item.inboxType === "pitch") {
+      response = await fetch(`/api/pitch/submissions/${item.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: decision === "approve" ? "reviewed" : "rejected",
+          managerFeedback: feedback.trim(),
+          managerGrade: decision === "approve" ? Number(grade) : undefined,
+        }),
+      });
     } else {
       response = await fetch("/api/mentor-reviews", {
         method: "PATCH",
@@ -189,116 +394,125 @@ export function ManagerActionInbox({
     router.refresh();
   }
 
-  function typeLabel(item: InboxItem) {
-    switch (item.inboxType) {
-      case "submission":
-        return "Challenge";
-      case "coaching":
-        return "Simulation";
-      case "plan_step":
-        return "Plan step";
-      case "mentor":
-        return "Mentor";
-    }
-  }
-
   return (
-    <Card className="border-sp-magenta/15">
-      <CardHeader className="pb-3">
-        <CardTitle>Action inbox</CardTitle>
-        <CardDescription>
-          Validate SE work — approve or send back for revision. Completed reviews move to history below.
-        </CardDescription>
-        <div className="flex flex-wrap gap-2 pt-2">
-          {(Object.keys(FILTER_LABELS) as Filter[]).map((key) => (
+    <div>
+      <div className="mb-[16px] flex flex-wrap gap-[8px]">
+        {SPEC_FILTERS.map((key) => {
+          if (key !== "all" && counts[key] === 0) return null;
+          return (
             <button
-              className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                filter === key
-                  ? "bg-sp-magenta text-white"
-                  : "bg-sp-blue-soft/50 text-sp-navy-muted hover:bg-sp-blue-soft"
-              }`}
+              className="rounded-full px-[16px] py-[7px] text-[12px] font-semibold transition"
               key={key}
               onClick={() => setFilter(key)}
+              style={
+                filter === key
+                  ? { background: "#00143a", color: "white", border: "1.5px solid #00143a" }
+                  : { background: "white", color: "#64748b", border: "1.5px solid #e2eaf5" }
+              }
               type="button"
             >
               {FILTER_LABELS[key]}
               {counts[key] > 0 ? ` (${counts[key]})` : ""}
             </button>
-          ))}
-        </div>
-      </CardHeader>
+          );
+        })}
+      </div>
 
-      {mentorLoading && filter === "mentor" ? (
-        <div className="flex justify-center border-t border-sp-blue/10 py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-sp-blue" />
+      {mentorLoading || pitchLoading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-[#0071ce]" />
         </div>
       ) : visible.length === 0 ? (
-        <div className="border-t border-sp-blue/10 px-6 py-12 text-center">
-          <CheckCircle2 className="mx-auto h-10 w-10 text-green-500" />
-          <p className="mt-3 font-semibold text-sp-navy">Inbox clear</p>
-          <p className="mt-1 text-sm text-sp-navy-muted">No items waiting in this filter.</p>
+        <div className="rounded-xl border border-[#e2eaf5] py-12 text-center">
+          <CheckCircle2 className="mx-auto h-10 w-10 text-[#10b981]" />
+          <p className="mt-3 font-semibold text-[#0a1628]">Inbox clear</p>
+          <p className="mt-1 text-[12.5px] text-[#64748b]">No items waiting in this filter.</p>
         </div>
       ) : (
-        <div className="max-h-[calc(100vh-14rem)] space-y-2 overflow-y-auto border-t border-sp-blue/10 p-4">
+        <div className={`space-y-[10px] max-h-[calc(100vh-14rem)] overflow-y-auto`}>
           {visible.map((item) => {
             const key = itemKey(item);
             const isOpen = activeKey === key;
             const isCoaching = item.inboxType === "coaching";
             const isSavingThis = savingKey === key;
-            const personName =
-              item.inboxType === "mentor" ? (item.seName ?? "SE") : item.personName;
-            const title = item.inboxType === "mentor" ? item.topic : item.title;
+            const visual = inboxVisualConfig(item);
 
             return (
-              <div
-                className={`rounded-xl border transition ${isOpen ? "border-sp-magenta/30 bg-white shadow-sm" : "border-sp-blue/10 bg-sp-blue-soft/10"}`}
-                key={key}
-              >
-                <div className="flex items-start justify-between gap-3 p-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge tone={item.inboxType === "coaching" ? "magenta" : "amber"}>
-                        {typeLabel(item)}
-                      </Badge>
-                      {isCoaching ? (
-                        <span className="text-xs font-bold text-sp-navy">Score {item.score}</span>
-                      ) : null}
-                    </div>
-                    <p className="mt-1 text-sm font-bold text-sp-navy">{personName}</p>
-                    <p className="truncate text-sm text-sp-navy-muted">{title}</p>
-                  </div>
-                  <Button
-                    onClick={() => {
-                      setActiveKey(isOpen ? null : key);
-                      setFeedback("");
-                    }}
-                    size="sm"
-                    variant="outline"
+              <div className="overflow-hidden rounded-[13px] bg-white" key={key} style={{ border: visual.border }}>
+                <div className="flex items-start gap-[14px] p-[15px_18px]">
+                  <div
+                    className="flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-[9px]"
+                    style={{ background: visual.iconBg }}
                   >
-                    {isOpen ? "Close" : "Review"}
-                  </Button>
+                    <InboxTypeIcon color={visual.iconColor} />
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-[4px] flex items-center gap-[8px]">
+                      <span
+                        className="rounded-full px-[8px] py-[2px] text-[9.5px] font-bold"
+                        style={{ background: visual.typeBg, color: visual.typeColor }}
+                      >
+                        {visual.type}
+                      </span>
+                      <span className="text-[9.5px] font-semibold" style={{ color: visual.urgColor }}>
+                        {itemUrgency(item)}
+                      </span>
+                    </div>
+                    <p className="mb-[3px] font-display text-[13.5px] font-bold text-[#0a1628]">{itemTitle(item)}</p>
+                    <p className="text-[11.5px] text-[#64748b]">{itemSubtitle(item)}</p>
+                  </div>
+
+                  <div className="flex shrink-0 gap-[7px]">
+                    <ManagerOutlineBtn
+                      onClick={() => {
+                        setActiveKey(isOpen ? null : key);
+                        setFeedback("");
+                      }}
+                    >
+                      Give feedback
+                    </ManagerOutlineBtn>
+                    <button
+                      className="inline-flex items-center rounded-md px-[10px] py-[5px] text-[11px] font-semibold"
+                      onClick={() => {
+                        setActiveKey(isOpen ? null : key);
+                        setFeedback("");
+                      }}
+                      style={{ background: visual.approveBg, color: visual.approveColor }}
+                      type="button"
+                    >
+                      {visual.approveLabel}
+                    </button>
+                  </div>
                 </div>
 
+                {!isOpen ? (
+                  <div
+                    className="border-t px-[18px] py-[10px] pb-[14px]"
+                    style={{ background: visual.previewBg, borderColor: visual.previewBorder }}
+                  >
+                    <p className="text-[11px] italic leading-[1.6] text-[#475569]">&ldquo;{itemPreview(item)}&rdquo;</p>
+                  </div>
+                ) : null}
+
                 {isOpen && item.inboxType === "mentor" && item.seNotes ? (
-                  <p className="border-t border-sp-blue/10 px-3 py-2 text-sm text-sp-navy-muted">
-                    {item.seNotes}
-                  </p>
+                  <p className="border-t border-[#f1f5f9] px-[18px] py-2 text-[11.5px] text-[#64748b]">{item.seNotes}</p>
                 ) : null}
 
                 {isOpen && isCoaching ? (
-                  <div className="space-y-3 border-t border-sp-blue/10 px-3 pb-3 pt-2">
+                  <div className="space-y-3 border-t border-[#f1f5f9] px-[18px] pb-3 pt-2">
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div>
-                        <p className="text-xs font-semibold text-sp-navy">Strengths</p>
-                        <ul className="mt-1 list-disc pl-4 text-xs text-sp-navy-muted">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.07em] text-[#64748b]">Strengths</p>
+                        <ul className="mt-1 list-disc pl-4 text-[11px] text-[#475569]">
                           {item.strengths.slice(0, 3).map((s) => (
                             <li key={s}>{s}</li>
                           ))}
                         </ul>
                       </div>
                       <div>
-                        <p className="text-xs font-semibold text-sp-navy">Gaps</p>
-                        <ul className="mt-1 list-disc pl-4 text-xs text-sp-navy-muted">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.07em] text-[#64748b]">Gaps</p>
+                        <ul className="mt-1 list-disc pl-4 text-[11px] text-[#475569]">
                           {item.gaps.slice(0, 3).map((g) => (
                             <li key={g}>{g}</li>
                           ))}
@@ -308,10 +522,8 @@ export function ManagerActionInbox({
                     {item.transcript ? (
                       <div>
                         <button
-                          className="flex items-center gap-1 text-xs font-semibold text-sp-blue"
-                          onClick={() =>
-                            setExpandedTranscript(expandedTranscript === key ? null : key)
-                          }
+                          className="flex items-center gap-1 text-[11px] font-semibold text-[#0071ce]"
+                          onClick={() => setExpandedTranscript(expandedTranscript === key ? null : key)}
                           type="button"
                         >
                           {expandedTranscript === key ? (
@@ -322,7 +534,7 @@ export function ManagerActionInbox({
                           Transcript
                         </button>
                         {expandedTranscript === key ? (
-                          <pre className="mt-1 max-h-40 overflow-y-auto whitespace-pre-wrap rounded-lg bg-slate-50 p-2 text-[11px] leading-5 text-slate-600">
+                          <pre className="mt-1 max-h-40 overflow-y-auto whitespace-pre-wrap rounded-lg bg-[#f8fafd] p-2 text-[11px] leading-5 text-[#475569]">
                             {item.transcript}
                           </pre>
                         ) : null}
@@ -332,18 +544,56 @@ export function ManagerActionInbox({
                 ) : null}
 
                 {isOpen ? (
-                  <div className="space-y-3 border-t border-sp-blue/10 px-3 pb-3 pt-2">
+                  <div className="space-y-3 border-t border-[#f1f5f9] px-[18px] pb-[14px] pt-3">
+                    {isCoaching ? (
+                      <ManagerCopilotDraft
+                        gaps={item.gaps}
+                        onDraft={setFeedback}
+                        strengths={item.strengths}
+                        transcript={item.transcript}
+                      />
+                    ) : item.inboxType === "submission" ? (
+                      <ManagerCopilotDraft
+                        context={`Challenge: ${item.title}\nSE: ${item.personName}`}
+                        onDraft={setFeedback}
+                      />
+                    ) : item.inboxType === "cert" ? (
+                      <ManagerCopilotDraft
+                        context={`Certification: ${item.label}\nSE: ${item.personName}`}
+                        onDraft={setFeedback}
+                      />
+                    ) : item.inboxType === "deal_prep" ? (
+                      <ManagerCopilotDraft
+                        context={`Deal prep for ${item.accountName} (${item.industry})`}
+                        onDraft={setFeedback}
+                      />
+                    ) : item.inboxType === "pitch" ? (
+                      <ManagerCopilotDraft
+                        context={`Video pitch: ${item.title}\nSE: ${item.personName}\nReflection: ${item.reflectionText ?? "—"}`}
+                        onDraft={setFeedback}
+                      />
+                    ) : null}
+                    {item.inboxType === "pitch" ? (
+                      <Link
+                        className="text-[11px] font-semibold text-[#0071ce] hover:underline"
+                        href={`/pitch?review=${item.id}`}
+                        target="_blank"
+                      >
+                        Watch video pitch →
+                      </Link>
+                    ) : null}
                     <Textarea
+                      className="border-[#e2eaf5] text-[12px]"
                       onChange={(e) => setFeedback(e.target.value)}
                       placeholder="Coaching feedback — what worked, what to improve…"
                       rows={3}
                       value={feedback}
                     />
-                    {item.inboxType === "submission" || item.inboxType === "coaching" ? (
-                      <label className="block text-xs font-semibold text-sp-navy-muted">
+                    {item.inboxType === "submission" || item.inboxType === "coaching" || item.inboxType === "pitch" ? (
+                      <label className="block text-[11px] font-semibold text-[#64748b]">
                         Grade (1–5)
                         <Input
-                          className="mt-1 max-w-[100px]"
+                          className="mt-1 max-w-[100px] border-[#e2eaf5]"
                           max={5}
                           min={1}
                           onChange={(e) => setGrade(e.target.value)}
@@ -352,26 +602,26 @@ export function ManagerActionInbox({
                         />
                       </label>
                     ) : null}
-                    <div className="flex flex-wrap gap-2">
-                      <Button
+                    <div className="flex flex-wrap gap-[7px]">
+                      <button
+                        className="inline-flex items-center gap-1 rounded-md px-[10px] py-[5px] text-[11px] font-semibold text-white disabled:opacity-60"
                         disabled={isSavingThis}
                         onClick={() => void submitReview(item, "approve")}
-                        size="sm"
-                        variant="default"
+                        style={{ background: visual.approveBg, color: visual.approveColor }}
+                        type="button"
                       >
                         {isSavingThis && savingDecision === "approve" ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
                         ) : (
                           <CheckCircle2 className="h-3.5 w-3.5" />
                         )}
-                        Approve & complete
-                      </Button>
-                      <Button
-                        className="border-amber-300 bg-amber-50 text-amber-900 hover:border-amber-400 hover:bg-amber-100"
+                        {visual.approveLabel}
+                      </button>
+                      <button
+                        className="inline-flex items-center gap-1 rounded-md border border-[#fde68a] bg-[#fef3c7] px-[10px] py-[5px] text-[11px] font-semibold text-[#92400e] disabled:opacity-60"
                         disabled={isSavingThis}
                         onClick={() => void submitReview(item, "reject")}
-                        size="sm"
-                        variant="outline"
+                        type="button"
                       >
                         {isSavingThis && savingDecision === "reject" ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -379,7 +629,7 @@ export function ManagerActionInbox({
                           <RotateCcw className="h-3.5 w-3.5" />
                         )}
                         Send back for revision
-                      </Button>
+                      </button>
                     </div>
                   </div>
                 ) : null}
@@ -388,6 +638,6 @@ export function ManagerActionInbox({
           })}
         </div>
       )}
-    </Card>
+    </div>
   );
 }

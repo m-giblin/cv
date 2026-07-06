@@ -1,6 +1,6 @@
 import { AppShell } from "@/components/app-shell";
-import { GrowthDashboard } from "@/components/growth/growth-dashboard";
-import { PageHeader } from "@/components/page-hero";
+import { GrowthDashboardNorthstar } from "@/components/growth/growth-dashboard-northstar";
+import { SEPageLayout } from "@/components/se/se-page-layout";
 import { requireAppAccess } from "@/lib/auth/require-access";
 
 export default async function GrowthPage() {
@@ -8,15 +8,13 @@ export default async function GrowthPage() {
 
   return (
     <AppShell currentUser={data.currentUser} notifications={data.notifications}>
-      <div className="space-y-8">
-        <PageHeader
-          description="Competency trends, certification progress, career ladder, and recommended practice — your long-term growth view."
-          eyebrow="Career growth"
-          title="My growth"
-          tone="magenta"
-        />
-        <GrowthDashboard data={data} />
-      </div>
+      <SEPageLayout
+        eyebrow="Career"
+        subtitle="Competency trends, career progression, and recommended practice"
+        title="My Growth"
+      >
+        <GrowthDashboardNorthstar data={data} />
+      </SEPageLayout>
     </AppShell>
   );
 }

@@ -1,85 +1,181 @@
 "use client";
 
-import { KeyRound } from "lucide-react";
-import { useState } from "react";
-import { AnalyticsDashboard } from "@/components/admin/analytics-dashboard";
-import { AuditLogPanel } from "@/components/admin/audit-log-panel";
+import dynamic from "next/dynamic";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { AdminTab, AdminTabPanel, AdminTabs } from "@/components/admin/admin-tabs";
-import { BulkUserImport } from "@/components/admin/bulk-user-import";
-import { CompetencyManagement } from "@/components/admin/competency-management";
-import { SimulationTemplateManagement } from "@/components/admin/simulation-template-management";
-import { ContentAssetManagement } from "@/components/admin/content-asset-management";
-import { UserManagement } from "@/components/admin/user-management";
-import { PlanManagementPanel } from "@/components/plans/plan-management";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Profile } from "@/lib/types";
+import type { AiUsageSummary } from "@/lib/ai/settings-shared";
+import type { ActivityLog, Profile, ProfileRole, SeLevel, UserPlan } from "@/lib/types";
+
+const NorthstarAdminSummary = dynamic(() =>
+  import("@/components/admin/northstar-admin-summary").then((mod) => mod.NorthstarAdminSummary),
+);
+const UserManagement = dynamic(() =>
+  import("@/components/admin/user-management").then((mod) => mod.UserManagement),
+);
+const BulkUserImport = dynamic(() =>
+  import("@/components/admin/bulk-user-import").then((mod) => mod.BulkUserImport),
+);
+const PlanManagementPanel = dynamic(() =>
+  import("@/components/plans/plan-management").then((mod) => mod.PlanManagementPanel),
+);
+const CompetencyManagement = dynamic(() =>
+  import("@/components/admin/competency-management").then((mod) => mod.CompetencyManagement),
+);
+const SimulationTemplateManagement = dynamic(() =>
+  import("@/components/admin/simulation-template-management").then((mod) => mod.SimulationTemplateManagement),
+);
+const CorpusRoutingAdmin = dynamic(() =>
+  import("@/components/corpus/corpus-routing-admin").then((mod) => mod.CorpusRoutingAdmin),
+);
+const MasterCorpusAdmin = dynamic(() =>
+  import("@/components/corpus/master-corpus-admin").then((mod) => mod.MasterCorpusAdmin),
+);
+const AuditLogPanel = dynamic(() => import("@/components/admin/audit-log-panel").then((mod) => mod.AuditLogPanel));
+const AnalyticsDashboard = dynamic(() =>
+  import("@/components/admin/analytics-dashboard").then((mod) => mod.AnalyticsDashboard),
+);
+const AdminAiSettingsPanel = dynamic(() =>
+  import("@/components/admin/admin-ai-settings-panel").then((mod) => mod.AdminAiSettingsPanel),
+);
+
+const TAB_IDS: AdminTab[] = [
+  "overview",
+  "users",
+  "plans",
+  "competencies",
+  "analytics",
+  "ai",
+  "corpus",
+  "routing",
+  "audit",
+  "settings",
+];
+
+type InitialAdminUser = {
+  id: string;
+  email: string;
+  full_name: string;
+  role: ProfileRole;
+  level: SeLevel;
+  manager_id: string | null;
+  created_at: string;
+};
+
+function hasOverviewData(
+  profiles?: Profile[],
+  plans?: UserPlan[],
+  activity?: ActivityLog[],
+  pendingReviews?: number,
+): boolean {
+  return Boolean(profiles && plans && activity && typeof pendingReviews === "number");
+}
+
+function parseAdminTab(value: string | null, overviewAvailable: boolean): AdminTab {
+  if (value && TAB_IDS.includes(value as AdminTab)) {
+    return value as AdminTab;
+  }
+  return overviewAvailable ? "overview" : "users";
+}
 
 export function AdminConsole({
   assignees,
   mentors,
+  profiles,
+  plans,
+  activity,
+  pendingReviews,
+  aiUsage,
+  initialUsers,
 }: {
   assignees: Profile[];
   mentors: Profile[];
+  northstar?: boolean;
+  profiles?: Profile[];
+  plans?: UserPlan[];
+  activity?: ActivityLog[];
+  pendingReviews?: number;
+  aiUsage?: AiUsageSummary | null;
+  initialUsers?: InitialAdminUser[];
 }) {
-  const [tab, setTab] = useState<AdminTab>("users");
+  const overviewAvailable = hasOverviewData(profiles, plans, activity, pendingReviews);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const [tab, setTab] = useState<AdminTab>(() => parseAdminTab(searchParams.get("tab"), overviewAvailable));
+
+  useEffect(() => {
+    setTab(parseAdminTab(searchParams.get("tab"), overviewAvailable));
+  }, [overviewAvailable, searchParams]);
+
+  function selectTab(next: AdminTab) {
+    setTab(next);
+    router.replace(`/admin?tab=${next}`, { scroll: false });
+  }
 
   return (
-    <div className="space-y-6">
-      <AdminTabs active={tab} onChange={setTab} />
+    <div>
+      <AdminTabs active={tab} onChange={selectTab} />
+
+      {overviewAvailable && profiles && plans && activity && typeof pendingReviews === "number" ? (
+        <AdminTabPanel active={tab} tab="overview">
+          <NorthstarAdminSummary
+            activity={activity}
+            aiUsage={aiUsage ?? null}
+            onViewAudit={() => selectTab("audit")}
+            pendingReviews={pendingReviews}
+            plans={plans}
+            profiles={profiles}
+          />
+        </AdminTabPanel>
+      ) : null}
 
       <AdminTabPanel active={tab} tab="users">
         <div className="space-y-6">
-          <UserManagement />
+          <UserManagement initialUsers={initialUsers} />
           <BulkUserImport />
         </div>
       </AdminTabPanel>
 
       <AdminTabPanel active={tab} tab="plans">
-        <PlanManagementPanel assignees={assignees} mentors={mentors} />
+        <PlanManagementPanel assignees={assignees} mentors={mentors} plans={plans ?? []} profiles={profiles ?? []} />
       </AdminTabPanel>
 
       <AdminTabPanel active={tab} tab="competencies">
         <CompetencyManagement />
       </AdminTabPanel>
 
-      <AdminTabPanel active={tab} tab="ai">
-        <section className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <KeyRound className="h-5 w-5 text-sp-magenta" />
-                AI provider settings
-              </CardTitle>
-              <CardDescription>Set keys in Vercel / `.env.local`. See `docs/DEPLOY.md` for production setup.</CardDescription>
-            </CardHeader>
-            <div className="space-y-3 text-sm text-sp-navy-muted">
-              <p>
-                <strong className="text-sp-navy">XAI_API_KEY</strong> or <strong className="text-sp-navy">OPENAI_API_KEY</strong>
-              </p>
-              <Input defaultValue="grok-3-mini" placeholder="Model name" readOnly />
-            </div>
-          </Card>
-
-          <SimulationTemplateManagement />
-        </section>
-      </AdminTabPanel>
-
-      <AdminTabPanel active={tab} tab="content">
-        <ContentAssetManagement />
-      </AdminTabPanel>
-
-      <AdminTabPanel active={tab} tab="audit">
-        <AuditLogPanel />
-      </AdminTabPanel>
-
       <AdminTabPanel active={tab} tab="analytics">
         <AnalyticsDashboard />
         <p className="mt-4 text-sm">
-          <a className="font-semibold text-sp-blue hover:text-sp-blue-deep" href="/api/admin/analytics?format=csv">
+          <a
+            className="font-semibold text-[#0033a1] hover:underline"
+            href="/api/admin/analytics?format=csv"
+          >
             Export analytics CSV
           </a>
         </p>
+      </AdminTabPanel>
+
+      <AdminTabPanel active={tab} tab="ai">
+        <SimulationTemplateManagement />
+      </AdminTabPanel>
+
+      <AdminTabPanel active={tab} tab="corpus">
+        <MasterCorpusAdmin />
+      </AdminTabPanel>
+
+      <AdminTabPanel active={tab} tab="routing">
+        <CorpusRoutingAdmin />
+      </AdminTabPanel>
+
+      <AdminTabPanel active={tab} tab="audit">
+        <AuditLogPanel profiles={profiles ?? []} />
+      </AdminTabPanel>
+
+      <AdminTabPanel active={tab} tab="settings">
+        <div className="max-w-3xl">
+          <AdminAiSettingsPanel />
+        </div>
       </AdminTabPanel>
     </div>
   );

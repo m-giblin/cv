@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { buildQuarterlyReviewsForGoal } from "@/lib/development/plan-utils";
+import { canViewUserDevelopmentPlan } from "@/lib/development/authorize";
 import { requireManagerSession } from "@/lib/auth/require-manager";
 import { createClient } from "@/lib/supabase/server";
 import { fetchDevelopmentPlans } from "@/lib/data/get-development-data";
@@ -44,6 +45,10 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const userId = url.searchParams.get("userId") ?? user.id;
   const year = url.searchParams.get("year");
+
+  if (!(await canViewUserDevelopmentPlan(userId))) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const plans = await fetchDevelopmentPlans([userId]);
   const plan = year

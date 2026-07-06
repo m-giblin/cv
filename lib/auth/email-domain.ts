@@ -1,7 +1,14 @@
-export const ALLOWED_EMAIL_DOMAINS = ["sailpoint.com", "example.com"] as const;
+const BASE_DOMAINS = ["sailpoint.com"] as const;
+
+const DEV_DOMAINS =
+  process.env.ALLOW_DEV_EMAIL_DOMAIN === "true" || process.env.NODE_ENV !== "production"
+    ? (["example.com"] as const)
+    : ([] as const);
+
+export const ALLOWED_EMAIL_DOMAINS = [...BASE_DOMAINS, ...DEV_DOMAINS] as readonly string[];
 
 /** Primary domain shown in UI placeholders */
-export const ALLOWED_EMAIL_DOMAIN = ALLOWED_EMAIL_DOMAINS[0];
+export const ALLOWED_EMAIL_DOMAIN = BASE_DOMAINS[0];
 
 export function allowedEmailDomainsLabel(): string {
   return ALLOWED_EMAIL_DOMAINS.map((domain) => `@${domain}`).join(" or ");
@@ -16,7 +23,7 @@ export function isAllowedEmail(email: string): boolean {
   }
 
   const domain = normalized.slice(atIndex + 1);
-  return ALLOWED_EMAIL_DOMAINS.includes(domain as (typeof ALLOWED_EMAIL_DOMAINS)[number]);
+  return ALLOWED_EMAIL_DOMAINS.includes(domain);
 }
 
 export function allowedEmailError(email: string): string | null {

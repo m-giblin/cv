@@ -1,20 +1,22 @@
 import { generateText } from "ai";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getConfiguredProvider } from "@/lib/ai/provider";
+import { resolveAiProvider } from "@/lib/ai/provider";
+import { enforceAiRateLimit } from "@/lib/ai/enforce-rate-limit";
+import { logAiUsage } from "@/lib/ai/log-usage";
 import { SIMULATION_START_MESSAGE, roleplayEnded } from "@/lib/simulations/prompt-template";
 import { createClient } from "@/lib/supabase/server";
 
 const transcriptEntrySchema = z.object({
   speaker: z.enum(["se", "persona", "coach"]),
-  message: z.string(),
+  message: z.string().max(8000),
 });
 
 const requestSchema = z.object({
   assignmentId: z.string().uuid().optional(),
-  promptSnapshot: z.string().min(50),
-  transcript: z.array(transcriptEntrySchema),
-  message: z.string().optional(),
+  promptSnapshot: z.string().min(50).max(12000),
+  transcript: z.array(transcriptEntrySchema).max(80),
+  message: z.string().max(4000).optional(),
   isStart: z.boolean().optional(),
   startMessage: z.string().optional(),
 });
@@ -72,7 +74,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
+  const rateLimited = await enforceAiRateLimit(supabase, user.id);
+  if (rateLimited) {
+    return rateLimited;
+  }
+
   let promptSnapshot = parsed.data.promptSnapshot;
+
+  const { model, provider, modelName } = await resolveAiProvider();
 
   if (parsed.data.assignmentId) {
     const { data: assignment, error: assignmentError } = await supabase
@@ -100,6 +109,11 @@ export async function POST(request: Request) {
     if (storedSnapshot) {
       promptSnapshot = storedSnapshot;
     }
+  } else if (model) {
+    return NextResponse.json(
+      { error: "assignmentId is required for simulation turns when AI is enabled." },
+      { status: 400 },
+    );
   }
 
   const userMessage = parsed.data.isStart
@@ -109,8 +123,6 @@ export async function POST(request: Request) {
   if (!userMessage) {
     return NextResponse.json({ error: "Message is required" }, { status: 400 });
   }
-
-  const { model, provider, modelName } = getConfiguredProvider();
 
   if (!model) {
     const demoResponse = parsed.data.isStart
@@ -141,6 +153,14 @@ Jordan Ellis: Before we go deep — why should we talk about ${parsed.data.promp
   });
 
   const speaker = classifySpeaker(result.text, userMessage);
+
+  await logAiUsage(supabase, {
+    feature: "simulation_turn",
+    provider,
+    model: modelName,
+    userId: user.id,
+    usage: result.usage,
+  });
 
   return NextResponse.json({
     provider,

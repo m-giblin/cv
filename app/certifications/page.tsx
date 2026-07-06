@@ -1,7 +1,6 @@
 import { AppShell } from "@/components/app-shell";
 import { CertificationGates } from "@/components/certifications/certification-gates";
-import { DataSourceBanner } from "@/components/data-source-banner";
-import { PageHeader } from "@/components/page-hero";
+import { SEPageLayout } from "@/components/se/se-page-layout";
 import { requireAppAccess } from "@/lib/auth/require-access";
 import { getAccessTier } from "@/lib/auth/rbac";
 import { fetchCertificationsForUsers } from "@/lib/data/get-certifications-data";
@@ -13,7 +12,7 @@ type CertificationsPageProps = {
 };
 
 export default async function CertificationsPage({ searchParams }: CertificationsPageProps) {
-  const { data, source, tier } = await requireAppAccess("/certifications");
+  const { data, tier } = await requireAppAccess("/certifications");
   const params = await searchParams;
   const isManagerView = tier !== "se";
 
@@ -60,24 +59,21 @@ export default async function CertificationsPage({ searchParams }: Certification
 
   return (
     <AppShell currentUser={data.currentUser} notifications={data.notifications}>
-      <div className="space-y-8">
-        <DataSourceBanner source={source} />
-        <PageHeader
-          description={
-            isManagerView && !targetUserId
-              ? "Review team readiness — pending sign-offs first, then drill into any SE’s career gates."
-              : "Field readiness gates — submit evidence, get manager sign-off, and track progress on the career ladder."
-          }
-          eyebrow="Readiness"
-          title={
-            targetProfile
-              ? `${targetProfile.fullName} — certification gates`
-              : isManagerView
-                ? "Team certification readiness"
-                : "Certification gates"
-          }
-          tone="magenta"
-        />
+      <SEPageLayout
+        eyebrow="Field readiness"
+        subtitle={
+          isManagerView && !targetUserId
+            ? "Review team readiness — pending sign-offs first, then drill into any SE's career gates."
+            : "Submit evidence, get manager sign-off, and track progress on the career ladder"
+        }
+        title={
+          targetProfile
+            ? `${targetProfile.fullName} — certification gates`
+            : isManagerView
+              ? "Team certification readiness"
+              : "Certification Gates"
+        }
+      >
         <CertificationGates
           avgSimScore={avgSimScore}
           initialTeamCerts={teamCerts}
@@ -90,11 +86,11 @@ export default async function CertificationsPage({ searchParams }: Certification
           viewerId={data.currentUser.id}
         />
         {isManagerView && !targetUserId && pendingCount > 0 ? (
-          <p className="text-center text-xs text-sp-navy-muted">
+          <p className="mt-4 text-center text-xs text-[#64748b]">
             {pendingCount} pending sign-off{pendingCount === 1 ? "" : "s"} across your team
           </p>
         ) : null}
-      </div>
+      </SEPageLayout>
     </AppShell>
   );
 }

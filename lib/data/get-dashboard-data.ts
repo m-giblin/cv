@@ -1,4 +1,6 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { fetchPlansBundle } from "@/lib/data/fetch-plans-bundle";
 import { getDemoDashboardData, getSubtree } from "@/lib/demo-data";
 import type {
   ActivityLog,
@@ -8,7 +10,6 @@ import type {
   Competency,
   DashboardData,
   Notification,
-  PlanStep,
   Profile,
   SimulationAssignment,
   UserPlan,
@@ -20,17 +21,13 @@ export type DataSource = "supabase" | "demo";
 type DbProfile = Database["public"]["Tables"]["profiles"]["Row"];
 type DbChallenge = Database["public"]["Tables"]["challenges"]["Row"];
 type DbCoachingCard = Database["public"]["Tables"]["coaching_cards"]["Row"];
-type DbPlanStep = Database["public"]["Tables"]["plan_steps"]["Row"];
-type DbPlanAssignment = Database["public"]["Tables"]["plan_assignments"]["Row"];
-type DbPlanAssignmentStep = Database["public"]["Tables"]["plan_assignment_steps"]["Row"];
-type DbOnboardingPlan = Database["public"]["Tables"]["onboarding_plans"]["Row"];
 type DbChallengeSubmission = Database["public"]["Tables"]["challenge_submissions"]["Row"];
 type DbSimulationAssignment = Database["public"]["Tables"]["simulation_assignments"]["Row"];
 type DbCompetency = Database["public"]["Tables"]["competencies"]["Row"];
 type DbActivityLog = Database["public"]["Tables"]["activity_logs"]["Row"];
 type DbNotification = Database["public"]["Tables"]["notifications"]["Row"];
 
-function mapProfile(row: DbProfile): Profile {
+export function mapProfile(row: Pick<DbProfile, "id" | "email" | "full_name" | "role" | "level" | "manager_id" | "avatar_url" | "created_at">): Profile {
   return {
     id: row.id,
     email: row.email,
@@ -43,25 +40,34 @@ function mapProfile(row: DbProfile): Profile {
   };
 }
 
-function mapChallenge(row: DbChallenge): Challenge {
+export function mapChallenge(row: DbChallenge): Challenge {
   const successCriteria = Array.isArray(row.success_criteria)
     ? (row.success_criteria as string[])
     : [];
+  const steps = Array.isArray(row.steps) ? (row.steps as string[]) : [];
+  const aiMetadata =
+    row.ai_metadata && typeof row.ai_metadata === "object" && !Array.isArray(row.ai_metadata)
+      ? (row.ai_metadata as { linkedResources?: string[]; competencyNames?: string[] })
+      : null;
 
   return {
     id: row.id,
     title: row.title,
     description: row.description,
+    steps,
     difficulty: row.difficulty,
     estimatedMinutes: row.estimated_minutes,
     linkedSolutions: row.linked_solutions ?? [],
+    linkedResources: aiMetadata?.linkedResources ?? [],
     successCriteria,
+    targetLevel: row.target_level ?? null,
     isAiGenerated: row.is_ai_generated,
     createdBy: row.created_by ?? "system",
+    competencyNames: Array.isArray(aiMetadata?.competencyNames) ? aiMetadata.competencyNames : [],
   };
 }
 
-function parseCoachingCard(row: DbCoachingCard): CoachingCard {
+export function parseCoachingCard(row: DbCoachingCard): CoachingCard {
   const output =
     row.structured_output && typeof row.structured_output === "object" && !Array.isArray(row.structured_output)
       ? (row.structured_output as Record<string, Json | undefined>)
@@ -100,25 +106,7 @@ function parseCoachingCard(row: DbCoachingCard): CoachingCard {
   };
 }
 
-function parseTranscript(value: Json): SimulationAssignment["transcript"] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value
-    .filter(
-      (entry): entry is { speaker: "se" | "persona" | "coach"; message: string } =>
-        typeof entry === "object" &&
-        entry !== null &&
-        "speaker" in entry &&
-        "message" in entry &&
-        (entry.speaker === "se" || entry.speaker === "persona" || entry.speaker === "coach") &&
-        typeof entry.message === "string",
-    )
-    .map((entry) => ({ speaker: entry.speaker, message: entry.message }));
-}
-
-function parseSessionData(
+export function parseSessionData(
   value: Json,
 ): Pick<
   SimulationAssignment,
@@ -148,6 +136,10 @@ async function fetchSupabaseDashboard(): Promise<DashboardData | null> {
     return null;
   }
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const [
     profilesResult,
     competenciesResult,
@@ -157,25 +149,48 @@ async function fetchSupabaseDashboard(): Promise<DashboardData | null> {
     coachingCardsResult,
     activityResult,
     notificationsResult,
-    plansResult,
-    planStepsResult,
-    assignmentsResult,
-    assignmentStepsResult,
-    contentAssetsResult,
+    plans,
   ] = await Promise.all([
-    supabase.from("profiles").select("*"),
-    supabase.from("competencies").select("*"),
-    supabase.from("challenges").select("*"),
-    supabase.from("challenge_submissions").select("*"),
-    supabase.from("simulation_assignments").select("*"),
-    supabase.from("coaching_cards").select("*"),
-    supabase.from("activity_logs").select("*").order("created_at", { ascending: false }),
-    supabase.from("notifications").select("*").order("created_at", { ascending: false }),
-    supabase.from("onboarding_plans").select("*"),
-    supabase.from("plan_steps").select("*").order("sort_order"),
-    supabase.from("plan_assignments").select("*"),
-    supabase.from("plan_assignment_steps").select("*"),
-    supabase.from("content_assets").select("id, storage_path"),
+    supabase
+      .from("profiles")
+      .select("id, email, full_name, role, level, manager_id, avatar_url, created_at"),
+    supabase.from("competencies").select("id, name, category, description"),
+    supabase
+      .from("challenges")
+      .select(
+        "id, title, description, steps, success_criteria, difficulty, estimated_minutes, linked_solutions, target_level, is_ai_generated, created_by, ai_metadata",
+      ),
+    supabase
+      .from("challenge_submissions")
+      .select(
+        "id, user_id, challenge_id, status, reflection_text, manager_grade, manager_feedback, ai_suggested_score, submitted_at, reviewed_at",
+      ),
+    supabase
+      .from("simulation_assignments")
+      .select(
+        "id, assigned_to, assigned_by, persona, vertical, solution_focus, difficulty, status, template_id, session_data",
+      ),
+    supabase
+      .from("coaching_cards")
+      .select(
+        "id, simulation_assignment_id, user_id, structured_output, se_reflection, manager_review_status, manager_comments, manager_grade, sent_to_manager_at, reviewed_at, created_at, is_practice",
+      )
+      .order("created_at", { ascending: false })
+      .limit(400),
+    supabase
+      .from("activity_logs")
+      .select("id, user_id, event_type, title, metadata, created_at")
+      .order("created_at", { ascending: false })
+      .limit(150),
+    user
+      ? supabase
+          .from("notifications")
+          .select("id, user_id, title, body, action_url, read_at, created_at")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(50)
+      : Promise.resolve({ data: [], error: null }),
+    fetchPlansBundle(supabase),
   ]);
 
   if (profilesResult.error || !profilesResult.data?.length) {
@@ -183,72 +198,6 @@ async function fetchSupabaseDashboard(): Promise<DashboardData | null> {
   }
 
   const profiles = profilesResult.data.map(mapProfile);
-  const planSteps = (planStepsResult.data ?? []) as DbPlanStep[];
-  const assignments = (assignmentsResult.data ?? []) as DbPlanAssignment[];
-  const assignmentSteps = (assignmentStepsResult.data ?? []) as DbPlanAssignmentStep[];
-  const onboardingPlans = (plansResult.data ?? []) as DbOnboardingPlan[];
-  const contentUrlByAssetId = new Map(
-    ((contentAssetsResult.data ?? []) as Array<{ id: string; storage_path: string }>).map((asset) => [
-      asset.id,
-      asset.storage_path,
-    ]),
-  );
-
-  const planStepsByPlan = new Map<string, DbPlanStep[]>();
-
-  for (const step of planSteps) {
-    const existing = planStepsByPlan.get(step.plan_id) ?? [];
-    existing.push(step);
-    planStepsByPlan.set(step.plan_id, existing);
-  }
-
-  const assignmentStepsByAssignment = new Map<string, DbPlanAssignmentStep[]>();
-
-  for (const step of assignmentSteps) {
-    const existing = assignmentStepsByAssignment.get(step.assignment_id) ?? [];
-    existing.push(step);
-    assignmentStepsByAssignment.set(step.assignment_id, existing);
-  }
-
-  const plans: UserPlan[] = assignments.map((assignment) => {
-    const template = onboardingPlans.find((plan) => plan.id === assignment.plan_id);
-    const templateSteps = planStepsByPlan.get(assignment.plan_id) ?? [];
-    const progressSteps = assignmentStepsByAssignment.get(assignment.id) ?? [];
-
-    const steps: PlanStep[] = templateSteps.map((step) => {
-      const progress = progressSteps.find((item) => item.plan_step_id === step.id);
-
-      return {
-        id: step.id,
-        assignmentStepId: progress?.id,
-        title: step.title,
-        description: step.description ?? "",
-        type: step.step_type,
-        order: step.sort_order,
-        status: progress?.status ?? "not_started",
-        dueDate: progress?.due_date ?? undefined,
-        resourceUrl:
-          step.content_url ??
-          (step.content_asset_id ? contentUrlByAssetId.get(step.content_asset_id) : undefined) ??
-          undefined,
-        contentAssetId: step.content_asset_id ?? undefined,
-        challengeId: step.challenge_id ?? undefined,
-        simulationTemplateId: step.simulation_template_id ?? undefined,
-      };
-    });
-
-    return {
-      id: assignment.id,
-      userId: assignment.user_id,
-      mentorId: assignment.mentor_id,
-      name: template?.name ?? "Onboarding plan",
-      startDate: assignment.start_date,
-      targetCompletion: assignment.target_completion ?? "",
-      status: assignment.status,
-      progress: Number(assignment.progress_percent),
-      steps,
-    };
-  });
 
   const challenges = ((challengesResult.data ?? []) as DbChallenge[]).map(mapChallenge);
   const submissions: ChallengeSubmission[] = ((submissionsResult.data ?? []) as DbChallengeSubmission[]).map((row) => ({
@@ -273,7 +222,7 @@ async function fetchSupabaseDashboard(): Promise<DashboardData | null> {
     solutionFocus: row.solution_focus,
     difficulty: row.difficulty,
     status: row.status,
-    transcript: parseTranscript(row.transcript),
+    transcript: [],
     templateId: row.template_id,
     ...parseSessionData(row.session_data),
   }));
@@ -305,10 +254,6 @@ async function fetchSupabaseDashboard(): Promise<DashboardData | null> {
     createdAt: row.created_at,
   }));
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
   const currentUser =
     (user ? profiles.find((profile) => profile.id === user.id) : profiles[0]) ?? profiles[0];
 
@@ -327,10 +272,10 @@ async function fetchSupabaseDashboard(): Promise<DashboardData | null> {
   };
 }
 
-export async function getDashboardData(preferredUserId?: string): Promise<{
+export const getDashboardData = cache(async (preferredUserId?: string): Promise<{
   data: DashboardData;
   source: DataSource;
-}> {
+}> => {
   try {
     const live = await fetchSupabaseDashboard();
 
@@ -345,4 +290,4 @@ export async function getDashboardData(preferredUserId?: string): Promise<{
     data: getDemoDashboardData(preferredUserId),
     source: "demo",
   };
-}
+});

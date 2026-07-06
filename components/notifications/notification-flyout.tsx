@@ -46,9 +46,11 @@ function NotificationList({
 export function NotificationFlyout({
   notifications,
   align = "sidebar",
+  appearance = "default",
 }: {
   notifications: Notification[];
   align?: "sidebar" | "header";
+  appearance?: "default" | "sidebar-dark" | "header";
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -135,21 +137,45 @@ export function NotificationFlyout({
     setIsMarking(false);
   }
 
+  const resolvedAppearance =
+    appearance === "default" ? (align === "header" ? "header" : "default") : appearance;
+
+  const triggerClass =
+    resolvedAppearance === "sidebar-dark"
+      ? "relative flex h-4 w-4 shrink-0 items-center justify-center text-white/50 transition hover:text-white/80"
+      : resolvedAppearance === "header"
+        ? "relative flex h-8 w-8 shrink-0 items-center justify-center rounded-[7px] border border-[#e2eaf5] bg-[#f4f8fd] text-[#475569] transition hover:bg-white"
+        : "relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-sp-blue/15 bg-white text-sp-navy transition hover:bg-sp-blue-soft/40";
+
+  const dotClass =
+    resolvedAppearance === "sidebar-dark"
+      ? "absolute -right-0.5 -top-0.5 h-[7px] w-[7px] rounded-full border-[1.5px] border-[#00143a] bg-[#cd27b0]"
+      : resolvedAppearance === "header"
+        ? "absolute right-[5px] top-[5px] h-1.5 w-1.5 rounded-full border-[1.5px] border-white bg-[#cc27b0]"
+        : "absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-sp-magenta px-1 text-[10px] font-bold text-white";
+
+  const showCountBadge = resolvedAppearance === "default" && unread.length > 0;
+
   return (
     <div className="relative">
       <button
         aria-expanded={open}
         aria-label={`Notifications${unread.length > 0 ? `, ${unread.length} unread` : ""}`}
-        className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-sp-blue/15 bg-white text-sp-navy transition hover:bg-sp-blue-soft/40"
+        className={triggerClass}
         onClick={() => setOpen((current) => !current)}
         ref={triggerRef}
         type="button"
       >
-        <Bell className="h-4 w-4" />
+        <Bell
+          className={resolvedAppearance === "sidebar-dark" ? "h-4 w-4" : "h-[15px] w-[15px]"}
+          strokeWidth={resolvedAppearance === "header" ? 1.3 : 2}
+        />
         {unread.length > 0 ? (
-          <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-sp-magenta px-1 text-[10px] font-bold text-white">
-            {unread.length > 9 ? "9+" : unread.length}
-          </span>
+          showCountBadge ? (
+            <span className={dotClass}>{unread.length > 9 ? "9+" : unread.length}</span>
+          ) : (
+            <span className={dotClass} />
+          )
         ) : null}
       </button>
 
@@ -160,8 +186,8 @@ export function NotificationFlyout({
             className={cn(
               "fixed z-50 flex w-[min(22rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-sp-blue/15 bg-white shadow-xl shadow-sp-navy/10",
               align === "sidebar"
-                ? "bottom-4 left-4 lg:bottom-6 lg:left-[19rem]"
-                : "right-4 top-16",
+                ? "bottom-4 left-4 lg:bottom-6 lg:left-[15.75rem]"
+                : "right-7 top-14",
             )}
             ref={panelRef}
             role="dialog"

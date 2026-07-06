@@ -115,7 +115,7 @@ export async function POST(request: Request) {
     });
   }
 
-  await logAuditEvent(session.supabase, {
+  await logAuditEvent(session.user.id, {
     action: "user.created",
     targetType: "profile",
     targetId: userId,
@@ -131,7 +131,12 @@ export async function POST(request: Request) {
       level: parsed.data.level,
       manager_id: parsed.data.managerId ?? null,
     },
-    temporaryPassword: parsed.data.sendInvite ? null : tempPassword,
     inviteSent: Boolean(parsed.data.sendInvite),
+    ...(parsed.data.sendInvite
+      ? {}
+      : {
+          passwordDelivery:
+            "Temporary password was set at creation. Use sendInvite for email-based onboarding instead of returning credentials in API responses.",
+        }),
   });
 }

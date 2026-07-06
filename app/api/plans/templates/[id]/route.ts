@@ -11,6 +11,7 @@ const stepSchema = z.object({
     "content_review",
     "challenge",
     "simulation",
+    "deal_prep",
     "shadow_meeting_log",
     "mentor_review",
     "custom",
@@ -20,6 +21,8 @@ const stepSchema = z.object({
   contentAssetId: z.string().uuid().optional().or(z.literal("")),
   challengeId: z.string().uuid().optional().or(z.literal("")),
   simulationTemplateId: z.string().uuid().optional().or(z.literal("")),
+  segmentIndex: z.number().int().min(1).max(4).nullable().optional(),
+  isSegmentGate: z.boolean().optional(),
 });
 
 const updateTemplateSchema = z.object({
@@ -45,7 +48,11 @@ function stepRow(
     content_asset_id: step.contentAssetId || null,
     challenge_id: step.challengeId || null,
     simulation_template_id: step.simulationTemplateId || null,
-    metadata: { dueOffsetDays: step.dueOffsetDays ?? sortOrder * 7 },
+    metadata: {
+      dueOffsetDays: step.dueOffsetDays ?? sortOrder * 7,
+      segmentIndex: step.segmentIndex ?? null,
+      isSegmentGate: step.isSegmentGate ?? false,
+    },
   };
 }
 
@@ -142,7 +149,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
   }
 
-  await logAuditEvent(session.supabase, {
+  await logAuditEvent(session.user.id, {
     action: "plan.template_updated",
     targetType: "onboarding_plan",
     targetId: id,
@@ -180,7 +187,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  await logAuditEvent(session.supabase, {
+  await logAuditEvent(session.user.id, {
     action: "plan.template_deleted",
     targetType: "onboarding_plan",
     targetId: id,

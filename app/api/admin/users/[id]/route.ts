@@ -100,7 +100,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   const { data } = await admin.from("profiles").select("*").eq("id", id).maybeSingle();
 
-  await logAuditEvent(session.supabase, {
+  await logAuditEvent(session.user.id, {
     action: "user.updated",
     targetType: "profile",
     targetId: id,
@@ -138,7 +138,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  await logAuditEvent(session.supabase, {
+  await logAuditEvent(session.user.id, {
     action: "user.deleted",
     targetType: "profile",
     targetId: id,

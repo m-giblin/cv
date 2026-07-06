@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export function PageHero({
   eyebrow,
@@ -55,14 +56,15 @@ export function PageHeader({
   actions?: ReactNode;
   tone?: "blue" | "magenta" | "green";
 }) {
-  const badgeTone = tone === "magenta" ? "magenta" : tone === "green" ? "green" : "blue";
+  const eyebrowColor =
+    tone === "magenta" ? "text-[#cd27b0]" : tone === "green" ? "text-emerald-600" : "text-[#0071ce]";
 
   return (
-    <section className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+    <section className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-end">
       <div>
-        <Badge tone={badgeTone}>{eyebrow}</Badge>
-        <h1 className="mt-4 text-3xl font-bold tracking-tight text-sp-navy">{title}</h1>
-        <p className="mt-2 max-w-3xl text-sm leading-7 text-sp-navy-muted md:text-base">{description}</p>
+        <p className={cn("sp-page-eyebrow", eyebrowColor)}>{eyebrow}</p>
+        <h1 className="sp-page-title mt-1">{title}</h1>
+        <p className="sp-page-description mt-2 max-w-3xl">{description}</p>
       </div>
       {actions}
     </section>

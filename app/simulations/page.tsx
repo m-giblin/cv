@@ -1,236 +1,205 @@
-import Link from "next/link";
-import { Bot, Library, Route } from "lucide-react";
+import { Bot, ChevronRight, Library, Route } from "lucide-react";
+import { MobilePracticeBanner } from "@/components/practice/mobile-practice-banner";
 import { AppShell } from "@/components/app-shell";
-import { DataSourceBanner } from "@/components/data-source-banner";
-import { PageHeader } from "@/components/page-hero";
+import { HandoffCard } from "@/components/dashboard/handoff-practice-layout";
+import { SEPageLayout } from "@/components/se/se-page-layout";
 import { SimulationWorkspace } from "@/components/simulation-workspace";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireAppAccess } from "@/lib/auth/require-access";
 import { profileLevelLabel } from "@/lib/utils/level-label";
+import { GapPracticePanel } from "@/components/practice/gap-practice-panel";
+import { SpacedReinforcementRedirect } from "@/components/practice/spaced-reinforcement-redirect";
+import { recommendChallengesForGaps } from "@/lib/challenges/gap-recommendations";
 import { resolveSimulationAssignment } from "@/lib/simulations/resolve-assignment";
 
 type SimulationsPageProps = {
-  searchParams: Promise<{ focus?: string; step?: string; template?: string }>;
+  searchParams: Promise<{
+    focus?: string;
+    step?: string;
+    template?: string;
+    assignment?: string;
+    reinforce?: string;
+    autoAssign?: string;
+  }>;
 };
 
 export default async function SimulationsPage({ searchParams }: SimulationsPageProps) {
-  const { data, source, tier } = await requireAppAccess("/simulations");
+  const { data, tier } = await requireAppAccess("/simulations");
   const params = await searchParams;
   const isFocused = params.focus === "simulation";
-  const { assignment, isPractice } = resolveSimulationAssignment(data.simulations, data.currentUser.id);
+  const { assignment, isPractice } = resolveSimulationAssignment(
+    data.simulations,
+    data.currentUser.id,
+    params.assignment,
+  );
+
+  const myCoachingCards =
+    tier === "se" ? data.coachingCards.filter((card) => card.userId === data.currentUser.id) : data.coachingCards;
+
+  const gapRecommendations =
+    tier === "se"
+      ? recommendChallengesForGaps(
+          data,
+          data.currentUser.id,
+          new Set(
+            data.submissions
+              .filter((s) => s.userId === data.currentUser.id && s.status === "reviewed")
+              .map((s) => s.challengeId),
+          ),
+          2,
+        )
+      : [];
+
+  const isSe = tier === "se";
 
   return (
     <AppShell currentUser={data.currentUser} notifications={data.notifications}>
-      <div className="space-y-8">
-        <DataSourceBanner source={source} />
+      <MobilePracticeBanner />
+      <SEPageLayout
+        eyebrow="Practice · AI roleplay"
+        eyebrowColor="#cc27b0"
+        subtitle={
+          isSe
+            ? "Three steps: roleplay → AI coaching feedback → submit to your manager."
+            : "Run a live roleplay to preview the SE experience."
+        }
+        title={isSe ? "Simulations" : "Persona role-play"}
+      >
+        {isSe ? <GapPracticePanel recommendations={gapRecommendations} variant="simulations" /> : null}
 
-        <PageHeader
-          description={
-            tier === "se"
-              ? "Practice with a customer persona, get a coaching card, and share results with your manager."
-              : "Assign vertical personas, run multi-turn practice, generate coaching cards, collect SE reflection, and route manager review into the progress timeline."
-          }
-          eyebrow="Simulation practice"
-          title={tier === "se" ? "Your role-play practice" : "Persona-based role-play with structured coaching"}
-        />
-
-        {tier !== "se" ? (
-          <Card className="border-sp-blue/20 bg-sp-blue-soft/20">
-            <CardHeader>
-              <CardTitle>Assign simulations to your team</CardTitle>
-              <CardDescription>
-                Managers select prompt templates and assign SEs on the{" "}
-                <Link className="font-semibold text-sp-blue hover:text-sp-blue-deep" href="/manager#assign-simulations">
-                  Manager home → Assign simulation
-                </Link>{" "}
-                panel (searchable template table + overrides).
-              </CardDescription>
-            </CardHeader>
-          </Card>
+        {isSe && params.autoAssign === "1" ? (
+          <SpacedReinforcementRedirect autoAssign competency={params.reinforce} />
         ) : null}
 
-        {tier === "se" ? (
-          <div
-            className={`overflow-hidden rounded-3xl border border-sp-blue/10 bg-white shadow-sm ${
-              isFocused ? "ring-2 ring-sp-magenta/30" : ""
-            }`}
-          >
-            {isPractice ? (
-              <div className="border-b border-sp-blue/10 bg-sp-blue-soft/40 px-5 py-3">
-                <p className="text-sm text-sp-navy-muted">
-                  <span className="font-semibold text-sp-navy">Practice mode</span> — SLED roleplay with AIS / SLED / Medium defaults.
-                  Your manager can assign a custom Solution, Vertical, and Difficulty.
-                </p>
-              </div>
-            ) : null}
-            <div className="p-4 sm:p-6">
-              <SimulationWorkspace assignment={assignment} userLevel={profileLevelLabel(data.currentUser)} />
+        <HandoffCard
+          accentLeft="#cc27b0"
+          className={isFocused ? "ring-2 ring-[#cc27b0]/30" : undefined}
+        >
+          {isPractice ? (
+            <div className="border-b border-sp-blue/10 bg-sp-blue-soft/40 px-5 py-2.5 text-sm text-sp-navy-muted">
+              <span className="font-semibold text-sp-navy">Practice mode</span> — default SLED persona. Your manager can
+              assign a custom scenario.
             </div>
-          </div>
-        ) : (
-          <div className={isFocused ? "rounded-3xl ring-2 ring-sp-magenta/30" : undefined}>
+          ) : null}
+          <div className="p-4 sm:p-5">
             <SimulationWorkspace assignment={assignment} userLevel={profileLevelLabel(data.currentUser)} />
           </div>
-        )}
+        </HandoffCard>
 
-        {tier === "se" ? (
-          data.coachingCards.filter((card) => card.userId === data.currentUser.id).length > 0 ? (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Route className="h-5 w-5 text-sp-magenta" />
-                  Your coaching history
-                </CardTitle>
-                <CardDescription>Past simulation scores and manager review status.</CardDescription>
-              </CardHeader>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {data.coachingCards
-                  .filter((card) => card.userId === data.currentUser.id)
-                  .map((card) => {
-                    const simulation = data.simulations.find((item) => item.id === card.simulationAssignmentId);
-                    return (
-                      <div className="rounded-2xl border border-sp-magenta/10 bg-sp-magenta-soft/20 p-4" key={card.id}>
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="text-sm font-bold text-sp-navy">
-                              {card.simulationContext?.persona ?? simulation?.persona ?? "Simulation"}
-                            </p>
-                            <p className="mt-1 text-xs text-sp-navy-muted">Score {card.score}</p>
-                          </div>
-                          <Badge
-                            tone={
-                              card.isPractice
-                                ? "blue"
-                                : card.managerReviewStatus === "reviewed"
-                                  ? "green"
-                                  : card.managerReviewStatus === "needs_revision"
-                                    ? "amber"
-                                    : "amber"
-                            }
-                          >
-                            {card.isPractice
-                              ? "Practice"
-                              : card.managerReviewStatus === "needs_revision"
-                                ? "Needs revision"
-                                : card.managerReviewStatus}
-                          </Badge>
-                        </div>
-                        {card.recommendedImprovements[0] ? (
-                          <p className="mt-3 text-sm leading-6 text-sp-navy-muted">{card.recommendedImprovements[0]}</p>
-                        ) : null}
-                      </div>
-                    );
-                  })}
-              </div>
-            </Card>
-          ) : null
-        ) : (
-        <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Library className="h-5 w-5 text-sp-blue" />
-                Assignment library
-              </CardTitle>
-              <CardDescription>Reusable templates can import existing high-quality prompts.</CardDescription>
-            </CardHeader>
-            <div className="overflow-x-auto rounded-2xl border border-sp-blue/10">
-              <table className="min-w-full text-left text-sm">
-                <thead className="border-b border-sp-blue/10 bg-sp-blue-soft/30 text-xs uppercase tracking-wide text-sp-navy-muted">
-                  <tr>
-                    <th className="px-4 py-3 font-semibold">Persona</th>
-                    <th className="px-4 py-3 font-semibold">Solution</th>
-                    <th className="px-4 py-3 font-semibold">Vertical</th>
-                    <th className="px-4 py-3 font-semibold">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.simulations.length === 0 ? (
-                    <tr>
-                      <td className="px-4 py-6 text-sp-navy-muted" colSpan={4}>
-                        No formal assignments yet.
-                      </td>
-                    </tr>
-                  ) : (
-                    data.simulations.map((simulation) => (
-                      <tr className="border-b border-sp-blue/5" key={simulation.id}>
-                        <td className="px-4 py-3 font-medium text-sp-navy">{simulation.persona}</td>
-                        <td className="px-4 py-3 text-sp-navy-muted">{simulation.solutionFocus}</td>
-                        <td className="px-4 py-3 text-sp-navy-muted">{simulation.vertical}</td>
-                        <td className="px-4 py-3">
-                          <StatusBadge status={simulation.status} />
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+        {isSe && myCoachingCards.length > 0 ? (
+          <div className="overflow-hidden rounded-xl border border-[#e2eaf5] bg-white">
+            <div className="border-b border-[#f1f5f9] px-5 py-4">
+              <h2 className="flex items-center gap-2 text-base font-semibold text-[#0a1628]">
                 <Route className="h-5 w-5 text-sp-magenta" />
-                Coaching history
-              </CardTitle>
-              <CardDescription>Manager-visible simulation outcomes and next recommended practice.</CardDescription>
-            </CardHeader>
-            <div className="grid gap-4 lg:grid-cols-2">
-              {data.coachingCards.map((card) => {
+                Past coaching scores
+              </h2>
+            </div>
+            <div className="grid gap-3 p-5 sm:grid-cols-2 lg:grid-cols-3">
+              {myCoachingCards.map((card) => {
                 const simulation = data.simulations.find((item) => item.id === card.simulationAssignmentId);
-                const owner = data.profiles.find((profile) => profile.id === card.userId);
-
                 return (
                   <div className="rounded-2xl border border-sp-magenta/10 bg-sp-magenta-soft/20 p-4" key={card.id}>
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-sm font-bold text-sp-navy">{simulation?.persona ?? "Simulation"}</p>
-                        <p className="mt-1 text-xs text-sp-navy-muted">
-                          {owner?.fullName} • score {card.score}
+                        <p className="text-sm font-bold text-sp-navy">
+                          {card.simulationContext?.persona ?? simulation?.persona ?? "Simulation"}
                         </p>
+                        <p className="mt-1 text-xs text-sp-navy-muted">Score {card.score}</p>
                       </div>
                       <Badge
                         tone={
-                          card.managerReviewStatus === "reviewed"
-                            ? "green"
-                            : card.managerReviewStatus === "needs_revision"
-                              ? "amber"
+                          card.isPractice
+                            ? "blue"
+                            : card.managerReviewStatus === "reviewed"
+                              ? "green"
                               : "amber"
                         }
                       >
-                        {card.managerReviewStatus === "needs_revision"
-                          ? "Needs revision"
-                          : card.managerReviewStatus}
+                        {card.isPractice
+                          ? "Practice"
+                          : card.managerReviewStatus === "needs_revision"
+                            ? "Needs revision"
+                            : card.managerReviewStatus}
                       </Badge>
                     </div>
-                    <p className="mt-3 text-sm leading-6 text-sp-navy-muted">{card.recommendedImprovements[0]}</p>
                   </div>
                 );
               })}
             </div>
-          </Card>
-        </section>
-        )}
+          </div>
+        ) : null}
 
         {tier !== "se" ? (
-        <Card>
-          <div className="flex items-start gap-3">
-            <span className="rounded-2xl bg-sp-blue-soft p-3 text-sp-blue">
-              <Bot className="h-5 w-5" />
-            </span>
-            <div>
-              <CardTitle>Simulation routing</CardTitle>
-              <CardDescription className="mt-2">
-                Completed sessions create coaching cards, notify the assigned manager, and log simulation events for hierarchy dashboards.
-              </CardDescription>
+          <details className="group rounded-2xl border border-sp-blue/15 bg-white">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-sm font-semibold text-sp-navy [&::-webkit-details-marker]:hidden">
+              <span className="flex items-center gap-2">
+                <Library className="h-4 w-4 text-sp-blue" />
+                Team assignments & coaching history
+              </span>
+              <ChevronRight className="h-4 w-4 text-stone-400 transition group-open:rotate-90" />
+            </summary>
+            <div className="space-y-6 border-t border-sp-blue/10 px-5 py-5">
+              <div className="overflow-x-auto rounded-2xl border border-sp-blue/10">
+                <table className="min-w-full text-left text-sm">
+                  <thead className="border-b border-sp-blue/10 bg-sp-blue-soft/30 text-xs uppercase tracking-wide text-sp-navy-muted">
+                    <tr>
+                      <th className="px-4 py-3 font-semibold">Persona</th>
+                      <th className="px-4 py-3 font-semibold">Solution</th>
+                      <th className="px-4 py-3 font-semibold">Vertical</th>
+                      <th className="px-4 py-3 font-semibold">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.simulations.length === 0 ? (
+                      <tr>
+                        <td className="px-4 py-6 text-sp-navy-muted" colSpan={4}>
+                          No formal assignments yet.
+                        </td>
+                      </tr>
+                    ) : (
+                      data.simulations.map((simulation) => (
+                        <tr className="border-b border-sp-blue/5" key={simulation.id}>
+                          <td className="px-4 py-3 font-medium text-sp-navy">{simulation.persona}</td>
+                          <td className="px-4 py-3 text-sp-navy-muted">{simulation.solutionFocus}</td>
+                          <td className="px-4 py-3 text-sp-navy-muted">{simulation.vertical}</td>
+                          <td className="px-4 py-3">
+                            <StatusBadge status={simulation.status} />
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {myCoachingCards.length > 0 ? (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {myCoachingCards.map((card) => {
+                    const simulation = data.simulations.find((item) => item.id === card.simulationAssignmentId);
+                    const owner = data.profiles.find((profile) => profile.id === card.userId);
+                    return (
+                      <div className="rounded-2xl border border-sp-magenta/10 bg-sp-magenta-soft/20 p-4" key={card.id}>
+                        <p className="text-sm font-bold text-sp-navy">{simulation?.persona ?? "Simulation"}</p>
+                        <p className="mt-1 text-xs text-sp-navy-muted">
+                          {owner?.fullName} · score {card.score}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-sp-navy-muted">No coaching cards yet.</p>
+              )}
+
+              <p className="flex items-start gap-2 text-xs text-sp-navy-muted">
+                <Bot className="mt-0.5 h-4 w-4 shrink-0 text-sp-blue" />
+                Completed sessions create coaching cards and notify managers automatically.
+              </p>
             </div>
-          </div>
-        </Card>
+          </details>
         ) : null}
-      </div>
+      </SEPageLayout>
     </AppShell>
   );
 }

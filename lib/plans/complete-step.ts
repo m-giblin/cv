@@ -1,5 +1,10 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { Database } from "@/lib/database.types";
+import { maybeUnlockNextSegment } from "@/lib/plans/segment-gates";
+import { assertAssignmentStepNotLocked, StepSegmentLockedError } from "@/lib/plans/segment-lock";
+import { assertStepAccessible } from "@/lib/plans/step-prerequisites";
+
+export { StepSegmentLockedError };
 
 export async function recalculatePlanProgress(
   supabase: SupabaseClient<Database>,
@@ -66,6 +71,8 @@ export async function submitAssignmentStep(
     throw new Error("Not authorized to submit this step.");
   }
 
+  await assertStepAccessible(supabase, params.assignmentStepId);
+
   if (step.status === "reviewed") {
     throw new Error("This step is already validated.");
   }
@@ -125,13 +132,9 @@ export async function approveAssignmentStep(
   const isMentor = assignment.mentor_id === params.reviewerId;
   const isManager = assignee?.manager_id === params.reviewerId;
   const isAssigner = assignment.assigned_by === params.reviewerId;
-  const isElevatedReviewer =
-    reviewer?.role === "manager" ||
-    reviewer?.role === "director" ||
-    reviewer?.role === "admin" ||
-    reviewer?.role === "mentor";
+  const isDirectorOrAdmin = reviewer?.role === "director" || reviewer?.role === "admin";
 
-  if (!isManager && !isMentor && !isAssigner && !isElevatedReviewer) {
+  if (!isManager && !isMentor && !isAssigner && !isDirectorOrAdmin) {
     throw new Error("Not authorized to approve this step.");
   }
 
@@ -149,6 +152,8 @@ export async function approveAssignmentStep(
   }
 
   await recalculatePlanProgress(supabase, step.assignment_id);
+
+  await maybeUnlockNextSegment(supabase, step.assignment_id, step.plan_step_id);
 
   await supabase.from("activity_logs").insert({
     user_id: assignment.user_id,
@@ -388,6 +393,62 @@ export async function rejectPlanStepsByType(
           feedback: params.feedback,
         });
       }
+    }
+  }
+}
+
+export async function linkDealPrepPlanSteps(
+  supabase: SupabaseClient<Database>,
+  params: {
+    userId: string;
+    sessionId: string;
+    accountName: string;
+    assignmentStepId?: string;
+  },
+) {
+  if (params.assignmentStepId) {
+    await submitAssignmentStep(supabase, {
+      assignmentStepId: params.assignmentStepId,
+      userId: params.userId,
+      notes: `Deal prep completed for ${params.accountName} (session ${params.sessionId}).`,
+    });
+    return;
+  }
+
+  const { data: assignments } = await supabase
+    .from("plan_assignments")
+    .select("id")
+    .eq("user_id", params.userId)
+    .neq("status", "completed");
+
+  if (!assignments?.length) {
+    return;
+  }
+
+  for (const assignment of assignments) {
+    const { data: assignmentSteps } = await supabase
+      .from("plan_assignment_steps")
+      .select("id, plan_step_id, status")
+      .eq("assignment_id", assignment.id)
+      .in("status", ["not_started", "in_progress"]);
+
+    for (const assignmentStep of assignmentSteps ?? []) {
+      const { data: planStep } = await supabase
+        .from("plan_steps")
+        .select("step_type")
+        .eq("id", assignmentStep.plan_step_id)
+        .maybeSingle();
+
+      if (planStep?.step_type !== "deal_prep") {
+        continue;
+      }
+
+      await submitAssignmentStep(supabase, {
+        assignmentStepId: assignmentStep.id,
+        userId: params.userId,
+        notes: `Deal prep completed for ${params.accountName} (session ${params.sessionId}).`,
+      });
+      return;
     }
   }
 }

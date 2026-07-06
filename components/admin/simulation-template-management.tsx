@@ -3,12 +3,10 @@
 import { Loader2, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
+import { GlobalAiSettingsToggles } from "@/components/admin/global-ai-settings-toggles";
 import { Button } from "@/components/ui/button";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   DataTablePagination,
-  DataTableShell,
   DataTableToolbar,
   paginate,
 } from "@/components/ui/data-table";
@@ -219,78 +217,76 @@ export function SimulationTemplateManagement() {
         total={templates.length}
       />
 
-      <DataTableShell>
-        <table className="min-w-full text-left text-sm">
-          <thead className="border-b border-sp-blue/10 bg-sp-blue-soft/30 text-xs uppercase tracking-wide text-sp-navy-muted">
-            <tr>
-              <th className="px-4 py-3 font-semibold">Name</th>
-              <th className="px-4 py-3 font-semibold">Persona</th>
-              <th className="px-4 py-3 font-semibold">Vertical</th>
-              <th className="px-4 py-3 font-semibold">Manager overrides</th>
-              <th className="px-4 py-3 font-semibold">Practice</th>
-              <th className="px-4 py-3 font-semibold">Updated</th>
-              <th className="px-4 py-3 font-semibold">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 ? (
-              <tr>
-                <td className="px-4 py-8 text-center text-sp-navy-muted" colSpan={7}>
-                  No templates match your search.
-                </td>
-              </tr>
-            ) : (
-              rows.map((template) => (
-                <tr className="border-b border-sp-blue/5 hover:bg-sp-blue-soft/20" key={template.id}>
-                  <td className="px-4 py-3 font-semibold text-sp-navy">{template.name}</td>
-                  <td className="max-w-[200px] truncate px-4 py-3 text-sp-navy-muted" title={template.persona}>
-                    {template.persona}
-                  </td>
-                  <td className="px-4 py-3 text-sp-navy-muted">{template.vertical}</td>
-                  <td className="px-4 py-3">
-                    {template.parameterized ? (
-                      <Badge tone="blue">Solution + vertical + difficulty</Badge>
-                    ) : template.hasSolutionPlaceholder ? (
-                      <Badge tone="purple">Solution only</Badge>
-                    ) : (
-                      <Badge tone="slate">Fixed prompt</Badge>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-sp-navy-muted">
-                    {template.practiceRoundsBeforeSubmit === 0
-                      ? "Optional"
-                      : `${template.practiceRoundsBeforeSubmit} required`}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-sp-navy-muted">
-                    {new Date(template.updatedAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-1">
-                      <Button aria-label="Edit" onClick={() => openEdit(template)} size="sm" variant="ghost">
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button aria-label="Delete" onClick={() => void removeTemplate(template)} size="sm" variant="ghost">
-                        <Trash2 className="h-4 w-4 text-red-600" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </DataTableShell>
+      <div className="overflow-hidden rounded-xl border border-[#e2eaf5] bg-white">
+        <div
+          className="grid border-b border-[#f1f5f9] bg-[#f8fafd] px-[18px] py-[9px]"
+          style={{ gridTemplateColumns: "1fr 130px 110px 80px 80px 160px" }}
+        >
+          {["Template", "Persona", "Vertical", "Model", "Uses", ""].map((header) => (
+            <span className="text-[9.5px] font-bold uppercase tracking-[0.07em] text-[#94a3b8]" key={header}>
+              {header}
+            </span>
+          ))}
+        </div>
+        {rows.length === 0 ? (
+          <p className="px-4 py-8 text-center text-[#94a3b8]">No templates match your search.</p>
+        ) : (
+          rows.map((template) => (
+            <div
+              className="grid items-center border-b border-[#f9fafb] px-[18px] py-[11px] transition hover:bg-[#f7fafd] last:border-b-0"
+              key={template.id}
+              style={{ gridTemplateColumns: "1fr 130px 110px 80px 80px 160px" }}
+            >
+              <div className="flex items-center gap-[14px]">
+                <div className="flex h-[32px] w-[32px] flex-shrink-0 items-center justify-center rounded-lg bg-[#e8f2fc]">
+                  <svg fill="none" height="16" stroke="#0071ce" strokeLinecap="round" strokeWidth="1.4" viewBox="0 0 16 16" width="16">
+                    <path d="M3 8h10M8 3v10" />
+                    <rect height="12" rx="2" width="12" x="2" y="2" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-[12px] font-semibold text-[#1e293b]">{template.name}</p>
+                  <p className="text-[10.5px] text-[#94a3b8]">
+                    Persona: {template.persona} · {template.vertical}
+                  </p>
+                </div>
+              </div>
+              <span className="truncate text-[12px] text-[#475569]">{template.persona}</span>
+              <span className="text-[12px] text-[#475569]">{template.vertical}</span>
+              <span className="w-fit rounded-full bg-[#e8f2fc] px-[8px] py-[2px] text-[9.5px] font-bold text-[#0057a8]">
+                {template.parameterized ? "Dynamic" : "Fixed"}
+              </span>
+              <span className="text-[10.5px] text-[#94a3b8]">— uses</span>
+              <div className="flex gap-[6px]">
+                <button
+                  className="inline-flex items-center rounded-md border border-[#e2eaf5] bg-white px-[10px] py-[5px] text-[11px] font-semibold text-[#334155]"
+                  onClick={() => openEdit(template)}
+                  type="button"
+                >
+                  Edit prompt
+                </button>
+                <button
+                  className="inline-flex items-center rounded-md border border-[#e2eaf5] bg-white px-[10px] py-[5px] text-[11px] font-semibold text-[#334155]"
+                  type="button"
+                >
+                  Preview
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
 
       <DataTablePagination onPageChange={setPage} page={safePage} pageCount={pageCount} />
 
+      <GlobalAiSettingsToggles />
+
       {showEditor ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>{editingId ? "Edit template" : "New template"}</CardTitle>
-            <CardDescription>
-              Use {"{{solution}}"}, {"{{vertical}}"}, {"{{difficulty}}"} where managers should override at assign time.
-            </CardDescription>
-          </CardHeader>
+        <div className="rounded-xl border border-[#e2eaf5] bg-white p-[18px_22px]">
+          <p className="text-[12.5px] font-bold text-[#0a1628]">{editingId ? "Edit template" : "New template"}</p>
+          <p className="mb-[14px] mt-[2px] text-[11px] text-[#64748b]">
+            Use {"{{solution}}"}, {"{{vertical}}"}, {"{{difficulty}}"} where managers should override at assign time.
+          </p>
           <form className="grid gap-4 md:grid-cols-2" onSubmit={saveTemplate}>
             <Input
               onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
@@ -317,7 +313,7 @@ export function SimulationTemplateManagement() {
               value={form.solutionFocus}
             />
             <label className="space-y-2 text-sm font-semibold text-sp-navy-muted">
-              Practice rounds before submit
+              Recommended practice rounds
               <Input
                 max={10}
                 min={0}
@@ -332,8 +328,8 @@ export function SimulationTemplateManagement() {
                 value={form.practiceRoundsBeforeSubmit}
               />
               <span className="block text-xs font-normal text-sp-navy-muted">
-                SEs and managers must complete this many practice rounds (with coaching feedback) before submitting for
-                review. Set 0 to allow immediate submit.
+                Suggested number of practice attempts before submitting. SEs can still submit anytime if they are happy
+                with their score. Set 0 to hide the recommendation.
               </span>
             </label>
             <Textarea
@@ -366,7 +362,7 @@ export function SimulationTemplateManagement() {
               </Button>
             </div>
           </form>
-        </Card>
+        </div>
       ) : null}
     </div>
   );

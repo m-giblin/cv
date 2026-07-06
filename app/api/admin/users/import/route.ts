@@ -115,7 +115,7 @@ export async function POST(request: Request) {
     results.push({ line, email, status: "created" });
   }
 
-  await logAuditEvent(session.supabase, {
+  await logAuditEvent(session.user.id, {
     action: "user.created",
     targetType: "bulk_import",
     details: { count: results.filter((result) => result.status === "created").length },

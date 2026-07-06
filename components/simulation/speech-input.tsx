@@ -54,6 +54,12 @@ export function SimulationSpeechInput({
     setSupported(Boolean(getSpeechRecognition()));
   }, []);
 
+  useEffect(() => {
+    return () => {
+      recognitionRef.current?.stop();
+    };
+  }, []);
+
   function stopListening() {
     recognitionRef.current?.stop();
     setListening(false);

@@ -1,20 +1,15 @@
 "use client";
 
-import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { allowedEmailDomainsLabel } from "@/lib/auth/email-domain";
-import { Badge } from "@/components/ui/badge";
+import { avatarGradientForId } from "@/lib/se/avatar-gradients";
 import { Button } from "@/components/ui/button";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  DataTablePagination,
-  DataTableShell,
-  DataTableToolbar,
-  paginate,
-} from "@/components/ui/data-table";
+import { DataTablePagination, paginate } from "@/components/ui/data-table";
 import { Input } from "@/components/ui/input";
 import { ProfileRole, SeLevel } from "@/lib/types";
+import { initials } from "@/lib/utils";
 
 type AdminUser = {
   id: string;
@@ -38,6 +33,8 @@ const ROLES: ProfileRole[] = [
 
 const LEVELS: SeLevel[] = ["Basic", "Senior", "Advisory"];
 
+const ROLE_FILTER_OPTIONS = ["SE", "Manager", "Admin", "Mentor", "Director"] as const;
+
 const emptyForm = {
   fullName: "",
   email: "",
@@ -49,16 +46,49 @@ const emptyForm = {
 };
 
 const PAGE_SIZE = 25;
+const USER_COLS = "1fr 90px 110px 140px 90px 120px";
 
-export function UserManagement() {
-  const [users, setUsers] = useState<AdminUser[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+function roleBadge(role: ProfileRole) {
+  const map: Partial<Record<ProfileRole, { bg: string; color: string; label: string }>> = {
+    basic_se: { bg: "#e8f2fc", color: "#0057a8", label: "SE" },
+    senior_se: { bg: "#e8f2fc", color: "#0057a8", label: "SE" },
+    advisory_solutions_consultant: { bg: "#e8f2fc", color: "#0057a8", label: "SE" },
+    mentor: { bg: "#ede9fe", color: "#5b21b6", label: "Mentor" },
+    manager: { bg: "#fdf0fa", color: "#a51e8e", label: "Manager" },
+    director: { bg: "#fdf0fa", color: "#a51e8e", label: "Director" },
+    admin: { bg: "#f1f5f9", color: "#334155", label: "Admin" },
+  };
+  return map[role] ?? { bg: "#f1f5f9", color: "#64748b", label: role.replaceAll("_", " ") };
+}
+
+function matchesRoleFilter(role: ProfileRole, filter: string) {
+  if (filter === "All roles") return true;
+  const badge = roleBadge(role);
+  return badge.label === filter;
+}
+
+function matchesLevelFilter(level: SeLevel, filter: string) {
+  if (filter === "All levels") return true;
+  const map: Record<string, SeLevel> = {
+    "Basic SE": "Basic",
+    "Senior SE": "Senior",
+    "Advisory SC": "Advisory",
+  };
+  return level === map[filter];
+}
+
+export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] }) {
+  const [users, setUsers] = useState<AdminUser[]>(initialUsers ?? []);
+  const [isLoading, setIsLoading] = useState(!initialUsers?.length);
   const [isSaving, setIsSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [tempPasswordShown, setTempPasswordShown] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState("All roles");
+  const [levelFilter, setLevelFilter] = useState("All levels");
+  const [managerFilter, setManagerFilter] = useState("All managers");
   const [page, setPage] = useState(1);
 
   const managers = useMemo(
@@ -76,22 +106,25 @@ export function UserManagement() {
 
   const filteredUsers = useMemo(() => {
     const query = search.trim().toLowerCase();
-    if (!query) return users;
 
     return users.filter((user) => {
       const managerName = user.manager_id ? managerNameById.get(user.manager_id) ?? "" : "";
-      return [user.full_name, user.email, user.role, user.level, managerName]
-        .join(" ")
-        .toLowerCase()
-        .includes(query);
+      const matchesSearch =
+        !query ||
+        [user.full_name, user.email, user.role, user.level, managerName].join(" ").toLowerCase().includes(query);
+      const matchesRole = matchesRoleFilter(user.role, roleFilter);
+      const matchesLevel = matchesLevelFilter(user.level, levelFilter);
+      const matchesManager =
+        managerFilter === "All managers" || managerName === managerFilter;
+      return matchesSearch && matchesRole && matchesLevel && matchesManager;
     });
-  }, [managerNameById, search, users]);
+  }, [managerFilter, managerNameById, levelFilter, roleFilter, search, users]);
 
   const { rows, page: safePage, pageCount } = paginate(filteredUsers, page, PAGE_SIZE);
 
   useEffect(() => {
     setPage(1);
-  }, [search]);
+  }, [search, roleFilter, levelFilter, managerFilter]);
 
   const loadUsers = useCallback(async () => {
     setIsLoading(true);
@@ -110,8 +143,11 @@ export function UserManagement() {
   }, []);
 
   useEffect(() => {
+    if (initialUsers?.length) {
+      return;
+    }
     void loadUsers();
-  }, [loadUsers]);
+  }, [initialUsers, loadUsers]);
 
   function startEdit(user: AdminUser) {
     setEditingId(user.id);
@@ -252,21 +288,21 @@ export function UserManagement() {
       </div>
 
       {tempPasswordShown ? (
-        <Card className="border-sp-magenta/20 bg-sp-magenta-soft/20">
-          <CardHeader>
-            <CardTitle className="text-sp-magenta">Temporary password</CardTitle>
-            <CardDescription>Share securely. User must change it on first login and enroll MFA.</CardDescription>
-          </CardHeader>
-          <p className="px-5 pb-5 font-mono text-lg font-bold text-sp-navy">{tempPasswordShown}</p>
-        </Card>
+        <div className="rounded-xl border border-[#e2eaf5] bg-[#fdf0fa] p-[18px_22px]">
+          <p className="text-[12.5px] font-bold text-[#a51e8e]">Temporary password</p>
+          <p className="mt-[2px] text-[11px] text-[#64748b]">
+            Share securely. User must change it on first login and enroll MFA.
+          </p>
+          <p className="mt-[10px] font-mono text-lg font-bold text-[#0a1628]">{tempPasswordShown}</p>
+        </div>
       ) : null}
 
       {(showCreate || editingId) && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{editingId ? "Edit user" : "New user"}</CardTitle>
-            <CardDescription>Accounts must use {allowedEmailDomainsLabel()}.</CardDescription>
-          </CardHeader>
+        <div className="rounded-xl border border-[#e2eaf5] bg-white p-[18px_22px]">
+          <p className="text-[12.5px] font-bold text-[#0a1628]">{editingId ? "Edit user" : "New user"}</p>
+          <p className="mb-[14px] mt-[2px] text-[11px] text-[#64748b]">
+            Accounts must use {allowedEmailDomainsLabel()}.
+          </p>
           <form className="grid gap-4 md:grid-cols-2" onSubmit={editingId ? handleUpdate : handleCreate}>
             <label className="block space-y-2 text-sm font-semibold text-sp-navy-muted">
               Full name
@@ -373,66 +409,121 @@ export function UserManagement() {
               </Button>
             </div>
           </form>
-        </Card>
+        </div>
       )}
 
-      <DataTableToolbar
-        filtered={filteredUsers.length}
-        onSearchChange={setSearch}
-        placeholder="Search name, email, role, manager…"
-        search={search}
-        total={users.length}
-      />
+      <div className="mb-[14px] flex items-center gap-[10px]">
+        <div className="flex max-w-[280px] flex-1 items-center gap-[7px] rounded-lg border-[1.5px] border-[#e2eaf5] bg-white px-[12px] py-[6px]">
+          <svg fill="none" height="13" stroke="#94a3b8" strokeLinecap="round" strokeWidth="1.3" viewBox="0 0 14 14" width="13">
+            <circle cx="6" cy="6" r="4.5" />
+            <line x1="9.5" x2="12.5" y1="9.5" y2="12.5" />
+          </svg>
+          <input
+            className="flex-1 bg-transparent text-[12px] outline-none placeholder:text-[#94a3b8]"
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name or email..."
+            value={search}
+          />
+        </div>
+        <select
+          className="cursor-pointer rounded-lg border-[1.5px] border-[#e2eaf5] bg-white px-[10px] py-[6px] text-[12px] text-[#374151] outline-none"
+          onChange={(e) => setRoleFilter(e.target.value)}
+          value={roleFilter}
+        >
+          <option>All roles</option>
+          {ROLE_FILTER_OPTIONS.map((option) => (
+            <option key={option}>{option}</option>
+          ))}
+        </select>
+        <select
+          className="cursor-pointer rounded-lg border-[1.5px] border-[#e2eaf5] bg-white px-[10px] py-[6px] text-[12px] text-[#374151] outline-none"
+          onChange={(e) => setLevelFilter(e.target.value)}
+          value={levelFilter}
+        >
+          <option>All levels</option>
+          <option>Basic SE</option>
+          <option>Senior SE</option>
+          <option>Advisory SC</option>
+        </select>
+        <select
+          className="cursor-pointer rounded-lg border-[1.5px] border-[#e2eaf5] bg-white px-[10px] py-[6px] text-[12px] text-[#374151] outline-none"
+          onChange={(e) => setManagerFilter(e.target.value)}
+          value={managerFilter}
+        >
+          <option>All managers</option>
+          {managers.map((manager) => (
+            <option key={manager.id}>{manager.full_name}</option>
+          ))}
+        </select>
+      </div>
 
-      <DataTableShell>
-        <table className="min-w-full text-left text-sm">
-          <thead className="border-b border-sp-blue/10 bg-sp-blue-soft/30 text-xs uppercase tracking-wide text-sp-navy-muted">
-            <tr>
-              <th className="px-4 py-3 font-semibold">Name</th>
-              <th className="px-4 py-3 font-semibold">Email</th>
-              <th className="px-4 py-3 font-semibold">Role</th>
-              <th className="px-4 py-3 font-semibold">Level</th>
-              <th className="px-4 py-3 font-semibold">Manager</th>
-              <th className="px-4 py-3 font-semibold">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 ? (
-              <tr>
-                <td className="px-4 py-8 text-center text-sp-navy-muted" colSpan={6}>
-                  No users match your search.
-                </td>
-              </tr>
-            ) : (
-              rows.map((user) => (
-                <tr className="border-b border-sp-blue/5 hover:bg-sp-blue-soft/20" key={user.id}>
-                  <td className="px-4 py-3 font-semibold text-sp-navy">{user.full_name}</td>
-                  <td className="px-4 py-3 text-sp-navy-muted">{user.email}</td>
-                  <td className="px-4 py-3">
-                    <Badge tone="magenta">{user.role.replaceAll("_", " ")}</Badge>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge tone="blue">{user.level}</Badge>
-                  </td>
-                  <td className="px-4 py-3 text-sp-navy-muted">
-                    {user.manager_id ? managerNameById.get(user.manager_id) ?? "—" : "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-1">
-                      <Button aria-label="Edit user" onClick={() => startEdit(user)} size="sm" variant="ghost">
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button aria-label="Delete user" onClick={() => void handleDelete(user)} size="sm" variant="ghost">
-                        <Trash2 className="h-4 w-4 text-red-600" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </DataTableShell>
+      <div className="overflow-hidden rounded-xl border border-[#e2eaf5] bg-white">
+        <div
+          className="grid border-b border-[#f1f5f9] bg-[#f8fafd] px-[18px] py-[10px]"
+          style={{ gridTemplateColumns: USER_COLS }}
+        >
+          {["User", "Role", "Level", "Manager", "Joined", ""].map((header) => (
+            <span className="text-[9.5px] font-bold uppercase tracking-[0.07em] text-[#94a3b8]" key={header}>
+              {header}
+            </span>
+          ))}
+        </div>
+        {rows.length === 0 ? (
+          <p className="px-4 py-8 text-center text-sp-navy-muted">No users match your search.</p>
+        ) : (
+          rows.map((user) => {
+            const badge = roleBadge(user.role);
+            return (
+              <div
+                className="grid cursor-pointer items-center border-b border-[#f9fafb] px-[18px] py-[10px] transition hover:bg-[#f7fafd]"
+                key={user.id}
+                style={{ gridTemplateColumns: USER_COLS }}
+              >
+                <div className="flex items-center gap-[10px]">
+                  <div
+                    className="flex h-[32px] w-[32px] flex-shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
+                    style={{ background: avatarGradientForId(user.id) }}
+                  >
+                    {initials(user.full_name)}
+                  </div>
+                  <div>
+                    <p className="text-[12px] font-semibold text-[#1e293b]">{user.full_name}</p>
+                    <p className="text-[10.5px] text-[#94a3b8]">{user.email}</p>
+                  </div>
+                </div>
+                <span
+                  className="w-fit rounded-full px-[8px] py-[2px] text-[9.5px] font-bold"
+                  style={{ background: badge.bg, color: badge.color }}
+                >
+                  {badge.label}
+                </span>
+                <span className="text-[12px] text-[#475569]">{user.level}</span>
+                <span className="truncate text-[12px] text-[#475569]">
+                  {user.manager_id ? managerNameById.get(user.manager_id) ?? "—" : "—"}
+                </span>
+                <span className="text-[11.5px] text-[#94a3b8]">{new Date(user.created_at).toLocaleDateString()}</span>
+                <div className="flex gap-[6px]">
+                  <button
+                    className="inline-flex items-center rounded-md border border-[#e2eaf5] bg-white px-[10px] py-[5px] text-[11px] font-semibold text-[#334155]"
+                    onClick={() => startEdit(user)}
+                    type="button"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    className="inline-flex items-center rounded-md px-[10px] py-[5px] text-[11px] font-semibold"
+                    onClick={() => void handleDelete(user)}
+                    style={{ background: "#fee2e2", border: "1.5px solid #fecaca", color: "#dc2626" }}
+                    type="button"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
 
       <DataTablePagination onPageChange={setPage} page={safePage} pageCount={pageCount} />
     </div>

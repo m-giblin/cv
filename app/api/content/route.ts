@@ -19,6 +19,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get("q")?.trim().toLowerCase() ?? "";
   const category = searchParams.get("category");
+  const projectTag = searchParams.get("projectTag")?.trim().toLowerCase() ?? "";
 
   let builder = supabase.from("content_assets").select("*").order("title");
 
@@ -39,12 +40,22 @@ export async function GET(request: Request) {
       category: row.description ?? "reference",
       url: row.storage_path,
       contentType: row.content_type,
+      assetType: row.asset_type ?? "link",
+      projectTags: row.project_tags ?? [],
+      moduleTags: row.module_tags ?? [],
+      isLinkOnly: row.is_link_only ?? true,
       linkedSolutions: row.linked_solutions ?? [],
       updatedAt: row.updated_at,
     }))
     .filter((asset) => {
+      if (projectTag && !asset.projectTags.some((tag) => tag.toLowerCase() === projectTag)) {
+        return false;
+      }
       if (!query) return true;
-      return [asset.title, asset.category, asset.url].join(" ").toLowerCase().includes(query);
+      return [asset.title, asset.category, asset.url, ...asset.projectTags, ...asset.moduleTags]
+        .join(" ")
+        .toLowerCase()
+        .includes(query);
     });
 
   return NextResponse.json({ assets });

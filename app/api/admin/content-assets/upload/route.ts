@@ -2,6 +2,18 @@ import { NextResponse } from "next/server";
 import { requireAdminSession } from "@/lib/auth/require-admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
+const ALLOWED_UPLOAD_TYPES = new Set([
+  "application/pdf",
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "text/plain",
+  "text/markdown",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]);
+
 export async function POST(request: Request) {
   const session = await requireAdminSession();
   if (session instanceof NextResponse) {
@@ -13,6 +25,15 @@ export async function POST(request: Request) {
 
   if (!(file instanceof File) || file.size === 0) {
     return NextResponse.json({ error: "File is required" }, { status: 400 });
+  }
+
+  if (file.size > MAX_UPLOAD_BYTES) {
+    return NextResponse.json({ error: "File exceeds 25MB limit." }, { status: 400 });
+  }
+
+  const mime = file.type || "application/octet-stream";
+  if (!ALLOWED_UPLOAD_TYPES.has(mime)) {
+    return NextResponse.json({ error: "File type not allowed." }, { status: 400 });
   }
 
   const title = String(formData.get("title") ?? file.name);

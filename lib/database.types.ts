@@ -100,6 +100,8 @@ export type Database = {
           target_completion: string | null;
           status: Database["public"]["Enums"]["assignment_status"];
           progress_percent: number;
+          unlocked_segment_max: number;
+          program_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -113,6 +115,8 @@ export type Database = {
           target_completion?: string | null;
           status?: Database["public"]["Enums"]["assignment_status"];
           progress_percent?: number;
+          unlocked_segment_max?: number;
+          program_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -158,6 +162,7 @@ export type Database = {
           created_by: string | null;
           is_ai_generated: boolean;
           ai_metadata: Json;
+          target_level: Database["public"]["Enums"]["se_level"] | null;
           created_at: string;
           updated_at: string;
         };
@@ -173,6 +178,7 @@ export type Database = {
           created_by?: string | null;
           is_ai_generated?: boolean;
           ai_metadata?: Json;
+          target_level?: Database["public"]["Enums"]["se_level"] | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -383,6 +389,14 @@ export type Database = {
           storage_path: string;
           content_type: string | null;
           linked_solutions: string[];
+          asset_type: string;
+          project_tags: string[];
+          module_tags: string[];
+          is_link_only: boolean;
+          version: number;
+          superseded_by: string | null;
+          last_verified_at: string | null;
+          health_status: string;
           created_by: string | null;
           created_at: string;
           updated_at: string;
@@ -394,11 +408,259 @@ export type Database = {
           storage_path: string;
           content_type?: string | null;
           linked_solutions?: string[];
+          asset_type?: string;
+          project_tags?: string[];
+          module_tags?: string[];
+          is_link_only?: boolean;
+          version?: number;
+          superseded_by?: string | null;
+          last_verified_at?: string | null;
+          health_status?: string;
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["content_assets"]["Insert"]>;
+        Relationships: [];
+      };
+      corpus_asset_feedback: {
+        Row: {
+          id: string;
+          content_asset_id: string;
+          user_id: string;
+          is_confusing: boolean;
+          comment: string | null;
+          status: string;
+          admin_note: string | null;
+          resolved_at: string | null;
+          resolved_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          content_asset_id: string;
+          user_id: string;
+          is_confusing?: boolean;
+          comment?: string | null;
+          status?: string;
+          admin_note?: string | null;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["corpus_asset_feedback"]["Insert"]>;
+        Relationships: [];
+      };
+      corpus_routing_rules: {
+        Row: {
+          id: string;
+          tag: string;
+          destination_type: string;
+          destination_address: string;
+          label: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          tag: string;
+          destination_type: string;
+          destination_address: string;
+          label?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["corpus_routing_rules"]["Insert"]>;
+        Relationships: [];
+      };
+      corpus_qa_inquiries: {
+        Row: {
+          id: string;
+          user_id: string;
+          content_asset_id: string | null;
+          question: string;
+          asset_tags: string[];
+          routed_destination_type: string | null;
+          routed_destination_address: string | null;
+          confidence_score: number | null;
+          draft_answer: string | null;
+          source_urls: string[];
+          escalated_at: string | null;
+          status: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          content_asset_id?: string | null;
+          question: string;
+          asset_tags?: string[];
+          routed_destination_type?: string | null;
+          routed_destination_address?: string | null;
+          confidence_score?: number | null;
+          draft_answer?: string | null;
+          source_urls?: string[];
+          escalated_at?: string | null;
+          status?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["corpus_qa_inquiries"]["Insert"]>;
+        Relationships: [];
+      };
+      release_courses: {
+        Row: {
+          id: string;
+          name: string;
+          description: string | null;
+          project_tag: string;
+          plan_id: string | null;
+          lab_mode: string | null;
+          pitch_topic: string | null;
+          corpus_tag_filters: string[];
+          slack_announce_channel: string | null;
+          created_by: string | null;
+          published_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          description?: string | null;
+          project_tag: string;
+          plan_id?: string | null;
+          lab_mode?: string | null;
+          pitch_topic?: string | null;
+          corpus_tag_filters?: string[];
+          slack_announce_channel?: string | null;
+          created_by?: string | null;
+          published_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["release_courses"]["Insert"]>;
+        Relationships: [];
+      };
+      enablement_programs: {
+        Row: {
+          id: string;
+          name: string;
+          description: string | null;
+          segment_count: number;
+          cert_valid_months: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          description?: string | null;
+          segment_count?: number;
+          cert_valid_months?: number;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["enablement_programs"]["Insert"]>;
+        Relationships: [];
+      };
+      enablement_program_segments: {
+        Row: {
+          id: string;
+          program_id: string;
+          segment_index: number;
+          plan_id: string;
+        };
+        Insert: {
+          id?: string;
+          program_id: string;
+          segment_index: number;
+          plan_id: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["enablement_program_segments"]["Insert"]>;
+        Relationships: [];
+      };
+      segment_certificates: {
+        Row: {
+          id: string;
+          assignment_id: string;
+          user_id: string;
+          program_id: string | null;
+          segment_index: number;
+          certificate_code: string;
+          issued_at: string;
+          expires_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          assignment_id: string;
+          user_id: string;
+          program_id?: string | null;
+          segment_index: number;
+          certificate_code: string;
+          issued_at?: string;
+          expires_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["segment_certificates"]["Insert"]>;
+        Relationships: [];
+      };
+      segment_unlock_overrides: {
+        Row: {
+          id: string;
+          assignment_id: string;
+          unlocked_segment_max: number;
+          reason: string;
+          overridden_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          assignment_id: string;
+          unlocked_segment_max: number;
+          reason: string;
+          overridden_by: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["segment_unlock_overrides"]["Insert"]>;
+        Relationships: [];
+      };
+      plan_step_prerequisites: {
+        Row: {
+          id: string;
+          plan_step_id: string;
+          prerequisite_plan_step_id: string;
+        };
+        Insert: {
+          id?: string;
+          plan_step_id: string;
+          prerequisite_plan_step_id: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["plan_step_prerequisites"]["Insert"]>;
+        Relationships: [];
+      };
+      corpus_sme_answers: {
+        Row: {
+          id: string;
+          question: string;
+          answer: string;
+          content_asset_id: string | null;
+          project_tags: string[];
+          confidence_score: number | null;
+          source_feedback_id: string | null;
+          created_by: string | null;
+          published_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          question: string;
+          answer: string;
+          content_asset_id?: string | null;
+          project_tags?: string[];
+          confidence_score?: number | null;
+          source_feedback_id?: string | null;
+          created_by?: string | null;
+          published_at?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["corpus_sme_answers"]["Insert"]>;
         Relationships: [];
       };
       audit_logs: {
@@ -518,7 +780,19 @@ export type Database = {
           solutions: string[];
           account_context: string | null;
           prep_output: Json;
+          meeting_type: string | null;
+          deal_stage: string | null;
+          attendees: string | null;
+          meeting_date: string | null;
+          competitors: string | null;
+          debrief_notes: string | null;
+          shared_with_manager: boolean;
+          manager_comment: string | null;
+          parent_session_id: string | null;
+          account_key: string | null;
+          version_number: number;
           created_at: string;
+          updated_at: string;
         };
         Insert: {
           id?: string;
@@ -528,7 +802,19 @@ export type Database = {
           solutions?: string[];
           account_context?: string | null;
           prep_output?: Json;
+          meeting_type?: string | null;
+          deal_stage?: string | null;
+          attendees?: string | null;
+          meeting_date?: string | null;
+          competitors?: string | null;
+          debrief_notes?: string | null;
+          shared_with_manager?: boolean;
+          manager_comment?: string | null;
+          parent_session_id?: string | null;
+          account_key?: string | null;
+          version_number?: number;
           created_at?: string;
+          updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["deal_prep_sessions"]["Insert"]>;
         Relationships: [];
@@ -635,6 +921,432 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["readiness_certifications"]["Insert"]>;
         Relationships: [];
       };
+      learn_module_progress: {
+        Row: {
+          id: string;
+          user_id: string;
+          module_id: string;
+          completed_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          module_id: string;
+          completed_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["learn_module_progress"]["Insert"]>;
+        Relationships: [];
+      };
+      market_pulse_weeks: {
+        Row: {
+          week_id: string;
+          questions: Json;
+          source: string;
+          created_at: string;
+        };
+        Insert: {
+          week_id: string;
+          questions: Json;
+          source?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["market_pulse_weeks"]["Insert"]>;
+        Relationships: [];
+      };
+      market_pulse_results: {
+        Row: {
+          id: string;
+          user_id: string;
+          week_id: string;
+          score: number;
+          total: number;
+          answers: Json;
+          submitted_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          week_id: string;
+          score: number;
+          total: number;
+          answers?: Json;
+          submitted_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["market_pulse_results"]["Insert"]>;
+        Relationships: [];
+      };
+      integration_connections: {
+        Row: {
+          id: string;
+          user_id: string;
+          provider: string;
+          access_token: string | null;
+          refresh_token: string | null;
+          expires_at: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          provider: string;
+          access_token?: string | null;
+          refresh_token?: string | null;
+          expires_at?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["integration_connections"]["Insert"]>;
+        Relationships: [];
+      };
+      isc_lab_interactions: {
+        Row: {
+          id: string;
+          user_id: string;
+          mode: string;
+          query: string;
+          account_name: string | null;
+          reply_preview: string | null;
+          sources: Json;
+          model: string | null;
+          provider: string | null;
+          recommended_challenge_id: string | null;
+          recommended_cert_type: string | null;
+          saved_to_prep_session_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          mode: string;
+          query: string;
+          account_name?: string | null;
+          reply_preview?: string | null;
+          sources?: Json;
+          model?: string | null;
+          provider?: string | null;
+          recommended_challenge_id?: string | null;
+          recommended_cert_type?: string | null;
+          saved_to_prep_session_id?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["isc_lab_interactions"]["Insert"]>;
+        Relationships: [];
+      };
+      isc_lab_knowledge_chunks: {
+        Row: {
+          id: string;
+          kind: string;
+          url: string | null;
+          title: string;
+          body: string;
+          tags: string[];
+          source_fetched_at: string | null;
+          content_version: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          kind: string;
+          url?: string | null;
+          title: string;
+          body: string;
+          tags?: string[];
+          source_fetched_at?: string | null;
+          content_version?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["isc_lab_knowledge_chunks"]["Insert"]>;
+        Relationships: [];
+      };
+      isc_lab_precall_briefs: {
+        Row: {
+          id: string;
+          user_id: string;
+          deal_prep_session_id: string | null;
+          account_name: string;
+          meeting_date: string | null;
+          brief_markdown: string;
+          sources: Json;
+          delivered_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          deal_prep_session_id?: string | null;
+          account_name: string;
+          meeting_date?: string | null;
+          brief_markdown: string;
+          sources?: Json;
+          delivered_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["isc_lab_precall_briefs"]["Insert"]>;
+        Relationships: [];
+      };
+      adaptive_probe_sessions: {
+        Row: {
+          id: string;
+          user_id: string;
+          status: string;
+          focus_competencies: string[];
+          responses: Json;
+          competency_scores: Json;
+          field_signal_score: number | null;
+          recommended_actions: Json;
+          started_at: string;
+          completed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          status?: string;
+          focus_competencies?: string[];
+          responses?: Json;
+          competency_scores?: Json;
+          field_signal_score?: number | null;
+          recommended_actions?: Json;
+          started_at?: string;
+          completed_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["adaptive_probe_sessions"]["Insert"]>;
+        Relationships: [];
+      };
+      pitch_peer_reviews: {
+        Row: {
+          id: string;
+          pitch_id: string;
+          reviewer_id: string;
+          clarity_score: number;
+          storyline_score: number;
+          differentiation_score: number;
+          comment: string | null;
+          endorsed: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          pitch_id: string;
+          reviewer_id: string;
+          clarity_score: number;
+          storyline_score: number;
+          differentiation_score: number;
+          comment?: string | null;
+          endorsed?: boolean;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["pitch_peer_reviews"]["Insert"]>;
+        Relationships: [];
+      };
+      gamification_events: {
+        Row: {
+          id: string;
+          user_id: string;
+          event_type: string;
+          points: number;
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          event_type: string;
+          points?: number;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["gamification_events"]["Insert"]>;
+        Relationships: [];
+      };
+      buyer_share_rooms: {
+        Row: {
+          id: string;
+          token: string;
+          user_id: string;
+          prep_session_id: string | null;
+          account_name: string;
+          title: string;
+          room_payload: Json;
+          view_count: number;
+          expires_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          token: string;
+          user_id: string;
+          prep_session_id?: string | null;
+          account_name: string;
+          title: string;
+          room_payload?: Json;
+          view_count?: number;
+          expires_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["buyer_share_rooms"]["Insert"]>;
+        Relationships: [];
+      };
+      buyer_share_events: {
+        Row: {
+          id: string;
+          room_id: string;
+          event_type: string;
+          resource_label: string | null;
+          viewer_fingerprint: string | null;
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          room_id: string;
+          event_type: string;
+          resource_label?: string | null;
+          viewer_fingerprint?: string | null;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["buyer_share_events"]["Insert"]>;
+        Relationships: [];
+      };
+      gong_call_intel: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          account_name: string;
+          account_key: string;
+          call_count: number;
+          avg_talk_ratio: number | null;
+          objection_themes: Json;
+          brief_summary: string | null;
+          talk_track_hints: Json;
+          risk_signals: Json;
+          source: string;
+          fetched_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          account_name: string;
+          account_key: string;
+          call_count?: number;
+          avg_talk_ratio?: number | null;
+          objection_themes?: Json;
+          brief_summary?: string | null;
+          talk_track_hints?: Json;
+          risk_signals?: Json;
+          source?: string;
+          fetched_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["gong_call_intel"]["Insert"]>;
+        Relationships: [];
+      };
+      pitch_submissions: {
+        Row: {
+          id: string;
+          user_id: string;
+          title: string;
+          evidence_path: string;
+          reflection_text: string | null;
+          target_type: Database["public"]["Enums"]["pitch_target_type"];
+          target_id: string | null;
+          status: string;
+          manager_feedback: string | null;
+          manager_grade: number | null;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          title: string;
+          evidence_path: string;
+          reflection_text?: string | null;
+          target_type?: Database["public"]["Enums"]["pitch_target_type"];
+          target_id?: string | null;
+          status?: string;
+          manager_feedback?: string | null;
+          manager_grade?: number | null;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["pitch_submissions"]["Insert"]>;
+        Relationships: [];
+      };
+      resource_engagement: {
+        Row: {
+          id: string;
+          user_id: string;
+          resource_label: string;
+          resource_url: string | null;
+          account_name: string | null;
+          event_type: string;
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          resource_label: string;
+          resource_url?: string | null;
+          account_name?: string | null;
+          event_type: string;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["resource_engagement"]["Insert"]>;
+        Relationships: [];
+      };
+      platform_settings: {
+        Row: {
+          id: string;
+          provider: string;
+          model: string;
+          api_key_ciphertext: string | null;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          provider?: string;
+          model?: string;
+          api_key_ciphertext?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["platform_settings"]["Insert"]>;
+        Relationships: [];
+      };
+      ai_usage_logs: {
+        Row: {
+          id: string;
+          feature: string;
+          provider: string | null;
+          model: string | null;
+          prompt_tokens: number;
+          completion_tokens: number;
+          total_tokens: number;
+          user_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          feature: string;
+          provider?: string | null;
+          model?: string | null;
+          prompt_tokens?: number;
+          completion_tokens?: number;
+          total_tokens?: number;
+          user_id?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["ai_usage_logs"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -654,12 +1366,27 @@ export type Database = {
           p_target_type: string;
           p_target_id?: string;
           p_details?: Json;
+          p_actor_id?: string;
         };
         Returns: string;
       };
       recalculate_plan_progress: {
         Args: { p_assignment_id: string };
         Returns: undefined;
+      };
+      search_isc_lab_chunks: {
+        Args: { search_query: string; result_limit?: number };
+        Returns: {
+          id: string;
+          kind: string;
+          url: string | null;
+          title: string;
+          body: string;
+          tags: string[] | null;
+          rank: number;
+          source_fetched_at: string | null;
+          content_version: string | null;
+        }[];
       };
     };
     CompositeTypes: {
@@ -681,6 +1408,7 @@ export type Database = {
         | "simulation"
         | "shadow_meeting_log"
         | "mentor_review"
+        | "deal_prep"
         | "custom";
       assignment_status:
         | "not_started"
@@ -697,8 +1425,12 @@ export type Database = {
         | "executive_demo"
         | "competitive_bakeoff"
         | "customer_workshop"
-        | "advisory_readiness";
+        | "advisory_readiness"
+        | "agentic_fabric"
+        | "ais_readiness"
+        | "mcp_governance";
       certification_status: "not_started" | "submitted" | "approved" | "revoked";
+      pitch_target_type: "challenge" | "certification" | "practice";
     };
   };
 };

@@ -1,11 +1,12 @@
-import { Award, CheckCircle2, Lock } from "lucide-react";
+import { Award, CheckCircle2, Lock, Sparkles, Trophy } from "lucide-react";
 import type { AccountBadge } from "@/lib/account/achievements";
+import type { CompletionBadge } from "@/lib/account/completion-badges";
 import type { Profile } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 
-function badgeStyles(tone: AccountBadge["tone"], earned: boolean) {
+function milestoneStyles(tone: AccountBadge["tone"], earned: boolean) {
   if (!earned) {
     return "border-sp-blue/10 bg-sp-surface-muted/40 opacity-70 grayscale";
   }
@@ -22,13 +23,38 @@ function badgeStyles(tone: AccountBadge["tone"], earned: boolean) {
   }
 }
 
+function trophyStyles(tone: CompletionBadge["tone"]) {
+  switch (tone) {
+    case "gold":
+      return "border-amber-300/70 bg-gradient-to-br from-amber-50 via-white to-yellow-50 shadow-md shadow-amber-100/80";
+    case "magenta":
+      return "border-sp-magenta/30 bg-gradient-to-br from-sp-magenta-soft/50 via-white to-sp-blue-soft/20 shadow-md shadow-sp-magenta/10";
+    case "purple":
+      return "border-violet-200 bg-gradient-to-br from-violet-50 via-white to-sp-magenta-soft/20 shadow-md shadow-violet-100/60";
+    case "green":
+      return "border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-sp-blue-soft/20 shadow-md shadow-emerald-100/60";
+    default:
+      return "border-sp-blue/25 bg-gradient-to-br from-sp-blue-soft/40 via-white to-white shadow-md shadow-sp-blue/10";
+  }
+}
+
+function formatEarnedDate(iso: string) {
+  return new Date(iso).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 export function AccountProfilePanel({
   profile,
-  badges,
+  milestones,
+  trophies,
   planProgress,
 }: {
   profile: Profile;
-  badges: AccountBadge[];
+  milestones: AccountBadge[];
+  trophies: CompletionBadge[];
   planProgress: number | null;
 }) {
   const initials = profile.fullName
@@ -38,7 +64,8 @@ export function AccountProfilePanel({
     .slice(0, 2)
     .toUpperCase();
 
-  const earnedCount = badges.filter((badge) => badge.earned).length;
+  const earnedMilestones = milestones.filter((badge) => badge.earned).length;
+  const totalEarned = earnedMilestones + trophies.length;
 
   return (
     <div className="space-y-6">
@@ -55,7 +82,9 @@ export function AccountProfilePanel({
               <div className="mt-3 flex flex-wrap gap-2">
                 <Badge tone="blue">{profile.role.replaceAll("_", " ")}</Badge>
                 <Badge tone="magenta">{profile.level} SE</Badge>
-                <Badge tone="green">{earnedCount} badge{earnedCount === 1 ? "" : "s"} earned</Badge>
+                <Badge tone="green">
+                  {totalEarned} badge{totalEarned === 1 ? "" : "s"} earned
+                </Badge>
               </div>
             </div>
           </div>
@@ -74,37 +103,79 @@ export function AccountProfilePanel({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Award className="h-5 w-5 text-amber-500" />
-            Achievements & badges
+            <Trophy className="h-5 w-5 text-amber-500" />
+            Trophy case
           </CardTitle>
           <CardDescription>
-            Earn badges as you complete onboarding, certifications, and simulation milestones.
+            Fun badges for every challenge and simulation your manager has approved — proof you earned it.
           </CardDescription>
         </CardHeader>
+        {trophies.length > 0 ? (
+          <div className="grid gap-4 px-6 pb-6 sm:grid-cols-2 lg:grid-cols-3">
+            {trophies.map((trophy) => (
+              <div
+                className={`relative rounded-2xl border p-5 transition hover:-translate-y-0.5 ${trophyStyles(trophy.tone)}`}
+                key={trophy.id}
+              >
+                <Sparkles className="absolute right-4 top-4 h-4 w-4 text-amber-400" />
+                <div className="mb-3 text-4xl leading-none">{trophy.emoji}</div>
+                <p className="text-lg font-bold text-sp-navy">{trophy.funTitle}</p>
+                <p className="mt-1 text-sm leading-5 text-sp-navy-muted">{trophy.subtitle}</p>
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <Badge tone={trophy.kind === "challenge" ? "blue" : "magenta"}>
+                    {trophy.kind === "challenge" ? "Challenge" : "Simulation"}
+                  </Badge>
+                  <span className="text-xs font-semibold text-emerald-700">
+                    Earned {formatEarnedDate(trophy.earnedAt)}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="mx-6 mb-6 rounded-2xl border border-dashed border-sp-blue/20 bg-sp-blue-soft/20 p-8 text-center">
+            <div className="text-4xl">🏆</div>
+            <p className="mt-3 text-sm font-semibold text-sp-navy">No trophies yet</p>
+            <p className="mt-1 text-sm text-sp-navy-muted">
+              Complete a challenge or simulation, submit for manager review, and your trophy shows up here when they
+              approve it.
+            </p>
+          </div>
+        )}
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Award className="h-5 w-5 text-amber-500" />
+            Career milestones
+          </CardTitle>
+          <CardDescription>Bigger-picture badges for onboarding, certifications, and your first approved win.</CardDescription>
+        </CardHeader>
         <div className="grid gap-4 px-6 pb-6 sm:grid-cols-2 lg:grid-cols-3">
-          {badges.map((badge) => (
+          {milestones.map((badge) => (
             <div
-              className={`relative rounded-2xl border p-5 transition ${badgeStyles(badge.tone, badge.earned)}`}
+              className={`relative rounded-2xl border p-5 transition ${milestoneStyles(badge.tone, badge.earned)}`}
               key={badge.id}
             >
               {badge.earned ? (
                 <CheckCircle2 className="absolute right-4 top-4 h-5 w-5 text-emerald-600" />
-              ) : null}
+              ) : (
+                <Lock className="absolute right-4 top-4 h-4 w-4 text-sp-navy-muted/60" />
+              )}
               <div
-                className={`mb-3 inline-flex rounded-2xl p-3 ${
-                  badge.earned
-                    ? badge.tone === "gold"
-                      ? "bg-amber-200/80 text-amber-900"
-                      : "bg-white/80 text-sp-blue"
-                    : "bg-white/60 text-sp-navy-muted"
+                className={`mb-3 inline-flex rounded-2xl p-3 text-2xl ${
+                  badge.earned ? "bg-white/80" : "bg-white/60 grayscale"
                 }`}
               >
-                <Award className="h-6 w-6" />
+                {badge.emoji ?? "🏅"}
               </div>
-              <p className="font-bold text-sp-navy">{badge.title}</p>
+              <p className="font-bold text-sp-navy">{badge.funTitle ?? badge.title}</p>
               <p className="mt-2 text-sm leading-6 text-sp-navy-muted">{badge.description}</p>
               {badge.earned ? (
-                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-emerald-700">Earned</p>
+                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                  {badge.earnedAt ? `Earned ${formatEarnedDate(badge.earnedAt)}` : "Earned"}
+                </p>
               ) : (
                 <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-sp-navy-muted">In progress</p>
               )}

@@ -15,9 +15,25 @@ export function isAuthRoute(pathname: string) {
   );
 }
 
+export function isPublicAppRoute(pathname: string) {
+  return pathname.startsWith("/share/");
+}
+
+export function isPublicApiRoute(pathname: string) {
+  return pathname.startsWith("/api/share/");
+}
+
 export function isProtectedAppRoute(pathname: string) {
   if (pathname.startsWith("/_next") || pathname.startsWith("/api")) {
     return false;
+  }
+
+  if (isPublicAppRoute(pathname)) {
+    return false;
+  }
+
+  if (pathname.startsWith("/design")) {
+    return process.env.NODE_ENV === "production";
   }
 
   return !isAuthRoute(pathname) && pathname !== "/";

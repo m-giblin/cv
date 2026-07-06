@@ -1,3 +1,4 @@
+import type { User } from "@supabase/supabase-js";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Database } from "@/lib/database.types";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
@@ -10,10 +11,13 @@ export type MfaStatus =
 
 export async function getMfaStatus(
   supabase: SupabaseClient<Database>,
+  existingUser?: User | null,
 ): Promise<MfaStatus> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user =
+    existingUser ??
+    (
+      await supabase.auth.getUser()
+    ).data.user;
 
   if (!user) {
     return { state: "no_session" };

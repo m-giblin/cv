@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { canAccessRoute, getAccessTier } from "@/lib/auth/rbac";
 import { allowedEmailError } from "@/lib/auth/email-domain";
 import { buildQuarterlyReviewsForGoal, currentQuarter } from "@/lib/development/plan-utils";
@@ -8,6 +8,40 @@ describe("RBAC", () => {
   it("restricts admin routes from SE tier", () => {
     expect(canAccessRoute("se", "/admin")).toBe(false);
     expect(canAccessRoute("admin", "/admin")).toBe(true);
+  });
+
+  it("orders SE practice tools together after readiness items", async () => {
+    const { getNavItemsForTier } = await import("@/lib/auth/rbac");
+    const labels = getNavItemsForTier("se").map((item) => item.href);
+    const prepIndex = labels.indexOf("/prep");
+    const challengesIndex = labels.indexOf("/challenges");
+    const simulationsIndex = labels.indexOf("/simulations");
+    const certificationsIndex = labels.indexOf("/certifications");
+
+    expect(prepIndex).toBeGreaterThan(certificationsIndex);
+    expect(challengesIndex).toBe(prepIndex + 1);
+    expect(simulationsIndex).toBe(challengesIndex + 1);
+  });
+
+  it("groups manager team items before practice tools", async () => {
+    const { getNavGroupsForTier } = await import("@/lib/auth/rbac");
+    const groups = getNavGroupsForTier("manager");
+    expect(groups[0]?.id).toBe("team");
+    expect(groups[0]?.items.map((item) => item.href)).toEqual([
+      "/manager?section=command",
+      "/manager?section=inbox",
+      "/manager?section=roster",
+      "/manager?section=readiness",
+      "/manager?section=cadence",
+      "/manager?section=dev",
+      "/plans",
+    ]);
+    expect(groups.find((group) => group.id === "practice")?.items.map((item) => item.href)).toEqual([
+      "/prep",
+      "/challenges",
+      "/simulations",
+      "/pitch",
+    ]);
   });
 
   it("allows development and prep for all tiers", () => {
@@ -41,6 +75,59 @@ describe("development plan utils", () => {
   });
 });
 
+describe("secret encryption", () => {
+  const previousKey = process.env.PLATFORM_SECRETS_ENCRYPTION_KEY;
+
+  beforeEach(() => {
+    process.env.PLATFORM_SECRETS_ENCRYPTION_KEY = Buffer.alloc(32, 7).toString("base64");
+  });
+
+  afterEach(() => {
+    process.env.PLATFORM_SECRETS_ENCRYPTION_KEY = previousKey;
+  });
+
+  it("round-trips API keys through AES-GCM ciphertext", async () => {
+    const { encryptSecret, decryptSecret, isEncryptedSecret } = await import("@/lib/crypto/secret-box");
+    const sealed = encryptSecret("sk-test-provider-key-1234567890");
+    expect(isEncryptedSecret(sealed)).toBe(true);
+    expect(sealed).not.toContain("sk-test-provider-key");
+    expect(decryptSecret(sealed)).toBe("sk-test-provider-key-1234567890");
+  });
+});
+
+describe("SailPoint challenge library", () => {
+  it("validates curated challenge catalog shape and counts", async () => {
+    const { validateChallengeLibrary, SAILPOINT_CHALLENGE_LIBRARY } = await import(
+      "@/lib/challenges/sailpoint-challenge-library"
+    );
+    const result = validateChallengeLibrary();
+    expect(result.errors).toEqual([]);
+    expect(result.valid).toBe(true);
+    expect(SAILPOINT_CHALLENGE_LIBRARY.length).toBeGreaterThanOrEqual(100);
+  });
+});
+
+describe("completion badges", () => {
+  it("builds fun challenge trophies for manager-approved submissions", async () => {
+    const { computeCompletionBadges } = await import("@/lib/account/achievements");
+    const { getDemoDashboardData } = await import("@/lib/demo-data");
+
+    const data = getDemoDashboardData("alex");
+    const trophies = computeCompletionBadges(data);
+
+    expect(trophies.some((t) => t.kind === "challenge")).toBe(true);
+    expect(trophies.some((t) => t.kind === "simulation")).toBe(true);
+    expect(trophies.every((t) => t.emoji && t.funTitle && t.earnedAt)).toBe(true);
+  });
+
+  it("generates recognizable flair from challenge titles", async () => {
+    const { funChallengeBadge } = await import("@/lib/account/completion-badges");
+
+    expect(funChallengeBadge({ title: "ISC Search: Find Stale Accounts" } as never).funTitle).toBe("Search Sleuth");
+    expect(funChallengeBadge({ title: "Workflow HTTP Action Lab" } as never).emoji).toBe("⚡");
+  });
+});
+
 describe("AI schemas", () => {
   it("validates challenge schema shape", () => {
     const parsed = generatedChallengeSchema.safeParse({
@@ -64,7 +151,15 @@ describe("AI schemas", () => {
       accountContext: "Large IDN consolidating IAM tools after merger with active audit findings.",
       likelyObjections: ["Too long to implement", "Already using Entra"],
       discoveryQuestions: ["Who owns access reviews?", "What is audit timeline?", "How are contractors handled?"],
+      stakeholderMap: [
+        "CISO — audit readiness and board metrics",
+        "IAM Director — manual access review pain",
+      ],
+      competitiveLandmines: ["If Okta: reframe to enterprise governance"],
+      proofPoints: ["40% faster certifications at peer IDN", "Demo: access review campaign"],
+      riskFlags: ["No exec sponsor identified yet"],
       talkTrackOutline: ["Open with pain", "Map to ISC", "Propose next step"],
+      oneThingToNail: "Book a workshop with the IAM lead to scope access review POC.",
       linkedResources: [],
       executiveSummary: "Lead with audit readiness and measurable risk reduction for the CISO audience in healthcare.",
     });

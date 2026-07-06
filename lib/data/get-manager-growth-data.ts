@@ -3,6 +3,7 @@ import type { Database } from "@/lib/database.types";
 import { createClient } from "@/lib/supabase/server";
 
 export type ReadinessCertRow = {
+  id: string;
   userId: string;
   certificationType: string;
   status: string;
@@ -23,7 +24,7 @@ export async function fetchReadinessCertifications(
 
   const { data, error } = await supabase
     .from("readiness_certifications")
-    .select("user_id, certification_type, status")
+    .select("id, user_id, certification_type, status")
     .in("user_id", userIds);
 
   if (error || !data) {
@@ -31,6 +32,7 @@ export async function fetchReadinessCertifications(
   }
 
   return data.map((row) => ({
+    id: row.id,
     userId: row.user_id,
     certificationType: row.certification_type,
     status: row.status,

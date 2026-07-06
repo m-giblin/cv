@@ -1,20 +1,22 @@
 "use client";
 
-import { Loader2, ShieldCheck } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { MfaShieldCheckSvg } from "@/components/auth/mfa-icons";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
 import { createClient } from "@/lib/supabase/client";
 
 export function MfaVerifyForm() {
   const router = useRouter();
+  const inputRef = useRef<HTMLInputElement>(null);
   const [factorId, setFactorId] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isVerifying, setIsVerifying] = useState(false);
+
+  const focusedIndex = code.length < 6 ? code.length : null;
 
   useEffect(() => {
     async function loadFactor() {
@@ -93,37 +95,71 @@ export function MfaVerifyForm() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-10 text-sp-navy-muted">
-        <Loader2 className="h-6 w-6 animate-spin text-sp-blue" />
+      <div className="flex items-center justify-center py-[32px]">
+        <Loader2 className="h-6 w-6 animate-spin text-[#0071ce]" />
       </div>
     );
   }
 
   return (
-    <form className="space-y-4" onSubmit={handleVerify}>
-      <div className="rounded-2xl border border-sp-magenta/15 bg-sp-magenta-soft/30 p-4 text-sm leading-6 text-sp-navy-muted">
-        Open your authenticator app and enter the current 6-digit code to finish signing in.
-      </div>
+    <form className="space-y-0" onSubmit={handleVerify}>
+      <div className="fade-up delay-3 mb-[24px]">
+        <label className="mb-[12px] block text-center text-[12.5px] font-semibold text-[#475569]">
+          Authenticator code
+        </label>
 
-      <label className="block space-y-2 text-sm font-semibold text-sp-navy-muted">
-        Authenticator code
-        <Input
+        <div
+          className="flex justify-center gap-[10px]"
+          onClick={() => inputRef.current?.focus()}
+          onKeyDown={() => inputRef.current?.focus()}
+          role="presentation"
+        >
+          {[0, 1, 2, 3, 4, 5].map((index) => (
+            <Fragment key={index}>
+              {index === 3 ? (
+                <div className="flex items-center">
+                  <span className="text-[20px] font-light leading-none text-[#d0dae8]">—</span>
+                </div>
+              ) : null}
+              <div
+                className="flex h-[62px] w-[52px] cursor-text items-center justify-center rounded-xl border-[1.5px] font-display text-[24px] font-extrabold text-[#0a1628] transition"
+                style={{
+                  borderColor: code[index] ? "#0071ce" : focusedIndex === index ? "#0071ce" : "#e2eaf5",
+                  background: code[index] ? "#f0f7ff" : "white",
+                  boxShadow: focusedIndex === index ? "0 0 0 3px rgba(0,113,206,0.12)" : "none",
+                }}
+              >
+                {code[index] ?? ""}
+              </div>
+            </Fragment>
+          ))}
+        </div>
+
+        <input
           autoComplete="one-time-code"
           autoFocus
+          className="sr-only"
           inputMode="numeric"
           maxLength={6}
-          onChange={(event) => setCode(event.target.value.replace(/\D/g, ""))}
-          pattern="[0-9]{6}"
-          placeholder="123456"
-          required
+          onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+          ref={inputRef}
+          type="text"
           value={code}
         />
-      </label>
 
-      <Button className="w-full" disabled={isVerifying || code.length !== 6} size="lg" type="submit">
-        {isVerifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-        Verify and continue
-      </Button>
+        <p className="mt-[10px] text-center text-[11.5px] text-[#94a3b8]">Code refreshes every 30 seconds</p>
+      </div>
+
+      <div className="fade-up delay-4">
+        <button
+          className="flex w-full items-center justify-center gap-[8px] rounded-[10px] bg-[#0071ce] py-[13px] text-[14px] font-bold text-white transition hover:-translate-y-px hover:bg-[#005aab] hover:shadow-[0_6px_20px_rgba(0,113,206,0.32)] disabled:cursor-not-allowed disabled:opacity-45"
+          disabled={isVerifying || code.length !== 6}
+          type="submit"
+        >
+          {isVerifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <MfaShieldCheckSvg />}
+          Verify and continue
+        </button>
+      </div>
     </form>
   );
 }

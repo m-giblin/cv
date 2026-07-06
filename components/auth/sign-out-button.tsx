@@ -7,7 +7,13 @@ import { Button } from "@/components/ui/button";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
 import { createClient } from "@/lib/supabase/client";
 
-export function SignOutButton({ compact = false }: { compact?: boolean }) {
+export function SignOutButton({
+  compact = false,
+  darkSidebar = false,
+}: {
+  compact?: boolean;
+  darkSidebar?: boolean;
+}) {
   const router = useRouter();
   const [isSigningOut, setIsSigningOut] = useState(false);
 
@@ -21,6 +27,20 @@ export function SignOutButton({ compact = false }: { compact?: boolean }) {
 
     router.push(AUTH_ROUTES.login);
     router.refresh();
+  }
+
+  if (darkSidebar) {
+    return (
+      <button
+        className="flex flex-1 items-center justify-center gap-1.5 rounded-[7px] bg-white/5 px-1.5 py-1.5 text-[11px] font-medium text-white/50 transition hover:bg-white/[0.08] hover:text-white/75 disabled:opacity-50"
+        disabled={isSigningOut}
+        onClick={() => void handleSignOut()}
+        type="button"
+      >
+        <LogOut className="h-3.5 w-3.5" />
+        Sign out
+      </button>
+    );
   }
 
   if (compact) {

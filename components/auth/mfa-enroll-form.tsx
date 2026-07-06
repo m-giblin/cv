@@ -1,12 +1,12 @@
 "use client";
 
-import { Loader2, ShieldCheck } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { MfaShieldCheckSvg } from "@/components/auth/mfa-icons";
 import { QrCodeDisplay } from "@/components/auth/qr-code-display";
+import { SP_BLUE_BTN, SP_INPUT_CLS } from "@/components/se/sp-form-primitives";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
 import { createClient } from "@/lib/supabase/client";
 
@@ -127,37 +127,38 @@ export function MfaEnrollForm() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-10 text-sp-navy-muted">
-        <Loader2 className="h-6 w-6 animate-spin text-sp-blue" />
+      <div className="flex items-center justify-center py-[32px]">
+        <Loader2 className="h-6 w-6 animate-spin text-[#0071ce]" />
       </div>
     );
   }
 
   if (!enrollState) {
-    return <p className="text-sm text-sp-navy-muted">Unable to load MFA enrollment. Refresh and try again.</p>;
+    return <p className="text-center text-sm text-[#64748b]">Unable to load MFA enrollment. Refresh and try again.</p>;
   }
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-2xl border border-sp-blue/10 bg-sp-blue-soft/30 p-4 text-sm leading-6 text-sp-navy-muted">
+    <div className="space-y-[18px]">
+      <div className="rounded-xl border border-[#e2eaf5] bg-[#f8fafd] p-[14px_16px] text-[12px] leading-[1.6] text-[#475569]">
         Scan this QR code with Google Authenticator, 1Password, Okta Verify, or another TOTP app. MFA is mandatory for
         this platform.
       </div>
 
-      <div className="mx-auto flex max-w-[220px] justify-center rounded-2xl border border-sp-blue/10 bg-white p-4">
+      <div className="mx-auto flex max-w-[220px] justify-center rounded-xl border border-[#e2eaf5] bg-white p-[16px]">
         <QrCodeDisplay qrCode={enrollState.qrCode} />
       </div>
 
-      <div className="rounded-2xl border border-dashed border-sp-blue/20 bg-white p-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-sp-navy-muted">Manual setup key</p>
-        <p className="mt-2 break-all font-mono text-sm text-sp-navy">{enrollState.secret}</p>
+      <div className="rounded-xl border border-dashed border-[#e2eaf5] bg-white p-[14px_16px]">
+        <p className="text-[10px] font-bold uppercase tracking-[0.06em] text-[#94a3b8]">Manual setup key</p>
+        <p className="mt-[6px] break-all font-mono text-[12px] text-[#0a1628]">{enrollState.secret}</p>
       </div>
 
-      <form className="space-y-4" onSubmit={handleVerify}>
-        <label className="block space-y-2 text-sm font-semibold text-sp-navy-muted">
+      <form className="space-y-[14px]" onSubmit={handleVerify}>
+        <label className="block space-y-[8px] text-[12.5px] font-semibold text-[#475569]">
           6-digit verification code
-          <Input
+          <input
             autoComplete="one-time-code"
+            className={`${SP_INPUT_CLS} text-center tracking-[0.2em]`}
             inputMode="numeric"
             maxLength={6}
             onChange={(event) => setCode(event.target.value.replace(/\D/g, ""))}
@@ -168,10 +169,14 @@ export function MfaEnrollForm() {
           />
         </label>
 
-        <Button className="w-full" disabled={isVerifying || code.length !== 6} size="lg" type="submit">
-          {isVerifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+        <button
+          className={`${SP_BLUE_BTN} w-full py-[13px] text-[14px]`}
+          disabled={isVerifying || code.length !== 6}
+          type="submit"
+        >
+          {isVerifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <MfaShieldCheckSvg />}
           Activate MFA
-        </Button>
+        </button>
       </form>
     </div>
   );

@@ -15,6 +15,7 @@ export type PlanStepType =
   | "simulation"
   | "shadow_meeting_log"
   | "mentor_review"
+  | "deal_prep"
   | "custom";
 
 export type AssignmentStatus =
@@ -56,6 +57,9 @@ export type PlanStep = {
   contentAssetId?: string;
   challengeId?: string;
   simulationTemplateId?: string;
+  segmentIndex?: number | null;
+  isSegmentGate?: boolean;
+  locked?: boolean;
 };
 
 export type UserPlan = {
@@ -67,6 +71,7 @@ export type UserPlan = {
   targetCompletion: string;
   status: AssignmentStatus;
   progress: number;
+  unlockedSegmentMax?: number;
   steps: PlanStep[];
 };
 
@@ -74,12 +79,16 @@ export type Challenge = {
   id: string;
   title: string;
   description: string;
+  steps: string[];
   difficulty: "foundational" | "intermediate" | "advanced";
   estimatedMinutes: number;
   linkedSolutions: string[];
+  linkedResources: string[];
   successCriteria: string[];
+  targetLevel?: SeLevel | null;
   isAiGenerated: boolean;
   createdBy: string;
+  competencyNames?: string[];
 };
 
 export type ChallengeSubmission = {
@@ -148,7 +157,8 @@ export type ActivityLog = {
     | "simulation_completed"
     | "coaching_card_reviewed"
     | "manager_feedback_received"
-    | "plan_assigned";
+    | "plan_assigned"
+    | "deal_prep_completed";
   title: string;
   metadata: Record<string, string | number | boolean | null>;
   createdAt: string;

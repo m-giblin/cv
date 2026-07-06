@@ -56,7 +56,7 @@ export async function POST(request: Request) {
       actionUrl: "/dashboard",
     });
 
-    await logAuditEvent(session.supabase, {
+    await logAuditEvent(session.user.id, {
       action: "plan.assigned",
       targetType: "plan_assignment",
       targetId: assignmentId,

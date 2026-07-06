@@ -151,7 +151,7 @@ export function buildAccountabilityMetrics(
           fullName: profile.fullName,
           reason: "No activity in 14+ days with active onboarding plan",
           severity: "high",
-          href: `/development?profile=${profile.id}`,
+          href: `/manager`,
         });
       }
     }
@@ -200,7 +200,7 @@ export function buildAccountabilityMetrics(
             fullName: profile.fullName,
             reason: `Stuck on plan step: ${step.title}`,
             severity: "medium",
-            href: `/plans`,
+            href: `/manager`,
           });
         }
       }

@@ -41,6 +41,27 @@ export async function POST(request: Request) {
     ...(parsed.data.evidenceUrl ? [parsed.data.evidenceUrl] : []),
   ];
 
+  if (parsed.data.evidencePath) {
+    const normalizedPath = parsed.data.evidencePath.replace(/^\/+/, "");
+    if (!normalizedPath.startsWith(`${user.id}/`)) {
+      return NextResponse.json({ error: "Invalid evidence path." }, { status: 400 });
+    }
+
+    const { data: objectList, error: storageError } = await supabase.storage
+      .from("evidence")
+      .list(user.id, { search: normalizedPath.split("/").pop() });
+
+    if (storageError) {
+      return NextResponse.json({ error: "Could not verify evidence file." }, { status: 400 });
+    }
+
+    const fileName = normalizedPath.split("/").pop();
+    const exists = objectList?.some((item) => item.name === fileName);
+    if (!exists) {
+      return NextResponse.json({ error: "Evidence file not found. Upload again before submitting." }, { status: 400 });
+    }
+  }
+
   const { data, error } = await supabase
     .from("challenge_submissions")
     .insert({

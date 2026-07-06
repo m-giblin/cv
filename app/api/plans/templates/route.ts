@@ -10,6 +10,7 @@ const stepSchema = z.object({
     "content_review",
     "challenge",
     "simulation",
+    "deal_prep",
     "shadow_meeting_log",
     "mentor_review",
     "custom",
@@ -19,6 +20,8 @@ const stepSchema = z.object({
   contentAssetId: z.string().uuid().optional().or(z.literal("")),
   challengeId: z.string().uuid().optional().or(z.literal("")),
   simulationTemplateId: z.string().uuid().optional().or(z.literal("")),
+  segmentIndex: z.number().int().min(1).max(4).nullable().optional(),
+  isSegmentGate: z.boolean().optional(),
 });
 
 const createTemplateSchema = z.object({
@@ -99,7 +102,11 @@ export async function POST(request: Request) {
     content_asset_id: step.contentAssetId || null,
     challenge_id: step.challengeId || null,
     simulation_template_id: step.simulationTemplateId || null,
-    metadata: { dueOffsetDays: step.dueOffsetDays ?? (index + 1) * 7 },
+    metadata: {
+      dueOffsetDays: step.dueOffsetDays ?? (index + 1) * 7,
+      segmentIndex: step.segmentIndex ?? null,
+      isSegmentGate: step.isSegmentGate ?? false,
+    },
   }));
 
   const { error: stepsError } = await session.supabase.from("plan_steps").insert(stepRows);
@@ -109,7 +116,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: stepsError.message }, { status: 500 });
   }
 
-  await logAuditEvent(session.supabase, {
+  await logAuditEvent(session.user.id, {
     action: "plan.template_created",
     targetType: "onboarding_plan",
     targetId: plan.id,

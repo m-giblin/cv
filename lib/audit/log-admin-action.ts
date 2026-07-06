@@ -1,5 +1,5 @@
-import { SupabaseClient } from "@supabase/supabase-js";
-import { Database, Json } from "@/lib/database.types";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { Json } from "@/lib/database.types";
 
 export type AuditAction =
   | "user.created"
@@ -8,10 +8,12 @@ export type AuditAction =
   | "plan.template_created"
   | "plan.template_updated"
   | "plan.template_deleted"
-  | "plan.assigned";
+  | "plan.assigned"
+  | "segment.unlock_override"
+  | "ai_settings.updated";
 
 export async function logAuditEvent(
-  supabase: SupabaseClient<Database>,
+  actorId: string,
   params: {
     action: AuditAction;
     targetType: string;
@@ -19,11 +21,18 @@ export async function logAuditEvent(
     details?: Record<string, unknown>;
   },
 ) {
-  const { error } = await supabase.rpc("insert_audit_log", {
+  const admin = createAdminClient();
+  if (!admin) {
+    console.error("Audit log skipped: service role client unavailable");
+    return;
+  }
+
+  const { error } = await admin.rpc("insert_audit_log", {
     p_action: params.action,
     p_target_type: params.targetType,
     p_target_id: params.targetId ?? undefined,
     p_details: (params.details ?? {}) as Json,
+    p_actor_id: actorId,
   });
 
   if (error) {

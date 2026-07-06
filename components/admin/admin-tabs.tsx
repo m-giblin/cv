@@ -1,18 +1,19 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-
-const tabs = [
-  { id: "users", label: "People" },
+const TABS = [
+  { id: "overview", label: "Overview" },
+  { id: "users", label: "Users" },
   { id: "plans", label: "Plans" },
   { id: "competencies", label: "Competencies" },
-  { id: "ai", label: "AI & prompts" },
-  { id: "content", label: "Content" },
-  { id: "audit", label: "Audit log" },
   { id: "analytics", label: "Analytics" },
+  { id: "ai", label: "AI & Sims" },
+  { id: "corpus", label: "Corpus" },
+  { id: "routing", label: "Q&A Routing" },
+  { id: "audit", label: "Audit Log" },
+  { id: "settings", label: "Settings" },
 ] as const;
 
-export type AdminTab = (typeof tabs)[number]["id"];
+export type AdminTab = (typeof TABS)[number]["id"];
 
 export function AdminTabs({
   active,
@@ -22,17 +23,13 @@ export function AdminTabs({
   onChange: (tab: AdminTab) => void;
 }) {
   return (
-    <div className="flex flex-wrap gap-2 border-b border-sp-blue/10 pb-4">
-      {tabs.map((tab) => (
+    <div className="flex h-[44px] flex-shrink-0 items-center gap-[4px] overflow-x-auto border-b border-[#e8edf4] bg-white px-[24px]">
+      {TABS.map((tab) => (
         <button
-          className={cn(
-            "rounded-full px-4 py-2 text-sm font-semibold transition",
-            active === tab.id
-              ? "bg-sp-blue text-white shadow-sm"
-              : "bg-sp-blue-soft/50 text-sp-blue-deep hover:bg-sp-blue-soft",
-          )}
+          className="whitespace-nowrap rounded-lg px-[16px] py-[8px] text-[12px] font-semibold transition hover:bg-[#f1f5f9]"
           key={tab.id}
           onClick={() => onChange(tab.id)}
+          style={active === tab.id ? { background: "#00143a", color: "white" } : { color: "#64748b" }}
           type="button"
         >
           {tab.label}
@@ -47,5 +44,5 @@ export function AdminTabPanel({ active, tab, children }: { active: AdminTab; tab
     return null;
   }
 
-  return <div>{children}</div>;
+  return <div className="p-[22px_24px_28px]">{children}</div>;
 }

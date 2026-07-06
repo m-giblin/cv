@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
 @theme {
+  --color-sp-navy-deep: #00143a;
+  --color-sp-navy-body: #0a1628;
   --color-sp-blue-deep: #0033a1;
   --color-sp-blue: #0071ce;
   --color-sp-blue-soft: #e8f2fc;
@@ -9,6 +11,11 @@
   --color-sp-magenta-soft: #fdf0fa;
   --color-sp-navy: #0a1628;
   --color-sp-navy-muted: #334155;
+  --color-sp-muted: #64748b;
+  --color-sp-faint: #94a3b8;
+  --color-sp-border: #e2eaf5;
+  --color-sp-bg: #f4f8fd;
+  --color-sp-topbar-border: #e8edf4;
   --color-sp-surface: #f4f8fd;
   --color-sp-surface-elevated: #ffffff;
   --font-display: var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
@@ -51,6 +58,29 @@ a {
   color: #0033a1;
 }
 
+.font-display {
+  font-family: var(--font-display);
+}
+
+.handoff-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.handoff-dot-green {
+  background: #10b981;
+}
+
+.handoff-dot-amber {
+  background: #f59e0b;
+}
+
+.handoff-dot-blue {
+  background: #0071ce;
+}
+
 .sp-gradient-text {
   background: var(--gradient-brand);
   -webkit-background-clip: text;
@@ -83,6 +113,393 @@ a {
   box-shadow: 0 4px 14px rgba(0, 113, 206, 0.25);
 }
 
+/* ── Sidebar navigation (design handoff) ── */
+.sp-sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+.sp-sidebar-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sp-sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sp-sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+.sp-sidebar-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 20px 8px 17px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.25;
+  border-left: 3px solid transparent;
+  transition:
+    background 150ms ease,
+    color 150ms ease,
+    border-color 150ms ease;
+}
+
+.sp-sidebar-nav-inactive {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.sp-sidebar-nav-inactive:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.sp-sidebar-nav-active {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  border-left-color: #0071ce;
+}
+
+.sp-sidebar-nav-badge {
+  background: #cd27b0;
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 100px;
+  min-width: 16px;
+  text-align: center;
+  line-height: 1.3;
+}
+
+.sp-sidebar-group-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.3);
+  padding: 0 20px;
+  margin-bottom: 4px;
+}
+
+/* ── Role pills (header) ── */
+.sp-role-pill {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 2px 9px;
+  border-radius: 100px;
+  line-height: 1.4;
+}
+
+.sp-role-pill-se {
+  background: rgba(0, 113, 206, 0.1);
+  color: #0057a8;
+}
+
+.sp-role-pill-manager {
+  background: rgba(204, 39, 176, 0.1);
+  color: #a51e8e;
+}
+
+.sp-role-pill-admin {
+  background: rgba(0, 20, 58, 0.07);
+  color: #475569;
+}
+
+/* ── Page hero (main content area) ── */
+.sp-page-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #0071ce;
+}
+
+.sp-page-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 800;
+  color: #00143a;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.sp-page-description {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #64748b;
+}
+
+/* Design handoff page enter animation */
+@keyframes handoff-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.handoff-page-enter {
+  animation: handoff-page-enter 0.2s ease-out both;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.anim-in {
+  animation: fadeUp 0.2s ease-out both;
+}
+
+.prog-fill {
+  animation: progFill 0.9s ease-out forwards;
+}
+
+.ring-fill {
+  animation: ringFill 1s ease-out forwards;
+}
+
+@keyframes progFill {
+  from {
+    width: 0;
+  }
+}
+
+@keyframes ringFill {
+  from {
+    stroke-dashoffset: var(--ring-full, 251.3);
+  }
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.animate-pulse-dot {
+  animation: pulse-dot 2.2s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.shimmer-text {
+  background: linear-gradient(90deg, #60a5fa, #a78bfa, #f0abfc);
+  background-size: 200% 200%;
+  animation: shimmer 4s ease-in-out infinite;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.fade-up {
+  animation: fadeUp 0.4s ease-out both;
+}
+
+.delay-1 {
+  animation-delay: 0.05s;
+}
+
+.delay-2 {
+  animation-delay: 0.1s;
+}
+
+.delay-3 {
+  animation-delay: 0.15s;
+}
+
+.delay-4 {
+  animation-delay: 0.2s;
+}
+
+.pulse-dot {
+  animation: pulse-dot 2.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .handoff-page-enter,
+  .anim-in {
+    animation: none;
+  }
+  .prog-fill,
+  .ring-fill {
+    animation: none;
+  }
+  .animate-pulse-dot,
+  .pulse-dot,
+  .shimmer-text,
+  .fade-up {
+    animation: none;
+  }
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 .sp-progress-fill {
   background: var(--gradient-brand);
+}
+
+/* ── SE handoff v5 primitives ── */
+.sp-card {
+  background: #ffffff;
+  border: 1px solid #e2eaf5;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0, 20, 58, 0.04);
+}
+
+.sp-btn-navy {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #00143a;
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 9px 18px;
+  border-radius: 8px;
+  transition:
+    background 150ms ease,
+    transform 150ms ease;
+}
+
+.sp-btn-navy:hover {
+  background: #001d50;
+  transform: translateY(-1px);
+}
+
+.sp-btn-blue {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #0071ce;
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 9px 18px;
+  border-radius: 8px;
+  transition:
+    background 150ms ease,
+    transform 150ms ease;
+}
+
+.sp-btn-blue:hover {
+  background: #005aab;
+  transform: translateY(-1px);
+}
+
+.sp-btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #ffffff;
+  color: #334155;
+  border: 1px solid #e2eaf5;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 8px;
+  transition:
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+.sp-btn-outline:hover {
+  border-color: #0071ce;
+  color: #0071ce;
+}
+
+.sp-btn-magenta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #cc27b0;
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 9px 18px;
+  border-radius: 8px;
+  transition:
+    background 150ms ease,
+    transform 150ms ease;
+}
+
+.sp-btn-magenta:hover {
+  background: #a51e8e;
+  transform: translateY(-1px);
+}
+
+/* Northstar production UI */
+.design-northstar {
+  --ns-cream: #f4f8fd;
+  --ns-white: #ffffff;
+  --ns-primary: #0033a1;
+  --ns-primary-soft: #e8f2fc;
+  --ns-border-blue: rgba(0, 51, 161, 0.2);
+  --ns-border-peach: rgba(251, 146, 60, 0.22);
+  --ns-border-lavender: rgba(167, 139, 250, 0.22);
+  --ns-border-sage: rgba(52, 211, 153, 0.2);
+  background: var(--ns-cream);
+  color: #1c1917;
+}
+
+.design-northstar .ns-nav-active {
+  background: var(--ns-primary-soft);
+  color: var(--ns-primary);
+}
+
+.design-northstar .ns-card {
+  background: var(--ns-white);
+  border-radius: 1rem;
+  box-shadow: 0 1px 2px rgba(28, 25, 23, 0.04), 0 8px 24px rgba(28, 25, 23, 0.04);
+}
+
+.design-northstar .ns-card-blue {
+  border: 1px solid var(--ns-border-blue);
+}
+
+.design-northstar .ns-card-peach {
+  border: 1px solid var(--ns-border-peach);
+}
+
+.design-northstar .ns-card-lavender {
+  border: 1px solid var(--ns-border-lavender);
+}
+
+.design-northstar .ns-card-sage {
+  border: 1px solid var(--ns-border-sage);
+}
+
+.design-northstar .ns-card-primary {
+  border: 1px solid rgba(0, 51, 161, 0.28);
+  background: linear-gradient(145deg, #ffffff 0%, var(--ns-primary-soft) 100%);
 }

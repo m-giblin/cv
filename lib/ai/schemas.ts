@@ -32,11 +32,19 @@ export const dealPrepSchema = z.object({
   industry: z.string().min(2),
   solutions: z.array(z.string()).min(1),
   accountContext: z.string().min(20),
+  meetingType: z.string().optional(),
   likelyObjections: z.array(z.string().min(5)).min(2),
   discoveryQuestions: z.array(z.string().min(5)).min(3),
   talkTrackOutline: z.array(z.string().min(5)).min(3),
+  stakeholderMap: z.array(z.string().min(8)).min(2),
+  competitiveLandmines: z.array(z.string().min(5)).min(1),
+  proofPoints: z.array(z.string().min(5)).min(2),
+  riskFlags: z.array(z.string().min(5)).min(1),
+  oneThingToNail: z.string().min(15),
   linkedResources: z.array(z.string()).default([]),
   executiveSummary: z.string().min(40),
+  personalizationBullets: z.array(z.string().min(10)).min(2).optional(),
+  buyerPersona: z.string().min(5).optional(),
 });
 
 export type GeneratedChallenge = z.infer<typeof generatedChallengeSchema>;

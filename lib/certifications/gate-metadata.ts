@@ -5,7 +5,10 @@ export type CertType =
   | "executive_demo"
   | "competitive_bakeoff"
   | "customer_workshop"
-  | "advisory_readiness";
+  | "advisory_readiness"
+  | "agentic_fabric"
+  | "ais_readiness"
+  | "mcp_governance";
 
 export const CERT_ORDER: CertType[] = [
   "solo_discovery",
@@ -14,6 +17,14 @@ export const CERT_ORDER: CertType[] = [
   "customer_workshop",
   "advisory_readiness",
 ];
+
+export const AGENTIC_CERT_ORDER: CertType[] = [
+  "agentic_fabric",
+  "ais_readiness",
+  "mcp_governance",
+];
+
+export const ALL_CERT_ORDER: CertType[] = [...CERT_ORDER, ...AGENTIC_CERT_ORDER];
 
 export const CERT_DETAILS: Record<
   CertType,
@@ -43,6 +54,21 @@ export const CERT_DETAILS: Record<
     careerLevel: "Advisory ASC",
     description: "Demonstrate advisory posture — lead transformation conversations, mentor peers, and own executive relationships.",
     evidenceHint: "Advisory review packet: accounts influenced, mentoring examples, and director sign-off notes.",
+  },
+  agentic_fabric: {
+    careerLevel: "All SEs · 2026",
+    description: "Position SailPoint Agentic Fabric — Discover, Govern, Protect for AI agents as first-class identities in ISC.",
+    evidenceHint: "Challenge submission, sim recording, or write-up covering agent lifecycle governance and customer discovery.",
+  },
+  ais_readiness: {
+    careerLevel: "Senior+ · AIS",
+    description: "Lead Agent Identity Security conversations — agent registration, ownership, certification, and over-permission reporting.",
+    evidenceHint: "AIS discovery deck, customer workshop notes, or approved agentic challenge with CISO-level framing.",
+  },
+  mcp_governance: {
+    careerLevel: "Advisory · MCP",
+    description: "Explain MCP Server as the governed bridge for third-party agents calling ISC APIs with policy and audit.",
+    evidenceHint: "Architecture diagram, competitive takeout, or pitch video showing MCP governance story.",
   },
 };
 

@@ -13,18 +13,19 @@ import { AppShell } from "@/components/app-shell";
 import { DataSourceBanner } from "@/components/data-source-banner";
 import { MetricCard } from "@/components/metric-card";
 import { PageHero } from "@/components/page-hero";
-import { SeWorkspace } from "@/components/se/se-workspace";
+import { SeWorkspaceNorthstar } from "@/components/se/se-workspace-northstar";
+import { SEPageLayout } from "@/components/se/se-page-layout";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { requireAppAccess } from "@/lib/auth/require-access";
+import { requireDashboardPageAccess } from "@/lib/auth/require-access";
 import { fetchCertificationsForUsers } from "@/lib/data/get-certifications-data";
 import { computeCertNextAction } from "@/lib/se/cert-next-action";
 
 export default async function DashboardPage() {
-  const { data, source, tier } = await requireAppAccess("/dashboard");
+  const { data, source, tier } = await requireDashboardPageAccess();
 
   if (tier === "manager") {
     redirect("/manager");
@@ -33,13 +34,18 @@ export default async function DashboardPage() {
   if (tier === "se") {
     const userCerts = await fetchCertificationsForUsers([data.currentUser.id]);
     const certNextAction = computeCertNextAction(data.currentUser.level, userCerts);
+    const approvedCertCount = userCerts.filter((cert) => cert.status === "approved").length;
 
     return (
       <AppShell currentUser={data.currentUser} notifications={data.notifications}>
-        <div className="space-y-6">
-          {source === "demo" ? <DataSourceBanner source={source} /> : null}
-          <SeWorkspace certNextAction={certNextAction} data={data} />
-        </div>
+        <SEPageLayout bare>
+          <DataSourceBanner source={source} />
+          <SeWorkspaceNorthstar
+            approvedCertCount={approvedCertCount}
+            certNextAction={certNextAction}
+            data={data}
+          />
+        </SEPageLayout>
       </AppShell>
     );
   }

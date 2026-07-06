@@ -1,25 +1,32 @@
 import { AppShell } from "@/components/app-shell";
-import { DataSourceBanner } from "@/components/data-source-banner";
 import { DealPrepPanel } from "@/components/deal-prep/deal-prep-panel";
-import { PageHeader } from "@/components/page-hero";
+import { SEPageLayout } from "@/components/se/se-page-layout";
 import { requireAppAccess } from "@/lib/auth/require-access";
 import { profileLevelLabel } from "@/lib/utils/level-label";
 
-export default async function PrepPage() {
-  const { data, source } = await requireAppAccess("/prep");
+type PrepPageProps = {
+  searchParams: Promise<{ step?: string; session?: string }>;
+};
+
+export default async function PrepPage({ searchParams }: PrepPageProps) {
+  const { data } = await requireAppAccess("/prep");
+  const params = await searchParams;
 
   return (
-    <AppShell currentUser={data.currentUser} notifications={data.notifications}>
-      <div className="space-y-8">
-        <DataSourceBanner source={source} />
-        <PageHeader
-          description="Account-specific prep before customer calls — objections, discovery questions, and talk track."
-          eyebrow="Deal prep"
-          title="AI prep for real moments"
-          tone="magenta"
+    <AppShell contentWidth="full" currentUser={data.currentUser} notifications={data.notifications}>
+      <SEPageLayout
+        eyebrow="Practice · Pre-call prep"
+        eyebrowColor="#d97706"
+        subtitle="AI-powered pre-call brief — account context, discovery questions, objection prep, and competitive positioning"
+        title="Deal Prep"
+      >
+        <DealPrepPanel
+          assignmentStepId={params.step}
+          initialSessionId={params.session}
+          userId={data.currentUser.id}
+          userLevel={profileLevelLabel(data.currentUser)}
         />
-        <DealPrepPanel userLevel={profileLevelLabel(data.currentUser)} />
-      </div>
+      </SEPageLayout>
     </AppShell>
   );
 }

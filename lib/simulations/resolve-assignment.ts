@@ -26,7 +26,17 @@ export function createPracticeSimulation(userId: string): SimulationAssignment {
 export function resolveSimulationAssignment(
   simulations: SimulationAssignment[],
   userId: string,
+  focusAssignmentId?: string,
 ): { assignment: SimulationAssignment; isPractice: boolean } {
+  if (focusAssignmentId) {
+    const focused = simulations.find(
+      (simulation) => simulation.id === focusAssignmentId && simulation.assignedTo === userId,
+    );
+    if (focused) {
+      return { assignment: focused, isPractice: false };
+    }
+  }
+
   const assigned = simulations.find((simulation) => simulation.assignedTo === userId) ?? null;
 
   if (assigned) {

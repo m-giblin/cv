@@ -1,9 +1,12 @@
 import { generateObject } from "ai";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { createCoachingAttestation } from "@/lib/ai/coaching-attestation";
+import { enforceAiRateLimit } from "@/lib/ai/enforce-rate-limit";
 import { coachingCardPrompt } from "@/lib/ai/prompts";
 import { coachingCardSchema } from "@/lib/ai/schemas";
-import { getConfiguredProvider } from "@/lib/ai/provider";
+import { resolveAiProvider } from "@/lib/ai/provider";
+import { logAiUsage } from "@/lib/ai/log-usage";
 import { requireAuthenticatedSession } from "@/lib/auth/require-authenticated";
 
 const requestSchema = z.object({
@@ -27,13 +30,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { model, provider, modelName } = getConfiguredProvider();
+  const rateLimited = await enforceAiRateLimit(session.supabase, session.user.id);
+  if (rateLimited) {
+    return rateLimited;
+  }
+
+  const { model, provider, modelName } = await resolveAiProvider();
 
   if (!model) {
-    return NextResponse.json({
-      provider,
-      modelName,
-      object: {
+    const demoObject = {
         strengths: [
           "Connected the customer concern to identity governance outcomes.",
           "Kept the response concise and mostly persona-specific.",
@@ -50,7 +55,13 @@ export async function POST(request: Request) {
           "Repeat the scenario with a tougher procurement or compliance objection and produce a two-minute close.",
         managerSummary:
           "The SE is progressing well and should focus the next practice rep on discovery depth and quantified business value.",
-      },
+    };
+
+    return NextResponse.json({
+      provider,
+      modelName,
+      object: demoObject,
+      attestationToken: createCoachingAttestation(session.user.id, demoObject),
     });
   }
 
@@ -64,10 +75,19 @@ export async function POST(request: Request) {
     },
   });
 
+  await logAiUsage(session.supabase, {
+    feature: "coaching_card",
+    provider,
+    model: modelName,
+    userId: session.user.id,
+    usage: result.usage,
+  });
+
   return NextResponse.json({
     provider,
     modelName,
     object: result.object,
     usage: result.usage,
+    attestationToken: createCoachingAttestation(session.user.id, result.object),
   });
 }

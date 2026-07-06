@@ -1,24 +1,62 @@
+import dynamic from "next/dynamic";
 import { Suspense } from "react";
 import { AppShell } from "@/components/app-shell";
-import { ManagerCommandCenter } from "@/components/manager/manager-command-center";
+import type { ManagerSection } from "@/components/manager/manager-page-shell";
+import { buildCoachingCadence } from "@/lib/manager/coaching-cadence";
 import { buildReviewHistory } from "@/components/manager/manager-review-history";
 import type { SeManagerSnapshot } from "@/components/manager/manager-se-detail-panel";
 import { buildSeCoachingSummary } from "@/lib/manager/se-coaching-summary";
+import {
+  fetchDealPrepManagerStats,
+  fetchSharedDealPrepForManager,
+} from "@/lib/data/get-deal-prep-manager-stats";
 import {
   buildCertSummary,
   buildCohortBenchmark,
   buildQuarterlyAlert,
   buildSimTrend,
 } from "@/lib/manager/growth-insights";
-import { requireAppAccess } from "@/lib/auth/require-access";
+import { buildTeamReadiness, certLabel } from "@/lib/manager/team-readiness";
+import { buildTeamLeaderboard } from "@/lib/gamification/leaderboard";
+import { requireManagerPageAccess } from "@/lib/auth/require-access";
 import { fetchDevelopmentPlans } from "@/lib/data/get-development-data";
 import {
   fetchManagerCoachingNotes,
   fetchReadinessCertifications,
 } from "@/lib/data/get-manager-growth-data";
 
-export default async function ManagerPage() {
-  const { data } = await requireAppAccess("/manager");
+const ManagerPageShell = dynamic(
+  () => import("@/components/manager/manager-page-shell").then((mod) => mod.ManagerPageShell),
+  {
+    loading: () => (
+      <div className="flex min-h-[40vh] items-center justify-center text-[#64748b]">
+        Loading team overview…
+      </div>
+    ),
+  },
+);
+
+const VALID_SECTIONS = new Set<ManagerSection>([
+  "command",
+  "inbox",
+  "roster",
+  "readiness",
+  "cadence",
+  "dev",
+]);
+
+type ManagerPageProps = {
+  searchParams: Promise<{ section?: string; profile?: string }>;
+};
+
+export default async function ManagerPage({ searchParams }: ManagerPageProps) {
+  const params = await searchParams;
+  const section: ManagerSection =
+    params.section && VALID_SECTIONS.has(params.section as ManagerSection)
+      ? (params.section as ManagerSection)
+      : "command";
+
+  const { data } = await requireManagerPageAccess();
   const orgIds = new Set(data.myOrg.map((profile) => profile.id));
   const orgPlans = data.plans.filter((plan) => orgIds.has(plan.userId));
   const orgActivity = data.activity.filter((item) => orgIds.has(item.userId));
@@ -41,9 +79,27 @@ export default async function ManagerPage() {
       }));
   });
 
-  const certRows = await fetchReadinessCertifications([...orgIds]);
+  const [certRows, dealPrepStats, sharedDealPrep, developmentPlans, managerNotes] = await Promise.all([
+    fetchReadinessCertifications([...orgIds]),
+    fetchDealPrepManagerStats([...orgIds]),
+    fetchSharedDealPrepForManager([...orgIds]),
+    fetchDevelopmentPlans([...orgIds]),
+    fetchManagerCoachingNotes(data.currentUser.id, [...orgIds]),
+  ]);
+  const dealPrepReviewItems = sharedDealPrep.map((session) => {
+    const person = data.profiles.find((profile) => profile.id === session.user_id);
+    return {
+      id: session.id,
+      userId: session.user_id,
+      personName: person?.fullName ?? "Team member",
+      accountName: session.account_name,
+      industry: session.industry,
+      createdAt: session.created_at,
+    };
+  });
   const reviewCount = openReviews.length + pendingCards.length + pendingPlanSteps.length;
-  const pendingCertCount = certRows.filter((row) => row.status === "submitted").length;
+  const pendingCertRows = certRows.filter((row) => row.status === "submitted" && orgIds.has(row.userId));
+  const pendingCertCount = pendingCertRows.length;
   const totalReviewCount = reviewCount + pendingCertCount;
   const averageProgress = orgPlans.length
     ? Math.round(orgPlans.reduce((total, plan) => total + plan.progress, 0) / orgPlans.length)
@@ -51,11 +107,73 @@ export default async function ManagerPage() {
 
   const openReviewsByUser: Record<string, number> = {};
   for (const profile of data.myOrg) {
+    const certPending = pendingCertRows.filter((row) => row.userId === profile.id).length;
     openReviewsByUser[profile.id] =
       openReviews.filter((review) => review.userId === profile.id).length +
       pendingCards.filter((card) => card.userId === profile.id).length +
-      pendingPlanSteps.filter((step) => step.userId === profile.id).length;
+      pendingPlanSteps.filter((step) => step.userId === profile.id).length +
+      certPending;
   }
+
+  const certReviewItems = pendingCertRows.map((row) => {
+    const person = data.profiles.find((profile) => profile.id === row.userId);
+    return {
+      id: row.id,
+      userId: row.userId,
+      personName: person?.fullName ?? "Team member",
+      certificationType: row.certificationType,
+      label: certLabel(row.certificationType),
+      submittedAt: null,
+    };
+  });
+
+  const certsByUser: Record<string, typeof certRows> = {};
+  for (const row of certRows) {
+    certsByUser[row.userId] ??= [];
+    certsByUser[row.userId]!.push(row);
+  }
+
+  const readinessRows = buildTeamReadiness(
+    data.myOrg,
+    {
+      coachingCards: data.coachingCards,
+      submissions: data.submissions,
+      simulations: data.simulations,
+    },
+    certsByUser,
+    openReviewsByUser,
+  );
+
+  const readinessByUser = Object.fromEntries(readinessRows.map((row) => [row.profileId, row.readinessIndex]));
+  const cadenceRows = buildCoachingCadence(data.myOrg, data.coachingCards, openReviewsByUser, readinessByUser);
+
+  const reviewedChallengeCountByUser: Record<string, number> = {};
+  const approvedCertCountByUser: Record<string, number> = {};
+  const challengeTotalByUser: Record<string, number> = {};
+  for (const profile of data.myOrg) {
+    const userSubmissions = data.submissions.filter((s) => s.userId === profile.id);
+    reviewedChallengeCountByUser[profile.id] = userSubmissions.filter((s) => s.status === "reviewed").length;
+    approvedCertCountByUser[profile.id] = certRows.filter(
+      (row) => row.userId === profile.id && row.status === "approved",
+    ).length;
+    const reviewed = reviewedChallengeCountByUser[profile.id] ?? 0;
+    const targetTotal = profile.level === "Senior" || profile.level === "Advisory" ? 8 : 4;
+    challengeTotalByUser[profile.id] = Math.max(userSubmissions.length, targetTotal, reviewed);
+  }
+
+  const reviewedSimCountByUser: Record<string, number> = {};
+  for (const profile of data.myOrg) {
+    reviewedSimCountByUser[profile.id] = data.coachingCards.filter(
+      (c) => c.userId === profile.id && c.managerReviewStatus === "reviewed" && !c.isPractice,
+    ).length;
+  }
+
+  const leaderboardEntries = buildTeamLeaderboard({
+    org: data.myOrg,
+    coachingCards: data.coachingCards,
+    reviewedChallengeCountByUser,
+    reviewedSimCountByUser,
+  });
 
   const reviewItems = [
     ...openReviews.map((submission) => {
@@ -110,8 +228,6 @@ export default async function ManagerPage() {
   const orgSubmissions = data.submissions.filter((item) => orgIds.has(item.userId));
   const orgCoachingCards = data.coachingCards.filter((item) => orgIds.has(item.userId));
   const orgSimulations = data.simulations.filter((item) => orgIds.has(item.assignedTo));
-  const developmentPlans = await fetchDevelopmentPlans([...orgIds]);
-  const managerNotes = await fetchManagerCoachingNotes(data.currentUser.id, [...orgIds]);
 
   const seSnapshots: SeManagerSnapshot[] = data.myOrg.map((profile) => {
     const plan = orgPlans.find((item) => item.userId === profile.id);
@@ -180,36 +296,52 @@ export default async function ManagerPage() {
     seSnapshots.map((snapshot) => [snapshot.profile.id, snapshot.coaching]),
   );
 
+  const mentors = data.profiles.filter((profile) =>
+    ["manager", "mentor", "director", "admin"].includes(profile.role),
+  );
+
   return (
     <AppShell currentUser={data.currentUser} notifications={data.notifications}>
       <Suspense
         fallback={
-          <div className="flex min-h-[40vh] items-center justify-center text-sp-navy-muted">
+          <div className="flex min-h-[40vh] items-center justify-center text-[#64748b]">
             Loading team overview…
           </div>
         }
       >
-        <ManagerCommandCenter
+        <ManagerPageShell
           activity={orgActivity}
+          approvedCertCountByUser={approvedCertCountByUser}
           assignees={
             data.myOrg.length > 0
               ? data.myOrg
               : data.profiles.filter((p) => p.role === "basic_se" || p.role === "senior_se")
           }
           averageProgress={averageProgress}
+          cadenceRows={cadenceRows}
+          certReviewItems={certReviewItems}
           challenges={data.challenges}
+          challengeTotalByUser={challengeTotalByUser}
           coachingByUser={coachingByUser}
+          dealPrepReviewItems={dealPrepReviewItems}
+          developmentPlans={developmentPlans}
+          leaderboardEntries={leaderboardEntries}
+          mentors={mentors}
           openReviewsByUser={openReviewsByUser}
           org={data.myOrg}
+          pendingCertCount={pendingCertCount}
           planSteps={pendingPlanSteps}
           plans={orgPlans}
           profiles={data.profiles}
+          readinessRows={readinessRows}
           reviewCount={totalReviewCount}
-          pendingCertCount={pendingCertCount}
           reviewHistory={reviewHistory}
           reviewItems={reviewItems}
+          reviewedChallengeCountByUser={reviewedChallengeCountByUser}
+          section={section}
           seSnapshots={seSnapshots}
           teamSize={data.myOrg.length}
+          managerFirstName={data.currentUser.fullName.split(" ")[0]}
         />
       </Suspense>
     </AppShell>

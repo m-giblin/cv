@@ -3,6 +3,18 @@ import { Database } from "@/lib/database.types";
 
 type PlanStepRow = Database["public"]["Tables"]["plan_steps"]["Row"];
 
+async function resolveProgramIdForPlan(
+  supabase: SupabaseClient<Database>,
+  planId: string,
+): Promise<string | null> {
+  const { data } = await supabase
+    .from("enablement_program_segments")
+    .select("program_id")
+    .eq("plan_id", planId)
+    .maybeSingle();
+  return data?.program_id ?? null;
+}
+
 export async function assignPlanToUser(
   supabase: SupabaseClient<Database>,
   params: {
@@ -25,6 +37,7 @@ export async function assignPlanToUser(
       target_completion: params.targetCompletion,
       status: "not_started",
       progress_percent: 0,
+      program_id: await resolveProgramIdForPlan(supabase, params.planId),
     })
     .select("id")
     .single();

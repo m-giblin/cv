@@ -76,16 +76,43 @@ export function dealPrepPrompt(input: {
   solutions: string[];
   accountContext: string;
   level: SeLevel;
+  meetingType?: string;
+  dealStage?: string;
+  attendees?: string;
+  competitors?: string;
+  regenerateFocus?: string;
 }) {
+  const focusBlock = input.regenerateFocus
+    ? `\nRegeneration focus: ${input.regenerateFocus}. Adjust the brief accordingly while keeping account-specific details.`
+    : "";
+
   return `You are a SailPoint Sales Engineer enablement coach preparing an SE for an upcoming customer engagement.
 
 Account: ${input.accountName}
 Industry: ${input.industry}
 Solutions in scope: ${input.solutions.join(", ")}
 SE level: ${input.level}
+Meeting type: ${input.meetingType ?? "general customer call"}
+Deal stage: ${input.dealStage ?? "not specified"}
+Attendees: ${input.attendees ?? "not specified"}
+Known competitors: ${input.competitors ?? "none noted"}
 
 Context from the SE or CRM notes:
 ${input.accountContext}
+${focusBlock}
 
-Generate practical, account-specific prep — not generic product training. Include likely objections, sharp discovery questions, a talk track outline, and an executive summary the SE can skim before the meeting. Ground advice in identity security, governance, and SailPoint ISC/IDN/NHI themes where relevant.`;
+Generate practical, account-specific prep — not generic product training. Include:
+- Stakeholder map entries formatted as "Role — priorities and how to approach"
+- Likely objections with enough specificity to practice
+- Sharp discovery questions tailored to this meeting type
+- Competitive landmines (if they mention a competitor, how to handle it)
+- Proof points (customer stories, metrics, demo flows) to bring
+- Risk flags (compliance drivers, champion gaps, timeline risks)
+- A talk track outline
+- One thing to nail — the single most important outcome for this call
+- linkedResources as short titles matching SailPoint enablement content (e.g. "ISC overview", "Healthcare reference architecture")
+- personalizationBullets: 3 account-specific collateral bullets for LiveDoc-style personalization
+- buyerPersona: primary buyer persona label for this meeting (e.g. "CISO — audit readiness")
+
+Ground advice in identity security, governance, and SailPoint ISC/IDN/NHI themes where relevant.`;
 }

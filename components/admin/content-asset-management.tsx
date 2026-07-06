@@ -1,14 +1,12 @@
 "use client";
 
-import { Copy, Loader2, Pencil, Plus, Trash2, Upload } from "lucide-react";
+import { Loader2, Plus, Trash2, Upload } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   DataTablePagination,
-  DataTableShell,
   DataTableToolbar,
   paginate,
 } from "@/components/ui/data-table";
@@ -20,12 +18,40 @@ type ContentAsset = {
   category: string;
   url: string;
   contentType: string | null;
+  assetType: string;
+  projectTags: string[];
+  moduleTags: string[];
   updatedAt: string;
 };
 
+function parseTags(value: string): string[] {
+  return value
+    .split(",")
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+}
+
+const CORPUS_COLS = "1fr 100px 160px 90px 60px 80px 120px";
+
+function typeBadge(category: string, assetType: string) {
+  const lower = `${category} ${assetType}`.toLowerCase();
+  if (lower.includes("battle")) return { bg: "#fee2e2", color: "#dc2626", label: "Battle card" };
+  if (lower.includes("playbook") || lower.includes("pitch")) return { bg: "#cffafe", color: "#0e7490", label: "Playbook" };
+  if (lower.includes("demo")) return { bg: "#dbeafe", color: "#1d4ed8", label: "Demo guide" };
+  if (lower.includes("brief") || lower.includes("one")) return { bg: "#ede9fe", color: "#5b21b6", label: "One-pager" };
+  return { bg: "#e8f2fc", color: "#0057a8", label: assetType.replaceAll("_", " ") };
+}
+
 const PAGE_SIZE = 20;
 
-const emptyForm = { title: "", url: "", category: "solution_brief" };
+const emptyForm = {
+  title: "",
+  url: "",
+  category: "solution_brief",
+  assetType: "link" as const,
+  projectTags: "",
+  moduleTags: "",
+};
 
 export function ContentAssetManagement() {
   const [assets, setAssets] = useState<ContentAsset[]>([]);
@@ -59,13 +85,40 @@ export function ContentAssetManagement() {
     const q = search.trim().toLowerCase();
     if (!q) return assets;
     return assets.filter((asset) =>
-      [asset.title, asset.category, asset.url].join(" ").toLowerCase().includes(q),
+      [asset.title, asset.category, asset.url, asset.assetType, ...asset.projectTags, ...asset.moduleTags]
+        .join(" ")
+        .toLowerCase()
+        .includes(q),
     );
   }, [assets, search]);
 
   const { rows, page: safePage, pageCount } = paginate(filtered, page, PAGE_SIZE);
 
   useEffect(() => setPage(1), [search]);
+
+  async function suggestTags() {
+    const response = await fetch("/api/corpus/suggest-tags", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: form.title, url: form.url, description: form.category }),
+    });
+    if (!response.ok) {
+      toast.error("Could not suggest tags.");
+      return;
+    }
+    const body = (await response.json()) as {
+      assetType: typeof form.assetType;
+      projectTags: string[];
+      moduleTags: string[];
+    };
+    setForm((current) => ({
+      ...current,
+      assetType: body.assetType,
+      projectTags: body.projectTags.join(", "),
+      moduleTags: body.moduleTags.join(", "),
+    }));
+    toast.success("Tags suggested — review before saving.");
+  }
 
   async function saveAsset(event: React.FormEvent) {
     event.preventDefault();
@@ -75,6 +128,9 @@ export function ContentAssetManagement() {
       const formData = new FormData();
       formData.set("title", form.title || file.name);
       formData.set("category", form.category);
+      formData.set("assetType", form.assetType);
+      formData.set("projectTags", form.projectTags);
+      formData.set("moduleTags", form.moduleTags);
       formData.set("file", file);
       const response = await fetch("/api/admin/content-assets/upload", { method: "POST", body: formData });
       if (!response.ok) {
@@ -87,7 +143,14 @@ export function ContentAssetManagement() {
       const response = await fetch(endpoint, {
         method: editingId ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: form.title, url: form.url, category: form.category }),
+        body: JSON.stringify({
+          title: form.title,
+          url: form.url,
+          category: form.category,
+          assetType: form.assetType,
+          projectTags: parseTags(form.projectTags),
+          moduleTags: parseTags(form.moduleTags),
+        }),
       });
       if (!response.ok) {
         toast.error("Save failed.");
@@ -159,63 +222,86 @@ export function ContentAssetManagement() {
         total={assets.length}
       />
 
-      <DataTableShell>
-        <table className="min-w-full text-left text-sm">
-          <thead className="border-b border-sp-blue/10 bg-sp-blue-soft/30 text-xs uppercase tracking-wide text-sp-navy-muted">
-            <tr>
-              <th className="px-4 py-3 font-semibold">Title</th>
-              <th className="px-4 py-3 font-semibold">Category</th>
-              <th className="px-4 py-3 font-semibold">Type</th>
-              <th className="px-4 py-3 font-semibold">Updated</th>
-              <th className="px-4 py-3 font-semibold">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 ? (
-              <tr>
-                <td className="px-4 py-8 text-center text-sp-navy-muted" colSpan={5}>
-                  No content yet — add your first asset above.
-                </td>
-              </tr>
-            ) : (
-              rows.map((asset) => (
-                <tr className="border-b border-sp-blue/5 hover:bg-sp-blue-soft/20" key={asset.id}>
-                  <td className="px-4 py-3 font-semibold text-sp-navy">{asset.title}</td>
-                  <td className="px-4 py-3">
-                    <Badge tone="blue">{asset.category.replaceAll("_", " ")}</Badge>
-                  </td>
-                  <td className="px-4 py-3 text-sp-navy-muted">{asset.contentType ?? "link"}</td>
-                  <td className="px-4 py-3 text-xs text-sp-navy-muted">
-                    {new Date(asset.updatedAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-1">
-                      <Button aria-label="Copy link" onClick={() => copyUrl(asset.url)} size="sm" variant="ghost">
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        aria-label="Edit"
-                        onClick={() => {
-                          setEditingId(asset.id);
-                          setForm({ title: asset.title, url: asset.url, category: asset.category });
-                          setShowForm(true);
-                        }}
-                        size="sm"
-                        variant="ghost"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button aria-label="Delete" onClick={() => void removeAsset(asset)} size="sm" variant="ghost">
-                        <Trash2 className="h-4 w-4 text-red-600" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </DataTableShell>
+      <div className="overflow-hidden rounded-xl border border-[#e2eaf5] bg-white">
+        <div
+          className="grid border-b border-[#f1f5f9] bg-[#f8fafd] px-[18px] py-[9px]"
+          style={{ gridTemplateColumns: CORPUS_COLS }}
+        >
+          {["Asset", "Type", "Tags", "Health", "Ver", "Updated", ""].map((header) => (
+            <span className="text-[9.5px] font-bold uppercase tracking-[0.07em] text-[#94a3b8]" key={header}>
+              {header}
+            </span>
+          ))}
+        </div>
+        {rows.length === 0 ? (
+          <p className="px-4 py-8 text-center text-[#94a3b8]">No content yet — add your first asset above.</p>
+        ) : (
+          rows.map((asset) => {
+            const type = typeBadge(asset.category, asset.assetType);
+            const tags = [...asset.projectTags, ...asset.moduleTags].join(" · ");
+            return (
+              <div
+                className="grid cursor-pointer items-center border-b border-[#f9fafb] px-[18px] py-[10px] transition hover:bg-[#f7fafd] last:border-b-0"
+                key={asset.id}
+                style={{ gridTemplateColumns: CORPUS_COLS }}
+              >
+                <div className="min-w-0">
+                  <p className="text-[12px] font-semibold text-[#1e293b]">{asset.title}</p>
+                  <p className="mt-[1px] truncate text-[10px] text-[#94a3b8]">{asset.url}</p>
+                </div>
+                <span
+                  className="w-fit rounded-full px-[8px] py-[2px] text-[9.5px] font-bold"
+                  style={{ background: type.bg, color: type.color }}
+                >
+                  {type.label}
+                </span>
+                <span className="truncate text-[11px] text-[#64748b]">{tags || "—"}</span>
+                <span
+                  className="w-fit rounded-full bg-[#dcfce7] px-[8px] py-[2px] text-[9.5px] font-bold text-[#15803d]"
+                >
+                  Healthy
+                </span>
+                <span className="text-[11.5px] text-[#475569]">v1</span>
+                <span className="text-[11.5px] text-[#94a3b8]">{new Date(asset.updatedAt).toLocaleDateString()}</span>
+                <div className="flex gap-[6px]">
+                  <button
+                    className="inline-flex items-center rounded-md border border-[#e2eaf5] bg-white px-[10px] py-[5px] text-[11px] font-semibold text-[#334155]"
+                    onClick={() => copyUrl(asset.url)}
+                    type="button"
+                  >
+                    Copy
+                  </button>
+                  <button
+                    className="inline-flex items-center rounded-md border border-[#e2eaf5] bg-white px-[10px] py-[5px] text-[11px] font-semibold text-[#334155]"
+                    onClick={() => {
+                      setEditingId(asset.id);
+                      setForm({
+                        title: asset.title,
+                        url: asset.url,
+                        category: asset.category,
+                        assetType: (asset.assetType as typeof emptyForm.assetType) ?? "link",
+                        projectTags: asset.projectTags.join(", "),
+                        moduleTags: asset.moduleTags.join(", "),
+                      });
+                      setShowForm(true);
+                    }}
+                    type="button"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    className="inline-flex items-center rounded-md bg-[#e8f2fc] px-[10px] py-[5px] text-[11px] font-semibold text-[#0057a8]"
+                    onClick={() => void suggestTags()}
+                    type="button"
+                  >
+                    AI tag
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
 
       <DataTablePagination onPageChange={setPage} page={safePage} pageCount={pageCount} />
 
@@ -253,6 +339,27 @@ export function ContentAssetManagement() {
             ) : null}
             <select
               className="h-10 w-full rounded-xl border border-sp-blue/15 bg-white px-3 text-sm"
+              onChange={(e) => setForm((c) => ({ ...c, assetType: e.target.value as typeof form.assetType }))}
+              value={form.assetType}
+            >
+              <option value="link">Link</option>
+              <option value="video">Video</option>
+              <option value="doc">Document</option>
+              <option value="podcast">Podcast</option>
+              <option value="file">File</option>
+            </select>
+            <Input
+              onChange={(e) => setForm((c) => ({ ...c, projectTags: e.target.value }))}
+              placeholder="Project tags (comma-separated, e.g. ISC, AIS)"
+              value={form.projectTags}
+            />
+            <Input
+              onChange={(e) => setForm((c) => ({ ...c, moduleTags: e.target.value }))}
+              placeholder="Module tags (comma-separated, e.g. Provisioning)"
+              value={form.moduleTags}
+            />
+            <select
+              className="h-10 w-full rounded-xl border border-sp-blue/15 bg-white px-3 text-sm"
               onChange={(e) => setForm((c) => ({ ...c, category: e.target.value }))}
               value={form.category}
             >
@@ -262,6 +369,9 @@ export function ContentAssetManagement() {
               <option value="reference">Reference</option>
             </select>
             <div className="flex gap-2">
+              <Button onClick={() => void suggestTags()} size="sm" type="button" variant="outline">
+                AI suggest tags
+              </Button>
               <Button disabled={isSaving} type="submit">
                 {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 Save

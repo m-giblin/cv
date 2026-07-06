@@ -34,6 +34,9 @@ export const CERT_LABELS: Record<string, string> = {
   competitive_bakeoff: "Competitive bake-off",
   customer_workshop: "Customer workshop",
   advisory_readiness: "Advisory readiness",
+  agentic_fabric: "Agentic Fabric readiness",
+  ais_readiness: "AIS readiness",
+  mcp_governance: "MCP governance",
 };
 
 export function computeCareerProgress(params: {

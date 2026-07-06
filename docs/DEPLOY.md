@@ -25,10 +25,17 @@ In **Vercel → Project → Settings → Environment Variables**, set:
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Production, Preview | Public anon key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Production only | Server-only — Admin user CRUD |
 | `NEXT_PUBLIC_SITE_URL` | Production | e.g. `https://se-enablement.yourdomain.com` |
-| `XAI_API_KEY` or `OPENAI_API_KEY` | Production | AI challenge/simulation features |
+| `XAI_API_KEY` or `OPENAI_API_KEY` | Production | Fallback when no admin-managed key is stored |
 | `AI_PROVIDER` | Production | `xai` or `openai` |
+| `PLATFORM_SECRETS_ENCRYPTION_KEY` | Production only | Server-only AES key for admin-managed AI API keys in Supabase. Generate with `openssl rand -base64 32`. Never store in the database. |
 
-Never expose `SUPABASE_SERVICE_ROLE_KEY` to the browser or commit it to git.
+Never expose `SUPABASE_SERVICE_ROLE_KEY` or `PLATFORM_SECRETS_ENCRYPTION_KEY` to the browser or commit them to git.
+
+### Admin-managed AI keys
+
+When an admin saves a vendor/model/key in **Admin → AI & prompts**, the raw API key is encrypted with **AES-256-GCM** before it is written to `platform_settings.api_key_ciphertext`. Only ciphertext is stored in Postgres. Decryption happens on the server at request time using `PLATFORM_SECRETS_ENCRYPTION_KEY`.
+
+If that env var is missing, saving a new key from the admin UI will fail. Existing env-based keys (`XAI_API_KEY` / `OPENAI_API_KEY`) still work as a fallback.
 
 ---
 

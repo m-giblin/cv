@@ -6,6 +6,9 @@ const schema = z.object({
   title: z.string().min(2),
   url: z.string().url(),
   category: z.string().min(2),
+  assetType: z.enum(["video", "doc", "podcast", "link", "file"]).optional(),
+  projectTags: z.array(z.string()).optional(),
+  moduleTags: z.array(z.string()).optional(),
 });
 
 export async function PATCH(
@@ -30,6 +33,9 @@ export async function PATCH(
       title: parsed.data.title,
       description: parsed.data.category,
       storage_path: parsed.data.url,
+      ...(parsed.data.assetType ? { asset_type: parsed.data.assetType } : {}),
+      ...(parsed.data.projectTags ? { project_tags: parsed.data.projectTags } : {}),
+      ...(parsed.data.moduleTags ? { module_tags: parsed.data.moduleTags } : {}),
     })
     .eq("id", id);
 

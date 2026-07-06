@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { verifyCoachingAttestation } from "@/lib/ai/coaching-attestation";
 import { coachingCardSchema } from "@/lib/ai/schemas";
 import { createNotification } from "@/lib/notifications/create-notification";
 import { submitSimulationPlanSteps } from "@/lib/plans/complete-step";
@@ -19,6 +20,7 @@ const schema = z.object({
       difficulty: z.string(),
     })
     .optional(),
+  attestationToken: z.string().min(20).optional(),
 });
 
 export async function POST(request: Request) {
@@ -48,6 +50,38 @@ export async function POST(request: Request) {
     simulationContext: parsed.data.simulationContext ?? null,
   };
 
+  // Practice rounds require a linked assignment — never trust isPractice alone (prevents auto-approve bypass).
+  const isPractice = Boolean(parsed.data.isPractice && parsed.data.simulationAssignmentId);
+
+  if (parsed.data.isPractice && !parsed.data.simulationAssignmentId) {
+    return NextResponse.json(
+      { error: "Practice rounds must be linked to a simulation assignment." },
+      { status: 400 },
+    );
+  }
+
+  if (!isPractice) {
+    if (!parsed.data.attestationToken) {
+      return NextResponse.json(
+        { error: "Generate a coaching card via AI before submitting for manager review." },
+        { status: 400 },
+      );
+    }
+
+    if (
+      !verifyCoachingAttestation(
+        user.id,
+        parsed.data.attestationToken,
+        parsed.data.structuredOutput,
+      )
+    ) {
+      return NextResponse.json(
+        { error: "Invalid or expired coaching card attestation. Regenerate your coaching card." },
+        { status: 403 },
+      );
+    }
+  }
+
   const { data, error } = await supabase
     .from("coaching_cards")
     .insert({
@@ -55,9 +89,9 @@ export async function POST(request: Request) {
       user_id: user.id,
       structured_output: card,
       se_reflection: parsed.data.seReflection ?? null,
-      is_practice: parsed.data.isPractice,
-      manager_review_status: parsed.data.isPractice ? "reviewed" : "pending",
-      sent_to_manager_at: parsed.data.isPractice ? null : new Date().toISOString(),
+      is_practice: isPractice,
+      manager_review_status: isPractice ? "reviewed" : "pending",
+      sent_to_manager_at: isPractice ? null : new Date().toISOString(),
     })
     .select("id")
     .single();
@@ -68,7 +102,7 @@ export async function POST(request: Request) {
 
   let practiceRoundsCompleted = 0;
 
-  if (parsed.data.isPractice && parsed.data.simulationAssignmentId) {
+  if (isPractice && parsed.data.simulationAssignmentId) {
     const { data: assignment } = await supabase
       .from("simulation_assignments")
       .select("session_data")

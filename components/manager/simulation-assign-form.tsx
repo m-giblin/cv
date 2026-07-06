@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTableShell, DataTableToolbar, paginate, DataTablePagination } from "@/components/ui/data-table";
 import {
   DIFFICULTY_OPTIONS,
@@ -27,7 +26,13 @@ type Template = {
 
 const PAGE_SIZE = 10;
 
-export function SimulationAssignForm({ assignees }: { assignees: Profile[] }) {
+export function SimulationAssignForm({
+  assignees,
+  personaQuickPick,
+}: {
+  assignees: Profile[];
+  personaQuickPick?: string | null;
+}) {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [templateId, setTemplateId] = useState("");
   const [templateSearch, setTemplateSearch] = useState("");
@@ -81,6 +86,26 @@ export function SimulationAssignForm({ assignees }: { assignees: Profile[] }) {
     setTemplatePage(1);
   }, [templateSearch]);
 
+  useEffect(() => {
+    if (!personaQuickPick || templates.length === 0) return;
+
+    const query = personaQuickPick.toLowerCase();
+    const match =
+      templates.find(
+        (template) =>
+          template.persona.toLowerCase().includes(query) || template.name.toLowerCase().includes(query),
+      ) ??
+      templates.find((template) => query.includes(template.persona.toLowerCase()));
+
+    if (!match) return;
+
+    setTemplateId(match.id);
+    setVertical(match.vertical);
+    setSolutionFocus(match.solution_focus);
+    setDifficulty(match.difficulty);
+    setTemplateSearch(match.name);
+  }, [personaQuickPick, templates]);
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
 
@@ -120,16 +145,16 @@ export function SimulationAssignForm({ assignees }: { assignees: Profile[] }) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Assign simulation</CardTitle>
-        <CardDescription>
+    <div className="overflow-hidden rounded-xl border border-[#e2eaf5] bg-white shadow-[0_1px_4px_rgba(0,20,58,0.04)]">
+      <div className="border-b border-[#f1f5f9] p-[16px_18px]">
+        <p className="text-[15px] font-bold text-[#0a1628]">Assign simulation</p>
+        <p className="text-[12px] text-[#64748b]">
           Step 1: select a prompt template from the library. Step 2: pick the SE and override Solution / Vertical /
           Difficulty if the template allows it.
-        </CardDescription>
-      </CardHeader>
+        </p>
+      </div>
 
-      <div className="space-y-6 px-5 pb-5">
+      <div className="space-y-6 p-[16px_18px]">
         <section className="space-y-3">
           <h3 className="text-sm font-bold text-sp-navy">1. Prompt template</h3>
           <DataTableToolbar
@@ -279,6 +304,6 @@ export function SimulationAssignForm({ assignees }: { assignees: Profile[] }) {
           </Button>
         </form>
       </div>
-    </Card>
+    </div>
   );
 }

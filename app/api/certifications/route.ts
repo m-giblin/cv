@@ -10,6 +10,9 @@ const CERT_TYPES = [
   "competitive_bakeoff",
   "customer_workshop",
   "advisory_readiness",
+  "agentic_fabric",
+  "ais_readiness",
+  "mcp_governance",
 ] as const;
 
 export async function GET(request: Request) {
@@ -65,7 +68,8 @@ export async function GET(request: Request) {
 const submitSchema = z.object({
   certificationType: z.enum(CERT_TYPES),
   evidenceText: z.string().min(20),
-  evidenceUrl: z.string().url().optional().or(z.literal("")),
+  evidenceUrl: z.string().optional().or(z.literal("")),
+  evidencePath: z.string().optional(),
 });
 
 export async function POST(request: Request) {
@@ -94,7 +98,9 @@ export async function POST(request: Request) {
     .update({
       status: "submitted",
       evidence_text: parsed.data.evidenceText,
-      evidence_url: parsed.data.evidenceUrl || null,
+      evidence_url: parsed.data.evidencePath
+        ? `storage:evidence/${parsed.data.evidencePath}`
+        : parsed.data.evidenceUrl || null,
     })
     .eq("user_id", user.id)
     .eq("certification_type", parsed.data.certificationType)

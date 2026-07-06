@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { CorpusFeedbackWidget } from "@/components/corpus/corpus-feedback-widget";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,6 +27,19 @@ export function PlanStepActions({
 
   const awaitingReview = step.status === "submitted";
   const needsRevision = step.status === "in_progress" && Boolean(step.description);
+
+  if (step.locked) {
+    return (
+      <Card className="border-stone-200 bg-stone-50/60">
+        <CardHeader>
+          <CardTitle>{step.title}</CardTitle>
+          <CardDescription>
+            Complete the prior segment gate to unlock this step (segment {step.segmentIndex ?? "?"}).
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
 
   async function submitStep(notes?: string) {
     if (!step.assignmentStepId) {
@@ -103,6 +117,9 @@ export function PlanStepActions({
           >
             Submit for review
           </Button>
+          {step.contentAssetId ? (
+            <CorpusFeedbackWidget contentAssetId={step.contentAssetId} assetTitle={step.title} />
+          ) : null}
         </div>
       </Card>
     );
@@ -148,6 +165,27 @@ export function PlanStepActions({
             Submit for review
           </Button>
         </form>
+      </Card>
+    );
+  }
+
+  if (step.type === "deal_prep") {
+    const prepHref = step.assignmentStepId
+      ? `/prep?step=${step.assignmentStepId}`
+      : "/prep";
+
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>{step.title}</CardTitle>
+          <CardDescription>
+            {step.description ||
+              "Generate an account-specific deal prep brief. Saving the brief submits this step for manager review."}
+          </CardDescription>
+        </CardHeader>
+        <Button asChild>
+          <Link href={prepHref}>Open deal prep →</Link>
+        </Button>
       </Card>
     );
   }
@@ -205,10 +243,21 @@ export function PlanStepActions({
         <CardDescription>Complete the activity, then your manager or mentor validates it.</CardDescription>
       </CardHeader>
       <Button asChild>
-        <Link href={step.type === "challenge" ? "/challenges" : step.type === "simulation" ? "/simulations" : "/dashboard"}>
-          Continue
-        </Link>
+        <Link href={stepLinkForType(step.type)}>Continue</Link>
       </Button>
     </Card>
   );
+}
+
+function stepLinkForType(type: PlanStep["type"]) {
+  switch (type) {
+    case "challenge":
+      return "/challenges";
+    case "simulation":
+      return "/simulations";
+    case "deal_prep":
+      return "/prep";
+    default:
+      return "/dashboard";
+  }
 }

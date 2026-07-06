@@ -9,6 +9,13 @@ function mapRow(row: {
   storage_path: string;
   content_type: string | null;
   linked_solutions: string[];
+  asset_type?: string | null;
+  project_tags?: string[] | null;
+  module_tags?: string[] | null;
+  is_link_only?: boolean | null;
+  version?: number | null;
+  health_status?: string | null;
+  last_verified_at?: string | null;
   created_at: string;
   updated_at: string;
 }) {
@@ -18,7 +25,14 @@ function mapRow(row: {
     category: row.description ?? "reference",
     url: row.storage_path,
     contentType: row.content_type,
+    assetType: row.asset_type ?? "link",
+    projectTags: row.project_tags ?? [],
+    moduleTags: row.module_tags ?? [],
+    isLinkOnly: row.is_link_only ?? true,
     linkedSolutions: row.linked_solutions ?? [],
+    version: row.version ?? 1,
+    healthStatus: row.health_status ?? "active",
+    lastVerifiedAt: row.last_verified_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -46,6 +60,9 @@ const schema = z.object({
   title: z.string().min(2),
   url: z.string().url(),
   category: z.string().min(2),
+  assetType: z.enum(["video", "doc", "podcast", "link", "file"]).default("link"),
+  projectTags: z.array(z.string()).default([]),
+  moduleTags: z.array(z.string()).default([]),
 });
 
 export async function POST(request: Request) {
@@ -65,6 +82,10 @@ export async function POST(request: Request) {
     description: parsed.data.category,
     storage_path: parsed.data.url,
     content_type: "external_link",
+    asset_type: parsed.data.assetType,
+    project_tags: parsed.data.projectTags,
+    module_tags: parsed.data.moduleTags,
+    is_link_only: true,
     created_by: session.user.id,
   });
 
