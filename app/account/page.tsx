@@ -1,7 +1,7 @@
 import { AppShell } from "@/components/app-shell";
 import { AccountProfilePanel } from "@/components/account/account-profile-panel";
 import { ChangePasswordForm } from "@/components/auth/change-password-form";
-import { PageHeader } from "@/components/page-hero";
+import { SEPageLayout } from "@/components/se/se-page-layout";
 import { computeAccountBadges } from "@/lib/account/achievements";
 import { requireAppAccess } from "@/lib/auth/require-access";
 import { fetchCertificationsForUsers } from "@/lib/data/get-certifications-data";
@@ -16,16 +16,14 @@ export default async function AccountPage() {
 
   return (
     <AppShell currentUser={data.currentUser} notifications={data.notifications}>
-      <div className="space-y-8">
-        <PageHeader
-          description="Your profile, trophy case, career milestones, and sign-in security — MFA is required before password changes."
-          eyebrow="Account"
-          title="Your account"
-          tone="magenta"
-        />
-
+      <SEPageLayout
+        eyebrow="Account"
+        eyebrowColor="#cc27b0"
+        subtitle="Profile, trophy case, career milestones, and sign-in security."
+        title="Your account"
+      >
         {source === "demo" ? (
-          <p className="text-sm text-sp-magenta">Demo data mode — connect Supabase for live profile sync.</p>
+          <p className="mb-4 text-sm text-[#cc27b0]">Demo data mode — connect Supabase for live profile sync.</p>
         ) : null}
 
         <AccountProfilePanel
@@ -35,7 +33,7 @@ export default async function AccountPage() {
           trophies={trophies}
         />
 
-        <Card>
+        <Card className="mt-6 border-[#e2eaf5] shadow-[0_1px_4px_rgba(0,20,58,0.04)]">
           <CardHeader>
             <CardTitle>Change password</CardTitle>
             <CardDescription>
@@ -47,7 +45,7 @@ export default async function AccountPage() {
             <ChangePasswordForm />
           </div>
         </Card>
-      </div>
+      </SEPageLayout>
     </AppShell>
   );
 }

@@ -61,7 +61,6 @@ export default async function DevelopmentPage({ searchParams }: DevelopmentPageP
           focusReviewId={params.review}
           initialPlan={plan}
           initialSelectedUserId={targetUserId}
-          northstar={isSe}
           viewerRole={viewerRole}
         />
       </SEPageLayout>

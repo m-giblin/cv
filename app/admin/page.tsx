@@ -4,7 +4,6 @@ import { AdminConsole } from "@/components/admin/admin-console";
 import { loadAiUsageSummary } from "@/lib/ai/settings";
 import { getAccessTier } from "@/lib/auth/rbac";
 import { requireAdminPageAccess } from "@/lib/auth/require-access";
-import { isNorthstarUiEnabled } from "@/lib/feature-flags";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export default async function AdminPage() {
@@ -24,7 +23,6 @@ export default async function AdminPage() {
     0,
   );
 
-  const northstar = isNorthstarUiEnabled();
   const initialUsers = data.profiles.map((profile) => ({
     id: profile.id,
     email: profile.email,
@@ -45,7 +43,6 @@ export default async function AdminPage() {
             assignees={assignees}
             initialUsers={initialUsers}
             mentors={mentors}
-            northstar={northstar}
             pendingReviews={pendingReviews}
             plans={data.plans}
             profiles={data.profiles}

@@ -128,9 +128,8 @@ export function ManagerTeamRoster({
   selectedProfileId: string | null;
   onSelectProfile: (profileId: string) => void;
 }) {
-  const largeTeam = org.length >= 6;
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<RosterFilter>(largeTeam ? "attention" : "all");
+  const [filter, setFilter] = useState<RosterFilter>("all");
 
   const cohortSummary = useMemo(() => {
     const cohorts = new Map<string, number>();

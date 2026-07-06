@@ -227,7 +227,8 @@ export function canAccessRoute(tier: AccessTier, pathname: string): boolean {
       pathname.startsWith("/learn") ||
       pathname.startsWith("/lab") ||
       pathname.startsWith("/market-pulse") ||
-      pathname.startsWith("/flight-check")
+      pathname.startsWith("/flight-check") ||
+      pathname.startsWith("/uat-bugs")
     );
   }
 

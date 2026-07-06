@@ -1,9 +1,10 @@
 "use client";
 
-import { Bug, ChevronDown, ChevronUp, ExternalLink, ImagePlus, Loader2, X } from "lucide-react";
+import { Bug, ExternalLink, ImagePlus, Loader2, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { openUatBugWindow } from "@/lib/uat/open-uat-bug-window";
 import { cn } from "@/lib/utils";
 
 type Category = { id: string; name: string };
@@ -50,7 +51,56 @@ export function UatBugTracker({
   reporterEmail: string;
 }) {
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
+  const [backlogCount, setBacklogCount] = useState(0);
+
+  useEffect(() => {
+    if (!enabled || pathname === "/uat-bugs") return;
+    void fetch("/api/uat-bugs/issues?status=backlog", { credentials: "same-origin" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json: { data?: unknown[] } | null) => {
+        if (json?.data) setBacklogCount(json.data.length);
+      })
+      .catch(() => undefined);
+  }, [enabled, pathname]);
+
+  if (!enabled || pathname === "/uat-bugs") {
+    return null;
+  }
+
+  return (
+    <div
+      className={cn(
+        "fixed z-[70]",
+        "bottom-20 left-3 md:bottom-6",
+        "lg:left-[232px]",
+      )}
+    >
+      <button
+        className="flex items-center gap-2 rounded-full border border-[#0071ce]/30 bg-[#00143a] px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[#00143a]/25 transition hover:bg-[#002855]"
+        onClick={() => openUatBugWindow()}
+        title="Open UAT bug tracker in a separate window"
+        type="button"
+      >
+        <Bug className="h-4 w-4 text-[#38bdf8]" aria-hidden />
+        UAT Bugs
+        {backlogCount > 0 ? (
+          <span className="rounded-full bg-[#0071ce] px-1.5 py-0.5 text-[10px] font-bold">{backlogCount}</span>
+        ) : null}
+        <ExternalLink className="h-3.5 w-3.5 opacity-60" aria-hidden />
+      </button>
+    </div>
+  );
+}
+
+/** Full bug tracker UI — rendered inside the dedicated /uat-bugs popup window. */
+export function UatBugTrackerPanel({
+  reporterName,
+  reporterEmail,
+}: {
+  reporterName: string;
+  reporterEmail: string;
+}) {
+  const pathname = usePathname();
   const [tab, setTab] = useState<Tab>("report");
   const [meta, setMeta] = useState<Meta | null>(null);
   const [issues, setIssues] = useState<ForgeIssue[]>([]);
@@ -111,12 +161,8 @@ export function UatBugTracker({
   }, []);
 
   useEffect(() => {
-    if (enabled) {
-      void loadMeta();
-    } else {
-      setLoadingMeta(false);
-    }
-  }, [enabled, loadMeta]);
+    void loadMeta();
+  }, [loadMeta]);
 
   useEffect(() => {
     if (meta?.enabled) {
@@ -199,11 +245,21 @@ export function UatBugTracker({
     }
   }
 
-  if (!enabled) {
-    return null;
+  if (loadingMeta) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <Loader2 className="h-6 w-6 animate-spin text-[#0071ce]" />
+      </div>
+    );
   }
 
-  const panelReady = Boolean(meta?.enabled) && !loadingMeta;
+  if (!meta?.enabled) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-white p-6 text-center text-sm text-slate-600">
+        UAT bug tracker is not configured for this environment.
+      </div>
+    );
+  }
 
   const selected = issues.find((item) => item.id === selectedId) ?? null;
   const projectKey = meta?.projectKey ?? "SEENA";
@@ -215,49 +271,37 @@ export function UatBugTracker({
   const forgeUrl = meta?.forgeUrl ?? "https://forge-nu-ochre.vercel.app";
 
   return (
-    <div
-      className={cn(
-        "fixed z-[70] flex flex-col",
-        "bottom-20 left-3 md:bottom-6",
-        "lg:left-[232px]",
-      )}
-    >
-      {open && panelReady ? (
-        <div
-          className="mb-2 flex w-[min(100vw-1.5rem,400px)] flex-col overflow-hidden rounded-xl border border-[#cbd5e1] bg-white shadow-2xl shadow-[#00143a]/20"
-          role="dialog"
-          aria-label="UAT bug tracker"
-        >
-          <header className="flex items-center justify-between border-b border-[#e2eaf5] bg-[#00143a] px-4 py-3 text-white">
-            <div className="flex items-center gap-2">
-              <Bug className="h-4 w-4 text-[#38bdf8]" aria-hidden />
-              <div>
-                <p className="text-sm font-bold leading-tight">UAT Bug Tracker</p>
-                <p className="text-[10px] text-white/60">Forge · {projectKey}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-1">
-              <a
-                className="rounded p-1 text-white/70 hover:bg-white/10 hover:text-white"
-                href={forgeUrl}
-                rel="noreferrer"
-                target="_blank"
-                title="Open Forge"
-              >
-                <ExternalLink className="h-4 w-4" />
-              </a>
-              <button
-                className="rounded p-1 text-white/70 hover:bg-white/10 hover:text-white"
-                onClick={() => setOpen(false)}
-                type="button"
-                aria-label="Close bug tracker"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-          </header>
+    <div className="flex min-h-screen flex-col bg-white">
+      <header className="flex shrink-0 items-center justify-between border-b border-[#e2eaf5] bg-[#00143a] px-4 py-3 text-white">
+        <div className="flex items-center gap-2">
+          <Bug className="h-4 w-4 text-[#38bdf8]" aria-hidden />
+          <div>
+            <p className="text-sm font-bold leading-tight">UAT Bug Tracker</p>
+            <p className="text-[10px] text-white/60">Forge · {projectKey}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1">
+          <a
+            className="rounded p-1 text-white/70 hover:bg-white/10 hover:text-white"
+            href={forgeUrl}
+            rel="noreferrer"
+            target="_blank"
+            title="Open Forge"
+          >
+            <ExternalLink className="h-4 w-4" />
+          </a>
+          <button
+            className="rounded p-1 text-white/70 hover:bg-white/10 hover:text-white"
+            onClick={() => window.close()}
+            type="button"
+            aria-label="Close window"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      </header>
 
-          <div className="flex border-b border-[#e2eaf5] bg-[#f8fafc]">
+      <div className="flex shrink-0 border-b border-[#e2eaf5] bg-[#f8fafc]">
             {(
               [
                 ["report", "Report bug"],
@@ -276,9 +320,9 @@ export function UatBugTracker({
                 {label}
               </button>
             ))}
-          </div>
+      </div>
 
-          <div className="max-h-[min(60vh,520px)] overflow-y-auto p-4">
+      <div className="min-h-0 flex-1 overflow-y-auto p-4">
             {meta?.forgeReachable === false ? (
               <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
                 <strong>Forge connection issue.</strong> {meta.forgeError ?? "API unreachable."} You can still
@@ -523,30 +567,7 @@ export function UatBugTracker({
                 )}
               </div>
             )}
-          </div>
-        </div>
-      ) : null}
-
-      <button
-        className={cn(
-          "flex items-center gap-2 rounded-full border border-[#0071ce]/30 bg-[#00143a] px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[#00143a]/25 transition hover:bg-[#002855]",
-          open && "ring-2 ring-[#0071ce]/40",
-        )}
-        onClick={() => {
-          setOpen((value) => !value);
-          if (!open) void loadMeta();
-          if (!open && tab === "backlog") void loadIssues();
-        }}
-        type="button"
-      >
-        <Bug className="h-4 w-4 text-[#38bdf8]" aria-hidden />
-        UAT Bugs
-        {loadingMeta ? <Loader2 className="h-3 w-3 animate-spin opacity-70" /> : null}
-        {issues.length > 0 ? (
-          <span className="rounded-full bg-[#0071ce] px-1.5 py-0.5 text-[10px] font-bold">{issues.length}</span>
-        ) : null}
-        {open ? <ChevronDown className="h-4 w-4 opacity-60" /> : <ChevronUp className="h-4 w-4 opacity-60" />}
-      </button>
+      </div>
     </div>
   );
 }

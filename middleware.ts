@@ -142,10 +142,6 @@ export async function middleware(request: NextRequest) {
     const role = await getProfileRole(supabase, user.id);
     const tier: AccessTier = getAccessTier(role);
 
-    if (pathname.startsWith("/design") && tier !== "admin") {
-      return NextResponse.redirect(new URL(getHomeRoute(tier), request.url));
-    }
-
     if (!canAccessRoute(tier, pathname)) {
       return NextResponse.redirect(new URL(getHomeRoute(tier), request.url));
     }

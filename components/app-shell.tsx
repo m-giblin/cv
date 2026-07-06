@@ -8,7 +8,6 @@ import { MobilePracticeShell } from "@/components/practice/mobile-practice-shell
 import { UatBugTracker } from "@/components/uat/uat-bug-tracker";
 import { NotificationFlyout } from "@/components/notifications/notification-flyout";
 import { getAccessTier } from "@/lib/auth/rbac";
-import { isNorthstarUiEnabled } from "@/lib/feature-flags";
 import { isForgeConfigured } from "@/lib/forge/config";
 import { Notification, Profile } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -42,11 +41,10 @@ export function AppShell({
 }) {
   const tier = getAccessTier(currentUser.role);
   const myNotifications = notifications.filter((item) => item.userId === currentUser.id);
-  const northstar = isNorthstarUiEnabled();
   const homeHref = tier === "manager" ? "/manager" : tier === "admin" ? "/admin" : "/dashboard";
 
   return (
-    <div className={cn("min-h-screen bg-[#f4f8fd]", northstar && "design-northstar")}>
+    <div className="design-northstar min-h-screen bg-[#f4f8fd]">
       {/* Mobile header */}
       <header className="border-b border-white/10 bg-[#00143a] px-4 py-3 lg:hidden">
         <div className="flex items-center justify-between gap-3">
@@ -81,8 +79,7 @@ export function AppShell({
         </div>
         <main
           className={cn(
-            "bg-[#f4f8fd]",
-            northstar ? "px-0 py-0 pb-20 lg:pb-6" : "px-4 py-6 pb-20 lg:px-7 lg:py-6 lg:pb-6",
+            "bg-[#f4f8fd] px-0 py-0 pb-20 lg:pb-6",
             contentWidth === "full"
               ? "w-full"
               : contentWidth === "wide"

@@ -91,10 +91,6 @@ function inferVertical(challenge: Challenge): string {
   return "Enterprise";
 }
 
-function inferPersona(challenge: Challenge): string {
-  return `${inferVertical(challenge)} · ${challenge.targetLevel ?? "SE"}`;
-}
-
 function libraryStatus(submission?: ChallengeSubmission): LibraryStatus {
   if (!submission) return "Not started";
   if (submission.status === "reviewed") return "Approved";
@@ -442,8 +438,8 @@ export function ChallengesPortal({
     <div
       className={
         tier === "se"
-          ? "animate-[fadeUp_0.2s_ease-out] flex min-h-[min(72vh,900px)] flex-col overflow-hidden"
-          : "overflow-hidden rounded-2xl border border-[#e2eaf5] bg-white shadow-[0_1px_4px_rgba(0,20,58,0.04)]"
+          ? "animate-[fadeUp_0.2s_ease-out] flex min-h-0 flex-1 flex-col overflow-hidden"
+          : "flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[#e2eaf5] bg-white shadow-[0_1px_4px_rgba(0,20,58,0.04)]"
       }
     >
       <div
@@ -633,80 +629,29 @@ export function ChallengesPortal({
           )}
         </div>
       ) : (
-        <div className="flex h-[min(72vh,900px)] min-h-[28rem] flex-col lg:flex-row">
-          <aside className="flex w-full shrink-0 flex-col border-b border-[#e2eaf5] lg:w-[420px] lg:border-b-0 lg:border-r">
-            <div className={tier === "se" ? "border-b border-[#f1f5f9] p-3 pb-2" : "space-y-2 border-b border-[#f1f5f9] p-3"}>
+        <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+          <aside className="flex w-full shrink-0 flex-col border-b border-[#e2eaf5] lg:w-[min(100%,38vw)] lg:min-w-[360px] lg:max-w-[520px] lg:border-b-0 lg:border-r xl:w-[40%]">
+            <div
+              className={
+                tier === "se"
+                  ? "shrink-0 space-y-2.5 border-b border-[#f1f5f9] p-4"
+                  : "shrink-0 space-y-3 border-b border-[#f1f5f9] p-4"
+              }
+            >
               {tier === "se" ? (
-                <div className="mb-[12px] flex flex-wrap items-center gap-[9px]">
-                  <div className="flex max-w-[400px] flex-1 items-center gap-[8px] rounded-[9px] border-[1.5px] border-[#e2eaf5] bg-white px-[12px] py-[7px]">
-                    <Search className="h-[13px] w-[13px] text-[#94a3b8]" strokeWidth={1.3} />
-                    <input
-                      className="flex-1 bg-transparent text-[12px] text-[#1e293b] placeholder-[#94a3b8] outline-none"
-                      onChange={(e) => setQuery(e.target.value)}
-                      placeholder="Search challenges by title, persona, keyword..."
-                      value={query}
-                    />
-                    <kbd className="rounded bg-[#f1f5f9] px-[5px] py-[1px] text-[10px] text-[#cbd5e1]">⌘F</kbd>
-                  </div>
-                  <select
-                    className="cursor-pointer rounded-lg border-[1.5px] border-[#e2eaf5] bg-white px-[10px] py-[6px] text-[12px] text-[#374151] outline-none"
-                    onChange={(e) => setVerticalFilter(e.target.value as (typeof VERTICALS)[number])}
-                    value={verticalFilter}
-                  >
-                    {VERTICALS.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    className="cursor-pointer rounded-lg border-[1.5px] border-[#e2eaf5] bg-white px-[10px] py-[6px] text-[12px] text-[#374151] outline-none"
-                    onChange={(e) => setCompetencyFilter(e.target.value as (typeof COMPETENCY_FILTERS)[number])}
-                    value={competencyFilter}
-                  >
-                    {COMPETENCY_FILTERS.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    className="cursor-pointer rounded-lg border-[1.5px] border-[#e2eaf5] bg-white px-[10px] py-[6px] text-[12px] text-[#374151] outline-none"
-                    onChange={(e) => setStatusFilter(e.target.value as (typeof STATUS_FILTERS)[number])}
-                    value={statusFilter}
-                  >
-                    {STATUS_FILTERS.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    className="cursor-pointer rounded-lg border-[1.5px] border-[#e2eaf5] bg-white px-[10px] py-[6px] text-[12px] text-[#374151] outline-none"
-                    onChange={(e) => setSortBy(e.target.value as (typeof SORT_OPTIONS)[number])}
-                    value={sortBy}
-                  >
-                    {SORT_OPTIONS.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ) : (
                 <>
-                  <div className="relative">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94a3b8]" />
+                  <div className="flex items-center gap-2 rounded-[9px] border-[1.5px] border-[#e2eaf5] bg-white px-3 py-2">
+                    <Search className="h-3.5 w-3.5 shrink-0 text-[#94a3b8]" strokeWidth={1.3} />
                     <input
-                      className="h-9 w-full rounded-md border border-[#e2eaf5] bg-[#f8fafd] pl-9 pr-3 text-sm outline-none"
+                      className="min-w-0 flex-1 bg-transparent text-[13px] text-[#1e293b] placeholder-[#94a3b8] outline-none"
                       onChange={(e) => setQuery(e.target.value)}
-                      placeholder="Search challenges..."
+                      placeholder="Search by title, persona, or keyword…"
                       value={query}
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-1.5">
+                  <div className="flex flex-wrap gap-2">
                     <select
-                      className="h-8 rounded-lg border border-[#e2eaf5] bg-white px-2 text-[11px] font-semibold text-[#475569]"
+                      className="min-w-[7.5rem] flex-1 cursor-pointer rounded-lg border-[1.5px] border-[#e2eaf5] bg-white px-2.5 py-1.5 text-[12px] text-[#374151] outline-none"
                       onChange={(e) => setVerticalFilter(e.target.value as (typeof VERTICALS)[number])}
                       value={verticalFilter}
                     >
@@ -717,10 +662,8 @@ export function ChallengesPortal({
                       ))}
                     </select>
                     <select
-                      className="h-8 rounded-lg border border-[#e2eaf5] bg-white px-2 text-[11px] font-semibold text-[#475569]"
-                      onChange={(e) =>
-                        setCompetencyFilter(e.target.value as (typeof COMPETENCY_FILTERS)[number])
-                      }
+                      className="min-w-[7.5rem] flex-1 cursor-pointer rounded-lg border-[1.5px] border-[#e2eaf5] bg-white px-2.5 py-1.5 text-[12px] text-[#374151] outline-none"
+                      onChange={(e) => setCompetencyFilter(e.target.value as (typeof COMPETENCY_FILTERS)[number])}
                       value={competencyFilter}
                     >
                       {COMPETENCY_FILTERS.map((option) => (
@@ -730,7 +673,7 @@ export function ChallengesPortal({
                       ))}
                     </select>
                     <select
-                      className="h-8 rounded-lg border border-[#e2eaf5] bg-white px-2 text-[11px] font-semibold text-[#475569]"
+                      className="min-w-[7.5rem] flex-1 cursor-pointer rounded-lg border-[1.5px] border-[#e2eaf5] bg-white px-2.5 py-1.5 text-[12px] text-[#374151] outline-none"
                       onChange={(e) => setStatusFilter(e.target.value as (typeof STATUS_FILTERS)[number])}
                       value={statusFilter}
                     >
@@ -741,7 +684,7 @@ export function ChallengesPortal({
                       ))}
                     </select>
                     <select
-                      className="h-8 rounded-lg border border-[#e2eaf5] bg-white px-2 text-[11px] font-semibold text-[#475569]"
+                      className="min-w-[7.5rem] flex-1 cursor-pointer rounded-lg border-[1.5px] border-[#e2eaf5] bg-white px-2.5 py-1.5 text-[12px] text-[#374151] outline-none"
                       onChange={(e) => setSortBy(e.target.value as (typeof SORT_OPTIONS)[number])}
                       value={sortBy}
                     >
@@ -752,10 +695,22 @@ export function ChallengesPortal({
                       ))}
                     </select>
                   </div>
-                  <div className="flex gap-1 overflow-x-auto pb-0.5">
+                </>
+              ) : (
+                <>
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94a3b8]" />
+                    <input
+                      className="h-10 w-full rounded-lg border border-[#e2eaf5] bg-[#f8fafd] pl-9 pr-3 text-sm outline-none focus:border-[#0033a1]/30 focus:bg-white"
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder="Search challenges…"
+                      value={query}
+                    />
+                  </div>
+                  <div className="flex gap-1.5 overflow-x-auto pb-0.5">
                     {FILTER_OPTIONS.map((option) => (
                       <button
-                        className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${
+                        className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold transition ${
                           filter === option.id
                             ? "bg-[#7c3aed] text-white"
                             : "bg-[#f4f8fd] text-[#64748b] hover:bg-[#e2eaf5]"
@@ -768,32 +723,63 @@ export function ChallengesPortal({
                       </button>
                     ))}
                   </div>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    <select
+                      className="h-9 rounded-lg border border-[#e2eaf5] bg-white px-2 text-[11px] font-semibold text-[#475569]"
+                      onChange={(e) => setVerticalFilter(e.target.value as (typeof VERTICALS)[number])}
+                      value={verticalFilter}
+                    >
+                      {VERTICALS.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      className="h-9 rounded-lg border border-[#e2eaf5] bg-white px-2 text-[11px] font-semibold text-[#475569]"
+                      onChange={(e) =>
+                        setCompetencyFilter(e.target.value as (typeof COMPETENCY_FILTERS)[number])
+                      }
+                      value={competencyFilter}
+                    >
+                      {COMPETENCY_FILTERS.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      className="h-9 rounded-lg border border-[#e2eaf5] bg-white px-2 text-[11px] font-semibold text-[#475569]"
+                      onChange={(e) => setStatusFilter(e.target.value as (typeof STATUS_FILTERS)[number])}
+                      value={statusFilter}
+                    >
+                      {STATUS_FILTERS.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      className="h-9 rounded-lg border border-[#e2eaf5] bg-white px-2 text-[11px] font-semibold text-[#475569]"
+                      onChange={(e) => setSortBy(e.target.value as (typeof SORT_OPTIONS)[number])}
+                      value={sortBy}
+                    >
+                      {SORT_OPTIONS.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </>
               )}
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto">
-              <div
-                className={
-                  tier === "se"
-                    ? "grid gap-0 rounded-t-[9px] border border-b-0 border-[#e2eaf5] bg-[#f8fafd] px-[14px] py-[7px]"
-                    : "grid gap-2 border-b border-[#f1f5f9] bg-[#f8fafd] px-3 py-2"
-                }
-                style={{ gridTemplateColumns: "1fr 110px 80px 60px" }}
-              >
-                <span className="text-[9.5px] font-bold uppercase tracking-[0.07em] text-[#94a3b8]">
-                  Challenge
-                </span>
-                <span className="text-[9.5px] font-bold uppercase tracking-[0.07em] text-[#94a3b8]">
-                  Competency
-                </span>
-                <span className="text-[9.5px] font-bold uppercase tracking-[0.07em] text-[#94a3b8]">Time</span>
-                <span className="text-[9.5px] font-bold uppercase tracking-[0.07em] text-[#94a3b8]">Status</span>
-              </div>
               {filtered.length === 0 ? (
                 <p className="px-4 py-8 text-center text-sm text-[#94a3b8]">No matches.</p>
               ) : (
-                <div className={tier === "se" ? "overflow-hidden rounded-b-[9px] border border-[#e2eaf5] bg-white" : ""}>
+                <div className={tier === "se" ? "divide-y divide-[#f1f5f9] border-t border-[#e2eaf5] bg-white" : "divide-y divide-[#f1f5f9]"}>
                   {visibleRows.map((challenge) => {
                     const submission = submissionForChallenge(submissions, challenge.id);
                     const status = libraryStatus(submission);
@@ -802,7 +788,7 @@ export function ChallengesPortal({
 
                     return (
                       <button
-                        className={`grid w-full items-center gap-0 border-b border-[#f9fafb] px-[14px] py-[10px] text-left transition ${
+                        className={`w-full px-4 py-3 text-left transition ${
                           tier === "se"
                             ? isSelected
                               ? "bg-[#f0f7ff]"
@@ -813,46 +799,36 @@ export function ChallengesPortal({
                         }`}
                         key={challenge.id}
                         onClick={() => selectChallenge(challenge.id)}
-                        style={{ gridTemplateColumns: "1fr 110px 80px 60px" }}
                         type="button"
                       >
-                        <div className="min-w-0 pr-[8px]">
-                          <div className="mb-[2px] flex items-center gap-[6px]">
-                            <span className={`h-[6px] w-[6px] shrink-0 rounded-full ${statusDotColor(status)}`} />
-                            <span className="block max-w-[220px] truncate text-[12px] font-semibold text-[#0a1628]">
-                              {challenge.title}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-[5px] pl-[12px]">
-                            {tier === "se" ? (
-                              <span className="rounded-full px-[6px] py-[1.5px] text-[9.5px] font-semibold text-[#0057a8] bg-[#e8f2fc]">
-                                {inferVertical(challenge)}
-                              </span>
-                            ) : null}
-                            <span className="text-[10px] text-[#94a3b8]">{inferPersona(challenge)}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center">
+                        <div className="flex items-start gap-2.5">
                           <span
-                            className={`truncate rounded-full px-[7px] py-[2px] text-[10px] font-semibold ${competencyBadgeTone(competency)}`}
-                          >
-                            {competency.split(" ")[0]}
-                          </span>
-                        </div>
-                        <div className={tier === "se" ? "flex items-center justify-center" : ""}>
-                          <span className="text-[11px] text-[#64748b]">{challenge.estimatedMinutes}m</span>
-                        </div>
-                        <div className={tier === "se" ? "flex items-center justify-center" : ""}>
-                          {tier === "se" ? (
-                            <span
-                              className="rounded-full px-[6px] py-[2px] text-[9px] font-bold"
-                              style={statusPillStyle(status)}
-                            >
-                              {status}
-                            </span>
-                          ) : (
-                            <span className="truncate text-[9px] font-bold text-[#64748b]">{status}</span>
-                          )}
+                            className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${statusDotColor(status)}`}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="line-clamp-2 text-[13px] font-semibold leading-snug text-[#0a1628]">
+                              {challenge.title}
+                            </p>
+                            <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+                              <span
+                                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${competencyBadgeTone(competency)}`}
+                              >
+                                {competency}
+                              </span>
+                              <span className="text-[11px] text-[#64748b]">{challenge.estimatedMinutes} min</span>
+                              {tier === "se" ? (
+                                <span className="rounded-full bg-[#e8f2fc] px-2 py-0.5 text-[10px] font-semibold text-[#0057a8]">
+                                  {inferVertical(challenge)}
+                                </span>
+                              ) : null}
+                              <span
+                                className="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                                style={statusPillStyle(status)}
+                              >
+                                {status}
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       </button>
                     );
@@ -895,7 +871,7 @@ export function ChallengesPortal({
             </div>
           </aside>
 
-          <main className="min-w-0 flex-1 overflow-y-auto">
+          <main className="min-h-[20rem] min-w-0 flex-1 overflow-y-auto lg:min-h-0">
             {selectedChallenge ? (
               <div
                 className={
@@ -958,18 +934,30 @@ export function ChallengesPortal({
                     <p className="mt-2 text-sm leading-6 text-[#475569]">{selectedChallenge.description}</p>
                   </section>
 
-                  <section className="flex flex-col gap-2 border-b border-[#f1f5f9] bg-[#f9fafc] sm:flex-row">
-                    {CHALLENGE_TIPS.map((tip) => (
-                      <div
-                        className="flex-1 rounded-lg border border-[#e2eaf5] bg-white p-2.5"
-                        key={tip.label}
-                      >
-                        <p className="text-[9.5px] font-bold" style={{ color: tip.color }}>
-                          {tip.label}
-                        </p>
-                        <p className="mt-0.5 text-[10.5px] leading-relaxed text-[#475569]">{tip.text}</p>
+                  <section className="rounded-xl border border-[#e2eaf5] bg-[#f9fafc]">
+                    <details className="group">
+                      <summary className="cursor-pointer list-none px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-[#5b21b6] marker:content-none [&::-webkit-details-marker]:hidden">
+                        <span className="inline-flex items-center gap-2">
+                          Coach tips
+                          <span className="text-[10px] font-semibold normal-case text-[#94a3b8] group-open:hidden">
+                            (3)
+                          </span>
+                        </span>
+                      </summary>
+                      <div className="flex flex-col gap-2 border-t border-[#e2eaf5] p-3 sm:flex-row">
+                        {CHALLENGE_TIPS.map((tip) => (
+                          <div
+                            className="flex-1 rounded-lg border border-[#e2eaf5] bg-white p-2.5"
+                            key={tip.label}
+                          >
+                            <p className="text-[9.5px] font-bold" style={{ color: tip.color }}>
+                              {tip.label}
+                            </p>
+                            <p className="mt-0.5 text-[10.5px] leading-relaxed text-[#475569]">{tip.text}</p>
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    </details>
                   </section>
 
                   {selectedChallenge.steps.length > 0 ? (

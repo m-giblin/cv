@@ -3,7 +3,6 @@
 import { Loader2, Target } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { GoalStatusBadge } from "@/components/development/goal-status-badge";
 import { SP_BLUE_BTN, SP_OUTLINE_BTN } from "@/components/se/sp-form-primitives";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -63,7 +62,6 @@ export function DevelopmentPlanPanel({
   viewerRole,
   focusReviewId,
   initialSelectedUserId,
-  northstar = false,
 }: {
   competencies: Competency[];
   assignees: Profile[];
@@ -71,7 +69,6 @@ export function DevelopmentPlanPanel({
   viewerRole: "se" | "manager" | "admin";
   focusReviewId?: string;
   initialSelectedUserId?: string;
-  northstar?: boolean;
 }) {
   const [plan, setPlan] = useState(initialPlan);
   const [isSaving, setIsSaving] = useState(false);
@@ -282,9 +279,8 @@ export function DevelopmentPlanPanel({
     );
   }
 
-  if (northstar) {
-    return (
-      <div className="flex flex-col gap-3">
+  return (
+    <div className="flex flex-col gap-3">
         {plan.goals.map((goal) => {
           const competency = competencies.find((item) => item.id === goal.competencyId);
           const isActive = goal.overallStatus === "on_track" || goal.overallStatus === "at_risk";
@@ -381,77 +377,6 @@ export function DevelopmentPlanPanel({
             </div>
           );
         })}
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className={cn(CARD_SHELL, "border-sp-magenta/15 bg-gradient-to-br from-white to-sp-magenta-soft/20 p-6")}>
-        <h2 className="text-lg font-semibold text-[#0a1628]">{plan.year} development plan</h2>
-        <p className="mt-1 text-sm text-[#64748b]">
-          Current quarter: {quarter} • {plan.goals.length} goals • Quarterly manager checkpoints
-        </p>
-      </div>
-
-      {plan.goals.map((goal) => {
-        const competency = competencies.find((item) => item.id === goal.competencyId);
-
-        return (
-          <div className={cn(CARD_SHELL, "overflow-hidden")} key={goal.id}>
-            <div className="border-b border-[#f1f5f9] p-6">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <h3 className="text-lg font-semibold text-[#0a1628]">{goal.title}</h3>
-                  <p className="mt-1 text-sm text-[#64748b]">
-                    {competency ? `${competency.category} • ${competency.name}` : goal.evidenceType.replaceAll("_", " ")}
-                  </p>
-                </div>
-                <GoalStatusBadge status={goal.overallStatus} />
-              </div>
-              {goal.description ? <p className="mt-2 text-sm text-sp-navy-muted">{goal.description}</p> : null}
-            </div>
-
-            <div className="grid gap-3 p-6 sm:grid-cols-2 lg:grid-cols-4">
-              {goal.quarterlyReviews.map((review) => (
-                <div
-                  className={`rounded-2xl border p-3 text-sm ${
-                    review.id === focusReviewId ? "border-sp-magenta ring-2 ring-sp-magenta/20" : "border-sp-blue/10"
-                  }`}
-                  key={review.id}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-sp-navy">{review.quarter}</span>
-                    <GoalStatusBadge status={review.status} />
-                  </div>
-                  <p className="mt-1 text-xs text-sp-navy-muted">Due {review.dueDate}</p>
-                  <button
-                    className={cn(SP_OUTLINE_BTN, "mt-2 w-full justify-center")}
-                    onClick={() => setActiveReviewId(review.id)}
-                    type="button"
-                  >
-                    {review.reviewedAt ? "View" : "Update"}
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            {activeReviewId && goal.quarterlyReviews.some((review) => review.id === activeReviewId) ? (
-              <div className="px-6 pb-6">
-                <ReviewEditor
-                isManager={viewerRole !== "se"}
-                isSaving={isSaving}
-                onClose={() => setActiveReviewId("")}
-                onSave={(payload) =>
-                  void updateReview(goal.quarterlyReviews.find((review) => review.id === activeReviewId)!, payload)
-                }
-                review={goal.quarterlyReviews.find((review) => review.id === activeReviewId)!}
-              />
-              </div>
-            ) : null}
-          </div>
-        );
-      })}
     </div>
   );
 }

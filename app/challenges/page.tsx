@@ -64,7 +64,7 @@ export default async function ChallengesPage({ searchParams }: ChallengesPagePro
       <SEPageLayout
         eyebrow="Practice · Field scenarios"
         eyebrowColor="#7c3aed"
-        fullHeight={isSe}
+        fullHeight
         headerRight={
           isSe ? (
             <ChallengesHeaderStats challenges={data.challenges} submissions={userSubmissions} />

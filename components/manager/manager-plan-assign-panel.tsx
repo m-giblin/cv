@@ -16,7 +16,6 @@ import {
   templateDurationDays,
   templateDurationLabel,
 } from "@/lib/plans/template-catalog";
-import { isNorthstarUiEnabled } from "@/lib/feature-flags";
 import type { Profile, UserPlan } from "@/lib/types";
 
 type PlanTemplateStep = {
@@ -129,35 +128,29 @@ export function ManagerPlanAssignPanel({
     router.refresh();
   }
 
-  const northstar = isNorthstarUiEnabled();
   const assignStep = !selectedTemplateId ? 1 : !userId ? 2 : 3;
 
   if (isLoading) {
     return (
-      <Card id={compact ? undefined : "onboarding-plans"}>
+      <Card className="border-0 bg-transparent shadow-none" id={compact ? undefined : "onboarding-plans"}>
         <div className="flex justify-center py-10">
-          <Loader2 className="h-6 w-6 animate-spin text-sp-blue" />
+          <Loader2 className="h-6 w-6 animate-spin text-[#0071ce]" />
         </div>
       </Card>
     );
   }
 
   return (
-    <Card className={`scroll-mt-6 ${northstar ? "border-0 bg-transparent shadow-none" : ""}`} id={compact ? undefined : "onboarding-plans"}>
+    <Card className="scroll-mt-6 border-0 bg-transparent shadow-none" id={compact ? undefined : "onboarding-plans"}>
       <CardHeader className={compact ? "pb-3" : undefined}>
         <CardTitle className={`flex items-center gap-2 ${compact ? "text-base" : ""}`}>
-          <ClipboardList className="h-5 w-5 text-sp-blue" />
+          <ClipboardList className="h-5 w-5 text-[#0071ce]" />
           {compact ? "Assign onboarding plan" : "Onboarding plans"}
         </CardTitle>
         <CardDescription>
-          {northstar
-            ? "Three steps: pick a week template → choose SE → confirm dates."
-            : compact
-              ? "Pick a standard ramp template and assign in one step."
-              : "Grab a pre-built ramp for your new SE — customize later on Plans if needed."}
+          Three steps: pick a week template → choose SE → confirm dates.
         </CardDescription>
-        {northstar ? (
-          <ol className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
+        <ol className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
             {[
               { n: 1, label: "Template" },
               { n: 2, label: "SE & mentor" },
@@ -177,10 +170,9 @@ export function ManagerPlanAssignPanel({
               </li>
             ))}
           </ol>
-        ) : null}
       </CardHeader>
 
-      <div className={`space-y-4 ${northstar ? "px-0 pb-0" : "px-6 pb-6"}`}>
+      <div className="space-y-4 px-0 pb-0">
         <div className={`grid gap-2 ${compact ? "grid-cols-1 sm:grid-cols-2" : "sm:grid-cols-2 xl:grid-cols-3"}`}>
           {templates.map((template) => {
             const days = templateDurationDays(template.steps);
@@ -228,8 +220,8 @@ export function ManagerPlanAssignPanel({
           </div>
         ) : null}
 
-        <form className="space-y-3 border-t border-sp-blue/10 pt-4" onSubmit={handleAssign}>
-          {northstar ? <p className="text-xs font-bold uppercase tracking-wide text-stone-500">Step 2–3</p> : null}
+        <form className="space-y-3 border-t border-[#e2eaf5] pt-4" onSubmit={handleAssign}>
+          <p className="text-xs font-bold uppercase tracking-wide text-[#64748b]">Step 2–3</p>
           <div className={`grid gap-3 ${compact ? "grid-cols-1" : "sm:grid-cols-2"}`}>
             <label className="block space-y-1.5 text-sm">
               <span className="font-semibold text-sp-navy">Assign to</span>

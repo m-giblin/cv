@@ -90,7 +90,6 @@ export function AdminConsole({
 }: {
   assignees: Profile[];
   mentors: Profile[];
-  northstar?: boolean;
   profiles?: Profile[];
   plans?: UserPlan[];
   activity?: ActivityLog[];

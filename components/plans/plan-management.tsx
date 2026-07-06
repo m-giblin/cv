@@ -1,7 +1,7 @@
 "use client";
 
 import { Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -142,6 +142,8 @@ export function PlanManagementPanel({
   const [contentAssets, setContentAssets] = useState<ContentAssetOption[]>([]);
   const [challenges, setChallenges] = useState<ChallengeOption[]>([]);
   const [simTemplates, setSimTemplates] = useState<SimTemplateOption[]>([]);
+  const editorRef = useRef<HTMLDivElement>(null);
+  const assignRef = useRef<HTMLDivElement>(null);
 
   const resetForm = useCallback(() => {
     setEditingId(null);
@@ -196,6 +198,14 @@ export function PlanManagementPanel({
     void loadPickers();
   }, [loadTemplates, loadPickers]);
 
+  useEffect(() => {
+    if (!editingId) return;
+    const frame = requestAnimationFrame(() => {
+      editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [editingId]);
+
   function startEdit(template: PlanTemplate) {
     setEditingId(template.id);
     setName(template.name);
@@ -205,7 +215,13 @@ export function PlanManagementPanel({
         ? template.steps.sort((a, b) => a.sort_order - b.sort_order).map(dbStepToTemplate)
         : [emptyStep()],
     );
-    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function startAssign(template: PlanTemplate) {
+    setAssignPlanId(template.id);
+    requestAnimationFrame(() => {
+      assignRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }
 
   async function saveTemplate(event: React.FormEvent) {
@@ -298,7 +314,11 @@ export function PlanManagementPanel({
           ].slice(0, 3);
           return (
             <div
-              className="cursor-pointer overflow-hidden rounded-xl border border-[#e2eaf5] bg-white transition hover:-translate-y-[2px] hover:shadow-[0_8px_28px_rgba(0,20,58,0.1)]"
+              className={`overflow-hidden rounded-xl border bg-white transition hover:-translate-y-[2px] hover:shadow-[0_8px_28px_rgba(0,20,58,0.1)] ${
+                editingId === template.id
+                  ? "border-[#cc27b0] ring-2 ring-[#cc27b0]/25"
+                  : "border-[#e2eaf5]"
+              }`}
               key={template.id}
             >
               <div className="h-[4px]" style={{ background: visual.accentGradient }} />
@@ -335,7 +355,7 @@ export function PlanManagementPanel({
                   </button>
                   <button
                     className="inline-flex items-center rounded-md bg-[#0071ce] px-[10px] py-[5px] text-[11px] font-semibold text-white"
-                    onClick={() => setAssignPlanId(template.id)}
+                    onClick={() => startAssign(template)}
                     type="button"
                   >
                     Assign →
@@ -347,89 +367,28 @@ export function PlanManagementPanel({
         })}
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-[#e2eaf5] bg-white">
-        <div className="border-b border-[#f1f5f9] p-[13px_18px]">
-          <p className="text-[12.5px] font-bold text-[#0a1628]">Active assignments</p>
-          <p className="text-[11px] text-[#64748b]">Ramp progress across assigned SEs</p>
-        </div>
-        {plans.length === 0 ? (
-          <p className="px-[18px] py-8 text-center text-sm text-[#94a3b8]">No plan assignments yet.</p>
-        ) : (
-          plans.map((plan) => {
-            const se = profiles.find((profile) => profile.id === plan.userId);
-            const manager = se?.managerId ? profiles.find((profile) => profile.id === se.managerId) : null;
-            const progress = `${plan.progress}%`;
-            const status = assignmentStatusStyle(plan.status);
-            return (
-              <div
-                className="flex items-center gap-[14px] border-b border-[#f9fafb] px-[18px] py-[10px] transition hover:bg-[#f7fafd] last:border-b-0"
-                key={plan.id}
-              >
-                <div
-                  className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-full text-[10.5px] font-bold text-white"
-                  style={{ background: avatarGradientForId(plan.userId) }}
-                >
-                  {initials(se?.fullName ?? "SE")}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[12px] font-semibold text-[#1e293b]">{se?.fullName ?? "Assigned SE"}</p>
-                  <p className="text-[10.5px] text-[#94a3b8]">
-                    {plan.name} · {manager?.fullName ?? "No manager"}
-                  </p>
-                </div>
-                <div className="w-[120px]">
-                  <div className="mb-[3px] flex justify-between">
-                    <span className="text-[10px] text-[#64748b]">{progress}</span>
-                    <span className="text-[10px] font-bold text-[#0071ce]">{progress}</span>
-                  </div>
-                  <div className="h-[5px] overflow-hidden rounded-full bg-[#e8f2fc]">
-                    <div className="prog-fill h-full rounded-full bg-[#0071ce]" style={{ width: progress }} />
-                  </div>
-                </div>
-                <span
-                  className="rounded-full px-[8px] py-[2px] text-[9.5px] font-bold"
-                  style={{ background: status.statBg, color: status.statColor }}
-                >
-                  {status.label}
-                </span>
-                <div className="flex flex-shrink-0 gap-[6px]">
-                  <button
-                    className="inline-flex items-center rounded-md border border-[#e2eaf5] bg-white px-[10px] py-[5px] text-[11px] font-semibold text-[#334155]"
-                    type="button"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="inline-flex items-center rounded-md border border-[#e2eaf5] bg-white px-[10px] py-[5px] text-[11px] font-semibold text-[#334155]"
-                    type="button"
-                  >
-                    Reassign
-                  </button>
-                </div>
-              </div>
-            );
-          })
-        )}
-      </div>
-
-    <div className="grid gap-6 xl:grid-cols-2">
-      <div className={`rounded-xl border border-[#e2eaf5] bg-white p-[18px_22px] ${editingId ? "ring-2 ring-[#cc27b0]/30" : ""}`}>
-          <div className="mb-[14px] flex items-start justify-between gap-3">
-            <div>
-              <p className="text-[12.5px] font-bold text-[#0a1628]">{editingId ? "Edit template" : "Plan template builder"}</p>
-              <p className="mt-[2px] text-[11px] text-[#64748b]">
-                {editingId
-                  ? "Update steps, content links, and due offsets. Changes apply to future assignments."
-                  : "Create reusable onboarding templates with ordered steps and due offsets."}
-              </p>
-            </div>
-            {editingId ? (
-              <Button onClick={resetForm} size="sm" type="button" variant="ghost">
-                <X className="h-4 w-4" />
-                Cancel
-              </Button>
-            ) : null}
+      <div
+        className={`scroll-mt-24 rounded-xl border border-[#e2eaf5] bg-white p-[18px_22px] ${editingId ? "ring-2 ring-[#cc27b0]/30" : ""}`}
+        ref={editorRef}
+      >
+        <div className="mb-[14px] flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[12.5px] font-bold text-[#0a1628]">
+              {editingId ? `Edit template: ${name}` : "Plan template builder"}
+            </p>
+            <p className="mt-[2px] text-[11px] text-[#64748b]">
+              {editingId
+                ? "Update steps, content links, and due offsets. Changes apply to future assignments."
+                : "Create reusable onboarding templates with ordered steps and due offsets."}
+            </p>
           </div>
+          {editingId ? (
+            <Button onClick={resetForm} size="sm" type="button" variant="ghost">
+              <X className="h-4 w-4" />
+              Cancel
+            </Button>
+          ) : null}
+        </div>
         <form className="space-y-4" onSubmit={saveTemplate}>
           <Input onChange={(e) => setName(e.target.value)} placeholder="Plan name" required value={name} />
           <Textarea
@@ -618,7 +577,73 @@ export function PlanManagementPanel({
         </form>
       </div>
 
-      <div className="space-y-6">
+      <div className="overflow-hidden rounded-xl border border-[#e2eaf5] bg-white">
+        <div className="border-b border-[#f1f5f9] p-[13px_18px]">
+          <p className="text-[12.5px] font-bold text-[#0a1628]">Active assignments</p>
+          <p className="text-[11px] text-[#64748b]">Ramp progress across assigned SEs</p>
+        </div>
+        {plans.length === 0 ? (
+          <p className="px-[18px] py-8 text-center text-sm text-[#94a3b8]">No plan assignments yet.</p>
+        ) : (
+          plans.map((plan) => {
+            const se = profiles.find((profile) => profile.id === plan.userId);
+            const manager = se?.managerId ? profiles.find((profile) => profile.id === se.managerId) : null;
+            const progress = `${plan.progress}%`;
+            const status = assignmentStatusStyle(plan.status);
+            return (
+              <div
+                className="flex items-center gap-[14px] border-b border-[#f9fafb] px-[18px] py-[10px] transition hover:bg-[#f7fafd] last:border-b-0"
+                key={plan.id}
+              >
+                <div
+                  className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-full text-[10.5px] font-bold text-white"
+                  style={{ background: avatarGradientForId(plan.userId) }}
+                >
+                  {initials(se?.fullName ?? "SE")}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[12px] font-semibold text-[#1e293b]">{se?.fullName ?? "Assigned SE"}</p>
+                  <p className="text-[10.5px] text-[#94a3b8]">
+                    {plan.name} · {manager?.fullName ?? "No manager"}
+                  </p>
+                </div>
+                <div className="w-[120px]">
+                  <div className="mb-[3px] flex justify-between">
+                    <span className="text-[10px] text-[#64748b]">{progress}</span>
+                    <span className="text-[10px] font-bold text-[#0071ce]">{progress}</span>
+                  </div>
+                  <div className="h-[5px] overflow-hidden rounded-full bg-[#e8f2fc]">
+                    <div className="prog-fill h-full rounded-full bg-[#0071ce]" style={{ width: progress }} />
+                  </div>
+                </div>
+                <span
+                  className="rounded-full px-[8px] py-[2px] text-[9.5px] font-bold"
+                  style={{ background: status.statBg, color: status.statColor }}
+                >
+                  {status.label}
+                </span>
+                <div className="flex flex-shrink-0 gap-[6px]">
+                  <button
+                    className="inline-flex items-center rounded-md border border-[#e2eaf5] bg-white px-[10px] py-[5px] text-[11px] font-semibold text-[#334155]"
+                    type="button"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    className="inline-flex items-center rounded-md border border-[#e2eaf5] bg-white px-[10px] py-[5px] text-[11px] font-semibold text-[#334155]"
+                    type="button"
+                  >
+                    Reassign
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-2">
+        <div className="scroll-mt-24 space-y-6" ref={assignRef}>
         <div className="rounded-xl border border-[#e2eaf5] bg-white p-[18px_22px]">
           <p className="text-[12.5px] font-bold text-[#0a1628]">Assign plan to SE</p>
           <p className="mb-[14px] mt-[2px] text-[11px] text-[#64748b]">
@@ -683,9 +708,9 @@ export function PlanManagementPanel({
         </div>
 
         <div className="rounded-xl border border-[#e2eaf5] bg-white p-[18px_22px]">
-          <p className="text-[12.5px] font-bold text-[#0a1628]">Template builder</p>
+          <p className="text-[12.5px] font-bold text-[#0a1628]">All templates</p>
           <p className="mb-[14px] mt-[2px] text-[11px] text-[#64748b]">
-            Create or edit templates in the builder below.
+            Quick access to edit or delete any template.
           </p>
           <div className="space-y-2">
             {templates.map((template) => (

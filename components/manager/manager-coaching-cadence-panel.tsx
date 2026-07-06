@@ -65,7 +65,7 @@ export function ManagerCoachingCadencePanel({
   }
 
   return (
-    <div className="space-y-[12px]">
+    <div className="mx-auto max-w-3xl space-y-3">
       {rows.map((row) => {
         const coaching = coachingByUser[row.profileId];
         const plan = plans.find((item) => item.userId === row.profileId);
@@ -76,47 +76,41 @@ export function ManagerCoachingCadencePanel({
 
         return (
           <div className="overflow-hidden rounded-xl border border-[#e2eaf5] bg-white" key={row.profileId}>
-            <div className="flex items-center gap-[14px] p-[14px_18px]">
-              <div
-                className="flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-full text-[13px] font-bold text-white"
-                style={{ background: avatarGradientForId(row.profileId) }}
-              >
-                {initials(row.fullName)}
-              </div>
-              <div className="flex-1">
-                <div className="mb-[3px] flex flex-wrap items-center gap-[8px]">
-                  <button
-                    className="text-[13px] font-bold text-[#0a1628] hover:underline"
-                    onClick={() => onSelectSe?.(row.profileId)}
-                    type="button"
-                  >
-                    {row.fullName}
-                  </button>
-                  <span
-                    className="rounded-full px-[8px] py-[2px] text-[9px] font-bold"
-                    style={{ background: health.bg, color: health.color }}
-                  >
-                    {health.label}
-                  </span>
-                  <span className="text-[10px] capitalize text-[#94a3b8]">{levelById[row.profileId] ?? "SE"}</span>
-                </div>
-                <p className="text-[11px] text-[#64748b]">
-                  Last 1:1: {formatLast1on1(row.daysSinceCoaching)} · Sim avg: {simAvg} · Ramp: {ramp}%
-                </p>
-              </div>
-              <div className="flex shrink-0 gap-[8px]">
-                <button
-                  className={SP_OUTLINE_BTN}
-                  onClick={() => copyBrief(row)}
-                  type="button"
+            <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex min-w-0 flex-1 items-start gap-3">
+                <div
+                  className="flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-full text-[13px] font-bold text-white"
+                  style={{ background: avatarGradientForId(row.profileId) }}
                 >
+                  {initials(row.fullName)}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="mb-1 flex flex-wrap items-center gap-2">
+                    <button
+                      className="text-left text-[13px] font-bold text-[#0a1628] hover:underline"
+                      onClick={() => onSelectSe?.(row.profileId)}
+                      type="button"
+                    >
+                      {row.fullName}
+                    </button>
+                    <span
+                      className="rounded-full px-2 py-0.5 text-[9px] font-bold"
+                      style={{ background: health.bg, color: health.color }}
+                    >
+                      {health.label}
+                    </span>
+                    <span className="text-[10px] capitalize text-[#94a3b8]">{levelById[row.profileId] ?? "SE"}</span>
+                  </div>
+                  <p className="text-[11px] text-[#64748b]">
+                    Last 1:1: {formatLast1on1(row.daysSinceCoaching)} · Sim avg: {simAvg} · Ramp: {ramp}%
+                  </p>
+                </div>
+              </div>
+              <div className="flex shrink-0 flex-wrap gap-2 sm:flex-col sm:items-stretch">
+                <button className={SP_OUTLINE_BTN} onClick={() => copyBrief(row)} type="button">
                   Copy 1:1 brief
                 </button>
-                <button
-                  className={SP_BLUE_BTN}
-                  onClick={() => schedule1on1(row)}
-                  type="button"
-                >
+                <button className={SP_BLUE_BTN} onClick={() => schedule1on1(row)} type="button">
                   Schedule 1:1 →
                 </button>
               </div>

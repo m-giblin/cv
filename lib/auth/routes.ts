@@ -32,9 +32,5 @@ export function isProtectedAppRoute(pathname: string) {
     return false;
   }
 
-  if (pathname.startsWith("/design")) {
-    return process.env.NODE_ENV === "production";
-  }
-
   return !isAuthRoute(pathname) && pathname !== "/";
 }
