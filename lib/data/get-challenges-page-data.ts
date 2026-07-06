@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { getDemoDashboardData } from "@/lib/demo-data";
-import { fetchPlansBundle } from "@/lib/data/fetch-plans-bundle";
+import { fetchPlansForUsers } from "@/lib/data/fetch-plans-bundle";
 import { createClient } from "@/lib/supabase/server";
 import type {
   Challenge,
@@ -168,7 +168,7 @@ async function fetchSupabaseChallengesPageData(): Promise<ChallengesPageData | n
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(50),
-    fetchPlansBundle(supabase),
+    fetchPlansForUsers(supabase, [user.id]),
   ]);
 
   if (profileResult.error || !profileResult.data) {
@@ -211,13 +211,11 @@ async function fetchSupabaseChallengesPageData(): Promise<ChallengesPageData | n
     createdAt: row.created_at,
   }));
 
-  const userPlans = plans.filter((plan) => plan.userId === user.id);
-
   return {
     currentUser,
     challenges,
     submissions,
-    plans: userPlans,
+    plans,
     competencies,
     coachingCards,
     notifications,
@@ -261,11 +259,29 @@ export async function getChallengesPageDataForTier(tier: "se" | "manager" | "adm
     return result;
   }
 
-  const { data: submissions } = await supabase
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return result;
+  }
+
+  let submissionsQuery = supabase
     .from("challenge_submissions")
     .select(
       "id, user_id, challenge_id, status, reflection_text, manager_grade, manager_feedback, ai_suggested_score, submitted_at, reviewed_at",
     );
+
+  if (tier === "manager") {
+    const { data: subtree } = await supabase.rpc("get_profile_subtree", { root_profile_id: user.id });
+    const orgIds = (subtree ?? []).map((row) => row.id);
+    if (orgIds.length === 0) {
+      return result;
+    }
+    submissionsQuery = submissionsQuery.in("user_id", orgIds);
+  }
+
+  const { data: submissions } = await submissionsQuery;
 
   if (!submissions?.length) {
     return result;

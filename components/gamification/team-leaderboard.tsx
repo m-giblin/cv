@@ -7,13 +7,30 @@ import { initials } from "@/lib/utils";
 export function TeamLeaderboard({
   entries,
   embedded = false,
+  fullPage = false,
 }: {
   entries: LeaderboardEntry[];
   embedded?: boolean;
+  fullPage?: boolean;
 }) {
-  if (entries.length === 0) return null;
+  const visible = fullPage ? entries : entries.slice(0, 8);
 
-  const rows = entries.slice(0, 8).map((entry, index) => (
+  if (visible.length === 0) {
+    if (embedded) return null;
+    return (
+      <div className="overflow-hidden rounded-xl border border-[#e2eaf5] bg-white">
+        <div className="border-b border-[#f1f5f9] p-[13px_16px_11px]">
+          <p className="text-[12.5px] font-bold text-[#0a1628]">Team leaderboard</p>
+          <p className="mt-[1px] text-[10.5px] text-[#94a3b8]">Points from trophies, sim scores, and weekly practice streaks</p>
+        </div>
+        <p className="px-5 py-10 text-center text-[12.5px] text-[#94a3b8]">
+          No leaderboard data yet — points appear after sims, challenges, and trophies.
+        </p>
+      </div>
+    );
+  }
+
+  const rows = visible.map((entry, index) => (
     <div className="flex items-center gap-[12px] px-[16px] py-[10px]" key={entry.profileId}>
       <span
         className="w-[22px] shrink-0 text-center font-display text-[16px] font-extrabold"
@@ -47,10 +64,12 @@ export function TeamLeaderboard({
 
   return (
     <div className="overflow-hidden rounded-xl border border-[#e2eaf5] bg-white">
-      <div className="border-b border-[#f1f5f9] p-[13px_16px_11px]">
-        <p className="text-[12.5px] font-bold text-[#0a1628]">Team leaderboard</p>
-        <p className="mt-[1px] text-[10.5px] text-[#94a3b8]">Points from trophies, sim scores, and weekly practice streaks</p>
-      </div>
+      {!fullPage ? (
+        <div className="border-b border-[#f1f5f9] p-[13px_16px_11px]">
+          <p className="text-[12.5px] font-bold text-[#0a1628]">Team leaderboard</p>
+          <p className="mt-[1px] text-[10.5px] text-[#94a3b8]">Points from trophies, sim scores, and weekly practice streaks</p>
+        </div>
+      ) : null}
       <div>{rows}</div>
     </div>
   );

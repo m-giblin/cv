@@ -56,7 +56,9 @@ export const MANAGER_SECTIONS = [
   { href: "/manager?section=inbox", label: "Action Inbox", section: "inbox" },
   { href: "/manager?section=roster", label: "Team Roster", section: "roster" },
   { href: "/manager?section=readiness", label: "Readiness Map", section: "readiness" },
+  { href: "/manager?section=leaderboard", label: "Leaderboard", section: "leaderboard" },
   { href: "/manager?section=cadence", label: "Coaching Cadence", section: "cadence" },
+  { href: "/manager?section=history", label: "Review History", section: "history" },
   { href: "/manager?section=dev", label: "Development", section: "dev" },
   { href: "/manager?section=program", label: "Program Tracker", section: "program" },
   { href: "/manager?section=assign", label: "Assign Plans", section: "assign" },
@@ -76,7 +78,9 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/manager?section=inbox", label: "Action Inbox", icon: "feedback", tiers: ["admin", "manager"] },
   { href: "/manager?section=roster", label: "Team Roster", icon: "manager", tiers: ["admin", "manager"] },
   { href: "/manager?section=readiness", label: "Readiness Map", icon: "growth", tiers: ["admin", "manager"] },
+  { href: "/manager?section=leaderboard", label: "Leaderboard", icon: "challenges", tiers: ["admin", "manager"] },
   { href: "/manager?section=cadence", label: "Coaching Cadence", icon: "development", tiers: ["admin", "manager"] },
+  { href: "/manager?section=history", label: "Review History", icon: "feedback", tiers: ["admin", "manager"] },
   { href: "/manager?section=dev", label: "Development", icon: "development", tiers: ["admin", "manager"] },
   { href: "/manager?section=program", label: "Program Tracker", icon: "plans", tiers: ["admin", "manager"] },
   { href: "/manager?section=assign", label: "Assign Plans", icon: "plans", tiers: ["admin", "manager"] },
@@ -118,8 +122,8 @@ const TIER_NAV_GROUPS: Record<AccessTier, { id: NavGroupId; hrefs: string[] }[]>
   ],
   manager: [
     { id: "command", hrefs: ["/manager?section=command", "/manager?section=inbox"] },
-    { id: "team", hrefs: ["/manager?section=roster", "/manager?section=readiness"] },
-    { id: "coaching", hrefs: ["/manager?section=cadence", "/manager?section=dev"] },
+    { id: "team", hrefs: ["/manager?section=roster", "/manager?section=readiness", "/manager?section=leaderboard"] },
+    { id: "coaching", hrefs: ["/manager?section=cadence", "/manager?section=history", "/manager?section=dev"] },
     { id: "program", hrefs: ["/manager?section=program", "/manager?section=assign"] },
     { id: "readiness", hrefs: ["/learn", "/lab", "/resources", "/certifications"] },
     {
@@ -130,8 +134,8 @@ const TIER_NAV_GROUPS: Record<AccessTier, { id: NavGroupId; hrefs: string[] }[]>
   admin: [
     { id: "workspace", hrefs: ["/dashboard"] },
     { id: "command", hrefs: ["/manager?section=command", "/manager?section=inbox"] },
-    { id: "team", hrefs: ["/manager?section=roster", "/manager?section=readiness"] },
-    { id: "coaching", hrefs: ["/manager?section=cadence", "/manager?section=dev"] },
+    { id: "team", hrefs: ["/manager?section=roster", "/manager?section=readiness", "/manager?section=leaderboard"] },
+    { id: "coaching", hrefs: ["/manager?section=cadence", "/manager?section=history", "/manager?section=dev"] },
     { id: "program", hrefs: ["/manager?section=program", "/manager?section=assign"] },
     { id: "readiness", hrefs: ["/learn", "/lab", "/resources", "/certifications"] },
     {

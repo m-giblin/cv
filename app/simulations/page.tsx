@@ -6,7 +6,7 @@ import { SEPageLayout } from "@/components/se/se-page-layout";
 import { SimulationWorkspace } from "@/components/simulation-workspace";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
-import { requireAppAccess } from "@/lib/auth/require-access";
+import { requireSimulationsPageAccess } from "@/lib/auth/require-access";
 import { profileLevelLabel } from "@/lib/utils/level-label";
 import { GapPracticePanel } from "@/components/practice/gap-practice-panel";
 import { SpacedReinforcementRedirect } from "@/components/practice/spaced-reinforcement-redirect";
@@ -25,7 +25,7 @@ type SimulationsPageProps = {
 };
 
 export default async function SimulationsPage({ searchParams }: SimulationsPageProps) {
-  const { data, tier } = await requireAppAccess("/simulations");
+  const { data, dashboard, tier } = await requireSimulationsPageAccess();
   const params = await searchParams;
   const isFocused = params.focus === "simulation";
   const { assignment, isPractice } = resolveSimulationAssignment(
@@ -40,7 +40,7 @@ export default async function SimulationsPage({ searchParams }: SimulationsPageP
   const gapRecommendations =
     tier === "se"
       ? recommendChallengesForGaps(
-          data,
+          dashboard,
           data.currentUser.id,
           new Set(
             data.submissions

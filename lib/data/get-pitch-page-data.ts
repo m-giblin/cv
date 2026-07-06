@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { getDemoDashboardData } from "@/lib/demo-data";
 import { createClient } from "@/lib/supabase/server";
+import { fetchPeerPitches, type PeerPitch } from "@/lib/pitch/fetch-peer-pitches";
 import type { Notification, Profile } from "@/lib/types";
 import type { Database } from "@/lib/database.types";
 import type { DataSource } from "@/lib/data/get-dashboard-data";
@@ -26,6 +27,7 @@ function mapProfile(
 export type PitchPageData = {
   currentUser: Profile;
   notifications: Notification[];
+  peerPitches: PeerPitch[];
 };
 
 async function fetchSupabasePitchPageData(): Promise<PitchPageData | null> {
@@ -42,7 +44,7 @@ async function fetchSupabasePitchPageData(): Promise<PitchPageData | null> {
     return null;
   }
 
-  const [profileResult, notificationsResult] = await Promise.all([
+  const [profileResult, notificationsResult, peerPitches] = await Promise.all([
     supabase
       .from("profiles")
       .select("id, email, full_name, role, level, manager_id, avatar_url, created_at")
@@ -54,6 +56,7 @@ async function fetchSupabasePitchPageData(): Promise<PitchPageData | null> {
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(50),
+    fetchPeerPitches(supabase, user.id),
   ]);
 
   if (profileResult.error || !profileResult.data) {
@@ -73,6 +76,7 @@ async function fetchSupabasePitchPageData(): Promise<PitchPageData | null> {
   return {
     currentUser: mapProfile(profileResult.data),
     notifications,
+    peerPitches,
   };
 }
 
@@ -88,7 +92,7 @@ export const getPitchPageData = cache(async (): Promise<{ data: PitchPageData; s
 
   const demo = getDemoDashboardData();
   return {
-    data: { currentUser: demo.currentUser, notifications: demo.notifications },
+    data: { currentUser: demo.currentUser, notifications: demo.notifications, peerPitches: [] },
     source: "demo",
   };
 });

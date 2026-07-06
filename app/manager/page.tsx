@@ -41,7 +41,9 @@ const VALID_SECTIONS = new Set<ManagerSection>([
   "inbox",
   "roster",
   "readiness",
+  "leaderboard",
   "cadence",
+  "history",
   "dev",
   "program",
   "assign",
@@ -225,6 +227,7 @@ export default async function ManagerPage({ searchParams }: ManagerPageProps) {
     orgIds,
     data.profiles,
     orgActivity,
+    100,
   );
 
   const orgSubmissions = data.submissions.filter((item) => orgIds.has(item.userId));

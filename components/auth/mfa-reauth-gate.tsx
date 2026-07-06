@@ -86,8 +86,8 @@ export function MfaReauthGate({
 
   if (isLoading) {
     return (
-      <div className="flex items-center gap-2 py-6 text-sm text-sp-navy-muted">
-        <Loader2 className="h-5 w-5 animate-spin text-sp-blue" />
+      <div className="flex items-center gap-2 py-6 text-[12px] text-[#64748b]">
+        <Loader2 className="h-5 w-5 animate-spin text-[#0071ce]" />
         Loading authenticator…
       </div>
     );
@@ -95,7 +95,7 @@ export function MfaReauthGate({
 
   if (!factorId) {
     return (
-      <p className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+      <p className="rounded-lg border border-[#fde68a] bg-[#fef3c7] p-4 text-[12px] leading-relaxed text-[#b45309]">
         Multi-factor authentication is required before you can change your password. Enroll MFA at sign-in, then return
         here.
       </p>
@@ -103,14 +103,15 @@ export function MfaReauthGate({
   }
 
   return (
-    <form className="max-w-md space-y-4" onSubmit={handleVerify}>
-      <div className="rounded-2xl border border-sp-blue/15 bg-sp-blue-soft/30 p-4 text-sm leading-6 text-sp-navy-muted">
+    <form className="space-y-4" onSubmit={handleVerify}>
+      <div className="rounded-lg border border-[#e2eaf5] bg-[#f8fafd] p-3 text-[11.5px] leading-relaxed text-[#64748b]">
         For your security, confirm your authenticator code before {purpose.toLowerCase()}.
       </div>
-      <label className="block space-y-2 text-sm font-semibold text-sp-navy-muted">
+      <label className="block space-y-1.5 text-[12px] font-semibold text-[#1e293b]">
         Authenticator code
         <Input
           autoComplete="one-time-code"
+          className="border-[#e2eaf5]"
           inputMode="numeric"
           maxLength={6}
           onChange={(event) => setCode(event.target.value.replace(/\D/g, ""))}
@@ -120,7 +121,7 @@ export function MfaReauthGate({
           value={code}
         />
       </label>
-      <Button disabled={isVerifying || code.length !== 6} type="submit">
+      <Button className="bg-[#0071ce] hover:bg-[#0057a8]" disabled={isVerifying || code.length !== 6} type="submit">
         {isVerifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
         Verify identity
       </Button>

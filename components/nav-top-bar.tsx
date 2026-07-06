@@ -1,14 +1,13 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Search } from "lucide-react";
 import { NotificationFlyout } from "@/components/notifications/notification-flyout";
+import { UserAccountMenu } from "@/components/nav/user-account-menu";
 import { SailPointLogoMark } from "@/components/shell/sailpoint-logo-mark";
 import type { AccessTier } from "@/lib/auth/rbac";
 import { getPageTitleFromPath, getRolePillClass, getRolePillLabel } from "@/lib/navigation/page-title";
 import type { Notification, Profile } from "@/lib/types";
-import { initials } from "@/lib/utils";
 
 export function NavTopBar({
   tier,
@@ -49,13 +48,7 @@ export function NavTopBar({
 
         <NotificationFlyout align="header" appearance="header" notifications={notifications} />
 
-        <Link
-          aria-label="Account"
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#0033a1] to-[#cc27b0] text-[11px] font-bold text-white"
-          href="/account"
-        >
-          {initials(currentUser.fullName)}
-        </Link>
+        <UserAccountMenu currentUser={currentUser} appearance="header" />
       </div>
     </header>
   );

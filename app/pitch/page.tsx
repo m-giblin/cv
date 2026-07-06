@@ -24,7 +24,7 @@ const PitchPeerReviewForm = dynamic(
 );
 
 type PitchPageProps = {
-  searchParams: Promise<{ review?: string }>;
+  searchParams: Promise<{ review?: string; scenario?: string }>;
 };
 
 export default async function PitchPage({ searchParams }: PitchPageProps) {
@@ -45,8 +45,8 @@ export default async function PitchPage({ searchParams }: PitchPageProps) {
             <PitchPeerReviewForm pitchId={params.review} />
           </>
         ) : null}
-        <VideoPitchCapture />
-        <PeerPitchLibrary />
+        <VideoPitchCapture initialScenarioId={params.scenario} />
+        <PeerPitchLibrary initialPitches={data.peerPitches} />
       </SEPageLayout>
     </AppShell>
   );

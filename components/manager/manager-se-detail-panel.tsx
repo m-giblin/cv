@@ -12,7 +12,7 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ActivityFeed } from "@/components/activity-feed";
 import { StatusBadge } from "@/components/status-badge";
@@ -86,6 +86,73 @@ function certBadgeStyle(status: string) {
 
 const SIM_QUICK_PICKS = ["CISO discovery", "SLED vertical", "Executive demo", "Bakeoff scenario"] as const;
 
+type DetailSection = {
+  id: string;
+  label: string;
+  badge?: number;
+};
+
+function buildDetailSections(input: {
+  openReviewCount: number;
+  quarterlyAlert: QuarterlyAlert | null;
+  cohortBenchmark: CohortBenchmark | null;
+  topGapsCount: number;
+  sentBackCount: number;
+  hasPlanSteps: boolean;
+  hasAccomplishments: boolean;
+}): DetailSection[] {
+  const sections: DetailSection[] = [
+    { id: "coaching", label: "Coaching" },
+    { id: "assign-sim", label: "Assign sim" },
+    { id: "notes", label: "Notes" },
+    { id: "trend", label: "Sim trend" },
+    { id: "certs", label: "Certs" },
+    { id: "development", label: "Dev goals" },
+  ];
+
+  if (input.quarterlyAlert && input.quarterlyAlert.pendingGoals > 0) {
+    sections.push({ id: "quarterly", label: "Quarterly" });
+  }
+  if (input.cohortBenchmark) {
+    sections.push({ id: "cohort", label: "Cohort" });
+  }
+  if (input.topGapsCount > 0) {
+    sections.push({ id: "gaps", label: "Gaps" });
+  }
+  if (input.openReviewCount > 0) {
+    sections.push({ id: "review", label: "Review", badge: input.openReviewCount });
+  }
+  if (input.sentBackCount > 0) {
+    sections.push({ id: "sent-back", label: "Sent back" });
+  }
+  if (input.hasPlanSteps) {
+    sections.push({ id: "plan", label: "Ramp plan" });
+  }
+  if (input.hasAccomplishments) {
+    sections.push({ id: "accomplishments", label: "Wins" });
+  }
+  sections.push({ id: "activity", label: "Activity" });
+
+  return sections;
+}
+
+function scrollToDetailSection(sectionId: string, scrollRoot: HTMLElement | null) {
+  const target = document.getElementById(`se-detail-${sectionId}`);
+  if (!target) return;
+
+  if (scrollRoot) {
+    const rootTop = scrollRoot.getBoundingClientRect().top;
+    const targetTop = target.getBoundingClientRect().top;
+    scrollRoot.scrollTo({
+      top: scrollRoot.scrollTop + targetTop - rootTop - 12,
+      behavior: "smooth",
+    });
+    return;
+  }
+
+  target.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 export function ManagerSeDetailPanel({
   snapshot,
   challenges,
@@ -119,7 +186,9 @@ export function ManagerSeDetailPanel({
   } = snapshot;
 
   const [selectedQuickPick, setSelectedQuickPick] = useState<string | null>(SIM_QUICK_PICKS[0]);
+  const [activeSection, setActiveSection] = useState("coaching");
   const assignFormRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -164,6 +233,66 @@ export function ManagerSeDetailPanel({
     { val: coaching.certsLabel, label: "Certs" },
   ];
 
+  const hasAccomplishments =
+    approvedCards.length > 0 || approvedSubmissions.length > 0 || validatedSteps.length > 0;
+
+  const detailSections = useMemo(
+    () =>
+      buildDetailSections({
+        openReviewCount,
+        quarterlyAlert,
+        cohortBenchmark,
+        topGapsCount: coaching.topGaps.length,
+        sentBackCount: sentBackCards.length + sentBackSubmissions.length,
+        hasPlanSteps: Boolean(plan && plan.steps.length > 0),
+        hasAccomplishments,
+      }),
+    [
+      openReviewCount,
+      quarterlyAlert,
+      cohortBenchmark,
+      coaching.topGaps.length,
+      sentBackCards.length,
+      sentBackSubmissions.length,
+      plan,
+      hasAccomplishments,
+    ],
+  );
+
+  useEffect(() => {
+    setActiveSection(detailSections[0]?.id ?? "coaching");
+  }, [profile.id, detailSections]);
+
+  useEffect(() => {
+    const root = scrollRef.current;
+    if (!root) return;
+
+    const sectionElements = detailSections
+      .map((section) => document.getElementById(`se-detail-${section.id}`))
+      .filter((element): element is HTMLElement => element !== null);
+
+    if (sectionElements.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+        const top = visible[0];
+        if (top?.target.id.startsWith("se-detail-")) {
+          setActiveSection(top.target.id.replace("se-detail-", ""));
+        }
+      },
+      { root, rootMargin: "-20% 0px -55% 0px", threshold: [0.1, 0.35, 0.6] },
+    );
+
+    for (const element of sectionElements) {
+      observer.observe(element);
+    }
+
+    return () => observer.disconnect();
+  }, [detailSections, profile.id]);
+
   return (
     <>
       <div
@@ -174,7 +303,7 @@ export function ManagerSeDetailPanel({
       />
 
       <div
-        className="fixed inset-y-0 right-0 z-50 flex w-[520px] flex-col overflow-hidden bg-white"
+        className="fixed inset-y-0 right-0 z-50 flex w-[min(780px,94vw)] flex-col overflow-hidden bg-white"
         style={{ boxShadow: "-24px 0 60px rgba(0,20,58,0.2)" }}
       >
         <div
@@ -243,9 +372,51 @@ export function ManagerSeDetailPanel({
           ))}
         </div>
 
-        <div className="flex-1 space-y-[14px] overflow-y-auto p-[18px_22px]">
+        <nav
+          aria-label="SE detail sections"
+          className="shrink-0 border-b border-[#e2eaf5] bg-white px-[18px] py-[10px]"
+        >
+          <div className="flex gap-[6px] overflow-x-auto pb-[2px] [scrollbar-width:thin]">
+            {detailSections.map((section) => {
+              const isActive = activeSection === section.id;
+              return (
+                <button
+                  className="inline-flex shrink-0 items-center gap-[6px] rounded-full px-[12px] py-[6px] text-[11px] font-semibold transition"
+                  key={section.id}
+                  onClick={() => {
+                    setActiveSection(section.id);
+                    scrollToDetailSection(section.id, scrollRef.current);
+                  }}
+                  style={
+                    isActive
+                      ? { background: "#0071ce", color: "white" }
+                      : { background: "#f8fafd", color: "#475569", border: "1px solid #e2eaf5" }
+                  }
+                  type="button"
+                >
+                  {section.label}
+                  {section.badge ? (
+                    <span
+                      className="rounded-full px-[6px] py-[1px] text-[9px] font-bold"
+                      style={
+                        isActive
+                          ? { background: "rgba(255,255,255,0.25)", color: "white" }
+                          : { background: "#fef3c7", color: "#b45309" }
+                      }
+                    >
+                      {section.badge}
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+
+        <div className="flex-1 space-y-[14px] overflow-y-auto p-[18px_22px]" ref={scrollRef}>
           <div
-            className="mb-[14px] rounded-[10px] p-[14px]"
+            className="mb-[14px] scroll-mt-3 rounded-[10px] p-[14px]"
+            id="se-detail-coaching"
             style={{ background: "#f0f7ff", border: "1px solid rgba(0,113,206,0.15)" }}
           >
             <p className="mb-[8px] flex items-center gap-[6px] text-[11.5px] font-bold text-[#0a1628]">
@@ -280,7 +451,7 @@ export function ManagerSeDetailPanel({
             </ManagerOutlineBtn>
           </div>
 
-          <div className="mb-[14px] rounded-[10px] border-[1.5px] border-[#e2eaf5] p-[14px]">
+          <div className="mb-[14px] scroll-mt-3 rounded-[10px] border-[1.5px] border-[#e2eaf5] p-[14px]" id="se-detail-assign-sim">
             <p className="mb-[4px] text-[11.5px] font-bold text-[#0a1628]">Assign simulation</p>
             <p className="mb-[10px] text-[11px] text-[#64748b]">Push practice to {profile.fullName.split(" ")[0]}</p>
             <div className="mb-[10px] flex flex-wrap gap-[8px]">
@@ -311,11 +482,14 @@ export function ManagerSeDetailPanel({
             </div>
           </div>
 
-          <ManagerCoachingNotes initialNotes={managerNotes} seUserId={profile.id} />
+          <div className="scroll-mt-3" id="se-detail-notes">
+            <ManagerCoachingNotes initialNotes={managerNotes} seUserId={profile.id} />
+          </div>
 
           {quarterlyAlert && quarterlyAlert.pendingGoals > 0 ? (
             <section
-              className={`rounded-[10px] border p-[14px] ${quarterlyAlert.overdue ? "border-red-200 bg-red-50/60" : "border-amber-200 bg-amber-50/50"}`}
+              className={`scroll-mt-3 rounded-[10px] border p-[14px] ${quarterlyAlert.overdue ? "border-red-200 bg-red-50/60" : "border-amber-200 bg-amber-50/50"}`}
+              id="se-detail-quarterly"
             >
               <h3 className="flex items-center gap-2 text-[11.5px] font-bold text-[#0a1628]">
                 <Clock className="h-4 w-4" />
@@ -331,7 +505,7 @@ export function ManagerSeDetailPanel({
             </section>
           ) : null}
 
-          <section className="rounded-[10px] border border-[#e2eaf5] bg-white p-[14px]">
+          <section className="scroll-mt-3 rounded-[10px] border border-[#e2eaf5] bg-white p-[14px]" id="se-detail-trend">
             <h3 className="text-[11.5px] font-bold text-[#0a1628]">Simulation trend</h3>
             <p className="mt-1 text-[11px] text-[#64748b]">Latest vs history — are they getting better?</p>
             <div className="mt-3">
@@ -340,7 +514,7 @@ export function ManagerSeDetailPanel({
           </section>
 
           {cohortBenchmark ? (
-            <section className="rounded-[10px] border border-[#e2eaf5] bg-[#f8fafd] p-[14px]">
+            <section className="scroll-mt-3 rounded-[10px] border border-[#e2eaf5] bg-[#f8fafd] p-[14px]" id="se-detail-cohort">
               <h3 className="flex items-center gap-2 text-[11.5px] font-bold text-[#0a1628]">
                 <Users className="h-4 w-4 text-[#0071ce]" />
                 Cohort comparison · {cohortBenchmark.cohortLabel} ({cohortBenchmark.cohortSize} SEs)
@@ -351,7 +525,8 @@ export function ManagerSeDetailPanel({
           ) : null}
 
           <div
-            className="mb-[14px] rounded-[10px] border-[1.5px] bg-[#f0fdf4] p-[14px]"
+            className="mb-[14px] scroll-mt-3 rounded-[10px] border-[1.5px] bg-[#f0fdf4] p-[14px]"
+            id="se-detail-certs"
             style={{ borderColor: "rgba(16,185,129,0.2)" }}
           >
             <p className="mb-[8px] flex items-center gap-[6px] text-[11.5px] font-bold text-[#0a1628]">
@@ -381,7 +556,8 @@ export function ManagerSeDetailPanel({
 
           {coaching.topGaps.length > 0 ? (
             <div
-              className="rounded-[10px] border-[1.5px] bg-[#fdf0fa] p-[14px]"
+              className="scroll-mt-3 rounded-[10px] border-[1.5px] bg-[#fdf0fa] p-[14px]"
+              id="se-detail-gaps"
               style={{ borderColor: "rgba(204,39,176,0.15)" }}
             >
               <p className="mb-[8px] text-[11.5px] font-bold text-[#0a1628]">Competency focus areas</p>
@@ -400,7 +576,7 @@ export function ManagerSeDetailPanel({
           ) : null}
 
           {developmentPlan && developmentPlan.goals.length > 0 ? (
-            <section>
+            <section className="scroll-mt-3" id="se-detail-development">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <h3 className="flex items-center gap-2 text-[11.5px] font-bold text-[#0a1628]">
                   <Target className="h-4 w-4 text-[#cc27b0]" />
@@ -440,7 +616,7 @@ export function ManagerSeDetailPanel({
               </div>
             </section>
           ) : (
-            <section className="rounded-[10px] border border-dashed border-[#e2eaf5] px-4 py-3">
+            <section className="scroll-mt-3 rounded-[10px] border border-dashed border-[#e2eaf5] px-4 py-3" id="se-detail-development">
               <p className="text-[11.5px] font-semibold text-[#0a1628]">No annual development plan</p>
               <Link
                 className="mt-1 inline-block text-[11px] font-semibold text-[#0071ce] hover:underline"
@@ -452,7 +628,7 @@ export function ManagerSeDetailPanel({
           )}
 
           {openReviewCount > 0 ? (
-            <section>
+            <section className="scroll-mt-3" id="se-detail-review">
               <h3 className="flex items-center gap-2 text-[11.5px] font-bold text-[#0a1628]">
                 <Clock className="h-4 w-4 text-amber-600" />
                 Needs your review ({openReviewCount})
@@ -505,7 +681,7 @@ export function ManagerSeDetailPanel({
           ) : null}
 
           {sentBackCards.length > 0 || sentBackSubmissions.length > 0 ? (
-            <section>
+            <section className="scroll-mt-3" id="se-detail-sent-back">
               <h3 className="flex items-center gap-2 text-[11.5px] font-bold text-[#0a1628]">
                 <RotateCcw className="h-4 w-4 text-amber-700" />
                 Sent back for revision
@@ -557,7 +733,7 @@ export function ManagerSeDetailPanel({
           ) : null}
 
           {plan && plan.steps.length > 0 ? (
-            <section>
+            <section className="scroll-mt-3" id="se-detail-plan">
               <h3 className="flex items-center gap-2 text-[11.5px] font-bold text-[#0a1628]">
                 <ClipboardList className="h-4 w-4 text-[#0071ce]" />
                 Onboarding plan
@@ -602,8 +778,8 @@ export function ManagerSeDetailPanel({
             </section>
           ) : null}
 
-          {approvedCards.length > 0 || approvedSubmissions.length > 0 || validatedSteps.length > 0 ? (
-            <section>
+          {hasAccomplishments ? (
+            <section className="scroll-mt-3" id="se-detail-accomplishments">
               <h3 className="flex items-center gap-2 text-[11.5px] font-bold text-[#0a1628]">
                 <CheckCircle2 className="h-4 w-4 text-green-600" />
                 Accomplishments
@@ -643,14 +819,16 @@ export function ManagerSeDetailPanel({
           ) : null}
 
           {activity.length > 0 ? (
-            <section>
+            <section className="scroll-mt-3" id="se-detail-activity">
               <h3 className="text-[11.5px] font-bold text-[#0a1628]">Activity timeline</h3>
               <div className="mt-3">
                 <ActivityFeed activity={activity.slice(0, 12)} profiles={profiles} />
               </div>
             </section>
           ) : (
-            <p className="text-[11px] text-[#64748b]">No activity recorded yet for this SE.</p>
+            <p className="scroll-mt-3 text-[11px] text-[#64748b]" id="se-detail-activity">
+              No activity recorded yet for this SE.
+            </p>
           )}
         </div>
       </div>

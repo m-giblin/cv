@@ -3,6 +3,7 @@
 import { Download, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { AdminTabPageHeader } from "@/components/admin/admin-tab-page-header";
 import { Button } from "@/components/ui/button";
 import type { Profile } from "@/lib/types";
 
@@ -82,13 +83,11 @@ export function AuditLogPanel({ profiles = [] }: { profiles?: Profile[] }) {
   return (
     <div className="space-y-4">
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
-        <div>
-          <h2 className="text-[12.5px] font-bold text-[#0a1628]">Audit log</h2>
-          <p className="text-[11px] text-[#64748b]">
-            Immutable record of admin, manager, and configuration actions across the platform.
-          </p>
-        </div>
-        <Button asChild size="sm" variant="outline">
+        <AdminTabPageHeader
+          subtitle="Immutable record of admin, manager, and configuration actions across the platform."
+          title="Audit Log"
+        />
+        <Button asChild className="shrink-0 self-start" size="sm" variant="outline">
           <a href="/api/admin/audit-log?format=csv">
             <Download className="h-4 w-4" />
             Export CSV

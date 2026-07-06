@@ -1,6 +1,7 @@
-import { Award, CheckCircle2, Lock, Sparkles, Trophy } from "lucide-react";
+import { Award, CheckCircle2, Lock, Sparkles, Trophy, UserRound } from "lucide-react";
 import type { AccountBadge } from "@/lib/account/achievements";
 import type { CompletionBadge } from "@/lib/account/completion-badges";
+import { getAccessTier } from "@/lib/auth/rbac";
 import type { Profile } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,11 +49,13 @@ function formatEarnedDate(iso: string) {
 
 export function AccountProfilePanel({
   profile,
+  manager,
   milestones,
   trophies,
   planProgress,
 }: {
   profile: Profile;
+  manager?: Profile | null;
   milestones: AccountBadge[];
   trophies: CompletionBadge[];
   planProgress: number | null;
@@ -66,6 +69,7 @@ export function AccountProfilePanel({
 
   const earnedMilestones = milestones.filter((badge) => badge.earned).length;
   const totalEarned = earnedMilestones + trophies.length;
+  const isSe = getAccessTier(profile.role) === "se";
 
   return (
     <div className="space-y-6">
@@ -95,6 +99,33 @@ export function AccountProfilePanel({
                 <span className="font-bold text-sp-blue">{planProgress}%</span>
               </div>
               <Progress value={planProgress} />
+            </div>
+          ) : null}
+          {isSe ? (
+            <div className="mt-6 rounded-2xl border border-sp-blue/15 bg-white/75 px-4 py-4 sm:px-5">
+              <div className="flex items-start gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sp-blue-soft/80 text-sp-blue">
+                  <UserRound className="h-5 w-5" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold uppercase tracking-wider text-sp-navy-muted">Your manager</p>
+                  {manager ? (
+                    <>
+                      <p className="mt-1 text-base font-semibold text-sp-navy">{manager.fullName}</p>
+                      <p className="text-sm text-sp-navy-muted">{manager.email}</p>
+                      <p className="mt-2 text-xs leading-relaxed text-sp-navy-muted">
+                        Challenge submissions, simulation coaching cards, and pitch reviews are sent to this manager when
+                        you submit for review.
+                      </p>
+                    </>
+                  ) : (
+                    <p className="mt-1 text-sm leading-relaxed text-sp-navy-muted">
+                      No manager is assigned yet. Contact your program admin if submissions should be going to someone
+                      else.
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
           ) : null}
         </div>
@@ -181,18 +212,6 @@ export function AccountProfilePanel({
               )}
             </div>
           ))}
-        </div>
-      </Card>
-
-      <Card className="border-sp-blue/10 bg-sp-blue-soft/10">
-        <div className="flex items-start gap-3 p-6">
-          <Lock className="mt-0.5 h-5 w-5 shrink-0 text-sp-blue" />
-          <div className="text-sm text-sp-navy-muted">
-            <p className="font-semibold text-sp-navy">Session security</p>
-            <p className="mt-1 leading-6">
-              Sessions expire after 15 minutes of inactivity. Password changes require a fresh MFA verification.
-            </p>
-          </div>
         </div>
       </Card>
     </div>

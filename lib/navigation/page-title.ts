@@ -1,6 +1,10 @@
 import { getNavItemsForTier, type AccessTier } from "@/lib/auth/rbac";
 
 export function getPageTitleFromPath(pathname: string, tier: AccessTier): string {
+  if (pathname === "/account/change-password") {
+    return "Change password";
+  }
+
   const items = getNavItemsForTier(tier);
   const sorted = [...items].sort((a, b) => b.href.length - a.href.length);
   const match = sorted.find(

@@ -46,9 +46,11 @@ describe("RBAC", () => {
     expect(groups.find((group) => group.id === "team")?.items.map((item) => item.href)).toEqual([
       "/manager?section=roster",
       "/manager?section=readiness",
+      "/manager?section=leaderboard",
     ]);
     expect(groups.find((group) => group.id === "coaching")?.items.map((item) => item.href)).toEqual([
       "/manager?section=cadence",
+      "/manager?section=history",
       "/manager?section=dev",
     ]);
     expect(groups.find((group) => group.id === "program")?.items.map((item) => item.href)).toEqual([

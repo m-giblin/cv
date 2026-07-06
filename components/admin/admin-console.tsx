@@ -3,8 +3,13 @@
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { AdminTabPageHeader } from "@/components/admin/admin-tab-page-header";
+import {
+  parseAdminSettingsSection,
+  type AdminSettingsSection,
+} from "@/components/admin/admin-settings-panel";
 import { AdminTab, AdminTabPanel, AdminTabs } from "@/components/admin/admin-tabs";
-import type { AiUsageSummary } from "@/lib/ai/settings-shared";
+import { formatTokenCount, type AiUsageSummary } from "@/lib/ai/settings-shared";
 import type { ActivityLog, Profile, ProfileRole, SeLevel, UserPlan } from "@/lib/types";
 
 const NorthstarAdminSummary = dynamic(() =>
@@ -104,14 +109,27 @@ export function AdminConsole({
   const searchParams = useSearchParams();
   const router = useRouter();
   const [tab, setTab] = useState<AdminTab>(() => parseAdminTab(searchParams.get("tab"), overviewAvailable));
+  const [settingsSection, setSettingsSection] = useState<AdminSettingsSection>(() =>
+    parseAdminSettingsSection(searchParams.get("section")),
+  );
 
   useEffect(() => {
     setTab(parseAdminTab(searchParams.get("tab"), overviewAvailable));
+    setSettingsSection(parseAdminSettingsSection(searchParams.get("section")));
   }, [overviewAvailable, searchParams]);
 
   function selectTab(next: AdminTab) {
     setTab(next);
+    if (next === "settings") {
+      router.replace(`/admin?tab=settings&section=${settingsSection}`, { scroll: false });
+      return;
+    }
     router.replace(`/admin?tab=${next}`, { scroll: false });
+  }
+
+  function selectSettingsSection(next: AdminSettingsSection) {
+    setSettingsSection(next);
+    router.replace(`/admin?tab=settings&section=${next}`, { scroll: false });
   }
 
   return (
@@ -160,6 +178,31 @@ export function AdminConsole({
 
       <AdminTabPanel active={tab} tab="ai">
         <div className="space-y-6">
+          <AdminTabPageHeader
+            subtitle="AI provider configuration, simulation templates, and global AI toggles."
+            title="AI & Sims"
+          />
+          {aiUsage ? (
+            <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {[
+                { label: "Requests (30d)", value: String(aiUsage.requests30d), border: "#0071ce" },
+                { label: "Requests today", value: String(aiUsage.requestsToday), border: "#10b981" },
+                { label: "Tokens (30d)", value: formatTokenCount(aiUsage.tokens30d), border: "#cc27b0" },
+                { label: "Active model", value: aiUsage.model, border: "#f59e0b" },
+              ].map((kpi) => (
+                <div
+                  className="rounded-xl border border-[#e2eaf5] bg-white p-[14px_16px]"
+                  key={kpi.label}
+                  style={{ borderLeftWidth: 3, borderLeftColor: kpi.border }}
+                >
+                  <p className="text-[10px] font-bold uppercase tracking-[0.06em] text-[#94a3b8]">{kpi.label}</p>
+                  <p className="mt-1 truncate font-display text-[22px] font-extrabold leading-none text-[#0a1628]">
+                    {kpi.value}
+                  </p>
+                </div>
+              ))}
+            </section>
+          ) : null}
           <AdminSettingsAiSection />
           <SimulationTemplateManagement />
         </div>
@@ -178,7 +221,7 @@ export function AdminConsole({
       </AdminTabPanel>
 
       <AdminTabPanel active={tab} tab="settings">
-        <AdminSettingsPanel />
+        <AdminSettingsPanel onSectionChange={selectSettingsSection} section={settingsSection} />
       </AdminTabPanel>
     </div>
   );

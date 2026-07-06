@@ -85,4 +85,16 @@ export const MANAGER_SECTION_HEADERS: Record<
     title: "Assign Plans",
     subtitle: "Assign week-based templates and monitor active onboarding plans",
   },
+  leaderboard: {
+    eyebrow: "Team competition",
+    eyebrowColor: "#d97706",
+    title: "Leaderboard",
+    subtitle: "Points from trophies, sim scores, and weekly practice streaks",
+  },
+  history: {
+    eyebrow: "Completed reviews",
+    eyebrowColor: "#64748b",
+    title: "Review History",
+    subtitle: "Audit trail of approved and sent-back items — they leave the inbox but stay here",
+  },
 };

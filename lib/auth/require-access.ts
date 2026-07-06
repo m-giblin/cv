@@ -11,7 +11,13 @@ import { getDashboardPageData } from "@/lib/data/get-dashboard-page-data";
 import { getManagerPageData } from "@/lib/data/get-manager-page-data";
 import { getLabPageData } from "@/lib/data/get-lab-page-data";
 import { getPitchPageData } from "@/lib/data/get-pitch-page-data";
+import {
+  getSimulationsPageData,
+  getSimulationsPageDataForTier,
+  simulationsPageDataAsDashboardSlice,
+} from "@/lib/data/get-simulations-page-data";
 import type { ChallengesPageData } from "@/lib/data/get-challenges-page-data";
+import type { SimulationsPageData } from "@/lib/data/get-simulations-page-data";
 import type { DataSource } from "@/lib/data/get-dashboard-data";
 import type { DashboardData, ProfileRole } from "@/lib/types";
 
@@ -79,6 +85,31 @@ export async function requirePitchPageAccess() {
   }
 
   return { data, source, tier, role: data.currentUser.role as ProfileRole };
+}
+
+export async function requireSimulationsPageAccess(): Promise<{
+  data: SimulationsPageData;
+  dashboard: DashboardData;
+  source: DataSource;
+  tier: "se" | "manager" | "admin";
+  role: ProfileRole;
+}> {
+  const probe = await getSimulationsPageData();
+  const tier = getAccessTier(probe.data.currentUser.role);
+
+  if (!canAccessRoute(tier, "/simulations")) {
+    redirect(getHomeRoute(tier));
+  }
+
+  const { data, source } = tier === "se" ? probe : await getSimulationsPageDataForTier(tier);
+
+  return {
+    data,
+    dashboard: simulationsPageDataAsDashboardSlice(data),
+    source,
+    tier,
+    role: data.currentUser.role as ProfileRole,
+  };
 }
 
 export async function requireChallengesPageAccess(): Promise<{

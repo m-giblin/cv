@@ -5,29 +5,27 @@ import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { PitchPlaybackViewer } from "@/components/pitch/pitch-playback-viewer";
 import { ScoreRing } from "@/components/se/northstar-animated";
+import type { PeerPitch } from "@/lib/pitch/fetch-peer-pitches";
 
-type PeerPitch = {
-  id: string;
-  title: string;
-  personName: string;
-  manager_grade: number | null;
-  peer_avg: number | null;
-  endorsement_count: number;
-  competencies: string[];
-  created_at: string;
+type PeerPitchLibraryProps = {
+  initialPitches?: PeerPitch[];
 };
 
-export function PeerPitchLibrary() {
-  const [pitches, setPitches] = useState<PeerPitch[]>([]);
+export function PeerPitchLibrary({ initialPitches }: PeerPitchLibraryProps) {
+  const [pitches, setPitches] = useState<PeerPitch[]>(initialPitches ?? []);
   const [filter, setFilter] = useState<"all" | "endorsed">("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
+    if (initialPitches !== undefined) {
+      return;
+    }
+
     void fetch("/api/pitch/library")
       .then((response) => (response.ok ? response.json() : { pitches: [] }))
       .then((body: { pitches: PeerPitch[] }) => setPitches(body.pitches ?? []))
       .catch(() => setPitches([]));
-  }, []);
+  }, [initialPitches]);
 
   const filtered = useMemo(() => {
     if (filter === "endorsed") return pitches.filter((p) => p.endorsement_count > 0);

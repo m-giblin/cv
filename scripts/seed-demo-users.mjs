@@ -82,13 +82,22 @@ const SE_ROSTER = {
     { email: "quinn.martin@example.com", fullName: "Quinn Martin" },
   ],
   [MANAGER_EMAILS.matt]: [
-    { email: "finn.grant@example.com", fullName: "Finn Grant" },
-    { email: "gray.hayes@example.com", fullName: "Gray Hayes" },
-    { email: "harper.ivan@example.com", fullName: "Harper Ivan" },
     { email: "indigo.james@example.com", fullName: "Indigo James" },
     { email: "jules.kim@example.com", fullName: "Jules Kim" },
   ],
 };
+
+/** Demo manager team — includes legacy demo.se plus 3 SEs moved from Matt's roster. */
+const DEMO_MANAGER_TEAM = [
+  { email: "finn.grant@example.com", fullName: "Finn Grant", role: "basic_se", level: "Basic" },
+  { email: "gray.hayes@example.com", fullName: "Gray Hayes", role: "senior_se", level: "Senior" },
+  {
+    email: "harper.ivan@example.com",
+    fullName: "Harper Ivan",
+    role: "advisory_solutions_consultant",
+    level: "Advisory",
+  },
+];
 
 async function findUserByEmail(email) {
   let page = 1;
@@ -242,6 +251,19 @@ async function main() {
 
   const legacyManagerId = await upsertUser(DEMO_MANAGER);
   await upsertUser(DEMO_SE, legacyManagerId);
+
+  for (const se of DEMO_MANAGER_TEAM) {
+    await upsertUser(
+      {
+        email: se.email,
+        password: SE_PASSWORD,
+        fullName: se.fullName,
+        role: se.role,
+        level: se.level,
+      },
+      legacyManagerId,
+    );
+  }
 
   for (const [managerEmail, ses] of Object.entries(SE_ROSTER)) {
     const managerProfile = Object.values(managers).find((m) => m.email === managerEmail);

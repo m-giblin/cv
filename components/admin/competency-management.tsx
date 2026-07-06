@@ -3,6 +3,7 @@
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { AdminTabPageHeader } from "@/components/admin/admin-tab-page-header";
 import { Toggle } from "@/components/admin/admin-toggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -85,7 +86,12 @@ export function CompetencyManagement() {
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-2">
+    <div className="space-y-6">
+      <AdminTabPageHeader
+        subtitle="Framework spine for goals, coaching cards, and gap analysis."
+        title="Competencies"
+      />
+      <div className="grid gap-6 xl:grid-cols-2">
       <div className="rounded-xl border border-[#e2eaf5] bg-white p-[18px_22px]">
         <p className="text-[12.5px] font-bold text-[#0a1628]">Add competency</p>
         <p className="mb-[14px] mt-[2px] text-[11px] text-[#64748b]">
@@ -153,6 +159,7 @@ export function CompetencyManagement() {
           );
         })}
       </div>
+    </div>
     </div>
   );
 }

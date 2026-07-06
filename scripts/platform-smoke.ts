@@ -130,6 +130,7 @@ async function benchmarkLoaders() {
   const { getPitchPageData } = await import("../lib/data/get-pitch-page-data");
   const { getLabPageData } = await import("../lib/data/get-lab-page-data");
   const { getChallengesPageData } = await import("../lib/data/get-challenges-page-data");
+  const { getSimulationsPageData } = await import("../lib/data/get-simulations-page-data");
   const { getDashboardData } = await import("../lib/data/get-dashboard-data");
 
   // Loaders use server cookies — without a request context they fall back to demo data (fast path check)
@@ -138,6 +139,7 @@ async function benchmarkLoaders() {
   await timed("loader:getDashboardPageData (demo fallback)", async () => getDashboardPageData());
   await timed("loader:getManagerPageData (demo fallback)", async () => getManagerPageData());
   await timed("loader:getChallengesPageData (demo fallback)", async () => getChallengesPageData());
+  await timed("loader:getSimulationsPageData (demo fallback)", async () => getSimulationsPageData());
   await timed("loader:getDashboardData legacy (demo fallback)", async () => getDashboardData());
 
   const admin = createClient<Database>(url, serviceKey, {

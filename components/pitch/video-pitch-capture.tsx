@@ -15,14 +15,19 @@ import { cn } from "@/lib/utils";
 const PITCH_VIDEO_CLS =
   "aspect-video w-full rounded-xl bg-slate-900 object-cover shadow-[0_2px_12px_rgba(0,0,0,0.2)]";
 
-export function VideoPitchCapture() {
+export function VideoPitchCapture({ initialScenarioId }: { initialScenarioId?: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [recording, setRecording] = useState(false);
   const [blob, setBlob] = useState<Blob | null>(null);
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [title, setTitle] = useState("Elevator pitch");
   const [reflection, setReflection] = useState("");
-  const [scenarioId, setScenarioId] = useState<PitchScenarioId>(PITCH_SCENARIOS[0]!.id);
+  const [scenarioId, setScenarioId] = useState<PitchScenarioId>(() => {
+    if (initialScenarioId && PITCH_SCENARIOS.some((item) => item.id === initialScenarioId)) {
+      return initialScenarioId as PitchScenarioId;
+    }
+    return PITCH_SCENARIOS[0]!.id;
+  });
   const [targetType, setTargetType] = useState<"practice" | "certification" | "challenge">("practice");
   const [targetId, setTargetId] = useState("");
   const [uploading, setUploading] = useState(false);

@@ -23,7 +23,8 @@ import {
 } from "@/components/manager/manager-page-layout";
 import type { PlanStepReviewItem } from "@/components/manager/plan-step-review-panel";
 import type { ReviewItem } from "@/components/manager/review-queue";
-import type { ReviewHistoryEntry } from "@/components/manager/manager-review-history";
+import { ManagerReviewHistory, type ReviewHistoryEntry } from "@/components/manager/manager-review-history";
+import { TeamLeaderboard } from "@/components/gamification/team-leaderboard";
 import type { CoachingCadenceRow } from "@/lib/manager/coaching-cadence";
 import type { SeCoachingSummary } from "@/lib/manager/se-coaching-summary";
 import type { TeamReadinessRow } from "@/lib/manager/team-readiness";
@@ -39,7 +40,17 @@ import { currentQuarter } from "@/lib/development/plan-utils";
 import { avatarGradientForId } from "@/lib/se/avatar-gradients";
 import { initials } from "@/lib/utils";
 
-export type ManagerSection = "command" | "inbox" | "roster" | "readiness" | "cadence" | "dev" | "program" | "assign";
+export type ManagerSection =
+  | "command"
+  | "inbox"
+  | "roster"
+  | "readiness"
+  | "leaderboard"
+  | "cadence"
+  | "history"
+  | "dev"
+  | "program"
+  | "assign";
 
 function quarterDesc(plan: DevelopmentPlan, quarter: "Q1" | "Q2" | "Q3" | "Q4") {
   const reviews = plan.goals.flatMap((goal) =>
@@ -260,6 +271,7 @@ export function ManagerPageShell({
   developmentPlans,
   readinessRows,
   leaderboardEntries,
+  reviewHistory,
   cadenceRows,
   org,
   plans,
@@ -365,6 +377,20 @@ export function ManagerPageShell({
       content = (
         <div className="animate-[fadeUp_0.2s_ease-out]">
           <ManagerReadinessPanel />
+        </div>
+      );
+      break;
+    case "leaderboard":
+      content = (
+        <div className="animate-[fadeUp_0.2s_ease-out]">
+          <TeamLeaderboard entries={leaderboardEntries} fullPage />
+        </div>
+      );
+      break;
+    case "history":
+      content = (
+        <div className="animate-[fadeUp_0.2s_ease-out]">
+          <ManagerReviewHistory entries={reviewHistory} fullPage />
         </div>
       );
       break;
