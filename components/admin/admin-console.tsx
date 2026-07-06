@@ -4,7 +4,6 @@ import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AdminTab, AdminTabPanel, AdminTabs } from "@/components/admin/admin-tabs";
-import { parseAdminSettingsSection, type AdminSettingsSection } from "@/components/admin/admin-settings-panel";
 import type { AiUsageSummary } from "@/lib/ai/settings-shared";
 import type { ActivityLog, Profile, ProfileRole, SeLevel, UserPlan } from "@/lib/types";
 
@@ -38,6 +37,9 @@ const AnalyticsDashboard = dynamic(() =>
 );
 const AdminSettingsPanel = dynamic(() =>
   import("@/components/admin/admin-settings-panel").then((mod) => mod.AdminSettingsPanel),
+);
+const AdminSettingsAiSection = dynamic(() =>
+  import("@/components/admin/admin-settings-ai-section").then((mod) => mod.AdminSettingsAiSection),
 );
 
 const TAB_IDS: AdminTab[] = [
@@ -102,27 +104,14 @@ export function AdminConsole({
   const searchParams = useSearchParams();
   const router = useRouter();
   const [tab, setTab] = useState<AdminTab>(() => parseAdminTab(searchParams.get("tab"), overviewAvailable));
-  const [settingsSection, setSettingsSection] = useState<AdminSettingsSection>(() =>
-    parseAdminSettingsSection(searchParams.get("section")),
-  );
 
   useEffect(() => {
     setTab(parseAdminTab(searchParams.get("tab"), overviewAvailable));
-    setSettingsSection(parseAdminSettingsSection(searchParams.get("section")));
   }, [overviewAvailable, searchParams]);
 
   function selectTab(next: AdminTab) {
     setTab(next);
-    if (next === "settings") {
-      router.replace(`/admin?tab=settings&section=${settingsSection}`, { scroll: false });
-      return;
-    }
     router.replace(`/admin?tab=${next}`, { scroll: false });
-  }
-
-  function selectSettingsSection(next: AdminSettingsSection) {
-    setSettingsSection(next);
-    router.replace(`/admin?tab=settings&section=${next}`, { scroll: false });
   }
 
   return (
@@ -170,7 +159,10 @@ export function AdminConsole({
       </AdminTabPanel>
 
       <AdminTabPanel active={tab} tab="ai">
-        <SimulationTemplateManagement />
+        <div className="space-y-6">
+          <AdminSettingsAiSection />
+          <SimulationTemplateManagement />
+        </div>
       </AdminTabPanel>
 
       <AdminTabPanel active={tab} tab="corpus">
@@ -186,7 +178,7 @@ export function AdminConsole({
       </AdminTabPanel>
 
       <AdminTabPanel active={tab} tab="settings">
-        <AdminSettingsPanel onSectionChange={selectSettingsSection} section={settingsSection} />
+        <AdminSettingsPanel />
       </AdminTabPanel>
     </div>
   );

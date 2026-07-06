@@ -23,8 +23,14 @@ function auditTypeBadge(action: string) {
   if (lower.includes("user")) return { type: "User", typeBg: "#dbeafe", typeColor: "#1d4ed8" };
   if (lower.includes("plan")) return { type: "Plan", typeBg: "#e8f2fc", typeColor: "#0057a8" };
   if (lower.includes("sim")) return { type: "Sim", typeBg: "#fdf0fa", typeColor: "#a51e8e" };
+  if (lower.includes("competency") || lower.includes("certification") || lower.includes("submission")) {
+    return { type: "Review", typeBg: "#fef3c7", typeColor: "#b45309" };
+  }
   if (lower.includes("ai") || lower.includes("coaching")) {
     return { type: "AI", typeBg: "#ede9fe", typeColor: "#5b21b6" };
+  }
+  if (lower.includes("platform") || lower.includes("development")) {
+    return { type: "Config", typeBg: "#e0f2fe", typeColor: "#0369a1" };
   }
   return { type: "Admin", typeBg: "#f1f5f9", typeColor: "#64748b" };
 }
@@ -78,7 +84,9 @@ export function AuditLogPanel({ profiles = [] }: { profiles?: Profile[] }) {
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
         <div>
           <h2 className="text-[12.5px] font-bold text-[#0a1628]">Audit log</h2>
-          <p className="text-[11px] text-[#64748b]">Immutable record of admin and plan management actions.</p>
+          <p className="text-[11px] text-[#64748b]">
+            Immutable record of admin, manager, and configuration actions across the platform.
+          </p>
         </div>
         <Button asChild size="sm" variant="outline">
           <a href="/api/admin/audit-log?format=csv">

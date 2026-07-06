@@ -8,7 +8,9 @@ import type { DealPrepReviewItem } from "@/components/manager/deal-prep-review-i
 import { ManagerActionInbox } from "@/components/manager/manager-action-inbox";
 import { ManagerCoachingCadencePanel } from "@/components/manager/manager-coaching-cadence-panel";
 import { ManagerCommandCenter } from "@/components/manager/manager-command-center";
+import { ManagerAssignPlansSection } from "@/components/manager/manager-assign-plans-section";
 import { ManagerPlanAssignPanel } from "@/components/manager/manager-plan-assign-panel";
+import { ManagerProgramTrackerPanel } from "@/components/manager/manager-program-tracker-panel";
 import { ManagerReadinessPanel } from "@/components/manager/manager-readiness-panel";
 import {
   ManagerSeDetailPanel,
@@ -37,7 +39,7 @@ import { currentQuarter } from "@/lib/development/plan-utils";
 import { avatarGradientForId } from "@/lib/se/avatar-gradients";
 import { initials } from "@/lib/utils";
 
-export type ManagerSection = "command" | "inbox" | "roster" | "readiness" | "cadence" | "dev";
+export type ManagerSection = "command" | "inbox" | "roster" | "readiness" | "cadence" | "dev" | "program" | "assign";
 
 function quarterDesc(plan: DevelopmentPlan, quarter: "Q1" | "Q2" | "Q3" | "Q4") {
   const reviews = plan.goals.flatMap((goal) =>
@@ -381,6 +383,20 @@ export function ManagerPageShell({
       break;
     case "dev":
       content = <ManagerDevelopmentSection developmentPlans={developmentPlans} org={org} />;
+      break;
+    case "program":
+      content = (
+        <div className="animate-[fadeUp_0.2s_ease-out]">
+          <ManagerProgramTrackerPanel org={org} plans={plans} />
+        </div>
+      );
+      break;
+    case "assign":
+      content = (
+        <div className="animate-[fadeUp_0.2s_ease-out]">
+          <ManagerAssignPlansSection assignees={assignees} mentors={mentors} org={org} plans={plans} />
+        </div>
+      );
       break;
     case "command":
     default:

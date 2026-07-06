@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { auditMutation } from "@/lib/audit/audit-mutation";
 import { createClient } from "@/lib/supabase/server";
 import { Database } from "@/lib/database.types";
 
@@ -115,6 +116,11 @@ export async function PATCH(request: Request, context: RouteContext) {
       body: parsed.data.managerComments ?? "Your manager reviewed a quarterly goal checkpoint.",
     });
   }
+
+  auditMutation(user.id, "development_review.updated", "goal_quarterly_review", id, {
+    userId: plan.user_id,
+    status: parsed.data.status,
+  });
 
   return NextResponse.json({ success: true });
 }

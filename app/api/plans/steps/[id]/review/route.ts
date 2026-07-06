@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { auditMutation } from "@/lib/audit/audit-mutation";
 import { requireManagerSession } from "@/lib/auth/require-manager";
 import { createNotification } from "@/lib/notifications/create-notification";
 import { approveAssignmentStep, rejectAssignmentStep } from "@/lib/plans/complete-step";
@@ -47,6 +48,11 @@ export async function PATCH(
           : "Plan step needs revision",
       body: parsed.data.feedback,
       actionUrl: parsed.data.decision === "approve" ? "/dashboard" : `/plan-steps/${id}`,
+    });
+
+    auditMutation(session.user.id, "plan.step_reviewed", "plan_assignment_step", id, {
+      decision: parsed.data.decision,
+      userId: result.userId,
     });
 
     return NextResponse.json({ success: true });

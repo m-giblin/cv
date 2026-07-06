@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { auditMutation } from "@/lib/audit/audit-mutation";
 import { buildQuarterlyReviewsForGoal } from "@/lib/development/plan-utils";
 import { canViewUserDevelopmentPlan } from "@/lib/development/authorize";
 import { requireManagerSession } from "@/lib/auth/require-manager";
@@ -142,6 +143,11 @@ export async function POST(request: Request) {
     event_type: "plan_assigned",
     title: "Annual development plan created",
     metadata: { planId: plan.id, year: parsed.data.year },
+  });
+
+  auditMutation(session.user.id, "development_plan.created", "development_plan", plan.id, {
+    userId: parsed.data.userId,
+    year: parsed.data.year,
   });
 
   return NextResponse.json({ id: plan.id });

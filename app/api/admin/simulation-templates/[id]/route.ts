@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { auditMutation } from "@/lib/audit/audit-mutation";
 import { requireAdminSession } from "@/lib/auth/require-admin";
 
 const schema = z.object({
@@ -45,6 +46,10 @@ export async function PATCH(
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  auditMutation(session.user.id, "simulation_template.updated", "simulation_template", id, {
+    name: parsed.data.name,
+  });
+
   return NextResponse.json({ success: true });
 }
 
@@ -64,6 +69,8 @@ export async function DELETE(
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  auditMutation(session.user.id, "simulation_template.deleted", "simulation_template", id);
 
   return NextResponse.json({ success: true });
 }

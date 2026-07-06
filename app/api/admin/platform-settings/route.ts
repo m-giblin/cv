@@ -2,16 +2,21 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { logAuditEvent } from "@/lib/audit/log-admin-action";
 import {
+  MAX_RETENTION_DAYS,
   MAX_SESSION_IDLE_MINUTES,
+  MIN_RETENTION_DAYS,
   MIN_SESSION_IDLE_MINUTES,
   mergeFeatureFlags,
 } from "@/lib/platform/settings-shared";
-import { loadPlatformBasicSettings, savePlatformBasicSettings } from "@/lib/platform/settings";
+import { loadPlatformSettings, savePlatformSettings } from "@/lib/platform/settings";
 import { requireAdminSession } from "@/lib/auth/require-admin";
 
 const updateSchema = z.object({
   sessionIdleMinutes: z.number().int().min(MIN_SESSION_IDLE_MINUTES).max(MAX_SESSION_IDLE_MINUTES).optional(),
   featureFlags: z.record(z.string(), z.boolean()).optional(),
+  auditLogRetentionDays: z.number().int().min(MIN_RETENTION_DAYS).max(MAX_RETENTION_DAYS).optional(),
+  activityLogRetentionDays: z.number().int().min(MIN_RETENTION_DAYS).max(MAX_RETENTION_DAYS).optional(),
+  aiUsageRetentionDays: z.number().int().min(MIN_RETENTION_DAYS).max(MAX_RETENTION_DAYS).optional(),
 });
 
 export async function GET() {
@@ -20,7 +25,7 @@ export async function GET() {
     return session;
   }
 
-  const settings = await loadPlatformBasicSettings();
+  const settings = await loadPlatformSettings();
   return NextResponse.json({ settings });
 }
 
@@ -36,19 +41,19 @@ export async function PATCH(request: Request) {
   }
 
   try {
-    const settings = await savePlatformBasicSettings(session.supabase, session.user.id, {
+    const settings = await savePlatformSettings(session.supabase, session.user.id, {
       sessionIdleMinutes: parsed.data.sessionIdleMinutes,
       featureFlags: parsed.data.featureFlags ? mergeFeatureFlags(parsed.data.featureFlags) : undefined,
+      auditLogRetentionDays: parsed.data.auditLogRetentionDays,
+      activityLogRetentionDays: parsed.data.activityLogRetentionDays,
+      aiUsageRetentionDays: parsed.data.aiUsageRetentionDays,
     });
 
     await logAuditEvent(session.user.id, {
       action: "platform_settings.updated",
       targetType: "platform_settings",
       targetId: "default",
-      details: {
-        sessionIdleMinutes: parsed.data.sessionIdleMinutes,
-        featureFlagsUpdated: Boolean(parsed.data.featureFlags),
-      },
+      details: parsed.data,
     });
 
     return NextResponse.json({ settings });

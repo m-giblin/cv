@@ -51,6 +51,10 @@ describe("RBAC", () => {
       "/manager?section=cadence",
       "/manager?section=dev",
     ]);
+    expect(groups.find((group) => group.id === "program")?.items.map((item) => item.href)).toEqual([
+      "/manager?section=program",
+      "/manager?section=assign",
+    ]);
     expect(hrefs).not.toContain("/plans");
     expect(groups.find((group) => group.id === "practice")?.items.map((item) => item.href)).toEqual([
       "/flight-check",

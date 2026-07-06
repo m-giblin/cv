@@ -1309,6 +1309,9 @@ export type Database = {
           api_key_ciphertext: string | null;
           session_idle_minutes: number;
           feature_flags: Json;
+          audit_log_retention_days: number;
+          activity_log_retention_days: number;
+          ai_usage_retention_days: number;
           updated_at: string;
           updated_by: string | null;
         };
@@ -1319,6 +1322,9 @@ export type Database = {
           api_key_ciphertext?: string | null;
           session_idle_minutes?: number;
           feature_flags?: Json;
+          audit_log_retention_days?: number;
+          activity_log_retention_days?: number;
+          ai_usage_retention_days?: number;
           updated_at?: string;
           updated_by?: string | null;
         };

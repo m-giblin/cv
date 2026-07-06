@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { auditMutation } from "@/lib/audit/audit-mutation";
 import { requireAdminSession } from "@/lib/auth/require-admin";
 import { isParameterizedTemplate } from "@/lib/simulations/prompt-template";
 
@@ -58,7 +59,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { error } = await session.supabase.from("simulation_templates").insert({
+  const { data: created, error } = await session.supabase.from("simulation_templates").insert({
     name: parsed.data.name,
     persona: parsed.data.persona,
     vertical: parsed.data.vertical,
@@ -67,11 +68,15 @@ export async function POST(request: Request) {
     prompt_body: parsed.data.promptBody,
     practice_rounds_before_submit: parsed.data.practiceRoundsBeforeSubmit ?? 1,
     created_by: session.user.id,
-  });
+  }).select("id").single();
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  auditMutation(session.user.id, "simulation_template.created", "simulation_template", created.id, {
+    name: parsed.data.name,
+  });
 
   return NextResponse.json({ success: true });
 }

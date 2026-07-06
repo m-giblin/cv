@@ -34,7 +34,20 @@ export const PLATFORM_FEATURE_FLAG_DEFS: PlatformFeatureFlagDef[] = [
     description: "Enable ISC Lab scenarios and competency-linked assessments.",
     defaultEnabled: true,
   },
+  {
+    id: "leaderboard",
+    label: "Leaderboard",
+    description: "Show team leaderboard rankings on manager command center.",
+    defaultEnabled: true,
+  },
 ];
+
+export const DEFAULT_AUDIT_LOG_RETENTION_DAYS = 365;
+export const DEFAULT_ACTIVITY_LOG_RETENTION_DAYS = 180;
+export const DEFAULT_AI_USAGE_RETENTION_DAYS = 90;
+
+export const MIN_RETENTION_DAYS = 7;
+export const MAX_RETENTION_DAYS = 3650;
 
 export type PlatformFeatureFlags = Record<string, boolean>;
 

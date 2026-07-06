@@ -73,4 +73,16 @@ export const MANAGER_SECTION_HEADERS: Record<
     title: "Development Plans",
     subtitle: "Quarterly attestations and goal progress across your team",
   },
+  program: {
+    eyebrow: "Onboarding program",
+    eyebrowColor: "#0071ce",
+    title: "Program Tracker",
+    subtitle: "Ramp stage completion and per-SE plan progress",
+  },
+  assign: {
+    eyebrow: "Ramp assignments",
+    eyebrowColor: "#0071ce",
+    title: "Assign Plans",
+    subtitle: "Assign week-based templates and monitor active onboarding plans",
+  },
 };

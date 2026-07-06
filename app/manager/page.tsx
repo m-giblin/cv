@@ -43,6 +43,8 @@ const VALID_SECTIONS = new Set<ManagerSection>([
   "readiness",
   "cadence",
   "dev",
+  "program",
+  "assign",
 ]);
 
 type ManagerPageProps = {

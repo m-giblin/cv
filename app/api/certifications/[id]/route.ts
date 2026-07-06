@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { auditMutation } from "@/lib/audit/audit-mutation";
 import { canManageUserCertifications } from "@/lib/certifications/authorize";
 import { requireManagerSession } from "@/lib/auth/require-manager";
 import { createNotification } from "@/lib/notifications/create-notification";
@@ -67,6 +68,11 @@ export async function PATCH(request: Request, context: RouteContext) {
     title: parsed.data.status === "approved" ? "Certification approved" : "Certification needs more evidence",
     body: managerNotes,
     actionUrl: "/certifications",
+  });
+
+  auditMutation(session.user.id, "certification.reviewed", "readiness_certification", id, {
+    status: parsed.data.status,
+    userId: data.user_id,
   });
 
   return NextResponse.json({ success: true });

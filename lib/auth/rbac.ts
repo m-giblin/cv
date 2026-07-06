@@ -58,6 +58,8 @@ export const MANAGER_SECTIONS = [
   { href: "/manager?section=readiness", label: "Readiness Map", section: "readiness" },
   { href: "/manager?section=cadence", label: "Coaching Cadence", section: "cadence" },
   { href: "/manager?section=dev", label: "Development", section: "dev" },
+  { href: "/manager?section=program", label: "Program Tracker", section: "program" },
+  { href: "/manager?section=assign", label: "Assign Plans", section: "assign" },
 ] as const;
 
 export type ManagerSectionId = (typeof MANAGER_SECTIONS)[number]["section"];
@@ -76,6 +78,8 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/manager?section=readiness", label: "Readiness Map", icon: "growth", tiers: ["admin", "manager"] },
   { href: "/manager?section=cadence", label: "Coaching Cadence", icon: "development", tiers: ["admin", "manager"] },
   { href: "/manager?section=dev", label: "Development", icon: "development", tiers: ["admin", "manager"] },
+  { href: "/manager?section=program", label: "Program Tracker", icon: "plans", tiers: ["admin", "manager"] },
+  { href: "/manager?section=assign", label: "Assign Plans", icon: "plans", tiers: ["admin", "manager"] },
   /** Route exists for deep links + assign flows; not in sidebar (v8: Admin Console → Plans tab). */
   { href: "/plans", label: "Ramp Plans", icon: "plans", tiers: ["admin", "manager"] },
   { href: "/development", label: "Development", icon: "development", tiers: ["admin", "manager", "se"] },
@@ -116,6 +120,7 @@ const TIER_NAV_GROUPS: Record<AccessTier, { id: NavGroupId; hrefs: string[] }[]>
     { id: "command", hrefs: ["/manager?section=command", "/manager?section=inbox"] },
     { id: "team", hrefs: ["/manager?section=roster", "/manager?section=readiness"] },
     { id: "coaching", hrefs: ["/manager?section=cadence", "/manager?section=dev"] },
+    { id: "program", hrefs: ["/manager?section=program", "/manager?section=assign"] },
     { id: "readiness", hrefs: ["/learn", "/lab", "/resources", "/certifications"] },
     {
       id: "practice",
@@ -127,6 +132,7 @@ const TIER_NAV_GROUPS: Record<AccessTier, { id: NavGroupId; hrefs: string[] }[]>
     { id: "command", hrefs: ["/manager?section=command", "/manager?section=inbox"] },
     { id: "team", hrefs: ["/manager?section=roster", "/manager?section=readiness"] },
     { id: "coaching", hrefs: ["/manager?section=cadence", "/manager?section=dev"] },
+    { id: "program", hrefs: ["/manager?section=program", "/manager?section=assign"] },
     { id: "readiness", hrefs: ["/learn", "/lab", "/resources", "/certifications"] },
     {
       id: "practice",

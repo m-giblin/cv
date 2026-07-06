@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { auditMutation } from "@/lib/audit/audit-mutation";
 import { canReviewUserWork } from "@/lib/auth/can-review";
 import { requireManagerSession } from "@/lib/auth/require-manager";
 import { createNotification } from "@/lib/notifications/create-notification";
@@ -95,6 +96,11 @@ export async function PATCH(request: Request, context: RouteContext) {
     title: approved ? "Challenge approved" : "Challenge needs revision",
     body: parsed.data.managerFeedback,
     actionUrl: approved ? "/feedback" : "/challenges?focus=challenge",
+  });
+
+  auditMutation(session.user.id, "submission.reviewed", "challenge_submission", id, {
+    decision: parsed.data.decision,
+    userId: data.user_id,
   });
 
   return NextResponse.json({ success: true });

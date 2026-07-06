@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { auditMutation } from "@/lib/audit/audit-mutation";
 import { requireAdminSession } from "@/lib/auth/require-admin";
 
 const schema = z.object({
@@ -50,6 +51,8 @@ export async function POST(request: Request) {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  auditMutation(session.user.id, "competency.created", "competency", data.id, { name: parsed.data.name });
 
   return NextResponse.json({ id: data.id });
 }
