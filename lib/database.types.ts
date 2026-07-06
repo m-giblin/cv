@@ -1307,6 +1307,8 @@ export type Database = {
           provider: string;
           model: string;
           api_key_ciphertext: string | null;
+          session_idle_minutes: number;
+          feature_flags: Json;
           updated_at: string;
           updated_by: string | null;
         };
@@ -1315,6 +1317,8 @@ export type Database = {
           provider?: string;
           model?: string;
           api_key_ciphertext?: string | null;
+          session_idle_minutes?: number;
+          feature_flags?: Json;
           updated_at?: string;
           updated_by?: string | null;
         };

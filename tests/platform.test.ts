@@ -4,6 +4,16 @@ import { allowedEmailError } from "@/lib/auth/email-domain";
 import { buildQuarterlyReviewsForGoal, currentQuarter } from "@/lib/development/plan-utils";
 import { dealPrepSchema, generatedChallengeSchema } from "@/lib/ai/schemas";
 
+describe("platform settings", () => {
+  it("merges stored feature flags over defaults", async () => {
+    const { mergeFeatureFlags, defaultFeatureFlags } = await import("@/lib/platform/settings-shared");
+    const defaults = defaultFeatureFlags();
+    const merged = mergeFeatureFlags({ "pitch-studio": false });
+    expect(merged["pitch-studio"]).toBe(false);
+    expect(merged["isc-lab"]).toBe(defaults["isc-lab"]);
+  });
+});
+
 describe("RBAC", () => {
   it("restricts admin routes from SE tier", () => {
     expect(canAccessRoute("se", "/admin")).toBe(false);

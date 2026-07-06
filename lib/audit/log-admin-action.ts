@@ -10,7 +10,8 @@ export type AuditAction =
   | "plan.template_deleted"
   | "plan.assigned"
   | "segment.unlock_override"
-  | "ai_settings.updated";
+  | "ai_settings.updated"
+  | "platform_settings.updated";
 
 export async function logAuditEvent(
   actorId: string,

@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AdminTab, AdminTabPanel, AdminTabs } from "@/components/admin/admin-tabs";
+import { parseAdminSettingsSection, type AdminSettingsSection } from "@/components/admin/admin-settings-panel";
 import type { AiUsageSummary } from "@/lib/ai/settings-shared";
 import type { ActivityLog, Profile, ProfileRole, SeLevel, UserPlan } from "@/lib/types";
 
@@ -35,8 +36,8 @@ const AuditLogPanel = dynamic(() => import("@/components/admin/audit-log-panel")
 const AnalyticsDashboard = dynamic(() =>
   import("@/components/admin/analytics-dashboard").then((mod) => mod.AnalyticsDashboard),
 );
-const AdminAiSettingsPanel = dynamic(() =>
-  import("@/components/admin/admin-ai-settings-panel").then((mod) => mod.AdminAiSettingsPanel),
+const AdminSettingsPanel = dynamic(() =>
+  import("@/components/admin/admin-settings-panel").then((mod) => mod.AdminSettingsPanel),
 );
 
 const TAB_IDS: AdminTab[] = [
@@ -101,14 +102,27 @@ export function AdminConsole({
   const searchParams = useSearchParams();
   const router = useRouter();
   const [tab, setTab] = useState<AdminTab>(() => parseAdminTab(searchParams.get("tab"), overviewAvailable));
+  const [settingsSection, setSettingsSection] = useState<AdminSettingsSection>(() =>
+    parseAdminSettingsSection(searchParams.get("section")),
+  );
 
   useEffect(() => {
     setTab(parseAdminTab(searchParams.get("tab"), overviewAvailable));
+    setSettingsSection(parseAdminSettingsSection(searchParams.get("section")));
   }, [overviewAvailable, searchParams]);
 
   function selectTab(next: AdminTab) {
     setTab(next);
+    if (next === "settings") {
+      router.replace(`/admin?tab=settings&section=${settingsSection}`, { scroll: false });
+      return;
+    }
     router.replace(`/admin?tab=${next}`, { scroll: false });
+  }
+
+  function selectSettingsSection(next: AdminSettingsSection) {
+    setSettingsSection(next);
+    router.replace(`/admin?tab=settings&section=${next}`, { scroll: false });
   }
 
   return (
@@ -172,9 +186,7 @@ export function AdminConsole({
       </AdminTabPanel>
 
       <AdminTabPanel active={tab} tab="settings">
-        <div className="max-w-3xl">
-          <AdminAiSettingsPanel />
-        </div>
+        <AdminSettingsPanel onSectionChange={selectSettingsSection} section={settingsSection} />
       </AdminTabPanel>
     </div>
   );

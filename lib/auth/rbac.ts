@@ -2,7 +2,7 @@ import { ProfileRole } from "@/lib/types";
 
 export type AccessTier = "admin" | "manager" | "se";
 
-export const SESSION_IDLE_MS = 15 * 60 * 1000;
+export const SESSION_IDLE_MS = 15 * 60 * 1000; /** Fallback when platform_settings is unavailable */
 
 export function getAccessTier(role: ProfileRole): AccessTier {
   if (role === "admin" || role === "director") {
