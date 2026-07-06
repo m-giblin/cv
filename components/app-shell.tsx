@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ReactNode } from "react";
+import { ReactNode, Suspense } from "react";
 import { NavMobile, NavSidebar } from "@/components/nav-sidebar";
 import { NavTopBar } from "@/components/nav-top-bar";
 import { SailPointLogoMark } from "@/components/shell/sailpoint-logo-mark";
@@ -65,7 +65,9 @@ export function AppShell({
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-[220px] flex-col bg-[#00143a] lg:flex">
         <SidebarLogo homeHref={homeHref} />
         <div className="sp-sidebar-scroll min-h-0 flex-1 overflow-y-auto py-3">
-          <NavSidebar notifications={myNotifications} tier={tier} />
+          <Suspense fallback={<div className="px-5 py-2 text-xs text-white/40">Loading…</div>}>
+            <NavSidebar notifications={myNotifications} tier={tier} />
+          </Suspense>
         </div>
         <SidebarUserFooter currentUser={currentUser} notifications={notifications} />
       </aside>
