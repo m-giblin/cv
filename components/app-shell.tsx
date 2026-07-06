@@ -5,9 +5,11 @@ import { NavTopBar } from "@/components/nav-top-bar";
 import { SailPointLogoMark } from "@/components/shell/sailpoint-logo-mark";
 import { SidebarUserFooter } from "@/components/sidebar-user-footer";
 import { MobilePracticeShell } from "@/components/practice/mobile-practice-shell";
+import { UatBugTracker } from "@/components/uat/uat-bug-tracker";
 import { NotificationFlyout } from "@/components/notifications/notification-flyout";
 import { getAccessTier } from "@/lib/auth/rbac";
 import { isNorthstarUiEnabled } from "@/lib/feature-flags";
+import { isForgeConfigured } from "@/lib/forge/config";
 import { Notification, Profile } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -91,6 +93,11 @@ export function AppShell({
           {children}
         </main>
         <MobilePracticeShell />
+        <UatBugTracker
+          enabled={isForgeConfigured()}
+          reporterEmail={currentUser.email}
+          reporterName={currentUser.fullName}
+        />
       </div>
     </div>
   );

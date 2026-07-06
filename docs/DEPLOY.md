@@ -28,6 +28,10 @@ In **Vercel → Project → Settings → Environment Variables**, set:
 | `XAI_API_KEY` or `OPENAI_API_KEY` | Production | Fallback when no admin-managed key is stored |
 | `AI_PROVIDER` | Production | `xai` or `openai` |
 | `PLATFORM_SECRETS_ENCRYPTION_KEY` | Production only | Server-only AES key for admin-managed AI API keys in Supabase. Generate with `openssl rand -base64 32`. Never store in the database. |
+| `FORGE_API_KEY` | Production, Preview | Server-only — UAT bug tracker writes to Forge (project SEENA). Never expose to the browser. |
+| `FORGE_API_BASE_URL` | Production, Preview | Optional; defaults to `https://forge-nu-ochre.vercel.app` |
+| `FORGE_PROJECT_KEY` | Production, Preview | Optional; defaults to `SEENA` |
+| `FORGE_ASSIGNEE_EMAIL` | Production, Preview | Optional; defaults to `matt.j.giblin@gmail.com` |
 
 Never expose `SUPABASE_SERVICE_ROLE_KEY` or `PLATFORM_SECRETS_ENCRYPTION_KEY` to the browser or commit them to git.
 
