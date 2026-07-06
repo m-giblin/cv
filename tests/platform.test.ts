@@ -23,20 +23,28 @@ describe("RBAC", () => {
     expect(simulationsIndex).toBe(challengesIndex + 1);
   });
 
-  it("groups manager team items before practice tools", async () => {
+  it("groups manager nav per v8 design (no Ramp Plans in sidebar)", async () => {
     const { getNavGroupsForTier } = await import("@/lib/auth/rbac");
     const groups = getNavGroupsForTier("manager");
-    expect(groups[0]?.id).toBe("team");
+    const hrefs = groups.flatMap((group) => group.items.map((item) => item.href));
+
+    expect(groups[0]?.id).toBe("command");
     expect(groups[0]?.items.map((item) => item.href)).toEqual([
       "/manager?section=command",
       "/manager?section=inbox",
+    ]);
+    expect(groups.find((group) => group.id === "team")?.items.map((item) => item.href)).toEqual([
       "/manager?section=roster",
       "/manager?section=readiness",
+    ]);
+    expect(groups.find((group) => group.id === "coaching")?.items.map((item) => item.href)).toEqual([
       "/manager?section=cadence",
       "/manager?section=dev",
-      "/plans",
     ]);
+    expect(hrefs).not.toContain("/plans");
     expect(groups.find((group) => group.id === "practice")?.items.map((item) => item.href)).toEqual([
+      "/flight-check",
+      "/market-pulse",
       "/prep",
       "/challenges",
       "/simulations",

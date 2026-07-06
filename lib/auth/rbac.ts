@@ -32,10 +32,18 @@ type NavItem = {
   label: string;
   icon: "dashboard" | "manager" | "development" | "prep" | "certifications" | "plans" | "challenges" | "simulations" | "resources" | "feedback" | "growth" | "admin" | "account" | "flight-check";
   tiers: AccessTier[];
-  managerHref?: string;
 };
 
-export type NavGroupId = "workspace" | "team" | "readiness" | "practice" | "system" | "account";
+export type NavGroupId =
+  | "workspace"
+  | "command"
+  | "team"
+  | "coaching"
+  | "program"
+  | "readiness"
+  | "practice"
+  | "system"
+  | "account";
 
 export type NavGroup = {
   id: NavGroupId;
@@ -68,7 +76,8 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/manager?section=readiness", label: "Readiness Map", icon: "growth", tiers: ["admin", "manager"] },
   { href: "/manager?section=cadence", label: "Coaching Cadence", icon: "development", tiers: ["admin", "manager"] },
   { href: "/manager?section=dev", label: "Development", icon: "development", tiers: ["admin", "manager"] },
-  { href: "/plans", label: "Ramp Plans", icon: "plans", tiers: ["admin", "manager"], managerHref: "/plans" },
+  /** Route exists for deep links + assign flows; not in sidebar (v8: Admin Console → Plans tab). */
+  { href: "/plans", label: "Ramp Plans", icon: "plans", tiers: ["admin", "manager"] },
   { href: "/development", label: "Development", icon: "development", tiers: ["admin", "manager", "se"] },
   { href: "/resources", label: "Resources", icon: "resources", tiers: ["admin", "manager", "se"] },
   { href: "/certifications", label: "Certifications", icon: "certifications", tiers: ["admin", "manager", "se"] },
@@ -83,7 +92,10 @@ export const NAV_ITEMS: NavItem[] = [
 
 const NAV_GROUP_LABELS: Record<NavGroupId, string> = {
   workspace: "Workspace",
+  command: "Command",
   team: "Team",
+  coaching: "Coaching",
+  program: "Program",
   readiness: "Readiness",
   practice: "Practice",
   system: "Admin",
@@ -101,18 +113,9 @@ const TIER_NAV_GROUPS: Record<AccessTier, { id: NavGroupId; hrefs: string[] }[]>
     },
   ],
   manager: [
-    {
-      id: "team",
-      hrefs: [
-        "/manager?section=command",
-        "/manager?section=inbox",
-        "/manager?section=roster",
-        "/manager?section=readiness",
-        "/manager?section=cadence",
-        "/manager?section=dev",
-        "/plans",
-      ],
-    },
+    { id: "command", hrefs: ["/manager?section=command", "/manager?section=inbox"] },
+    { id: "team", hrefs: ["/manager?section=roster", "/manager?section=readiness"] },
+    { id: "coaching", hrefs: ["/manager?section=cadence", "/manager?section=dev"] },
     { id: "readiness", hrefs: ["/learn", "/lab", "/resources", "/certifications"] },
     {
       id: "practice",
@@ -121,18 +124,9 @@ const TIER_NAV_GROUPS: Record<AccessTier, { id: NavGroupId; hrefs: string[] }[]>
   ],
   admin: [
     { id: "workspace", hrefs: ["/dashboard"] },
-    {
-      id: "team",
-      hrefs: [
-        "/manager?section=command",
-        "/manager?section=inbox",
-        "/manager?section=roster",
-        "/manager?section=readiness",
-        "/manager?section=cadence",
-        "/manager?section=dev",
-        "/plans",
-      ],
-    },
+    { id: "command", hrefs: ["/manager?section=command", "/manager?section=inbox"] },
+    { id: "team", hrefs: ["/manager?section=roster", "/manager?section=readiness"] },
+    { id: "coaching", hrefs: ["/manager?section=cadence", "/manager?section=dev"] },
     { id: "readiness", hrefs: ["/learn", "/lab", "/resources", "/certifications"] },
     {
       id: "practice",
@@ -158,8 +152,8 @@ export function getNavGroupsForTier(tier: AccessTier): NavGroup[] {
     .filter((group) => group.items.length > 0);
 }
 
-export function resolveNavHref(item: NavItem, tier: AccessTier): string {
-  return tier === "manager" && item.managerHref ? item.managerHref : item.href;
+export function resolveNavHref(item: NavItem, _tier: AccessTier): string {
+  return item.href;
 }
 
 function managerSectionFromHref(href: string): string | null {
@@ -183,10 +177,6 @@ export function isNavItemActive(
     if (pathname !== "/manager") return false;
     const current = managerSection && managerSection.length > 0 ? managerSection : "command";
     return current === itemSection;
-  }
-
-  if (item.managerHref && tier === "manager") {
-    return pathname === "/manager" && hash === "#onboarding-plans";
   }
 
   const basePath = item.href.split("?")[0] ?? item.href;

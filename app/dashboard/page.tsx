@@ -68,11 +68,11 @@ export default async function DashboardPage() {
           </Link>
           <Link
             className="rounded-xl border border-[#e2eaf5] bg-white p-4 shadow-[0_1px_4px_rgba(0,20,58,0.04)] transition hover:border-[#7c3aed]/30 hover:shadow-md"
-            href="/plans"
+            href="/admin?tab=plans"
           >
             <TrendingUp className="mb-2 h-5 w-5 text-[#7c3aed]" />
             <p className="text-sm font-bold text-[#0a1628]">Ramp plans</p>
-            <p className="mt-1 text-xs text-[#64748b]">Templates, assignments, step editor</p>
+            <p className="mt-1 text-xs text-[#64748b]">Admin console — templates and assignments</p>
           </Link>
           <Link
             className="rounded-xl border border-[#e2eaf5] bg-white p-4 shadow-[0_1px_4px_rgba(0,20,58,0.04)] transition hover:border-[#cc27b0]/30 hover:shadow-md"
