@@ -8,13 +8,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 
 export type PlanStepReviewItem = {
- assignmentStepId: string;
- title: string;
- personName: string;
- stepType: string;
- notes?: string;
- mentorEndorsed?: boolean;
- isManagerGate?: boolean;
+  assignmentStepId: string;
+  userId: string;
+  title: string;
+  personName: string;
+  stepType: string;
+  notes?: string;
+  mentorEndorsed?: boolean;
+  isManagerGate?: boolean;
 };
 
 export function PlanStepReviewPanel({ items }: { items: PlanStepReviewItem[] }) {

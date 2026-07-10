@@ -4,16 +4,18 @@ import { auditMutation } from "@/lib/audit/audit-mutation";
 import { canReviewUserWork } from "@/lib/auth/can-review";
 import { requireManagerSession } from "@/lib/auth/require-manager";
 import { createNotification } from "@/lib/notifications/create-notification";
+import { processReviewSignoff } from "@/lib/coaching/process-review-signoff";
 import {
- approvePlanStepsByType,
- rejectPlanStepsByType,
+  approvePlanStepsByType,
+  rejectPlanStepsByType,
 } from "@/lib/plans/complete-step";
 
 const reviewSchema = z.object({
- decision: z.enum(["approve", "reject"]).default("approve"),
- status: z.enum(["reviewed", "under_review", "in_progress"]).optional(),
- managerGrade: z.number().int().min(1).max(5).optional(),
- managerFeedback: z.string().min(3),
+  decision: z.enum(["approve", "reject"]).default("approve"),
+  status: z.enum(["reviewed", "under_review", "in_progress"]).optional(),
+  managerGrade: z.number().int().min(1).max(5).optional(),
+  managerFeedback: z.string().min(3).optional(),
+  coachingSignoff: z.record(z.string(), z.unknown()).optional(),
 });
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -25,7 +27,8 @@ export async function PATCH(request: Request, context: RouteContext) {
  }
 
  const { id } = await context.params;
- const parsed = reviewSchema.safeParse(await request.json());
+ const body = (await request.json()) as Record<string, unknown>;
+ const parsed = reviewSchema.safeParse(body);
 
  if (!parsed.success) {
  return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
@@ -51,12 +54,24 @@ export async function PATCH(request: Request, context: RouteContext) {
 
  const approved = parsed.data.decision === "approve";
 
+ const signoffResult = await processReviewSignoff(session.supabase, body, {
+   managerId: session.user.id,
+   seUserId: existing.user_id,
+   tenantId: session.tenantId,
+   reviewType: "challenge_submission",
+   reviewTargetId: id,
+   decision: parsed.data.decision,
+ });
+ if (signoffResult instanceof NextResponse) return signoffResult;
+
+ const managerFeedback = signoffResult.feedback;
+
  const { data, error } = await session.supabase
  .from("challenge_submissions")
  .update({
  status: approved ? "reviewed" : "in_progress",
  manager_grade: approved ? parsed.data.managerGrade : null,
- manager_feedback: parsed.data.managerFeedback,
+ manager_feedback: managerFeedback,
  reviewed_at: approved ? new Date().toISOString() : null,
  })
  .eq("id", id)
@@ -72,14 +87,14 @@ export async function PATCH(request: Request, context: RouteContext) {
  userId: data.user_id,
  stepType: "challenge",
  reviewerId: session.user.id,
- feedback: parsed.data.managerFeedback,
+ feedback: managerFeedback,
  });
  } else {
  await rejectPlanStepsByType(session.supabase, {
  userId: data.user_id,
  stepType: "challenge",
  reviewerId: session.user.id,
- feedback: parsed.data.managerFeedback,
+ feedback: managerFeedback,
  });
  }
 
@@ -95,7 +110,7 @@ export async function PATCH(request: Request, context: RouteContext) {
  await createNotification(session.supabase, {
  userId: data.user_id,
  title: approved ? "Challenge approved" : "Challenge needs revision",
- body: parsed.data.managerFeedback,
+ body: managerFeedback,
  actionUrl: approved ? "/feedback" : "/challenges?focus=challenge",
  });
 

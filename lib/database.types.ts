@@ -969,6 +969,50 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["manager_coaching_notes"]["Insert"]>;
         Relationships: [];
       };
+      manager_coaching_signoffs: {
+        Row: {
+          id: string;
+          manager_id: string;
+          se_user_id: string;
+          tenant_id: string | null;
+          review_type: string;
+          review_target_id: string;
+          decision: string;
+          signoff_tier: string;
+          strength: string;
+          gap: string | null;
+          next_action: string;
+          confidence: number | null;
+          live_attestation: boolean;
+          attestation_note: string | null;
+          ai_draft: string | null;
+          ai_draft_edited: boolean;
+          review_duration_ms: number | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          manager_id: string;
+          se_user_id: string;
+          tenant_id?: string | null;
+          review_type: string;
+          review_target_id: string;
+          decision: string;
+          signoff_tier: string;
+          strength?: string;
+          gap?: string | null;
+          next_action?: string;
+          confidence?: number | null;
+          live_attestation?: boolean;
+          attestation_note?: string | null;
+          ai_draft?: string | null;
+          ai_draft_edited?: boolean;
+          review_duration_ms?: number | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["manager_coaching_signoffs"]["Insert"]>;
+        Relationships: [];
+      };
       mentor_coaching_notes: {
         Row: {
           id: string;

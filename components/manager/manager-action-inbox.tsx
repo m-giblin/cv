@@ -9,7 +9,14 @@ import type { PlanStepReviewItem } from "@/components/manager/plan-step-review-p
 import type { CertReviewItem } from "@/components/manager/cert-review-item";
 import type { DealPrepReviewItem } from "@/components/manager/deal-prep-review-item";
 import type { ReviewItem } from "@/components/manager/review-queue";
-import { ManagerCopilotDraft } from "@/components/manager/manager-copilot-draft";
+import type { ReviewSignoffContext } from "@/lib/coaching/signoff-policy";
+import { signoffTierForReview } from "@/lib/coaching/signoff-policy";
+import {
+  CoachingSignoffForm,
+  isSignoffReady,
+  ManagerCoachingBriefPanel,
+  useCoachingSignoffState,
+} from "@/components/manager/coaching-signoff-form";
 import { SimulationCoachingReviewPanel } from "@/components/manager/simulation-coaching-review-panel";
 import { ManagerOutlineBtn } from "@/components/manager/manager-ui-primitives";
 import { Input } from "@/components/ui/input";
@@ -93,9 +100,9 @@ function inboxVisualConfig(item: InboxItem): InboxVisualConfig {
  typeColor: "#a51e8e",
  iconBg: "#fdf0fa",
  iconColor: "#cc27b0",
- approveBg: "#fee2e2",
- approveColor: "#dc2626",
- approveLabel: "Flag for redo",
+ approveBg: "#dcfce7",
+ approveColor: "#15803d",
+ approveLabel: "Sign off coaching",
  previewBg: "#fdf0fa",
  previewBorder: "#ECEAE6",
  urgColor: item.score < 70 ? "#ef4444" : "#6B6860",
@@ -155,6 +162,65 @@ function InboxTypeIcon({ color }: { color: string }) {
  <path d="M5 2h6v2H5z" />
  </svg>
  );
+}
+
+function usesStructuredSignoff(item: InboxItem) {
+ return item.inboxType !== "mentor";
+}
+
+function signoffContextForItem(item: InboxItem): ReviewSignoffContext {
+ switch (item.inboxType) {
+ case "coaching":
+ return { reviewType: "coaching_card" };
+ case "submission":
+ return { reviewType: "challenge_submission" };
+ case "plan_step":
+ return { reviewType: "plan_step", isManagerGate: item.isManagerGate };
+ case "cert":
+ return { reviewType: "certification", isManagerGate: true };
+ case "deal_prep":
+ return { reviewType: "deal_prep" };
+ case "pitch":
+ return { reviewType: "pitch" };
+ default:
+ return { reviewType: "mentor_review" };
+ }
+}
+
+function briefPayloadForItem(item: InboxItem) {
+ const personName =
+ item.inboxType === "plan_step"
+ ? item.personName
+ : item.inboxType === "cert"
+ ? item.personName
+ : item.inboxType === "deal_prep"
+ ? item.personName
+ : item.inboxType === "pitch"
+ ? item.personName
+ : item.inboxType === "submission"
+ ? item.personName
+ : item.inboxType === "coaching"
+ ? item.personName
+ : "Team member";
+
+ return {
+ reviewType: signoffContextForItem(item).reviewType,
+ personName,
+ title: itemTitle(item),
+ strengths: item.inboxType === "coaching" ? item.strengths : undefined,
+ gaps: item.inboxType === "coaching" ? item.gaps : undefined,
+ managerSummary: item.inboxType === "coaching" ? item.managerSummary : undefined,
+ recommendedImprovements:
+ item.inboxType === "coaching" ? item.recommendedImprovements : undefined,
+ isManagerGate:
+ item.inboxType === "plan_step" ? item.isManagerGate : item.inboxType === "cert",
+ context:
+ item.inboxType === "submission"
+ ? `Challenge submission for ${item.personName}`
+ : item.inboxType === "plan_step"
+ ? `Plan step: ${item.stepType}${item.mentorEndorsed ? " (mentor endorsed)" : ""}`
+ : undefined,
+ };
 }
 
 function buildInboxItems(
@@ -253,6 +319,20 @@ export function ManagerActionInbox({
  const [grade, setGrade] = useState("4");
  const [savingKey, setSavingKey] = useState<string | null>(null);
  const [savingDecision, setSavingDecision] = useState<"approve" | "reject" | null>(null);
+ const signoff = useCoachingSignoffState();
+
+ useEffect(() => {
+ if (!activeKey) return;
+ signoff.setStrength("");
+ signoff.setGap("");
+ signoff.setNextAction("");
+ signoff.setConfidence(null);
+ signoff.setLiveAttestation(false);
+ signoff.setAttestationNote("");
+ signoff.setOpenedAt(new Date().toISOString());
+ setFeedback("");
+ // eslint-disable-next-line react-hooks/exhaustive-deps
+ }, [activeKey]);
 
  useEffect(() => {
  void fetch("/api/mentor-reviews")
@@ -311,11 +391,20 @@ export function ManagerActionInbox({
  }
 
  async function submitReview(item: InboxItem, decision: "approve" | "reject") {
- if (feedback.trim().length < 3) {
+ const structured = usesStructuredSignoff(item);
+ const tier = signoffTierForReview(signoffContextForItem(item));
+
+ if (structured) {
+ if (!isSignoffReady(tier, signoff.value, decision)) {
+ toast.error("Complete the coaching sign-off fields before submitting.");
+ return;
+ }
+ } else if (feedback.trim().length < 3) {
  toast.error("Add feedback before submitting.");
  return;
  }
 
+ const coachingSignoff = signoff.value;
  const key = itemKey(item);
  setSavingKey(key);
  setSavingDecision(decision);
@@ -327,9 +416,9 @@ export function ManagerActionInbox({
  method: "PATCH",
  headers: { "Content-Type": "application/json" },
  body: JSON.stringify({
- managerFeedback: feedback,
  managerGrade: Number(grade),
  decision,
+ coachingSignoff,
  }),
  });
  } else if (item.inboxType === "coaching") {
@@ -337,16 +426,16 @@ export function ManagerActionInbox({
  method: "PATCH",
  headers: { "Content-Type": "application/json" },
  body: JSON.stringify({
- managerComments: feedback,
  managerGrade: Number(grade),
  decision,
+ coachingSignoff,
  }),
  });
  } else if (item.inboxType === "plan_step") {
  response = await fetch(`/api/plans/steps/${item.assignmentStepId}/review`, {
  method: "PATCH",
  headers: { "Content-Type": "application/json" },
- body: JSON.stringify({ decision, feedback: feedback.trim() }),
+ body: JSON.stringify({ decision, coachingSignoff }),
  });
  } else if (item.inboxType === "cert") {
  response = await fetch(`/api/certifications/${item.id}`, {
@@ -354,14 +443,14 @@ export function ManagerActionInbox({
  headers: { "Content-Type": "application/json" },
  body: JSON.stringify({
  status: decision === "approve" ? "approved" : "revoked",
- managerNotes: feedback.trim(),
+ coachingSignoff,
  }),
  });
  } else if (item.inboxType === "deal_prep") {
  response = await fetch(`/api/deal-prep/sessions/${item.id}`, {
  method: "PATCH",
  headers: { "Content-Type": "application/json" },
- body: JSON.stringify({ managerComment: feedback.trim() }),
+ body: JSON.stringify({ managerComment: structured ? undefined : feedback.trim(), coachingSignoff }),
  });
  } else if (item.inboxType === "pitch") {
  response = await fetch(`/api/pitch/submissions/${item.id}`, {
@@ -369,8 +458,8 @@ export function ManagerActionInbox({
  headers: { "Content-Type": "application/json" },
  body: JSON.stringify({
  status: decision === "approve" ? "reviewed" : "rejected",
- managerFeedback: feedback.trim(),
  managerGrade: decision === "approve" ? Number(grade) : undefined,
+ coachingSignoff,
  }),
  });
  } else {
@@ -385,7 +474,8 @@ export function ManagerActionInbox({
  setSavingDecision(null);
 
  if (!response.ok) {
- toast.error("Review failed.");
+ const body = (await response.json().catch(() => null)) as { error?: string } | null;
+ toast.error(body?.error ?? "Review failed.");
  return;
  }
 
@@ -520,35 +610,46 @@ export function ManagerActionInbox({
  transcript: item.transcript,
  }}
  onAppendMoment={(moment) => {
- setFeedback((current) => (current.trim() ? `${current.trim()}\n\n• ${moment}` : moment));
+ const current = signoff.value.nextAction;
+ signoff.setNextAction(current.trim() ? `${current.trim()}\n\n• ${moment}` : moment);
  }}
- onDraft={setFeedback}
+ onDraft={(text) => {
+ signoff.setNextAction(text);
+ }}
  />
  ) : null}
 
  {isOpen ? (
  <div className="space-y-3 border-t border-[#ECEAE6] px-[18px] pb-[14px] pt-3">
- {item.inboxType === "submission" ? (
- <ManagerCopilotDraft
- context={`Challenge: ${item.title}\nSE: ${item.personName}`}
- onDraft={setFeedback}
+ {usesStructuredSignoff(item) ? (
+ <>
+ <ManagerCoachingBriefPanel
+ onBrief={signoff.applyBrief}
+ payload={briefPayloadForItem(item)}
  />
- ) : item.inboxType === "cert" ? (
- <ManagerCopilotDraft
- context={`Certification: ${item.label}\nSE: ${item.personName}`}
- onDraft={setFeedback}
+ <CoachingSignoffForm
+ decision="approve"
+ onAttestationNoteChange={signoff.setAttestationNote}
+ onConfidenceChange={signoff.setConfidence}
+ onGapChange={signoff.setGap}
+ onLiveAttestationChange={signoff.setLiveAttestation}
+ onNextActionChange={signoff.setNextAction}
+ onStrengthChange={signoff.setStrength}
+ signoff={signoff.value}
+ tier={signoffTierForReview(signoffContextForItem(item))}
  />
- ) : item.inboxType === "deal_prep" ? (
- <ManagerCopilotDraft
- context={`Deal prep for ${item.accountName} (${item.industry})`}
- onDraft={setFeedback}
+ </>
+ ) : (
+ <>
+ <Textarea
+ className="border-[#E2DFD9] text-[12px]"
+ onChange={(e) => setFeedback(e.target.value)}
+ placeholder="Coaching feedback — what worked, what to improve…"
+ rows={3}
+ value={feedback}
  />
- ) : item.inboxType === "pitch" ? (
- <ManagerCopilotDraft
- context={`Video pitch: ${item.title}\nSE: ${item.personName}\nReflection: ${item.reflectionText ?? "—"}`}
- onDraft={setFeedback}
- />
- ) : null}
+ </>
+ )}
  {item.inboxType === "pitch" ? (
  <Link
  className="text-[11px] font-semibold text-[#0071ce] hover:underline"
@@ -558,13 +659,6 @@ export function ManagerActionInbox({
  Watch video pitch →
  </Link>
  ) : null}
- <Textarea
- className="border-[#E2DFD9] text-[12px]"
- onChange={(e) => setFeedback(e.target.value)}
- placeholder="Coaching feedback — what worked, what to improve…"
- rows={3}
- value={feedback}
- />
  {item.inboxType === "submission" || item.inboxType === "coaching" || item.inboxType === "pitch" ? (
  <label className="block text-[11px] font-semibold text-[#6B6860]">
  Grade (1–5)

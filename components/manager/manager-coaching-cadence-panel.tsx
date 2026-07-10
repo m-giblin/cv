@@ -2,6 +2,7 @@
 
 import { toast } from "sonner";
 import { SP_BLUE_BTN, SP_OUTLINE_BTN } from "@/components/se/sp-form-primitives";
+import { ManagerCoachingQualityPanel } from "@/components/manager/manager-coaching-quality-panel";
 import { healthBadgeStyle } from "@/components/manager/manager-ui-primitives";
 import type { CoachingCadenceRow } from "@/lib/manager/coaching-cadence";
 import type { SeCoachingSummary } from "@/lib/manager/se-coaching-summary";
@@ -65,6 +66,7 @@ export function ManagerCoachingCadencePanel({
  }
 
  return (
+ <>
  <div className="mx-auto max-w-3xl space-y-3">
  {rows.map((row) => {
  const coaching = coachingByUser[row.profileId];
@@ -135,5 +137,14 @@ export function ManagerCoachingCadencePanel({
  );
  })}
  </div>
+
+ <div className="mt-8 border border-[#E2DFD9] bg-white p-4">
+ <p className="mb-1 font-display text-sm font-extrabold text-[#0D0E12]">Coaching quality (30 days)</p>
+ <p className="mb-3 text-[11px] text-[#6B6860]">
+ Structured sign-off patterns — flags fast rubber-stamping and cadence gaps.
+ </p>
+ <ManagerCoachingQualityPanel orgIds={org.map((profile) => profile.id)} />
+ </div>
+ </>
  );
 }

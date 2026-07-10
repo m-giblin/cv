@@ -4,15 +4,17 @@ import { auditMutation } from "@/lib/audit/audit-mutation";
 import { canReviewUserWork } from "@/lib/auth/can-review";
 import { requireManagerSession } from "@/lib/auth/require-manager";
 import { createNotification } from "@/lib/notifications/create-notification";
+import { processReviewSignoff } from "@/lib/coaching/process-review-signoff";
 import {
- approvePlanStepsByType,
- rejectPlanStepsByType,
+  approvePlanStepsByType,
+  rejectPlanStepsByType,
 } from "@/lib/plans/complete-step";
 
 const reviewSchema = z.object({
- decision: z.enum(["approve", "reject"]).default("approve"),
- managerComments: z.string().min(3),
- managerGrade: z.number().int().min(1).max(5).optional(),
+  decision: z.enum(["approve", "reject"]).default("approve"),
+  managerComments: z.string().min(3).optional(),
+  managerGrade: z.number().int().min(1).max(5).optional(),
+  coachingSignoff: z.record(z.string(), z.unknown()).optional(),
 });
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -24,7 +26,8 @@ export async function PATCH(request: Request, context: RouteContext) {
  }
 
  const { id } = await context.params;
- const parsed = reviewSchema.safeParse(await request.json());
+ const body = (await request.json()) as Record<string, unknown>;
+ const parsed = reviewSchema.safeParse(body);
 
  if (!parsed.success) {
  return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
@@ -49,13 +52,25 @@ export async function PATCH(request: Request, context: RouteContext) {
  }
 
  const approved = parsed.data.decision === "approve";
+
+ const signoffResult = await processReviewSignoff(session.supabase, body, {
+ managerId: session.user.id,
+ seUserId: existing.user_id,
+ tenantId: session.tenantId,
+ reviewType: "coaching_card",
+ reviewTargetId: id,
+ decision: parsed.data.decision,
+ });
+ if (signoffResult instanceof NextResponse) return signoffResult;
+
+ const managerComments = signoffResult.feedback;
  const reviewedAt = new Date().toISOString();
 
  const { data, error } = await session.supabase
  .from("coaching_cards")
  .update({
  manager_review_status: approved ? "reviewed" : "needs_revision",
- manager_comments: parsed.data.managerComments,
+ manager_comments: managerComments,
  manager_grade: approved ? parsed.data.managerGrade : null,
  reviewed_at: reviewedAt,
  })
@@ -72,14 +87,14 @@ export async function PATCH(request: Request, context: RouteContext) {
  userId: data.user_id,
  stepType: "simulation",
  reviewerId: session.user.id,
- feedback: parsed.data.managerComments,
+ feedback: managerComments,
  });
  } else {
  await rejectPlanStepsByType(session.supabase, {
  userId: data.user_id,
  stepType: "simulation",
  reviewerId: session.user.id,
- feedback: parsed.data.managerComments,
+ feedback: managerComments,
  });
 
  if (data.simulation_assignment_id) {
@@ -102,7 +117,7 @@ export async function PATCH(request: Request, context: RouteContext) {
  await createNotification(session.supabase, {
  userId: data.user_id,
  title: approved ? "Simulation approved" : "Simulation needs revision",
- body: parsed.data.managerComments,
+ body: managerComments,
  actionUrl: approved ? "/feedback" : "/simulations?focus=simulation",
  });
 

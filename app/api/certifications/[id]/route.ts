@@ -5,9 +5,12 @@ import { canManageUserCertifications } from "@/lib/certifications/authorize";
 import { requireManagerSession } from "@/lib/auth/require-manager";
 import { createNotification } from "@/lib/notifications/create-notification";
 
+import { processReviewSignoff } from "@/lib/coaching/process-review-signoff";
+
 const approveSchema = z.object({
- status: z.enum(["approved", "revoked"]),
- managerNotes: z.string().min(3).optional(),
+  status: z.enum(["approved", "revoked"]),
+  managerNotes: z.string().min(3).optional(),
+  coachingSignoff: z.record(z.string(), z.unknown()).optional(),
 });
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -19,7 +22,8 @@ export async function PATCH(request: Request, context: RouteContext) {
  }
 
  const { id } = await context.params;
- const parsed = approveSchema.safeParse(await request.json());
+ const body = (await request.json()) as Record<string, unknown>;
+ const parsed = approveSchema.safeParse(body);
 
  if (!parsed.success) {
  return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
@@ -43,9 +47,20 @@ export async function PATCH(request: Request, context: RouteContext) {
  return NextResponse.json({ error: "Forbidden" }, { status: 403 });
  }
 
- const managerNotes =
- parsed.data.managerNotes ??
- (parsed.data.status === "approved" ? "Cleared for field readiness." : "Needs more evidence.");
+ const decision = parsed.data.status === "approved" ? "approve" : "reject";
+ const signoffResult = await processReviewSignoff(session.supabase, body, {
+   managerId: session.user.id,
+   seUserId: existing.user_id,
+   tenantId: session.tenantId,
+   reviewType: "certification",
+   reviewTargetId: id,
+   decision,
+   isManagerGate: true,
+   skipCadenceGate: true,
+ });
+ if (signoffResult instanceof NextResponse) return signoffResult;
+
+ const managerNotes = signoffResult.feedback;
 
  const { data, error } = await session.supabase
  .from("readiness_certifications")

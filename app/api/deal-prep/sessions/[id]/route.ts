@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { processReviewSignoff } from "@/lib/coaching/process-review-signoff";
+import { requireManagerSession } from "@/lib/auth/require-manager";
 import { createNotification } from "@/lib/notifications/create-notification";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/database.types";
@@ -7,9 +9,10 @@ import type { Database } from "@/lib/database.types";
 type RouteContext = { params: Promise<{ id: string }> };
 
 const patchSchema = z.object({
- debriefNotes: z.string().optional(),
- sharedWithManager: z.boolean().optional(),
- managerComment: z.string().optional(),
+  debriefNotes: z.string().optional(),
+  sharedWithManager: z.boolean().optional(),
+  managerComment: z.string().optional(),
+  coachingSignoff: z.record(z.string(), z.unknown()).optional(),
 });
 
 export async function PATCH(request: Request, context: RouteContext) {
@@ -31,9 +34,34 @@ export async function PATCH(request: Request, context: RouteContext) {
  return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
  }
 
+ const body = parsed.data as Record<string, unknown>;
  const { id } = await context.params;
  const updates: Record<string, unknown> = {};
 
+ if (parsed.data.coachingSignoff) {
+ const managerSession = await requireManagerSession();
+ if (managerSession instanceof NextResponse) return managerSession;
+
+ const { data: prepSession } = await supabase
+ .from("deal_prep_sessions")
+ .select("user_id")
+ .eq("id", id)
+ .maybeSingle();
+ if (!prepSession) {
+ return NextResponse.json({ error: "Session not found" }, { status: 404 });
+ }
+
+ const signoffResult = await processReviewSignoff(managerSession.supabase, body, {
+ managerId: managerSession.user.id,
+ seUserId: prepSession.user_id,
+ tenantId: managerSession.tenantId,
+ reviewType: "deal_prep",
+ reviewTargetId: id,
+ decision: "approve",
+ });
+ if (signoffResult instanceof NextResponse) return signoffResult;
+ updates.manager_comment = signoffResult.feedback;
+ } else {
  if (parsed.data.debriefNotes !== undefined) {
  updates.debrief_notes = parsed.data.debriefNotes;
  }
@@ -42,6 +70,7 @@ export async function PATCH(request: Request, context: RouteContext) {
  }
  if (parsed.data.managerComment !== undefined) {
  updates.manager_comment = parsed.data.managerComment;
+ }
  }
 
  if (Object.keys(updates).length === 0) {
@@ -60,7 +89,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
  const isOwner = session.user_id === user.id;
  const isManagerCommentOnly =
- parsed.data.managerComment !== undefined &&
+ (parsed.data.managerComment !== undefined || parsed.data.coachingSignoff !== undefined) &&
  parsed.data.debriefNotes === undefined &&
  parsed.data.sharedWithManager === undefined;
 
