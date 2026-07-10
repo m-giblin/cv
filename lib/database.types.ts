@@ -17,6 +17,7 @@ export type Database = {
           role: Database["public"]["Enums"]["profile_role"];
           level: Database["public"]["Enums"]["se_level"];
           manager_id: string | null;
+          tenant_id: string | null;
           avatar_url: string | null;
           created_at: string;
           updated_at: string;
@@ -28,6 +29,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["profile_role"];
           level?: Database["public"]["Enums"]["se_level"];
           manager_id?: string | null;
+          tenant_id?: string | null;
           avatar_url?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -44,6 +46,7 @@ export type Database = {
           created_by: string | null;
           created_at: string;
           updated_at: string;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -71,6 +74,7 @@ export type Database = {
           simulation_template_id: string | null;
           metadata: Json;
           created_at: string;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -102,6 +106,7 @@ export type Database = {
           progress_percent: number;
           unlocked_segment_max: number;
           program_id: string | null;
+          tenant_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -117,6 +122,7 @@ export type Database = {
           progress_percent?: number;
           unlocked_segment_max?: number;
           program_id?: string | null;
+          tenant_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -134,6 +140,7 @@ export type Database = {
           notes: string | null;
           created_at: string;
           updated_at: string;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -165,6 +172,7 @@ export type Database = {
           target_level: Database["public"]["Enums"]["se_level"] | null;
           created_at: string;
           updated_at: string;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -198,6 +206,7 @@ export type Database = {
           ai_suggested_score: number | null;
           submitted_at: string | null;
           reviewed_at: string | null;
+          tenant_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -213,6 +222,7 @@ export type Database = {
           ai_suggested_score?: number | null;
           submitted_at?: string | null;
           reviewed_at?: string | null;
+          tenant_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -232,6 +242,7 @@ export type Database = {
           status: Database["public"]["Enums"]["assignment_status"];
           session_data: Json;
           transcript: Json;
+          tenant_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -247,6 +258,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["assignment_status"];
           session_data?: Json;
           transcript?: Json;
+          tenant_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -266,6 +278,7 @@ export type Database = {
           is_practice: boolean;
           sent_to_manager_at: string | null;
           reviewed_at: string | null;
+          tenant_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -281,6 +294,7 @@ export type Database = {
           is_practice?: boolean;
           sent_to_manager_at?: string | null;
           reviewed_at?: string | null;
+          tenant_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -295,6 +309,7 @@ export type Database = {
           event_type: string;
           title: string;
           metadata: Json;
+          tenant_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -304,6 +319,7 @@ export type Database = {
           event_type: string;
           title: string;
           metadata?: Json;
+          tenant_id?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["activity_logs"]["Insert"]>;
@@ -317,6 +333,7 @@ export type Database = {
           description: string | null;
           rubric: Json;
           created_at: string;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -338,6 +355,7 @@ export type Database = {
           action_url: string | null;
           read_at: string | null;
           created_at: string;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -364,6 +382,7 @@ export type Database = {
           created_by: string | null;
           created_at: string;
           updated_at: string;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -400,6 +419,7 @@ export type Database = {
           created_by: string | null;
           created_at: string;
           updated_at: string;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -435,6 +455,7 @@ export type Database = {
           resolved_at: string | null;
           resolved_by: string | null;
           created_at: string;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -460,6 +481,7 @@ export type Database = {
           label: string | null;
           created_by: string | null;
           created_at: string;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -488,6 +510,7 @@ export type Database = {
           escalated_at: string | null;
           status: string;
           created_at: string;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -522,6 +545,7 @@ export type Database = {
           published_at: string | null;
           created_at: string;
           updated_at: string;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -549,6 +573,7 @@ export type Database = {
           segment_count: number;
           cert_valid_months: number;
           created_at: string;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -567,6 +592,7 @@ export type Database = {
           program_id: string;
           segment_index: number;
           plan_id: string;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -587,6 +613,7 @@ export type Database = {
           certificate_code: string;
           issued_at: string;
           expires_at: string | null;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -609,6 +636,7 @@ export type Database = {
           reason: string;
           overridden_by: string;
           created_at: string;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -626,6 +654,7 @@ export type Database = {
           id: string;
           plan_step_id: string;
           prerequisite_plan_step_id: string;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -647,6 +676,7 @@ export type Database = {
           created_by: string | null;
           published_at: string;
           created_at: string;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -671,6 +701,7 @@ export type Database = {
           target_type: string;
           target_id: string | null;
           details: Json;
+          tenant_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -680,6 +711,7 @@ export type Database = {
           target_type: string;
           target_id?: string | null;
           details?: Json;
+          tenant_id?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["audit_logs"]["Insert"]>;
@@ -695,6 +727,7 @@ export type Database = {
           created_by: string | null;
           created_at: string;
           updated_at: string;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -721,6 +754,7 @@ export type Database = {
           overall_status: Database["public"]["Enums"]["goal_status"];
           created_at: string;
           updated_at: string;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -752,6 +786,7 @@ export type Database = {
           reviewed_by: string | null;
           created_at: string;
           updated_at: string;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -793,6 +828,7 @@ export type Database = {
           version_number: number;
           created_at: string;
           updated_at: string;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -815,6 +851,7 @@ export type Database = {
           version_number?: number;
           created_at?: string;
           updated_at?: string;
+          tenant_id?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["deal_prep_sessions"]["Insert"]>;
         Relationships: [];
@@ -829,6 +866,7 @@ export type Database = {
           notes: string;
           takeaways: string | null;
           created_at: string;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -855,6 +893,7 @@ export type Database = {
           status: string;
           created_at: string;
           completed_at: string | null;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -879,6 +918,7 @@ export type Database = {
           notes: string;
           created_at: string;
           updated_at: string;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -904,6 +944,7 @@ export type Database = {
           manager_notes: string | null;
           created_at: string;
           updated_at: string;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -927,6 +968,7 @@ export type Database = {
           user_id: string;
           module_id: string;
           completed_at: string;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -943,6 +985,7 @@ export type Database = {
           questions: Json;
           source: string;
           created_at: string;
+          tenant_id: string | null;
         };
         Insert: {
           week_id: string;
@@ -962,6 +1005,7 @@ export type Database = {
           total: number;
           answers: Json;
           submitted_at: string;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -971,6 +1015,7 @@ export type Database = {
           total: number;
           answers?: Json;
           submitted_at?: string;
+          tenant_id?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["market_pulse_results"]["Insert"]>;
         Relationships: [];
@@ -986,6 +1031,7 @@ export type Database = {
           metadata: Json;
           created_at: string;
           updated_at: string;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -1016,6 +1062,7 @@ export type Database = {
           recommended_cert_type: string | null;
           saved_to_prep_session_id: string | null;
           created_at: string;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -1046,6 +1093,7 @@ export type Database = {
           source_fetched_at: string | null;
           content_version: string | null;
           created_at: string;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -1072,6 +1120,7 @@ export type Database = {
           sources: Json;
           delivered_at: string | null;
           created_at: string;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -1099,6 +1148,7 @@ export type Database = {
           recommended_actions: Json;
           started_at: string;
           completed_at: string | null;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -1111,6 +1161,7 @@ export type Database = {
           recommended_actions?: Json;
           started_at?: string;
           completed_at?: string | null;
+          tenant_id?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["adaptive_probe_sessions"]["Insert"]>;
         Relationships: [];
@@ -1126,6 +1177,7 @@ export type Database = {
           comment: string | null;
           endorsed: boolean;
           created_at: string;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -1149,6 +1201,7 @@ export type Database = {
           points: number;
           metadata: Json;
           created_at: string;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -1157,6 +1210,7 @@ export type Database = {
           points?: number;
           metadata?: Json;
           created_at?: string;
+          tenant_id?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["gamification_events"]["Insert"]>;
         Relationships: [];
@@ -1173,6 +1227,7 @@ export type Database = {
           view_count: number;
           expires_at: string | null;
           created_at: string;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -1198,6 +1253,7 @@ export type Database = {
           viewer_fingerprint: string | null;
           metadata: Json;
           created_at: string;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -1225,6 +1281,7 @@ export type Database = {
           risk_signals: Json;
           source: string;
           fetched_at: string;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -1258,6 +1315,7 @@ export type Database = {
           reviewed_at: string | null;
           reviewed_by: string | null;
           created_at: string;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -1273,6 +1331,7 @@ export type Database = {
           reviewed_at?: string | null;
           reviewed_by?: string | null;
           created_at?: string;
+          tenant_id?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["pitch_submissions"]["Insert"]>;
         Relationships: [];
@@ -1287,6 +1346,7 @@ export type Database = {
           event_type: string;
           metadata: Json;
           created_at: string;
+          tenant_id: string | null;
         };
         Insert: {
           id?: string;
@@ -1304,6 +1364,7 @@ export type Database = {
       platform_settings: {
         Row: {
           id: string;
+          tenant_id: string | null;
           provider: string;
           model: string;
           api_key_ciphertext: string | null;
@@ -1317,6 +1378,7 @@ export type Database = {
         };
         Insert: {
           id?: string;
+          tenant_id?: string | null;
           provider?: string;
           model?: string;
           api_key_ciphertext?: string | null;
@@ -1331,6 +1393,80 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["platform_settings"]["Insert"]>;
         Relationships: [];
       };
+      tenants: {
+        Row: {
+          id: string;
+          slug: string;
+          name: string;
+          status: string;
+          branding_primary_color: string;
+          branding_logo_url: string | null;
+          allowed_email_domains: Json;
+          welcome_message: string | null;
+          operator_notes: string | null;
+          maintenance_mode: boolean;
+          maintenance_message: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          slug: string;
+          name: string;
+          status?: string;
+          branding_primary_color?: string;
+          branding_logo_url?: string | null;
+          allowed_email_domains?: Json;
+          welcome_message?: string | null;
+          operator_notes?: string | null;
+          maintenance_mode?: boolean;
+          maintenance_message?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["tenants"]["Insert"]>;
+        Relationships: [];
+      };
+      support_requests: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          reporter_id: string;
+          subject: string;
+          body: string;
+          priority: string;
+          status: string;
+          page_url: string | null;
+          operator_notes: string | null;
+          operator_reply: string | null;
+          assigned_to: string | null;
+          first_response_at: string | null;
+          resolved_at: string | null;
+          resolved_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          tenant_id: string;
+          reporter_id: string;
+          subject: string;
+          body: string;
+          priority?: string;
+          status?: string;
+          page_url?: string | null;
+          operator_notes?: string | null;
+          operator_reply?: string | null;
+          assigned_to?: string | null;
+          first_response_at?: string | null;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["support_requests"]["Insert"]>;
+        Relationships: [];
+      };
       ai_usage_logs: {
         Row: {
           id: string;
@@ -1341,6 +1477,7 @@ export type Database = {
           completion_tokens: number;
           total_tokens: number;
           user_id: string | null;
+          tenant_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -1352,9 +1489,34 @@ export type Database = {
           completion_tokens?: number;
           total_tokens?: number;
           user_id?: string | null;
+          tenant_id?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["ai_usage_logs"]["Insert"]>;
+        Relationships: [];
+      };
+      tenant_admin_invites: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          email: string;
+          full_name: string;
+          invited_by: string | null;
+          status: string;
+          created_at: string;
+          accepted_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          tenant_id: string;
+          email: string;
+          full_name: string;
+          invited_by?: string | null;
+          status?: string;
+          created_at?: string;
+          accepted_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["tenant_admin_invites"]["Insert"]>;
         Relationships: [];
       };
     };
@@ -1362,6 +1524,14 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      set_session_tenant: {
+        Args: { p_tenant_id: string | null };
+        Returns: undefined;
+      };
+      effective_tenant_id: {
+        Args: Record<PropertyKey, never>;
+        Returns: string | null;
+      };
       get_profile_subtree: {
         Args: { root_profile_id: string };
         Returns: { id: string }[];
@@ -1377,6 +1547,7 @@ export type Database = {
           p_target_id?: string;
           p_details?: Json;
           p_actor_id?: string;
+          p_tenant_id?: string;
         };
         Returns: string;
       };
@@ -1410,7 +1581,8 @@ export type Database = {
         | "mentor"
         | "manager"
         | "director"
-        | "admin";
+        | "admin"
+        | "super_admin";
       se_level: "Basic" | "Senior" | "Advisory";
       plan_step_type:
         | "content_review"

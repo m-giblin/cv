@@ -1,10 +1,16 @@
 import { ProfileRole } from "@/lib/types";
+import type { PlatformFeatureFlags } from "@/lib/platform/settings-shared";
+import { filterNavHref } from "@/lib/platform/feature-flags";
 
-export type AccessTier = "admin" | "manager" | "se";
+export type AccessTier = "super_admin" | "admin" | "manager" | "se";
 
 export const SESSION_IDLE_MS = 15 * 60 * 1000; /** Fallback when platform_settings is unavailable */
 
 export function getAccessTier(role: ProfileRole): AccessTier {
+  if (role === "super_admin") {
+    return "super_admin";
+  }
+
   if (role === "admin" || role === "director") {
     return "admin";
   }
@@ -18,13 +24,23 @@ export function getAccessTier(role: ProfileRole): AccessTier {
 
 export function getHomeRoute(tier: AccessTier): string {
   switch (tier) {
+    case "super_admin":
+      return "/platform";
     case "admin":
-      return "/dashboard";
+      return "/admin";
     case "manager":
       return "/manager?section=command";
     case "se":
       return "/dashboard";
   }
+}
+
+/** Where to send someone when a route is blocked by entitlements (avoid /admin ↔ loop). */
+export function getAccessDeniedRedirect(tier: AccessTier, pathname: string): string {
+  if (tier === "admin" && pathname.startsWith("/admin")) {
+    return "/dashboard";
+  }
+  return getHomeRoute(tier);
 }
 
 type NavItem = {
@@ -67,7 +83,8 @@ export const MANAGER_SECTIONS = [
 export type ManagerSectionId = (typeof MANAGER_SECTIONS)[number]["section"];
 
 export const NAV_ITEMS: NavItem[] = [
-  { href: "/dashboard", label: "My Workspace", icon: "dashboard", tiers: ["admin", "se"] },
+  { href: "/dashboard", label: "My Workspace", icon: "dashboard", tiers: ["se"] },
+  { href: "/my-practice", label: "My Practice", icon: "simulations", tiers: ["admin", "manager"] },
   { href: "/my-plan", label: "My Ramp Plan", icon: "plans", tiers: ["se"] },
   { href: "/growth", label: "My Growth", icon: "growth", tiers: ["se"] },
   { href: "/feedback", label: "My Feedback", icon: "feedback", tiers: ["se"] },
@@ -95,19 +112,20 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/pitch", label: "Pitch Studio", icon: "prep", tiers: ["admin", "manager", "se"] },
   { href: "/flight-check", label: "Flight Check", icon: "flight-check", tiers: ["admin", "manager", "se"] },
   { href: "/admin", label: "Admin Console", icon: "admin", tiers: ["admin"] },
-  { href: "/account", label: "Account", icon: "account", tiers: ["admin", "manager", "se"] },
+  { href: "/platform", label: "Platform", icon: "admin", tiers: ["super_admin"] },
+  { href: "/account", label: "Account", icon: "account", tiers: ["admin", "manager", "se", "super_admin"] },
 ];
 
 const NAV_GROUP_LABELS: Record<NavGroupId, string> = {
-  workspace: "Workspace",
-  command: "Command",
-  team: "Team",
-  coaching: "Coaching",
-  program: "Program",
-  readiness: "Readiness",
-  practice: "Practice",
-  system: "Admin",
-  account: "Account",
+  workspace: "WORKSPACE",
+  command: "COMMAND",
+  team: "TEAM",
+  coaching: "COACHING",
+  program: "PROGRAM",
+  readiness: "READINESS",
+  practice: "PRACTICE",
+  system: "ADMIN",
+  account: "ACCOUNT",
 };
 
 /** Workflow-oriented nav order per role — groups reflect how SEs and managers actually work. */
@@ -144,20 +162,22 @@ const TIER_NAV_GROUPS: Record<AccessTier, { id: NavGroupId; hrefs: string[] }[]>
     },
     { id: "system", hrefs: ["/admin"] },
   ],
+  super_admin: [{ id: "system", hrefs: ["/platform"] }],
 };
 
 function findNavItem(href: string): NavItem | undefined {
   return NAV_ITEMS.find((item) => item.href === href);
 }
 
-export function getNavGroupsForTier(tier: AccessTier): NavGroup[] {
+export function getNavGroupsForTier(tier: AccessTier, featureFlags?: PlatformFeatureFlags): NavGroup[] {
   return TIER_NAV_GROUPS[tier]
     .map((group) => ({
       id: group.id,
       label: NAV_GROUP_LABELS[group.id],
       items: group.hrefs
         .map((href) => findNavItem(href))
-        .filter((item): item is NavItem => Boolean(item && item.tiers.includes(tier))),
+        .filter((item): item is NavItem => Boolean(item && item.tiers.includes(tier)))
+        .filter((item) => (featureFlags ? filterNavHref(item.href, featureFlags) : true)),
     }))
     .filter((group) => group.items.length > 0);
 }
@@ -193,11 +213,22 @@ export function isNavItemActive(
   return pathname === basePath || pathname.startsWith(`${basePath}/`);
 }
 
-export function getNavItemsForTier(tier: AccessTier) {
-  return getNavGroupsForTier(tier).flatMap((group) => group.items);
+export function getNavItemsForTier(tier: AccessTier, featureFlags?: PlatformFeatureFlags) {
+  return getNavGroupsForTier(tier, featureFlags).flatMap((group) => group.items);
 }
 
-export function canAccessRoute(tier: AccessTier, pathname: string): boolean {
+export function canAccessRoute(
+  tier: AccessTier,
+  pathname: string,
+  featureFlags?: PlatformFeatureFlags,
+): boolean {
+  if (pathname.startsWith("/platform")) {
+    return tier === "super_admin";
+  }
+
+  if (featureFlags && !filterNavHref(pathname, featureFlags)) {
+    return false;
+  }
   if (pathname.startsWith("/account")) {
     return true;
   }
@@ -208,6 +239,10 @@ export function canAccessRoute(tier: AccessTier, pathname: string): boolean {
 
   if (pathname === "/manager" || pathname.startsWith("/manager/")) {
     return tier === "admin" || tier === "manager";
+  }
+
+  if (pathname === "/my-practice") {
+    return tier === "admin" || tier === "manager" || tier === "se";
   }
 
   const match = NAV_ITEMS.find((item) => {
@@ -224,6 +259,7 @@ export function canAccessRoute(tier: AccessTier, pathname: string): boolean {
       pathname === "/" ||
       pathname.startsWith("/plan-steps") ||
       pathname.startsWith("/my-plan") ||
+      pathname.startsWith("/my-practice") ||
       pathname.startsWith("/learn") ||
       pathname.startsWith("/lab") ||
       pathname.startsWith("/market-pulse") ||
@@ -237,6 +273,8 @@ export function canAccessRoute(tier: AccessTier, pathname: string): boolean {
 
 export function getTierLabel(tier: AccessTier): string {
   switch (tier) {
+    case "super_admin":
+      return "Platform operator";
     case "admin":
       return "Administrator";
     case "manager":

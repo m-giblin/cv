@@ -1,3 +1,4 @@
+import { DEFAULT_TENANT_ID } from "@/lib/tenant/types";
 import {
   ActivityLog,
   Challenge,
@@ -11,6 +12,8 @@ import {
   UserPlan,
 } from "@/lib/types";
 
+const DEMO_TENANT = DEFAULT_TENANT_ID;
+
 export const profiles: Profile[] = [
   {
     id: "matt",
@@ -19,6 +22,7 @@ export const profiles: Profile[] = [
     role: "director",
     level: "Advisory",
     managerId: null,
+    tenantId: DEMO_TENANT,
     createdAt: "2026-01-02T12:00:00.000Z",
   },
   {
@@ -28,6 +32,7 @@ export const profiles: Profile[] = [
     role: "manager",
     level: "Advisory",
     managerId: "matt",
+    tenantId: DEMO_TENANT,
     createdAt: "2026-01-15T12:00:00.000Z",
   },
   {
@@ -37,6 +42,7 @@ export const profiles: Profile[] = [
     role: "senior_se",
     level: "Senior",
     managerId: "priya",
+    tenantId: DEMO_TENANT,
     createdAt: "2026-02-01T12:00:00.000Z",
   },
   {
@@ -46,6 +52,7 @@ export const profiles: Profile[] = [
     role: "basic_se",
     level: "Basic",
     managerId: "priya",
+    tenantId: DEMO_TENANT,
     createdAt: "2026-03-03T12:00:00.000Z",
   },
   {
@@ -55,6 +62,7 @@ export const profiles: Profile[] = [
     role: "mentor",
     level: "Advisory",
     managerId: "matt",
+    tenantId: DEMO_TENANT,
     createdAt: "2026-01-18T12:00:00.000Z",
   },
   {
@@ -64,6 +72,7 @@ export const profiles: Profile[] = [
     role: "basic_se",
     level: "Basic",
     managerId: "jordan",
+    tenantId: DEMO_TENANT,
     createdAt: "2026-04-10T12:00:00.000Z",
   },
   {
@@ -73,6 +82,7 @@ export const profiles: Profile[] = [
     role: "manager",
     level: "Senior",
     managerId: "matt",
+    tenantId: DEMO_TENANT,
     createdAt: "2026-05-01T12:00:00.000Z",
   },
   {
@@ -82,6 +92,7 @@ export const profiles: Profile[] = [
     role: "basic_se",
     level: "Basic",
     managerId: "john-barrett",
+    tenantId: DEMO_TENANT,
     createdAt: "2026-05-10T12:00:00.000Z",
   },
   {
@@ -91,6 +102,7 @@ export const profiles: Profile[] = [
     role: "basic_se",
     level: "Basic",
     managerId: "john-barrett",
+    tenantId: DEMO_TENANT,
     createdAt: "2026-05-10T12:00:00.000Z",
   },
   {
@@ -100,6 +112,7 @@ export const profiles: Profile[] = [
     role: "basic_se",
     level: "Basic",
     managerId: "john-barrett",
+    tenantId: DEMO_TENANT,
     createdAt: "2026-05-10T12:00:00.000Z",
   },
   {
@@ -109,6 +122,7 @@ export const profiles: Profile[] = [
     role: "basic_se",
     level: "Basic",
     managerId: "john-barrett",
+    tenantId: DEMO_TENANT,
     createdAt: "2026-05-10T12:00:00.000Z",
   },
   {
@@ -118,6 +132,7 @@ export const profiles: Profile[] = [
     role: "basic_se",
     level: "Basic",
     managerId: "john-barrett",
+    tenantId: DEMO_TENANT,
     createdAt: "2026-05-10T12:00:00.000Z",
   },
   {
@@ -127,6 +142,7 @@ export const profiles: Profile[] = [
     role: "basic_se",
     level: "Basic",
     managerId: "matt",
+    tenantId: DEMO_TENANT,
     createdAt: "2026-05-10T12:00:00.000Z",
   },
   {
@@ -136,6 +152,7 @@ export const profiles: Profile[] = [
     role: "basic_se",
     level: "Basic",
     managerId: "matt",
+    tenantId: DEMO_TENANT,
     createdAt: "2026-05-10T12:00:00.000Z",
   },
   {
@@ -145,6 +162,7 @@ export const profiles: Profile[] = [
     role: "basic_se",
     level: "Basic",
     managerId: "matt",
+    tenantId: DEMO_TENANT,
     createdAt: "2026-05-10T12:00:00.000Z",
   },
   {
@@ -154,6 +172,7 @@ export const profiles: Profile[] = [
     role: "basic_se",
     level: "Basic",
     managerId: "matt",
+    tenantId: DEMO_TENANT,
     createdAt: "2026-05-10T12:00:00.000Z",
   },
   {
@@ -163,6 +182,7 @@ export const profiles: Profile[] = [
     role: "basic_se",
     level: "Basic",
     managerId: "matt",
+    tenantId: DEMO_TENANT,
     createdAt: "2026-05-10T12:00:00.000Z",
   },
 ];

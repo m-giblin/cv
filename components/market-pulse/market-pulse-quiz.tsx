@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { Check } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { AnimatedProgressFill } from "@/components/se/northstar-animated";
-import { SP_OUTLINE_BTN, SP_BLUE_BTN } from "@/components/se/sp-form-primitives";
+import { loadMarketPulseHistory, saveMarketPulseResult } from "@/lib/market-pulse/history";
 import { cn } from "@/lib/utils";
 
 type PulseQuestion = {
@@ -18,18 +18,42 @@ type Explanation = { id: string; correctIndex: number; explanation: string };
 
 type Reinforcement = { id: string; title: string; reason: string };
 
-const COMPETITORS = ["Microsoft Entra", "Okta", "CyberArk", "Saviynt", "DIY / Copilot"];
+const COMPETITOR_REF = [
+  {
+    label: "Okta",
+    color: "#0071CE",
+    text: "Workforce IGA only. No NHI lifecycle, no agent governance. Weak on SoD controls.",
+  },
+  {
+    label: "Microsoft Entra",
+    color: "#5b21b6",
+    text: "Good for workforce SSO. Agent governance is marketing, not product reality.",
+  },
+  {
+    label: "Saviynt",
+    color: "#D4810A",
+    text: "IGA competitor. Weak deployment track record. SoD complexity is a known pain.",
+  },
+] as const;
 
-const MORE_QUIZZES = [
-  { name: "SailPoint vs. Okta — Agent governance", tag: "In progress", tagBg: "#dbeafe", tagColor: "#1d4ed8", score: "—", scoreColor: "#0071ce", sub: "5 questions · Competitive positioning", cta: "Continue", state: "active" as const },
-  { name: "SailPoint vs. Entra — Copilot policies", tag: "Available", tagBg: "#f1f5f9", tagColor: "#64748b", score: "—", scoreColor: "#94a3b8", sub: "5 questions · ~4 min", cta: "Start quiz", state: "available" as const },
-  { name: "Saviynt vs. SailPoint — SoD controls", tag: "Available", tagBg: "#f1f5f9", tagColor: "#64748b", score: "80%", scoreColor: "#10b981", sub: "Completed Oct 12", cta: "Review", state: "available" as const },
-  { name: "DIY / Copilot-only trap questions", tag: "Available", tagBg: "#f1f5f9", tagColor: "#64748b", score: "65%", scoreColor: "#f59e0b", sub: "Completed Oct 5", cta: "Review", state: "available" as const },
-  { name: "CyberArk PAM vs. ISC governance", tag: "Coming soon", tagBg: "#f1f5f9", tagColor: "#94a3b8", score: "—", scoreColor: "#cbd5e1", sub: "Unlocks next week", cta: "Locked", state: "locked" as const },
-  { name: "Federal vertical competitive set", tag: "Coming soon", tagBg: "#f1f5f9", tagColor: "#94a3b8", score: "—", scoreColor: "#cbd5e1", sub: "Unlocks next week", cta: "Locked", state: "locked" as const },
-];
+function scoreColor(score: number) {
+  if (score >= 85) return "#0A6E45";
+  if (score >= 70) return "#0071CE";
+  return "#D4810A";
+}
 
-export function MarketPulseQuiz() {
+function formatWeekLabel(weekId: string) {
+  if (!weekId) return "This week";
+  const date = new Date(`${weekId}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return `Week ${weekId}`;
+  return `Week of ${date.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
+}
+
+export function MarketPulseQuiz({
+  onProgressHintChange,
+}: {
+  onProgressHintChange?: (hint: string) => void;
+}) {
   const [questions, setQuestions] = useState<PulseQuestion[]>([]);
   const [weekId, setWeekId] = useState("");
   const [answers, setAnswers] = useState<Record<string, number>>({});
@@ -38,7 +62,7 @@ export function MarketPulseQuiz() {
   const [explanations, setExplanations] = useState<Explanation[]>([]);
   const [reinforcements, setReinforcements] = useState<Reinforcement[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [history, setHistory] = useState(loadMarketPulseHistory());
 
   useEffect(() => {
     void (async () => {
@@ -61,6 +85,25 @@ export function MarketPulseQuiz() {
       setLoading(false);
     })();
   }, []);
+
+  const answeredCount = Object.keys(answers).length;
+  const weekLabel = formatWeekLabel(weekId);
+  const focusTitle = useMemo(() => {
+    const topic = questions[0]?.topic ?? "the field";
+    if (topic.toLowerCase().includes("okta")) return "SailPoint vs. Okta";
+    if (topic.toLowerCase().includes("entra")) return "SailPoint vs. Entra";
+    return `SailPoint vs. ${topic}`;
+  }, [questions]);
+
+  useEffect(() => {
+    onProgressHintChange?.(
+      questions.length
+        ? `${weekLabel} · ${answeredCount} of ${questions.length} answered`
+        : weekLabel,
+    );
+  }, [answeredCount, onProgressHintChange, questions.length, weekLabel]);
+
+  const explanationMap = new Map(explanations.map((item) => [item.id, item]));
 
   async function handleSubmit() {
     if (Object.keys(answers).length < questions.length) {
@@ -89,261 +132,282 @@ export function MarketPulseQuiz() {
     setExplanations(body.explanations);
     setReinforcements(body.reinforcements ?? []);
     setSubmitted(true);
+    saveMarketPulseResult({ weekId, score: body.score, total: body.total });
+    setHistory(loadMarketPulseHistory());
     toast.success(`Score: ${body.score}/${body.total}`);
   }
 
   if (loading) {
-    return <p className="text-sm text-[#64748b]">Loading this week&apos;s market pulse…</p>;
+    return (
+      <div className="flex flex-1 items-center justify-center p-8 text-sm text-[#6B6860]">
+        Loading this week&apos;s market pulse…
+      </div>
+    );
   }
 
   if (questions.length === 0) {
-    return <p className="text-sm text-[#64748b]">Market pulse unavailable — check Supabase connection.</p>;
+    return (
+      <div className="flex flex-1 items-center justify-center p-8 text-sm text-[#6B6860]">
+        Market pulse unavailable — check Supabase connection.
+      </div>
+    );
   }
 
-  const explanationMap = new Map(explanations.map((item) => [item.id, item]));
-  const answeredCount = Object.keys(answers).length;
-  const avgScorePct =
-    submitted && questions.length > 0 ? Math.round((score / questions.length) * 100) : answeredCount > 0 ? "—" : "—";
-  const activeQuestion = questions[activeIndex];
-  const activeExplain = activeQuestion ? explanationMap.get(activeQuestion.id) : undefined;
-
   return (
-    <div className="animate-[fadeUp_0.2s_ease-out] space-y-4">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {[
-          {
-            label: "Competitive score",
-            value: submitted ? `${Math.round((score / questions.length) * 100)}%` : "—",
-            accent: "#0071ce",
-          },
-          { label: "Quizzes completed", value: submitted ? "1" : "0", accent: "#10b981" },
-          {
-            label: "Avg quiz score",
-            value: typeof avgScorePct === "string" ? avgScorePct : `${avgScorePct}%`,
-            accent: "#cc27b0",
-          },
-          { label: "Current streak", value: submitted ? "1 wk" : "0", accent: "#f59e0b" },
-        ].map((stat) => (
-          <div
-            className="rounded-xl border border-[#e2eaf5] border-l-[3px] bg-white p-3 shadow-[0_1px_4px_rgba(0,20,58,0.04)]"
-            key={stat.label}
-            style={{ borderLeftColor: stat.accent }}
-          >
-            <p className="text-[10px] font-bold uppercase text-[#94a3b8]">{stat.label}</p>
-            <p className="mt-1 font-display text-xl font-extrabold text-[#0a1628]">{stat.value}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-[1fr_280px]">
-        <div className="overflow-hidden rounded-xl border border-[#e2eaf5] bg-white shadow-[0_1px_4px_rgba(0,20,58,0.04)]">
-          <div className="h-[3px]" style={{ background: "linear-gradient(90deg,#0369a1,#0891b2)" }} />
-          <div className="border-b border-[#f1f5f9] px-5 py-4">
-            <p className="text-[9.5px] font-bold uppercase tracking-[0.07em] text-[#0891b2]">
-              Week {weekId} · SailPoint vs. market
-            </p>
-            <p className="mt-1 font-display text-[15px] font-extrabold text-[#0a1628]">
-              {activeQuestion?.topic ?? "Weekly pulse"}
-            </p>
-            <div className="mt-3 flex gap-[4px]">
-              {questions.map((question, index) => {
-                const answered = answers[question.id] !== undefined;
-                return (
-                  <button
-                    className={cn(
-                      "h-[5px] w-[14px] rounded-full transition",
-                      index === activeIndex
-                        ? "bg-[#0891b2]"
-                        : answered
-                          ? "bg-[#0891b2]/45"
-                          : "bg-[#e2e8f0]",
-                    )}
-                    key={question.id}
-                    onClick={() => setActiveIndex(index)}
-                    type="button"
-                  />
-                );
-              })}
-            </div>
-          </div>
-
-          {activeQuestion ? (
-            <div className="px-5 py-4">
-              <p className="mb-4 text-[13px] font-bold leading-[1.55] text-[#0a1628]">{activeQuestion.question}</p>
-              <div className="space-y-2">
-                {activeQuestion.options.map((option, optionIndex) => {
-                  const selected = answers[activeQuestion.id] === optionIndex;
-                  const showResult = submitted && activeExplain;
-                  const isCorrect = activeExplain?.correctIndex === optionIndex;
-
-                  return (
-                    <button
-                      className={cn(
-                        "flex w-full gap-2.5 rounded-[9px] border px-3.5 py-2.5 text-left text-[12px] leading-[1.5] transition",
-                        showResult && isCorrect
-                          ? "border-emerald-300 bg-emerald-50 text-[#0a1628]"
-                          : showResult && selected && !isCorrect
-                            ? "border-red-200 bg-red-50 text-[#0a1628]"
-                            : selected
-                              ? "border-[1.5px] border-[#0071ce] bg-[#f0f7ff] text-[#0a1628]"
-                              : "border border-[#e2eaf5] bg-white text-[#475569]",
-                      )}
-                      disabled={submitted}
-                      key={option}
-                      onClick={() => setAnswers((current) => ({ ...current, [activeQuestion.id]: optionIndex }))}
-                      type="button"
-                    >
-                      <span
-                        className={cn(
-                          "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[9.5px] font-extrabold",
-                          selected ? "bg-[#0071ce] text-white" : "border-[1.5px] border-[#e2eaf5] text-[#94a3b8]",
-                        )}
-                      >
-                        {String.fromCharCode(65 + optionIndex)}
-                      </span>
-                      {option}
-                    </button>
-                  );
-                })}
-              </div>
-              {submitted && activeExplain ? (
-                <p className="mt-3 text-sm leading-6 text-[#64748b]">{activeExplain.explanation}</p>
-              ) : null}
-              <div className="mt-4 flex flex-wrap gap-[9px]">
-                {!submitted ? (
-                  <>
-                    <button
-                      className={cn(SP_BLUE_BTN, "disabled:opacity-40 disabled:cursor-not-allowed")}
-                      disabled={answers[activeQuestion.id] === undefined}
-                      onClick={() => {
-                        if (activeIndex < questions.length - 1) {
-                          setActiveIndex(activeIndex + 1);
-                        }
-                      }}
-                      type="button"
-                    >
-                      {activeIndex < questions.length - 1 ? "Next question →" : "Review answers"}
-                    </button>
-                    <button
-                      className={SP_OUTLINE_BTN}
-                      onClick={() => setActiveIndex((index) => Math.min(index + 1, questions.length - 1))}
-                      type="button"
-                    >
-                      Skip
-                    </button>
-                  </>
-                ) : null}
-                {!submitted && answeredCount === questions.length ? (
-                  <button className={SP_BLUE_BTN} onClick={() => void handleSubmit()} type="button">
-                    Submit weekly pulse
-                  </button>
-                ) : null}
-              </div>
-            </div>
-          ) : null}
+    <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[1fr_300px]">
+      {/* Left — quiz */}
+      <div className="min-h-0 overflow-y-auto border-r border-[#E2DFD9] bg-white px-7 py-5">
+        <div className="mb-5">
+          <p className="mb-1 font-mono text-[8.5px] uppercase tracking-[0.16em] text-[#065F46]">
+            {weekLabel} · {focusTitle}
+          </p>
+          <h1 className="font-display text-2xl font-extrabold leading-none tracking-[-0.03em] text-[#0D0E12]">
+            Market Pulse
+          </h1>
+          <p className="mt-1 text-xs text-[#6B6860]">
+            {questions.length} questions · ~4 min · Scores feed Competitive Positioning competency
+          </p>
         </div>
 
-        <aside className="space-y-3">
-          <div className="rounded-xl border border-[#e2eaf5] bg-white p-4 shadow-[0_1px_4px_rgba(0,20,58,0.04)]">
-            <p className="text-xs font-bold text-[#0a1628]">Competitor coverage</p>
-            <div className="mt-3 space-y-2.5">
-              {COMPETITORS.map((name, index) => {
-                const mastery = submitted ? Math.max(20, 100 - index * 15) : index === 0 ? 40 : 0;
-                return (
-                  <div key={name}>
-                    <div className="mb-1 flex items-center justify-between text-[11px]">
-                      <span className="font-semibold text-[#1e293b]">{name}</span>
-                      <span className="font-bold text-[#0071ce]">{mastery > 0 ? `${mastery}%` : "—"}</span>
-                    </div>
-                    <div className="h-1.5 overflow-hidden rounded-full bg-[#e8f2fc]">
-                      <AnimatedProgressFill percent={mastery} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+        <div className="mb-6 flex gap-1">
+          {questions.map((question, index) => {
+            const answered = answers[question.id] !== undefined;
+            const explained = submitted && explanationMap.has(question.id);
+            const correct =
+              explained && explanationMap.get(question.id)?.correctIndex === answers[question.id];
+            const color = submitted
+              ? correct || explained
+                ? "#0A6E45"
+                : answered
+                  ? "#D4810A"
+                  : "#ECEAE6"
+              : answered
+                ? "#0A6E45"
+                : "#ECEAE6";
+            return (
+              <div
+                className="h-[3px] flex-1 transition-colors"
+                key={question.id}
+                style={{ background: color }}
+                title={`Question ${index + 1}`}
+              />
+            );
+          })}
+        </div>
 
-          <div className="rounded-xl border border-[#e2eaf5] bg-white p-4 shadow-[0_1px_4px_rgba(0,20,58,0.04)]">
-            <p className="text-xs font-bold text-[#0a1628]">Recent scores</p>
-            {submitted ? (
-              <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
-                <p className="font-display text-lg font-extrabold text-emerald-900">
-                  {score}/{questions.length}
-                </p>
-                <p className="text-[11px] text-emerald-800">Week {weekId}</p>
-              </div>
-            ) : (
-              <p className="mt-2 text-xs text-[#94a3b8]">Complete this week&apos;s pulse to log your score.</p>
-            )}
-          </div>
-        </aside>
-      </div>
+        <div className="overflow-hidden border border-[#E2DFD9]">
+          {questions.map((question, index) => {
+            const num = String(index + 1).padStart(2, "0");
+            const explain = explanationMap.get(question.id);
+            const showResults = submitted && explain;
 
-      <section>
-        <h2 className="font-display text-sm font-bold text-[#0a1628]">More quizzes</h2>
-        <div className="mt-3 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-          {MORE_QUIZZES.map((quiz) => (
-            <div
-              className={cn(
-                "rounded-xl border bg-white p-3.5 shadow-[0_1px_4px_rgba(0,20,58,0.04)]",
-                quiz.state === "active" ? "border-2 border-[#0071ce]/30" : "border-[#e2eaf5]",
-                quiz.state === "locked" && "opacity-60",
-              )}
-              key={quiz.name}
-            >
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <span
-                  className="rounded-full px-2 py-0.5 text-[9.5px] font-bold"
-                  style={{ backgroundColor: quiz.tagBg, color: quiz.tagColor }}
-                >
-                  {quiz.tag}
-                </span>
-                <span className="text-[10.5px] font-bold" style={{ color: quiz.scoreColor }}>
-                  {quiz.score}
-                </span>
-              </div>
-              <p className="text-[12.5px] font-bold text-[#0a1628]">{quiz.name}</p>
-              <p className="mt-0.5 text-[10.5px] text-[#64748b]">{quiz.sub}</p>
-              <button
+            return (
+              <div
                 className={cn(
-                  "mt-2.5 w-full rounded-lg px-3 py-1.5 text-[11px] font-semibold",
-                  quiz.state === "locked"
-                    ? "cursor-not-allowed bg-[#f1f5f9] text-[#94a3b8]"
-                    : quiz.state === "active"
-                      ? "bg-[#0071ce] text-white hover:bg-[#0057a8]"
-                      : "border border-[#e2eaf5] bg-white text-[#475569] hover:bg-[#f8fafd]",
+                  "border-b border-[#ECEAE6] px-4 py-4 last:border-b-0",
+                  index % 2 === 1 ? "bg-[#F9F8F6]" : "bg-white",
                 )}
-                disabled={quiz.state === "locked"}
-                type="button"
+                key={question.id}
               >
-                {quiz.cta}
-              </button>
-            </div>
-          ))}
-        </div>
-      </section>
+                <div className="flex items-start gap-3">
+                  <span
+                    className={cn(
+                      "w-[22px] shrink-0 font-mono text-base leading-none",
+                      showResults ? "text-[#A09D98]" : "text-[#0D0E12]",
+                    )}
+                  >
+                    {num}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="mb-2.5 text-[12.5px] font-semibold leading-snug text-[#0D0E12]">
+                      {question.question}
+                    </p>
+                    <div className="flex flex-col gap-1.5">
+                      {question.options.map((option, optionIndex) => {
+                        const selected = answers[question.id] === optionIndex;
+                        const isCorrect = explain?.correctIndex === optionIndex;
+                        const showCorrect = showResults && isCorrect;
+                        const showWrong = showResults && selected && !isCorrect;
 
-      {submitted && reinforcements.length > 0 ? (
-        <div className="rounded-xl border border-[#e2eaf5] bg-white p-4 shadow-[0_1px_4px_rgba(0,20,58,0.04)]">
-          <p className="font-display text-sm font-extrabold text-[#0a1628]">Reinforce with practice</p>
-          <p className="mt-1 text-xs text-[#64748b]">Missed topics — assign yourself a matching challenge.</p>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {reinforcements.map((item) => (
-              <div className="rounded-xl border border-[#e2eaf5] bg-[#f8fafd] p-3" key={item.id}>
-                <p className="text-sm font-semibold text-[#0a1628]">{item.title}</p>
-                <p className="mt-1 text-xs text-[#64748b]">{item.reason}</p>
-                <Link
-                  className="mt-2 inline-block text-xs font-semibold text-[#0071ce] hover:underline"
-                  href={`/challenges?challenge=${item.id}`}
+                        return (
+                          <button
+                            className={cn(
+                              "flex items-center gap-2 border-[1.5px] px-2.5 py-1.5 text-left text-[11.5px] transition",
+                              showCorrect
+                                ? "border-[#0A6E45] bg-[#EDFAF3] text-[#0A3D26]"
+                                : showWrong
+                                  ? "border-red-200 bg-red-50 text-[#0D0E12]"
+                                  : selected
+                                    ? "border-[#0071CE] bg-[#EEF4FF] text-[#0D0E12]"
+                                    : "border-[#E2DFD9] bg-white text-[#0D0E12]",
+                            )}
+                            disabled={submitted}
+                            key={option}
+                            onClick={() =>
+                              setAnswers((current) => ({ ...current, [question.id]: optionIndex }))
+                            }
+                            type="button"
+                          >
+                            <span
+                              className={cn(
+                                "flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border-[1.5px]",
+                                showCorrect
+                                  ? "border-[#0A6E45] bg-[#0A6E45] text-white"
+                                  : selected
+                                    ? "border-[#0071CE] bg-[#0071CE]"
+                                    : "border-[#D4D1CB] bg-white",
+                              )}
+                            >
+                              {showCorrect ? <Check className="h-2 w-2" strokeWidth={2.5} /> : null}
+                            </span>
+                            <span className="flex-1">{option}</span>
+                            {showCorrect ? (
+                              <span className="ml-auto font-mono text-[8px] text-[#0A6E45]">✓ Correct</span>
+                            ) : null}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {showResults && explain?.explanation ? (
+                      <div className="mt-2 border-l-[3px] border-[#0A6E45] bg-[#F0FDF7] px-2.5 py-2">
+                        <p className="text-[11px] leading-relaxed text-[#0A3D26]">{explain.explanation}</p>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {!submitted ? (
+          <div className="mt-3.5 flex justify-end">
+            <button
+              className="bg-[#065F46] px-5 py-2 text-[11px] font-semibold text-white hover:bg-[#054a38] disabled:opacity-50"
+              disabled={answeredCount < questions.length}
+              onClick={() => void handleSubmit()}
+              type="button"
+            >
+              Submit quiz →
+            </button>
+          </div>
+        ) : (
+          <div className="mt-3.5 flex items-center justify-between">
+            <p className="font-mono text-sm text-[#0A6E45]">
+              Score {score}/{questions.length} (
+              {Math.round((score / questions.length) * 100)}%)
+            </p>
+          </div>
+        )}
+
+        {submitted && reinforcements.length > 0 ? (
+          <div className="mt-5 border border-[#E2DFD9] bg-[#F9F8F6] p-4">
+            <p className="text-xs font-bold text-[#0D0E12]">Reinforce with practice</p>
+            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              {reinforcements.map((item) => (
+                <div className="border border-[#E2DFD9] bg-white p-2.5" key={item.id}>
+                  <p className="text-[11px] font-semibold text-[#0D0E12]">{item.title}</p>
+                  <p className="mt-0.5 text-[10px] text-[#6B6860]">{item.reason}</p>
+                  <Link
+                    className="mt-1 inline-block text-[10px] font-semibold text-[#0071ce] hover:underline"
+                    href={`/challenges?challenge=${item.id}`}
+                  >
+                    Open challenge →
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      {/* Right — focus + reference + history */}
+      <aside className="min-h-0 overflow-y-auto bg-[#F9F8F6]">
+        <div className="relative overflow-hidden border-b border-[#E2DFD9] bg-[#00143A] px-4 py-3.5">
+          <div className="pointer-events-none absolute -right-5 -top-5 h-20 w-20 rounded-full bg-[#0A6E45]/30" />
+          <div className="relative z-10">
+            <p className="mb-1 font-mono text-[8px] uppercase tracking-[0.14em] text-white/40">
+              This week&apos;s focus
+            </p>
+            <p className="font-display text-sm font-extrabold tracking-[-0.01em] text-white">{focusTitle}</p>
+            <p className="mt-1 text-[11px] text-white/50">Agent governance · NHI sprawl · Workforce IGA</p>
+          </div>
+        </div>
+
+        <div className="border-b border-[#E2DFD9] px-4 py-3">
+          <p className="mb-2 font-mono text-[8px] uppercase tracking-[0.12em] text-[#B0ADA8]">Quick reference</p>
+          <div className="flex flex-col gap-1.5">
+            {COMPETITOR_REF.map((item) => (
+              <div
+                className="border border-[#E2DFD9] border-l-2 bg-white px-2.5 py-2"
+                key={item.label}
+                style={{ borderLeftColor: item.color }}
+              >
+                <p
+                  className="mb-0.5 font-mono text-[8px] uppercase tracking-[0.06em]"
+                  style={{ color: item.color }}
                 >
-                  Open challenge →
-                </Link>
+                  {item.label}
+                </p>
+                <p className="text-[11px] leading-relaxed text-[#3D3C38]">{item.text}</p>
               </div>
             ))}
           </div>
         </div>
-      ) : null}
+
+        <div className="px-4 py-3">
+          <p className="mb-2 font-mono text-[8px] uppercase tracking-[0.12em] text-[#B0ADA8]">Your history</p>
+          {history.length === 0 && !submitted ? (
+            <p className="text-[11px] text-[#A09D98]">Complete this week&apos;s pulse to log your score.</p>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              {(submitted
+                ? [
+                    {
+                      topic: focusTitle,
+                      date: new Date().toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+                      score: Math.round((score / questions.length) * 100),
+                    },
+                    ...history
+                      .filter((item) => item.weekId !== weekId)
+                      .map((item) => ({
+                        topic: `Week ${item.weekId}`,
+                        date: new Date(item.completedAt).toLocaleDateString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                        }),
+                        score: Math.round((item.score / item.total) * 100),
+                      })),
+                  ]
+                : history.map((item) => ({
+                    topic: `Week ${item.weekId}`,
+                    date: new Date(item.completedAt).toLocaleDateString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                    }),
+                    score: Math.round((item.score / item.total) * 100),
+                  }))
+              ).map((row) => (
+                <div
+                  className="flex items-center gap-2 border border-[#E2DFD9] bg-white px-2.5 py-1.5"
+                  key={`${row.topic}-${row.date}`}
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] font-medium text-[#0D0E12]">{row.topic}</p>
+                    <p className="font-mono text-[8.5px] text-[#A09D98]">{row.date}</p>
+                  </div>
+                  <span
+                    className="font-mono text-sm"
+                    style={{ color: scoreColor(row.score) }}
+                  >
+                    {row.score}%
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </aside>
     </div>
   );
 }

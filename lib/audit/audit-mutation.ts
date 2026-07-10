@@ -7,6 +7,7 @@ export function auditMutation(
   targetType: string,
   targetId?: string,
   details?: Record<string, unknown>,
+  tenantId?: string | null,
 ) {
-  void logAuditEvent(actorId, { action, targetType, targetId, details });
+  void logAuditEvent(actorId, { action, targetType, targetId, details, tenantId });
 }

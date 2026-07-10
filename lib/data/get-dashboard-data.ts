@@ -1,18 +1,15 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
-import { fetchPlansBundle } from "@/lib/data/fetch-plans-bundle";
-import { getDemoDashboardData, getSubtree } from "@/lib/demo-data";
+import { dashboardScopeForContext, resolveTenantContext } from "@/lib/auth/tenant-context";
+import { fetchTenantDashboard } from "@/lib/data/fetch-tenant-dashboard";
+import { getAuthenticatedUser } from "@/lib/data/get-authenticated-user";
+import { getDemoDashboardData } from "@/lib/demo-data";
 import type {
-  ActivityLog,
   Challenge,
-  ChallengeSubmission,
   CoachingCard,
-  Competency,
   DashboardData,
-  Notification,
   Profile,
   SimulationAssignment,
-  UserPlan,
 } from "@/lib/types";
 import type { Database, Json } from "@/lib/database.types";
 
@@ -21,13 +18,8 @@ export type DataSource = "supabase" | "demo";
 type DbProfile = Database["public"]["Tables"]["profiles"]["Row"];
 type DbChallenge = Database["public"]["Tables"]["challenges"]["Row"];
 type DbCoachingCard = Database["public"]["Tables"]["coaching_cards"]["Row"];
-type DbChallengeSubmission = Database["public"]["Tables"]["challenge_submissions"]["Row"];
-type DbSimulationAssignment = Database["public"]["Tables"]["simulation_assignments"]["Row"];
-type DbCompetency = Database["public"]["Tables"]["competencies"]["Row"];
-type DbActivityLog = Database["public"]["Tables"]["activity_logs"]["Row"];
-type DbNotification = Database["public"]["Tables"]["notifications"]["Row"];
 
-export function mapProfile(row: Pick<DbProfile, "id" | "email" | "full_name" | "role" | "level" | "manager_id" | "avatar_url" | "created_at">): Profile {
+export function mapProfile(row: Pick<DbProfile, "id" | "email" | "full_name" | "role" | "level" | "manager_id" | "avatar_url" | "created_at"> & { tenant_id?: string | null }): Profile {
   return {
     id: row.id,
     email: row.email,
@@ -35,6 +27,7 @@ export function mapProfile(row: Pick<DbProfile, "id" | "email" | "full_name" | "
     role: row.role,
     level: row.level,
     managerId: row.manager_id,
+    tenantId: row.tenant_id ?? null,
     avatarUrl: row.avatar_url,
     createdAt: row.created_at,
   };
@@ -130,152 +123,25 @@ export function parseSessionData(
 }
 
 async function fetchSupabaseDashboard(): Promise<DashboardData | null> {
-  const supabase = await createClient();
-
-  if (!supabase) {
+  const context = await resolveTenantContext();
+  if (!context?.tenantId) {
     return null;
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const [
-    profilesResult,
-    competenciesResult,
-    challengesResult,
-    submissionsResult,
-    simulationsResult,
-    coachingCardsResult,
-    activityResult,
-    notificationsResult,
-    plans,
-  ] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("id, email, full_name, role, level, manager_id, avatar_url, created_at"),
-    supabase.from("competencies").select("id, name, category, description"),
-    supabase
-      .from("challenges")
-      .select(
-        "id, title, description, steps, success_criteria, difficulty, estimated_minutes, linked_solutions, target_level, is_ai_generated, created_by, ai_metadata",
-      ),
-    supabase
-      .from("challenge_submissions")
-      .select(
-        "id, user_id, challenge_id, status, reflection_text, manager_grade, manager_feedback, ai_suggested_score, submitted_at, reviewed_at",
-      ),
-    supabase
-      .from("simulation_assignments")
-      .select(
-        "id, assigned_to, assigned_by, persona, vertical, solution_focus, difficulty, status, template_id, session_data",
-      ),
-    supabase
-      .from("coaching_cards")
-      .select(
-        "id, simulation_assignment_id, user_id, structured_output, se_reflection, manager_review_status, manager_comments, manager_grade, sent_to_manager_at, reviewed_at, created_at, is_practice",
-      )
-      .order("created_at", { ascending: false })
-      .limit(400),
-    supabase
-      .from("activity_logs")
-      .select("id, user_id, event_type, title, metadata, created_at")
-      .order("created_at", { ascending: false })
-      .limit(150),
-    user
-      ? supabase
-          .from("notifications")
-          .select("id, user_id, title, body, action_url, read_at, created_at")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(50)
-      : Promise.resolve({ data: [], error: null }),
-    fetchPlansBundle(supabase),
-  ]);
-
-  if (profilesResult.error || !profilesResult.data?.length) {
+  const scope = dashboardScopeForContext(context);
+  if (!scope) {
     return null;
   }
 
-  const profiles = profilesResult.data.map(mapProfile);
-
-  const challenges = ((challengesResult.data ?? []) as DbChallenge[]).map(mapChallenge);
-  const submissions: ChallengeSubmission[] = ((submissionsResult.data ?? []) as DbChallengeSubmission[]).map((row) => ({
-    id: row.id,
-    userId: row.user_id,
-    challengeId: row.challenge_id,
-    status: row.status,
-    reflectionText: row.reflection_text ?? "",
-    managerGrade: row.manager_grade,
-    managerFeedback: row.manager_feedback,
-    aiSuggestedScore: row.ai_suggested_score,
-    submittedAt: row.submitted_at,
-    reviewedAt: row.reviewed_at,
-  }));
-
-  const simulations: SimulationAssignment[] = ((simulationsResult.data ?? []) as DbSimulationAssignment[]).map((row) => ({
-    id: row.id,
-    assignedTo: row.assigned_to,
-    assignedBy: row.assigned_by ?? "system",
-    persona: row.persona,
-    vertical: row.vertical,
-    solutionFocus: row.solution_focus,
-    difficulty: row.difficulty,
-    status: row.status,
-    transcript: [],
-    templateId: row.template_id,
-    ...parseSessionData(row.session_data),
-  }));
-
-  const coachingCards = ((coachingCardsResult.data ?? []) as DbCoachingCard[]).map(parseCoachingCard);
-  const competencies: Competency[] = ((competenciesResult.data ?? []) as DbCompetency[]).map((row) => ({
-    id: row.id,
-    name: row.name,
-    category: row.category,
-    description: row.description ?? "",
-  }));
-
-  const activity: ActivityLog[] = ((activityResult.data ?? []) as DbActivityLog[]).map((row) => ({
-    id: row.id,
-    userId: row.user_id,
-    eventType: row.event_type as ActivityLog["eventType"],
-    title: row.title,
-    metadata: (row.metadata as Record<string, string | number | boolean | null>) ?? {},
-    createdAt: row.created_at,
-  }));
-
-  const notifications: Notification[] = ((notificationsResult.data ?? []) as DbNotification[]).map((row) => ({
-    id: row.id,
-    userId: row.user_id,
-    title: row.title,
-    body: row.body,
-    actionUrl: row.action_url ?? null,
-    readAt: row.read_at,
-    createdAt: row.created_at,
-  }));
-
-  const currentUser =
-    (user ? profiles.find((profile) => profile.id === user.id) : profiles[0]) ?? profiles[0];
-
-  return {
-    currentUser,
-    myOrg: getSubtree(currentUser.id, profiles),
-    profiles,
-    plans,
-    challenges,
-    submissions,
-    simulations,
-    coachingCards,
-    activity,
-    competencies,
-    notifications,
-  };
+  return fetchTenantDashboard(context.tenantId, context.userId, scope, context.role);
 }
 
 export const getDashboardData = cache(async (preferredUserId?: string): Promise<{
   data: DashboardData;
   source: DataSource;
 }> => {
+  const authenticatedUser = await getAuthenticatedUser();
+
   try {
     const live = await fetchSupabaseDashboard();
 
@@ -283,7 +149,49 @@ export const getDashboardData = cache(async (preferredUserId?: string): Promise<
       return { data: live, source: "supabase" };
     }
   } catch {
-    // Fall through to demo data when Supabase is unreachable or RLS blocks reads.
+    // Fall through to empty or demo data.
+  }
+
+  if (authenticatedUser) {
+    const supabase = await createClient();
+    const { data: profile } = supabase
+      ? await supabase
+          .from("profiles")
+          .select("id, email, full_name, role, level, manager_id, avatar_url, created_at, tenant_id")
+          .eq("id", authenticatedUser.id)
+          .maybeSingle()
+      : { data: null };
+
+    const currentUser = profile
+      ? mapProfile(profile)
+      : {
+          id: authenticatedUser.id,
+          email: authenticatedUser.email ?? "",
+          fullName: authenticatedUser.user_metadata?.full_name?.toString() ?? "User",
+          role: "basic_se" as const,
+          level: "Basic" as const,
+          managerId: null,
+          tenantId: null,
+          avatarUrl: null,
+          createdAt: new Date().toISOString(),
+        };
+
+    return {
+      data: {
+        currentUser,
+        myOrg: [],
+        profiles: [currentUser],
+        plans: [],
+        challenges: [],
+        submissions: [],
+        simulations: [],
+        coachingCards: [],
+        activity: [],
+        competencies: [],
+        notifications: [],
+      },
+      source: "supabase",
+    };
   }
 
   return {

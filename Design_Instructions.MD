@@ -1,0 +1,50 @@
+The core problem with your request is that vague instructions like "make it fresh, new, cutting-edge, professional, and not AI-generated" almost always fail.
+Claude (and most frontier models) have strong distributional biases. They regress toward the mean of their training data—often producing polished but generic outputs. For Claude specifically, this frequently manifests as cream/beige backgrounds, rusty-orange accents, large italicized or tracked serifs, rounded rectangles with subtle glows, symmetric layouts, and "tasteful but safe" mid-century modernist vibes. Anthropic's own frontend aesthetics guidance explicitly calls this out as the "AI slop" aesthetic and notes the model needs aggressive overrides to escape it.
+Vague positivity ("make it innovative!") doesn't override baked-in priors. You need surgical constraints, explicit negative instructions, a pre-defined design system, concrete human-crafted references, and a mandated research/analysis phase. Even then, expect iteration—true freshness usually requires 2–5 targeted follow-ups plus some manual HTML tweaks after generation.
+What Actually Produces Distinctive, Human-Feeling Results in 2026
+Current trends reward tactile brutalism, anti-grid/organic asymmetry, story-driven motion, human signals (subtle imperfections, custom details, raw textures like noise/grain), and performance-first craft over heavy 3D or flashy effects.
+Successful anti-slop approaches include:
+* Pre-loading a detailed design system (colors as hex, typography pairings, spacing scale, border rules, motion principles).
+* Strong negative prompting that names and forbids the defaults (purple gradients, Inter as primary, centered hero + CTA, 3-column icon cards, rounded-2xl everything, generic Tailwind/shadcn patterns, uniform contrast, symmetric layouts).
+* Specific references to authored work (e.g., principles from recent Awwwards SOTD like MONOLOG's editorial storytelling, cinematic typography, and human-first narrative approach, adapted to professional contexts; or dense precision tools like Linear).
+* Philosophical framing that forces choices (e.g., "tactile brutalist foundation with organic asymmetries and engineered precision" or "anti-grid narrative journey with subtle film-grain human authorship").
+* Demanding rationale + unique micro-details that reward inspection and feel intentional rather than averaged.
+* For Claude Artifacts/Claude Design: Heavy custom CSS, self-contained performant interactions (CSS-first where possible, IntersectionObserver/scroll-driven, custom SVGs), accessibility baked in, and avoidance of library defaults.
+Detailed Master Prompt Template for Claude
+Copy and adapt this. Replace everything in [BRACKETS] with your specifics. The more concrete you are on brand, audience, emotional tone, and any reference images/sites, the better. This works for both Claude Artifacts (interactive HTML prototypes) and Claude Design workflows.
+
+You are an elite, award-winning human web designer and art director with 15+ years at top independent studios. Your work has won Awwwards recognition for craft, storytelling, and precision. You despise generic AI output and actively fight the model's tendency toward safe, averaged, "on-distribution" designs. Every decision must feel hand-authored, intentional, and surprising while remaining professionally trustworthy.
+Step 1: Research & Analysis (do this first, in thinking)
+Before designing anything, deeply analyze what makes current cutting-edge professional websites feel fresh and human-crafted rather than templated or AI-generated in 2026. Reference principles from recent Awwwards-recognized work (e.g., MONOLOG's editorial/cinematic storytelling, dense typography, human-first narrative flow, and outcomes-driven craft) and broader trends like tactile brutalism (raw geometry, sharp 1px borders, subtle noise/film-grain textures for human authorship), anti-grid organic/asymmetrical layouts, story-driven micro-interactions, and performance-first motion. Explicitly identify and reject common AI slop patterns: overused fonts (Inter, Roboto, system defaults), clichéd purple/indigo gradients on light or dark backgrounds, centered heroes with massive headlines + primary CTA buttons below, symmetric 3-column feature grids with generic icons, rounded-2xl cards everywhere, uniform visual weight/contrast, predictable component patterns, and timid evenly-distributed palettes. Explain in your reasoning what specific techniques create authorship and surprise vs. generic polish.
+Step 2: Project Context
+We are designing for Enablement for SailPoint in the enterprise identity security space.
+Target audience: [e.g., CISOs, IT/security leaders.
+Primary goals: build deep trust and authority, signal genuine technical innovation and forward-leaning thinking, drive qualified demo/consultation requests, differentiate from crowded competitors.
+Emotional tone / feeling we want: engineered precision meets quiet confidence; raw capability with human warmth; authoritative but approachable innovation; tactile professionalism that rewards close inspection.
+Key brand/story elements or constraints: SailPoint Color Palatter.
+Any specific visual or experiential references/inspirations:
+Step 3: Strict Design System (define and adhere to this rigidly)
+Create and use a cohesive, context-specific design system grounded in the product's story:
+* Colors: [Define 4-6 specific hex values with roles — e.g., deep charcoal #0A0A0A background, crisp off-white #F8F7F4 text, electric teal accent #00D4C8 for highlights, warm neutral #3A3630 for secondary, subtle noise overlay capability. Ground in brand or desired feeling. Avoid generic gradients or purple/indigo defaults.]
+* Typography: Use distinctive, brand-appropriate pairings (not Inter/Roboto as primary). Specify font families or stacks (e.g., a sharp geometric sans for UI + a refined variable serif or mono for data/headers). Variable fonts encouraged where they add character. Strong hierarchy with intentional tracking/weight variation.
+* Spacing & Layout: 8px or custom base scale. Favor anti-grid, organic, or asymmetrical compositions with bento-like modules that feel irregular and narrative-driven rather than rigid columns. Generous but purposeful white space; avoid "spacious for the sake of spacious."
+* Borders, Radii, Depth: Mostly sharp or minimal radii (0-4px preference for brutalist edge). Subtle or no decorative shadows; use 1px solid borders, textures, or actual layered elements for depth. Optional subtle CSS noise/grain/film textures for human authorship.
+* Motion & Interaction: Story-driven and purposeful micro-interactions/scroll reveals that advance narrative or reveal information, not decorative. Performant (CSS-first or lightweight vanilla JS; respect reduced-motion). No gratuitous animations.
+* Iconography & Details: Custom-feeling SVG or detailed illustrations that look hand-crafted or precisely engineered, not stock/generic lucide-style. Micro-details (subtle asymmetries, unique data viz treatments, crafted hover states) that reward inspection.
+Step 4: Explicit Forbiddens (critical — enforce these strictly)
+NEVER use generic AI-generated aesthetics or the following:
+* Overused fonts (Inter, Roboto, Arial, pure system stacks as primary).
+* Clichéd color schemes (purple/indigo gradients on white, cream/beige defaults with rusty orange, timid desaturated palettes).
+* Predictable layouts: centered hero with big headline + sub + primary CTA button directly below; symmetric 3-column feature grids with icons; standard testimonial carousels; generic footer link columns.
+* Cookie-cutter components: heavy rounded-2xl cards, shadcn-like patterns, uniform contrast/weight across elements, neon glows on rectangles, ticker-style text bars unless narratively justified.
+* Any element that feels templated, averaged, or lacking specific context/brand character. Reject anything that could appear on dozens of other AI-generated sites.
+Step 5: Overall Aesthetic & Experience Philosophy
+[Choose or adapt one strong framing, e.g.: "Tactile brutalist foundation with organic asymmetries, subtle human textures (noise/grain), and engineered precision. Anti-grid narrative structure that feels like a crafted journey rather than sections. Sharp, confident, professional with surprising human details and micro-rewards for engagement. Quietly innovative rather than flashy."]
+The design must feel like it was made by a thoughtful human team who deeply understand the audience and craft — authoritative yet distinctive, technically sophisticated but warm where appropriate, and impossible to mistake for generic AI output.
+Step 6: Technical & Output Requirements
+Build a fully functional, self-contained single-file interactive website prototype (HTML5 + Tailwind customized heavily or minimal + vanilla CSS/JS). Prioritize custom styles and logic over library defaults. Ensure excellent performance, full accessibility (contrast, ARIA, keyboard, semantic HTML), and thoughtful responsive behavior (mobile is not just stacked desktop).
+Structure around the user journey and narrative goals rather than standard homepage template sections. Include at least one or two interactive elements that demonstrate the philosophy (e.g., custom data visualization, scroll-driven reveal, subtle configurator, or crafted hover/selection states).
+Output format:
+First, in thinking or a clear section: Detailed design rationale explaining key choices, what makes this feel fresh/human-authored vs. generic, specific techniques used to avoid AI slop, and how it serves the brand goals.
+Then: The complete interactive prototype.
+Be ready for precise iteration based on feedback like "increase asymmetry and tactile quality in [specific section]" or "replace remaining predictable patterns with [alternative approach]."

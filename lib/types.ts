@@ -5,7 +5,8 @@ export type ProfileRole =
   | "mentor"
   | "manager"
   | "director"
-  | "admin";
+  | "admin"
+  | "super_admin";
 
 export type SeLevel = "Basic" | "Senior" | "Advisory";
 
@@ -33,6 +34,7 @@ export type Profile = {
   role: ProfileRole;
   level: SeLevel;
   managerId: string | null;
+  tenantId: string | null;
   avatarUrl?: string | null;
   createdAt: string;
 };
@@ -158,7 +160,9 @@ export type ActivityLog = {
     | "coaching_card_reviewed"
     | "manager_feedback_received"
     | "plan_assigned"
-    | "deal_prep_completed";
+    | "deal_prep_completed"
+    | "pitch_submitted"
+    | "flight_check_completed";
   title: string;
   metadata: Record<string, string | number | boolean | null>;
   createdAt: string;

@@ -27,25 +27,41 @@ export const DEAL_STAGES: { value: DealStage; label: string }[] = [
 export type PrepTemplate = {
   id: string;
   label: string;
+  displayLabel?: string;
   meetingType: MeetingType;
   dealStage: DealStage;
   solutions: string;
   contextHint: string;
 };
 
+/** Primary templates shown in the Deal Prep left rail (design handoff). */
+export const DEAL_PREP_PRIMARY_TEMPLATES = ["first-discovery", "technical-deep-dive", "exec-brief"] as const;
+
 export const PREP_TEMPLATES: PrepTemplate[] = [
   {
     id: "first-discovery",
     label: "First discovery call",
+    displayLabel: "Discovery call",
     meetingType: "discovery",
     dealStage: "qualify",
-    solutions: "Identity Security Cloud, NHI",
+    solutions: "ISC, NHI, Agentic Fabric",
     contextHint:
       "First meeting with a new prospect. Focus on pain, stakeholders, and timeline. Competitors unknown.",
   },
   {
+    id: "technical-deep-dive",
+    label: "Technical deep dive",
+    displayLabel: "Technical deep dive",
+    meetingType: "demo",
+    dealStage: "demo",
+    solutions: "ISC, NHI",
+    contextHint:
+      "Technical validation with IAM architects. Focus on integration patterns, API coverage, and proof-of-value scope.",
+  },
+  {
     id: "exec-brief",
     label: "Executive business review",
+    displayLabel: "Executive sponsor",
     meetingType: "exec_readout",
     dealStage: "demo",
     solutions: "Identity Security Cloud",

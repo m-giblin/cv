@@ -62,7 +62,7 @@ export async function managerUnlockSegment(
 ) {
   const { data: assignment } = await supabase
     .from("plan_assignments")
-    .select("id, user_id, unlocked_segment_max")
+    .select("id, user_id, unlocked_segment_max, tenant_id")
     .eq("id", input.assignmentId)
     .maybeSingle();
 
@@ -86,6 +86,7 @@ export async function managerUnlockSegment(
     action: "segment.unlock_override",
     targetType: "plan_assignment",
     targetId: input.assignmentId,
+    tenantId: (assignment as { tenant_id?: string | null }).tenant_id ?? null,
     details: {
       previous: assignment.unlocked_segment_max,
       next: input.unlockedSegmentMax,

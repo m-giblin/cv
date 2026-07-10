@@ -16,16 +16,16 @@ export function MetricCard({
   accent?: "blue" | "magenta";
 }) {
   return (
-    <Card className="group transition hover:-translate-y-0.5 hover:border-sp-blue/20">
+    <Card className="group transition hover:border-sp-blue/40">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-sp-navy-muted">{label}</p>
-          <p className="mt-2 text-3xl font-bold tracking-tight text-sp-navy">{value}</p>
-          <p className="mt-2 text-sm text-sp-navy-muted">{helper}</p>
+          <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-sp-text-subtle">{label}</p>
+          <p className="mt-2 font-mono text-3xl font-medium tracking-tight text-sp-text-primary">{value}</p>
+          <p className="mt-2 text-sm text-sp-text-muted">{helper}</p>
         </div>
         <span
           className={cn(
-            "rounded-2xl p-3 transition group-hover:scale-105",
+            "p-3",
             accent === "magenta"
               ? "bg-sp-magenta-soft text-sp-magenta"
               : "bg-sp-blue-soft text-sp-blue",

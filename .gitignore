@@ -13,6 +13,6 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 .vercel
-design_handoff*/
+design_handoff_se*/
 *.zip
 *.bak

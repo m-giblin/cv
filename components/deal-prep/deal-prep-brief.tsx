@@ -2,19 +2,10 @@
 
 import Link from "next/link";
 import {
-  AlertTriangle,
-  BookOpen,
-  Copy,
-  Download,
-  Loader2,
-  MessageSquareText,
-  Mic,
-  ShieldAlert,
-  Sparkles,
-  Target,
-  Users,
+ Loader2,
+ Mic,
+ Sparkles,
 } from "lucide-react";
-import type { ComponentType, CSSProperties, ReactNode } from "react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,475 +13,430 @@ import { SP_BLUE_BTN, SP_OUTLINE_BTN } from "@/components/se/sp-form-primitives"
 import { BuyerSharePanel } from "@/components/buyer-shares/buyer-share-panel";
 import type { DealPrepOutput } from "@/lib/ai/schemas";
 import { formatPrepAsMarkdown } from "@/lib/deal-prep/export";
+import type { DealPrepFormValues } from "@/components/deal-prep/deal-prep-form";
+import { DEAL_STAGES, MEETING_TYPES } from "@/lib/deal-prep/templates";
 import { cn } from "@/lib/utils";
 
 type ContentAsset = { id: string; title: string; url: string; category: string };
 
 function normalizeBrief(result: DealPrepOutput): DealPrepOutput {
-  return {
-    ...result,
-    stakeholderMap: result.stakeholderMap ?? [],
-    competitiveLandmines: result.competitiveLandmines ?? [],
-    proofPoints: result.proofPoints ?? [],
-    riskFlags: result.riskFlags ?? [],
-    oneThingToNail: result.oneThingToNail ?? "",
-    linkedResources: result.linkedResources ?? [],
-  };
+ return {
+ ...result,
+ stakeholderMap: result.stakeholderMap ?? [],
+ competitiveLandmines: result.competitiveLandmines ?? [],
+ proofPoints: result.proofPoints ?? [],
+ riskFlags: result.riskFlags ?? [],
+ oneThingToNail: result.oneThingToNail ?? "",
+ linkedResources: result.linkedResources ?? [],
+ };
 }
 
 const REGENERATE_FOCUS_OPTIONS = [
-  "Make objections harder",
-  "Add NHI / machine identity angle",
-  "Shorten for a 30-min exec call",
-  "Emphasize competitive differentiation",
+ "Make objections harder",
+ "Add NHI / machine identity angle",
+ "Shorten for a 30-min exec call",
+ "Emphasize competitive differentiation",
 ];
 
 export function DealPrepBrief({
-  result,
-  sessionId,
-  sharedWithManager,
-  debriefNotes: initialDebrief,
-  onRegenerate,
-  isRegenerating,
-  onPracticeObjection,
-  activePracticeObjection,
+ result,
+ sessionId,
+ sharedWithManager,
+ debriefNotes: initialDebrief,
+ onRegenerate,
+ isRegenerating,
+ onPracticeObjection,
+ activePracticeObjection,
+ formContext,
 }: {
-  result: DealPrepOutput;
-  sessionId: string | null;
-  sharedWithManager: boolean;
-  debriefNotes: string;
-  onRegenerate: (focus: string) => void;
-  isRegenerating: boolean;
-  onPracticeObjection: (objection: string) => void;
-  activePracticeObjection: string | null;
+ result: DealPrepOutput;
+ sessionId: string | null;
+ sharedWithManager: boolean;
+ debriefNotes: string;
+ onRegenerate: (focus: string) => void;
+ isRegenerating: boolean;
+ onPracticeObjection: (objection: string) => void;
+ activePracticeObjection: string | null;
+ formContext?: Pick<
+   DealPrepFormValues,
+   "attendees" | "dealStage" | "meetingType" | "competitors" | "solutions"
+ >;
 }) {
-  const brief = normalizeBrief(result);
-  const [meetingMode, setMeetingMode] = useState(false);
-  const [assets, setAssets] = useState<ContentAsset[]>([]);
-  const [debriefNotes, setDebriefNotes] = useState(initialDebrief);
-  const [shared, setShared] = useState(sharedWithManager);
-  const [savingMeta, setSavingMeta] = useState(false);
+ const brief = normalizeBrief(result);
+ const [assets, setAssets] = useState<ContentAsset[]>([]);
+ const [debriefNotes, setDebriefNotes] = useState(initialDebrief);
+ const [shared, setShared] = useState(sharedWithManager);
+ const [savingMeta, setSavingMeta] = useState(false);
 
-  useEffect(() => {
-    setDebriefNotes(initialDebrief);
-    setShared(sharedWithManager);
-  }, [initialDebrief, sharedWithManager, sessionId]);
+ useEffect(() => {
+ setDebriefNotes(initialDebrief);
+ setShared(sharedWithManager);
+ }, [initialDebrief, sharedWithManager, sessionId]);
 
-  useEffect(() => {
-    void fetch("/api/content")
-      .then((response) => (response.ok ? response.json() : { assets: [] }))
-      .then((body: { assets: ContentAsset[] }) => setAssets(body.assets ?? []))
-      .catch(() => setAssets([]));
-  }, []);
+ useEffect(() => {
+ void fetch("/api/content")
+ .then((response) => (response.ok ? response.json() : { assets: [] }))
+ .then((body: { assets: ContentAsset[] }) => setAssets(body.assets ?? []))
+ .catch(() => setAssets([]));
+ }, []);
 
-  const resolveResourceLink = useCallback(
-    (label: string) => {
-      const normalized = label.toLowerCase();
-      const match = assets.find(
-        (asset) =>
-          asset.title.toLowerCase().includes(normalized) ||
-          normalized.includes(asset.title.toLowerCase().slice(0, 12)),
-      );
-      return match?.url ?? `/resources?q=${encodeURIComponent(label)}`;
-    },
-    [assets],
-  );
+ const resolveResourceLink = useCallback(
+ (label: string) => {
+ const normalized = label.toLowerCase();
+ const match = assets.find(
+ (asset) =>
+ asset.title.toLowerCase().includes(normalized) ||
+ normalized.includes(asset.title.toLowerCase().slice(0, 12)),
+ );
+ return match?.url ?? `/resources?q=${encodeURIComponent(label)}`;
+ },
+ [assets],
+ );
 
-  async function copyMarkdown() {
-    await navigator.clipboard.writeText(formatPrepAsMarkdown(brief, meetingMode));
-    toast.success(meetingMode ? "Meeting brief copied." : "Full brief copied.");
-  }
+ async function copyMarkdown() {
+ await navigator.clipboard.writeText(formatPrepAsMarkdown(brief, false));
+ toast.success("Full brief copied.");
+ }
 
-  function downloadMarkdown() {
-    const blob = new Blob([formatPrepAsMarkdown(brief, meetingMode)], { type: "text/markdown" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `deal-prep-${brief.accountName.replace(/\s+/g, "-").toLowerCase()}.md`;
-    anchor.click();
-    URL.revokeObjectURL(url);
-  }
+ function downloadMarkdown() {
+ const blob = new Blob([formatPrepAsMarkdown(brief, false)], { type: "text/markdown" });
+ const url = URL.createObjectURL(blob);
+ const anchor = document.createElement("a");
+ anchor.href = url;
+ anchor.download = `deal-prep-${brief.accountName.replace(/\s+/g, "-").toLowerCase()}.md`;
+ anchor.click();
+ URL.revokeObjectURL(url);
+ }
 
-  async function openPractice(objection: string) {
-    onPracticeObjection(objection);
-  }
+ async function openPractice(objection: string) {
+ onPracticeObjection(objection);
+ }
 
-  async function saveSessionMeta(updates: {
-    debriefNotes?: string;
-    sharedWithManager?: boolean;
-  }) {
-    if (!sessionId) return;
+ async function saveSessionMeta(updates: {
+ debriefNotes?: string;
+ sharedWithManager?: boolean;
+ }) {
+ if (!sessionId) return;
 
-    setSavingMeta(true);
-    const response = await fetch(`/api/deal-prep/sessions/${sessionId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        debriefNotes: updates.debriefNotes,
-        sharedWithManager: updates.sharedWithManager,
-      }),
-    });
-    setSavingMeta(false);
+ setSavingMeta(true);
+ const response = await fetch(`/api/deal-prep/sessions/${sessionId}`, {
+ method: "PATCH",
+ headers: { "Content-Type": "application/json" },
+ body: JSON.stringify({
+ debriefNotes: updates.debriefNotes,
+ sharedWithManager: updates.sharedWithManager,
+ }),
+ });
+ setSavingMeta(false);
 
-    if (!response.ok) {
-      toast.error("Could not save updates.");
-      return;
-    }
+ if (!response.ok) {
+ toast.error("Could not save updates.");
+ return;
+ }
 
-    if (updates.sharedWithManager) {
-      toast.success("Brief shared with your manager — added to their inbox.");
-    } else {
-      toast.success("Saved.");
-    }
-  }
+ if (updates.sharedWithManager) {
+ toast.success("Brief shared with your manager — added to their inbox.");
+ } else {
+ toast.success("Saved.");
+ }
+ }
 
-  return (
-    <div className="overflow-hidden rounded-xl border border-[#e2eaf5] bg-white">
-      <div className="space-y-3 border-b border-[#f1f5f9] p-[16px_18px]">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="text-[15px] font-bold text-[#0a1628]">{brief.accountName}</p>
-            <p className="text-[12px] text-[#64748b]">{brief.executiveSummary}</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              className={meetingMode ? SP_BLUE_BTN : SP_OUTLINE_BTN}
-              onClick={() => setMeetingMode((value) => !value)}
-              type="button"
-            >
-              {meetingMode ? "Full brief" : "Meeting mode"}
-            </button>
-            <button className={SP_OUTLINE_BTN} onClick={() => void copyMarkdown()} type="button">
-              <Copy className="h-4 w-4" />
-              Copy
-            </button>
-            <button className={SP_OUTLINE_BTN} onClick={downloadMarkdown} type="button">
-              <Download className="h-4 w-4" />
-              Export
-            </button>
-          </div>
-        </div>
+ const meetingLabel =
+ MEETING_TYPES.find((item) => item.value === formContext?.meetingType)?.label ?? "Discovery call";
+ const stageLabel =
+ DEAL_STAGES.find((item) => item.value === formContext?.dealStage)?.label ?? "Qualify";
+ const competitor = formContext?.competitors?.trim() || "competitors";
+ const painHint = formContext?.solutions?.split(",")[0]?.trim() || "IGA / NHI pain";
+ const attendeeLine = formContext?.attendees?.trim() || brief.buyerPersona || "Key stakeholders";
 
-        {brief.oneThingToNail ? (
-          <div className="rounded-xl border border-sp-magenta/20 bg-sp-magenta/5 px-4 py-3 text-sm">
-            <span className="font-bold text-sp-navy">One thing to nail: </span>
-            <span className="text-sp-navy-muted">{brief.oneThingToNail}</span>
-          </div>
-        ) : null}
+ return (
+ <div className="min-h-full bg-white">
+ <div className="border-b border-[#ECEAE6] bg-gradient-to-br from-[#FFFBF0] to-white px-7 py-5">
+ <p className="mb-1 font-mono text-[8.5px] uppercase tracking-[0.16em] text-[#D4810A]">
+ AI-generated · {meetingLabel} · {new Date().toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+ </p>
+ <h2 className="font-display text-[22px] font-extrabold leading-none tracking-[-0.03em] text-[#0D0E12]">
+ {brief.accountName} — Discovery Brief
+ </h2>
+ <p className="mt-1 text-xs text-[#6B6860]">
+ {attendeeLine} · {painHint} · {stageLabel} stage
+ </p>
+ <div className="mt-3 flex flex-wrap gap-1.5">
+ <button className={SP_OUTLINE_BTN} onClick={() => void copyMarkdown()} type="button">
+ Copy brief
+ </button>
+ <button className={SP_OUTLINE_BTN} onClick={downloadMarkdown} type="button">
+ Export PDF
+ </button>
+ {sessionId ? (
+ <button
+ className="inline-flex items-center bg-[#0033A1] px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-[#002878]"
+ disabled={savingMeta}
+ onClick={() => void saveSessionMeta({ sharedWithManager: true })}
+ type="button"
+ >
+ Save to plan step →
+ </button>
+ ) : null}
+ </div>
+ {brief.oneThingToNail ? (
+ <p className="mt-3 text-[11px] leading-relaxed text-[#3D3C38]">
+ <span className="font-semibold text-[#0D0E12]">One thing to nail:</span> {brief.oneThingToNail}
+ </p>
+ ) : null}
+ <div className="mt-2 flex flex-wrap gap-1.5">
+ {REGENERATE_FOCUS_OPTIONS.map((focus) => (
+ <button
+ className={cn(SP_OUTLINE_BTN, "px-2 py-1 text-[10px]")}
+ disabled={isRegenerating}
+ key={focus}
+ onClick={() => onRegenerate(focus)}
+ type="button"
+ >
+ {isRegenerating ? <Loader2 className="inline h-3 w-3 animate-spin" /> : null}
+ {focus}
+ </button>
+ ))}
+ </div>
+ </div>
 
-        {!meetingMode ? (
-          <div className="flex flex-wrap gap-2">
-            {REGENERATE_FOCUS_OPTIONS.map((focus) => (
-              <button
-                className={cn(SP_OUTLINE_BTN, "rounded-full px-3 py-1 text-xs")}
-                disabled={isRegenerating}
-                key={focus}
-                onClick={() => onRegenerate(focus)}
-                type="button"
-              >
-                {isRegenerating ? <Loader2 className="inline h-3 w-3 animate-spin" /> : null}
-                {focus}
-              </button>
-            ))}
-          </div>
-        ) : null}
-      </div>
+ <div className="space-y-4 px-7 py-5">
+ <HandoffBriefSection
+ bullet="—"
+ color="#0071CE"
+ items={brief.discoveryQuestions}
+ title="Discovery questions"
+ />
+ <HandoffObjectionSection
+ accountName={brief.accountName}
+ activeObjection={activePracticeObjection}
+ color="#D4810A"
+ industry={result.industry}
+ items={brief.likelyObjections}
+ onPractice={openPractice}
+ prepSessionId={sessionId}
+ solutionFocus={brief.solutions[0]}
+ />
+ <HandoffBriefSection
+ bullet="›"
+ color="#5b21b6"
+ items={brief.competitiveLandmines}
+ title={`Competitive positioning vs. ${competitor}`}
+ />
+ {brief.proofPoints.length > 0 ? (
+ <HandoffBriefSection bullet="—" color="#0071CE" items={brief.proofPoints} title="Proof points to bring" />
+ ) : null}
+ {brief.riskFlags.length > 0 ? (
+ <HandoffBriefSection bullet="!" color="#D4810A" items={brief.riskFlags} title="Risk flags" />
+ ) : null}
+ {brief.stakeholderMap.length > 0 ? (
+ <HandoffBriefSection bullet="—" color="#0071CE" items={brief.stakeholderMap} title="Stakeholder map" />
+ ) : null}
 
-      <div className="space-y-5 p-[16px_18px]">
-        <BuyerSharePanel accountName={brief.accountName} prep={{ ...result, accountName: brief.accountName }} sessionId={sessionId} />
-        {!meetingMode ? (
-          <BriefSectionCard icon={Users} iconBg="#e8f2fc" iconColor="#0071ce" items={brief.stakeholderMap} title="Stakeholder map" />
-        ) : null}
-        <BriefSectionCard
-          icon={MessageSquareText}
-          iconBg="#e8f2fc"
-          iconColor="#0071ce"
-          items={meetingMode ? brief.discoveryQuestions.slice(0, 3) : brief.discoveryQuestions}
-          title="Discovery questions"
-        />
-        <ObjectionSection
-          accountName={brief.accountName}
-          activeObjection={activePracticeObjection}
-          industry={result.industry}
-          items={meetingMode ? brief.likelyObjections.slice(0, 2) : brief.likelyObjections}
-          onPractice={openPractice}
-          prepSessionId={sessionId}
-          solutionFocus={brief.solutions[0]}
-        />
-        {!meetingMode ? (
-          <>
-            <LandmineSection
-              accountName={brief.accountName}
-              industry={result.industry}
-              items={brief.competitiveLandmines}
-              onPractice={openPractice}
-              prepSessionId={sessionId}
-              solutionFocus={brief.solutions[0]}
-            />
-            <BriefSectionCard
-              icon={Target}
-              iconBg="#e8f2fc"
-              iconColor="#0071ce"
-              items={brief.proofPoints}
-              title="Proof points to bring"
-            />
-            <BriefSectionCard icon={AlertTriangle} iconBg="#fef3c7" iconColor="#d97706" items={brief.riskFlags} title="Risk flags" />
-            <BriefSectionCard
-              icon={BookOpen}
-              iconBg="#fdf0fa"
-              iconColor="#a51e8e"
-              items={brief.talkTrackOutline}
-              title="Talk track outline"
-            />
-            {brief.linkedResources.length > 0 ? (
-              <BriefSectionCard
-                icon={BookOpen}
-                iconBg="#e8f2fc"
-                iconColor="#0071ce"
-                items={brief.linkedResources}
-                renderItem={(resource) => (
-                  <button
-                    className="font-semibold text-sp-blue hover:text-sp-blue-deep"
-                    onClick={() => {
-                      void fetch("/api/engagement", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                          resourceLabel: resource,
-                          accountName: brief.accountName,
-                          eventType: "share",
-                        }),
-                      });
-                      window.open(resolveResourceLink(resource), "_blank", "noopener,noreferrer");
-                    }}
-                    type="button"
-                  >
-                    {resource} →
-                  </button>
-                )}
-                title="Recommended resources"
-              />
-            ) : null}
-          </>
-        ) : null}
+ <BuyerSharePanel accountName={brief.accountName} prep={{ ...result, accountName: brief.accountName }} sessionId={sessionId} />
 
-        {sessionId ? (
-          <div className="space-y-4 border-t border-sp-blue/10 pt-5">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-bold text-sp-navy">Share with manager</p>
-              <label className="flex cursor-pointer items-center gap-2 text-sm text-sp-navy-muted">
-                <input
-                  checked={shared}
-                  onChange={(event) => {
-                    const next = event.target.checked;
-                    setShared(next);
-                    void saveSessionMeta({ sharedWithManager: next });
-                  }}
-                  type="checkbox"
-                />
-                Let my manager review this brief
-              </label>
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-sm font-bold text-sp-navy">Post-call debrief</p>
-              <Textarea
-                onChange={(event) => setDebriefNotes(event.target.value)}
-                placeholder="What landed? What surprised you? What would you change next time?"
-                rows={4}
-                value={debriefNotes}
-              />
-              <button
-                className={cn(SP_OUTLINE_BTN, "mt-2")}
-                disabled={savingMeta}
-                onClick={() => void saveSessionMeta({ debriefNotes })}
-                type="button"
-              >
-                {savingMeta ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                Save debrief
-              </button>
-            </div>
-          </div>
-        ) : null}
-      </div>
-    </div>
-  );
+ {sessionId ? (
+ <div className="space-y-3 border-t border-[#ECEAE6] pt-4">
+ <label className="flex cursor-pointer items-center gap-2 text-xs text-[#3D3C38]">
+ <input
+ checked={shared}
+ onChange={(event) => {
+ const next = event.target.checked;
+ setShared(next);
+ void saveSessionMeta({ sharedWithManager: next });
+ }}
+ type="checkbox"
+ />
+ Share brief with manager for review
+ </label>
+ <div>
+ <p className="mb-1 font-mono text-[8px] uppercase tracking-[0.1em] text-[#B0ADA8]">Post-call debrief</p>
+ <Textarea
+ className="min-h-[52px] resize-none border-[#E2DFD9] bg-[#F9F8F6] text-xs"
+ onChange={(event) => setDebriefNotes(event.target.value)}
+ placeholder="What landed? What surprised you?"
+ rows={3}
+ value={debriefNotes}
+ />
+ <button
+ className={cn(SP_OUTLINE_BTN, "mt-2")}
+ disabled={savingMeta}
+ onClick={() => void saveSessionMeta({ debriefNotes })}
+ type="button"
+ >
+ {savingMeta ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+ Save debrief
+ </button>
+ </div>
+ </div>
+ ) : null}
+ </div>
+ </div>
+ );
 }
 
-function BriefSectionCard({
-  title,
-  items,
-  icon: Icon,
-  iconBg,
-  iconColor,
-  renderItem,
+function HandoffBriefSection({
+ title,
+ items,
+ color,
+ bullet,
 }: {
-  title: string;
-  items: string[];
-  icon: ComponentType<{ className?: string; style?: CSSProperties }>;
-  iconBg: string;
-  iconColor: string;
-  renderItem?: (item: string) => ReactNode;
+ title: string;
+ items: string[];
+ color: string;
+ bullet: string;
 }) {
-  if (!items?.length) return null;
+ if (!items.length) return null;
 
-  return (
-    <div className="overflow-hidden rounded-xl border border-[#e2eaf5] bg-white">
-      <div className="flex items-center gap-[9px] border-b border-[#f1f5f9] p-[12px_16px]">
-        <div className="flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded-[7px]" style={{ background: iconBg }}>
-          <Icon className="h-3.5 w-3.5" style={{ color: iconColor }} />
-        </div>
-        <p className="text-[12px] font-bold text-[#0a1628]">{title}</p>
-      </div>
-      <div className="p-[12px_16px]">
-        <ul className="space-y-[6px]">
-        {items.map((item) => (
-            <li className="flex items-start gap-[8px]" key={item}>
-              <span className="mt-[1px] shrink-0 text-[11px] text-[#0071ce]">•</span>
-              <span className="text-[12px] leading-[1.55] text-[#374151]">{renderItem ? renderItem(item) : item}</span>
-            </li>
-        ))}
-      </ul>
-      </div>
-    </div>
-  );
+ const bg =
+ color === "#0071CE" ? "#F0F7FF" : color === "#D4810A" ? "#FFFBF0" : "#faf8ff";
+
+ return (
+ <div className="px-4 py-3" style={{ borderLeft: `3px solid ${color}`, background: bg }}>
+ <p
+ className="mb-2 font-mono text-[8px] uppercase tracking-[0.14em]"
+ style={{ color }}
+ >
+ {title}
+ </p>
+ <div className="flex flex-col gap-1.5">
+ {items.map((item) => (
+ <div className="flex items-start gap-2" key={item}>
+ <span className="mt-0.5 shrink-0 font-mono text-[10px]" style={{ color }}>
+ {bullet}
+ </span>
+ <span className="text-[11.5px] leading-relaxed text-[#1A1A1A]">{item}</span>
+ </div>
+ ))}
+ </div>
+ </div>
+ );
 }
 
-function LandmineSection({
-  items,
-  onPractice,
-  accountName,
-  industry,
-  solutionFocus,
-  prepSessionId,
-}: {
-  items: string[];
-  onPractice: (landmine: string) => void;
-  accountName: string;
-  industry: string;
-  solutionFocus?: string;
-  prepSessionId: string | null;
-}) {
-  if (!items?.length) return null;
+type PracticeObjectionContext = {
+ accountName: string;
+ industry: string;
+ solutionFocus?: string;
+ prepSessionId: string | null;
+};
 
-  async function startLandminePractice(landmine: string) {
-    const response = await fetch("/api/deal-prep/practice-objection", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        objection: landmine,
-        accountName,
-        industry,
-        solutionFocus,
-        prepSessionId: prepSessionId ?? undefined,
-      }),
-    });
-
-    if (!response.ok) {
-      onPractice(landmine);
-      return;
-    }
-
-    const body = (await response.json()) as { redirectUrl: string };
-    window.location.href = body.redirectUrl;
-  }
-
-  return (
-    <BriefSectionCard
-      icon={ShieldAlert}
-      iconBg="#fef3c7"
-      iconColor="#d97706"
-      items={items}
-      renderItem={(item) => (
-        <span className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <span>{item}</span>
-          <button className={SP_OUTLINE_BTN} onClick={() => void startLandminePractice(item)} type="button">
-            <Mic className="h-4 w-4" />
-            Practice
-          </button>
-        </span>
-      )}
-      title="Competitive landmines"
-    />
-  );
+function buildPracticeObjectionBody(objection: string, ctx: PracticeObjectionContext) {
+ const body: Record<string, string> = {
+ objection,
+ accountName: ctx.accountName,
+ industry: ctx.industry?.trim() || "Enterprise",
+ };
+ const solution = ctx.solutionFocus?.trim();
+ if (solution && solution.length >= 2) {
+ body.solutionFocus = solution;
+ }
+ if (ctx.prepSessionId) {
+ body.prepSessionId = ctx.prepSessionId;
+ }
+ return body;
 }
 
-function ObjectionSection({
-  items,
-  onPractice,
-  activeObjection,
-  accountName,
-  industry,
-  solutionFocus,
-  prepSessionId,
+async function startDealPrepPractice(
+ objection: string,
+ ctx: PracticeObjectionContext,
+ onFallback: (objection: string) => void,
+) {
+ try {
+ const response = await fetch("/api/deal-prep/practice-objection", {
+ method: "POST",
+ headers: { "Content-Type": "application/json" },
+ body: JSON.stringify(buildPracticeObjectionBody(objection, ctx)),
+ });
+
+ if (!response.ok) {
+ onFallback(objection);
+ return;
+ }
+
+ const body = (await response.json()) as { redirectUrl?: string };
+ if (body.redirectUrl) {
+ window.location.href = body.redirectUrl;
+ return;
+ }
+
+ onFallback(objection);
+ } catch {
+ onFallback(objection);
+ }
+}
+
+function HandoffObjectionSection({
+ title = "Likely objections",
+ items,
+ color,
+ bullet = "!",
+ onPractice,
+ activeObjection,
+ accountName,
+ industry,
+ solutionFocus,
+ prepSessionId,
 }: {
-  items: string[];
-  onPractice: (objection: string) => void;
-  activeObjection: string | null;
-  accountName: string;
-  industry: string;
-  solutionFocus?: string;
-  prepSessionId: string | null;
+ title?: string;
+ items: string[];
+ color: string;
+ bullet?: string;
+ onPractice: (objection: string) => void;
+ activeObjection: string | null;
+ accountName: string;
+ industry: string;
+ solutionFocus?: string;
+ prepSessionId: string | null;
 }) {
-  if (!items?.length) return null;
+ if (!items.length) return null;
 
-  async function startObjectionPractice(objection: string) {
-    const response = await fetch("/api/deal-prep/practice-objection", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        objection,
-        accountName,
-        industry,
-        solutionFocus,
-        prepSessionId: prepSessionId ?? undefined,
-      }),
-    });
+ const practiceContext = { accountName, industry, solutionFocus, prepSessionId };
+ const bg = color === "#D4810A" ? "#FFFBF0" : "#F0F7FF";
 
-    if (!response.ok) {
-      onPractice(objection);
-      return;
-    }
+ async function startObjectionPractice(objection: string) {
+ await startDealPrepPractice(objection, practiceContext, onPractice);
+ }
 
-    const body = (await response.json()) as { redirectUrl: string };
-    window.location.href = body.redirectUrl;
-  }
-
-  return (
-    <BriefSectionCard
-      icon={MessageSquareText}
-      iconBg="#e8f2fc"
-      iconColor="#0071ce"
-      items={items}
-      renderItem={(item) => {
-        const isActive = activeObjection === item;
-        return (
-          <span className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <span>{item}</span>
-            <button
-              className={isActive ? SP_BLUE_BTN : SP_OUTLINE_BTN}
-              onClick={() => void startObjectionPractice(item)}
-              type="button"
-            >
-              <Mic className="h-4 w-4" />
-              {isActive ? "Practicing" : "Practice this"}
-            </button>
-          </span>
-        );
-      }}
-      title="Likely objections"
-    />
-  );
+ return (
+ <div className="px-4 py-3" style={{ borderLeft: `3px solid ${color}`, background: bg }}>
+ <p className="mb-2 font-mono text-[8px] uppercase tracking-[0.14em]" style={{ color }}>
+ {title}
+ </p>
+ <div className="flex flex-col gap-2">
+ {items.map((item) => {
+ const isActive = activeObjection === item;
+ return (
+ <div className="flex items-start justify-between gap-2" key={item}>
+ <div className="flex items-start gap-2">
+ <span className="mt-0.5 shrink-0 font-mono text-[10px]" style={{ color }}>
+ {bullet}
+ </span>
+ <span className="text-[11.5px] leading-relaxed text-[#1A1A1A]">{item}</span>
+ </div>
+ <button
+ className={isActive ? SP_BLUE_BTN : SP_OUTLINE_BTN}
+ onClick={() => void startObjectionPractice(item)}
+ type="button"
+ >
+ <Mic className="h-3 w-3" />
+ Practice
+ </button>
+ </div>
+ );
+ })}
+ </div>
+ </div>
+ );
 }
 
 export function DealPrepBriefEmpty() {
-  return (
-    <div className="rounded-xl border border-dashed border-[#e2eaf5] bg-white p-[18px]">
-      <p className="flex items-center gap-2 text-[15px] font-bold text-[#0a1628]">
-        <Sparkles className="h-5 w-5 text-sp-magenta" />
-        Prep brief
-      </p>
-      <p className="mt-1 text-[12px] text-[#64748b]">Generate prep before your next customer call.</p>
-    </div>
-  );
+ return (
+ <div className="flex min-h-full flex-col items-center justify-center bg-gradient-to-br from-[#FFFBF0] to-white px-8 py-16 text-center">
+ <Sparkles className="mb-3 h-8 w-8 text-[#D4810A]/40" />
+ <p className="font-display text-lg font-bold text-[#0D0E12]">Your brief appears here</p>
+ <p className="mt-2 max-w-sm text-sm leading-relaxed text-[#6B6860]">
+ Fill in account details on the left and hit Generate brief — discovery questions, objections, and competitive positioning land in this panel.
+ </p>
+ </div>
+ );
 }

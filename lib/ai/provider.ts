@@ -44,12 +44,12 @@ export function getConfiguredProvider(): {
   };
 }
 
-export async function resolveAiProvider(): Promise<{
+export async function resolveAiProvider(tenantId?: string): Promise<{
   provider: AiProviderName;
   model: LanguageModel | null;
   modelName: string;
 }> {
-  const settings = await loadPlatformAiSettings();
+  const settings = await loadPlatformAiSettings(tenantId);
 
   if (settings.apiKey) {
     return buildFromCredentials(settings.provider, settings.model, settings.apiKey);

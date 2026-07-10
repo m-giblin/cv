@@ -1,31 +1,38 @@
 export function Toggle({
-  checked,
-  onChange,
-  className,
+ checked,
+ onChange,
+ className,
+ disabled,
 }: {
-  checked: boolean;
-  onChange: (v: boolean) => void;
-  className?: string;
+ checked: boolean;
+ onChange: (v: boolean) => void;
+ className?: string;
+ disabled?: boolean;
 }) {
-  return (
-    <label className={`relative inline-block h-[20px] w-[36px] cursor-pointer ${className ?? ""}`}>
-      <input
-        checked={checked}
-        className="sr-only"
-        onChange={(e) => onChange(e.target.checked)}
-        type="checkbox"
-      />
-      <span
-        className="absolute inset-0 rounded-full transition-colors duration-200"
-        style={{ background: checked ? "#0071ce" : "#e2eaf5" }}
-      >
-        <span
-          className="absolute left-[3px] top-[3px] h-[14px] w-[14px] rounded-full bg-white shadow-sm transition-transform duration-200"
-          style={{ transform: checked ? "translateX(16px)" : "none" }}
-        />
-      </span>
-    </label>
-  );
+ return (
+ <button
+ aria-checked={checked}
+ className={`relative shrink-0 ${disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"} ${className ?? ""}`}
+ disabled={disabled}
+ onClick={() => onChange(!checked)}
+ role="switch"
+ style={{
+ width: 32,
+ height: 18,
+ background: checked ? "#0071CE" : "#E2DFD9",
+ transition: "background 150ms",
+ }}
+ type="button"
+ >
+ <span
+ className="absolute top-[2px] block h-[14px] w-[14px] bg-white"
+ style={{
+ transform: checked ? "translateX(14px)" : "translateX(2px)",
+ transition: "transform 150ms",
+ }}
+ />
+ </button>
+ );
 }
 
 export { Toggle as AdminToggle };

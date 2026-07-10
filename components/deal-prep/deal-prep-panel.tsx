@@ -1,13 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { X } from "lucide-react";
 import { toast } from "sonner";
 import { DealPrepBrief, DealPrepBriefEmpty } from "@/components/deal-prep/deal-prep-brief";
 import { DealPrepForm, EMPTY_FORM, type DealPrepFormValues } from "@/components/deal-prep/deal-prep-form";
 import { DealPrepHistory } from "@/components/deal-prep/deal-prep-history";
 import { ObjectionPracticePanel } from "@/components/deal-prep/objection-practice-panel";
-import { GongConnectPanel } from "@/components/integrations/gong-connect-panel";
-import { GongCallIntelPanel } from "@/components/integrations/gong-call-intel-panel";
 import type { DealPrepOutput } from "@/lib/ai/schemas";
 import type { SeLevel } from "@/lib/types";
 
@@ -32,11 +31,15 @@ export function DealPrepPanel({
   userId,
   assignmentStepId,
   initialSessionId,
+  historyOpen = false,
+  onCloseHistory,
 }: {
   userLevel?: SeLevel | string;
   userId: string;
   assignmentStepId?: string;
   initialSessionId?: string;
+  historyOpen?: boolean;
+  onCloseHistory?: () => void;
 }) {
   const [form, setForm] = useState<DealPrepFormValues>(EMPTY_FORM);
   const [result, setResult] = useState<DealPrepOutput | null>(null);
@@ -142,14 +145,7 @@ export function DealPrepPanel({
       setHistoryRefresh((value) => value + 1);
       setIsLoading(false);
     },
-    [
-      activeSessionId,
-      assignmentStepId,
-      form,
-      parentSessionId,
-      solutionsList,
-      userLevel,
-    ],
+    [activeSessionId, assignmentStepId, form, parentSessionId, solutionsList, userLevel],
   );
 
   const loadSession = useCallback(async (sessionId: string) => {
@@ -179,7 +175,8 @@ export function DealPrepPanel({
     setParentSessionId(session.id);
     setSharedWithManager(session.shared_with_manager);
     setDebriefNotes(session.debrief_notes ?? "");
-  }, []);
+    onCloseHistory?.();
+  }, [onCloseHistory]);
 
   useEffect(() => {
     if (initialSessionId) {
@@ -204,68 +201,77 @@ export function DealPrepPanel({
   }
 
   return (
-    <div
-      className={
-        practiceObjection
-          ? "grid items-start gap-6 lg:grid-cols-[340px_1fr] xl:grid-cols-[340px_1fr_0.85fr]"
-          : "grid gap-6 lg:grid-cols-[340px_1fr]"
-      }
-    >
-      <div className="space-y-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-5rem)] xl:overflow-y-auto">
+    <div className="relative min-h-0 flex-1">
+      <div
+        className={
+          practiceObjection
+            ? "grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[320px_1fr_280px]"
+            : "grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[320px_1fr]"
+        }
+      >
+        <div className="min-h-0 overflow-hidden border-r border-[#E2DFD9]">
+          <DealPrepForm
+            isLoading={isLoading}
+            onChange={setForm}
+            onSubmit={() => void generatePrep()}
+            values={form}
+          />
+        </div>
+
+        <div className="min-h-0 overflow-y-auto bg-white">
+          {result ? (
+            <DealPrepBrief
+              activePracticeObjection={practiceObjection}
+              debriefNotes={debriefNotes}
+              formContext={form}
+              isRegenerating={isLoading}
+              onPracticeObjection={setPracticeObjection}
+              onRegenerate={(focus) => void generatePrep(focus)}
+              result={result}
+              sessionId={activeSessionId}
+              sharedWithManager={sharedWithManager}
+            />
+          ) : (
+            <DealPrepBriefEmpty />
+          )}
+        </div>
+
         {practiceObjection ? (
-          <DealPrepHistory
-            activeSessionId={activeSessionId}
-            onDeleteSession={deleteSession}
-            onLoadSession={loadSession}
-            refreshToken={historyRefresh}
-          />
-        ) : null}
-        <GongConnectPanel />
-        {form.accountName.trim() ? <GongCallIntelPanel accountName={form.accountName} /> : null}
-        <DealPrepForm
-          isLoading={isLoading}
-          onChange={setForm}
-          onSubmit={() => void generatePrep()}
-          values={form}
-        />
-        {!practiceObjection ? (
-          <DealPrepHistory
-            activeSessionId={activeSessionId}
-            onDeleteSession={deleteSession}
-            onLoadSession={loadSession}
-            refreshToken={historyRefresh}
-          />
+          <div className="min-h-0 overflow-y-auto border-l border-[#E2DFD9] bg-[#F9F8F6]">
+            <ObjectionPracticePanel
+              accountName={result?.accountName ?? form.accountName}
+              industry={form.industry}
+              objection={practiceObjection}
+              onClose={() => setPracticeObjection(null)}
+              solutionFocus={solutionsList[0] ?? "Identity Security Cloud"}
+              userId={userId}
+              userLevel={userLevel}
+            />
+          </div>
         ) : null}
       </div>
 
-      <div className="min-w-0 xl:sticky xl:top-6 xl:max-h-[calc(100vh-5rem)] xl:overflow-y-auto">
-        {result ? (
-          <DealPrepBrief
-            activePracticeObjection={practiceObjection}
-            debriefNotes={debriefNotes}
-            isRegenerating={isLoading}
-            onPracticeObjection={setPracticeObjection}
-            onRegenerate={(focus) => void generatePrep(focus)}
-            result={result}
-            sessionId={activeSessionId}
-            sharedWithManager={sharedWithManager}
-          />
-        ) : (
-          <DealPrepBriefEmpty />
-        )}
-      </div>
-
-      {practiceObjection ? (
-        <div className="min-w-0 xl:sticky xl:top-6 xl:max-h-[calc(100vh-5rem)]">
-          <ObjectionPracticePanel
-            accountName={result?.accountName ?? form.accountName}
-            industry={form.industry}
-            objection={practiceObjection}
-            onClose={() => setPracticeObjection(null)}
-            solutionFocus={solutionsList[0] ?? "Identity Security Cloud"}
-            userId={userId}
-            userLevel={userLevel}
-          />
+      {historyOpen ? (
+        <div className="absolute inset-y-0 right-0 z-20 flex w-full max-w-[360px] flex-col border-l border-[#E2DFD9] bg-white shadow-xl">
+          <div className="flex items-center justify-between border-b border-[#ECEAE6] px-4 py-3">
+            <p className="text-sm font-bold text-[#0D0E12]">Past briefs</p>
+            <button
+              aria-label="Close past briefs"
+              className="text-[#A09D98] hover:text-[#0D0E12]"
+              onClick={onCloseHistory}
+              type="button"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto p-3">
+            <DealPrepHistory
+              activeSessionId={activeSessionId}
+              onDeleteSession={deleteSession}
+              onLoadSession={loadSession}
+              refreshToken={historyRefresh}
+            />
+          </div>
         </div>
       ) : null}
     </div>

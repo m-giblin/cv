@@ -108,6 +108,7 @@ If uploads fail with "Bucket not found", re-run:
 |-------|-----|
 | Admin user CRUD returns 503 | Add `SUPABASE_SERVICE_ROLE_KEY` to Vercel env |
 | MFA redirect loop | Ensure AAL2 migration applied + TOTP enabled in Supabase Auth |
+| MFA QR shows `localhost:3000` | Set Supabase **Site URL** to your production domain; app passes `issuer` on enroll — reset MFA and re-scan after changing |
 | Password reset link invalid | Add prod URL to Supabase redirect URLs |
 | File upload fails | Run Sprint 5 migration; check bucket policies |
 | Audit log empty | Run Sprint 5 migration; perform an admin action |

@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { getDemoDashboardData } from "@/lib/demo-data";
+import { getAuthenticatedUser } from "@/lib/data/get-authenticated-user";
 import { createClient } from "@/lib/supabase/server";
 import { fetchPeerPitches, type PeerPitch } from "@/lib/pitch/fetch-peer-pitches";
 import type { Notification, Profile } from "@/lib/types";
@@ -19,6 +20,7 @@ function mapProfile(
     role: row.role,
     level: row.level,
     managerId: row.manager_id,
+    tenantId: (row as { tenant_id?: string | null }).tenant_id ?? null,
     avatarUrl: row.avatar_url,
     createdAt: row.created_at,
   };
@@ -81,6 +83,8 @@ async function fetchSupabasePitchPageData(): Promise<PitchPageData | null> {
 }
 
 export const getPitchPageData = cache(async (): Promise<{ data: PitchPageData; source: DataSource }> => {
+  const authenticatedUser = await getAuthenticatedUser();
+
   try {
     const live = await fetchSupabasePitchPageData();
     if (live) {
@@ -88,6 +92,24 @@ export const getPitchPageData = cache(async (): Promise<{ data: PitchPageData; s
     }
   } catch {
     // demo fallback
+  }
+
+  if (authenticatedUser) {
+    const supabase = await createClient();
+    const { data: profile } = supabase
+      ? await supabase
+          .from("profiles")
+          .select("id, email, full_name, role, level, manager_id, avatar_url, created_at, tenant_id")
+          .eq("id", authenticatedUser.id)
+          .maybeSingle()
+      : { data: null };
+
+    if (profile) {
+      return {
+        data: { currentUser: mapProfile(profile), notifications: [], peerPitches: [] },
+        source: "supabase",
+      };
+    }
   }
 
   const demo = getDemoDashboardData();

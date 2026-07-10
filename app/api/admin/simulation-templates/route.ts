@@ -3,80 +3,108 @@ import { z } from "zod";
 import { auditMutation } from "@/lib/audit/audit-mutation";
 import { requireAdminSession } from "@/lib/auth/require-admin";
 import { isParameterizedTemplate } from "@/lib/simulations/prompt-template";
+import { tenantTable } from "@/lib/data/tenant-scoped-query";
 
 const schema = z.object({
-  name: z.string().min(3),
-  persona: z.string().min(3),
-  vertical: z.string().min(2),
-  solutionFocus: z.string().min(2),
-  promptBody: z.string().min(20),
-  difficulty: z.enum(["foundational", "intermediate", "advanced"]).optional(),
-  practiceRoundsBeforeSubmit: z.number().int().min(0).max(10).optional(),
+ name: z.string().min(3),
+ persona: z.string().min(3),
+ vertical: z.string().min(2),
+ solutionFocus: z.string().min(2),
+ promptBody: z.string().min(20),
+ difficulty: z.enum(["foundational", "intermediate", "advanced"]).optional(),
+ practiceRoundsBeforeSubmit: z.number().int().min(0).max(10).optional(),
 });
 
 export async function GET() {
-  const session = await requireAdminSession();
-  if (session instanceof NextResponse) {
-    return session;
-  }
+ const session = await requireAdminSession();
+ if (session instanceof NextResponse) {
+ return session;
+ }
 
-  const { data, error } = await session.supabase
-    .from("simulation_templates")
-    .select("id, name, persona, vertical, solution_focus, difficulty, prompt_body, practice_rounds_before_submit, created_at, updated_at")
-    .order("name");
+ const scoped = tenantTable(session.tenantId);
+ if (!scoped) {
+ return NextResponse.json({ error: "Service unavailable." }, { status: 503 });
+ }
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+ const { data, error } = await scoped
+ .select(
+ "simulation_templates",
+ "id, name, persona, vertical, solution_focus, difficulty, prompt_body, practice_rounds_before_submit, created_at, updated_at",
+ )
+ .order("name");
 
-  const templates = (data ?? []).map((row) => ({
-    id: row.id,
-    name: row.name,
-    persona: row.persona,
-    vertical: row.vertical,
-    solutionFocus: row.solution_focus,
-    difficulty: row.difficulty,
-    promptBody: row.prompt_body,
-    practiceRoundsBeforeSubmit:
-      (row as { practice_rounds_before_submit?: number }).practice_rounds_before_submit ?? 1,
-    parameterized: isParameterizedTemplate(row.prompt_body),
-    hasSolutionPlaceholder: row.prompt_body.includes("{{solution}}"),
-    updatedAt: row.updated_at,
-  }));
+ if (error) {
+ return NextResponse.json({ error: error.message }, { status: 500 });
+ }
 
-  return NextResponse.json({ templates });
+ const templates = ((data ?? []) as unknown as Array<{
+ id: string;
+ name: string;
+ persona: string;
+ vertical: string;
+ solution_focus: string;
+ difficulty: string;
+ prompt_body: string;
+ practice_rounds_before_submit?: number;
+ updated_at: string;
+ }>).map((row) => ({
+ id: row.id,
+ name: row.name,
+ persona: row.persona,
+ vertical: row.vertical,
+ solutionFocus: row.solution_focus,
+ difficulty: row.difficulty,
+ promptBody: row.prompt_body,
+ practiceRoundsBeforeSubmit:
+ (row as { practice_rounds_before_submit?: number }).practice_rounds_before_submit ?? 1,
+ parameterized: isParameterizedTemplate(row.prompt_body),
+ hasSolutionPlaceholder: row.prompt_body.includes("{{solution}}"),
+ updatedAt: row.updated_at,
+ }));
+
+ return NextResponse.json({ templates });
 }
 
 export async function POST(request: Request) {
-  const session = await requireAdminSession();
-  if (session instanceof NextResponse) {
-    return session;
-  }
+ const session = await requireAdminSession();
+ if (session instanceof NextResponse) {
+ return session;
+ }
 
-  const parsed = schema.safeParse(await request.json());
+ const scoped = tenantTable(session.tenantId);
+ if (!scoped) {
+ return NextResponse.json({ error: "Service unavailable." }, { status: 503 });
+ }
 
-  if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-  }
+ const parsed = schema.safeParse(await request.json());
 
-  const { data: created, error } = await session.supabase.from("simulation_templates").insert({
-    name: parsed.data.name,
-    persona: parsed.data.persona,
-    vertical: parsed.data.vertical,
-    solution_focus: parsed.data.solutionFocus,
-    difficulty: parsed.data.difficulty ?? "intermediate",
-    prompt_body: parsed.data.promptBody,
-    practice_rounds_before_submit: parsed.data.practiceRoundsBeforeSubmit ?? 1,
-    created_by: session.user.id,
-  }).select("id").single();
+ if (!parsed.success) {
+ return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+ }
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+ const { data: created, error } = await scoped
+ .from("simulation_templates")
+ .insert({
+ name: parsed.data.name,
+ persona: parsed.data.persona,
+ vertical: parsed.data.vertical,
+ solution_focus: parsed.data.solutionFocus,
+ difficulty: parsed.data.difficulty ?? "intermediate",
+ prompt_body: parsed.data.promptBody,
+ practice_rounds_before_submit: parsed.data.practiceRoundsBeforeSubmit ?? 1,
+ created_by: session.user.id,
+ tenant_id: session.tenantId,
+ } as never)
+ .select("id")
+ .single();
 
-  auditMutation(session.user.id, "simulation_template.created", "simulation_template", created.id, {
-    name: parsed.data.name,
-  });
+ if (error) {
+ return NextResponse.json({ error: error.message }, { status: 500 });
+ }
 
-  return NextResponse.json({ success: true });
+ auditMutation(session.user.id, "simulation_template.created", "simulation_template", created.id, {
+ name: parsed.data.name,
+ }, session.tenantId);
+
+ return NextResponse.json({ success: true });
 }

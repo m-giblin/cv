@@ -1,4 +1,5 @@
-import { createClient } from "@/lib/supabase/server";
+import { tenantTable } from "@/lib/data/tenant-scoped-query";
+import { fetchPendingReviewBreakdown, pendingReviewTotal } from "@/lib/data/get-pending-review-breakdown";
 
 export type AnalyticsData = {
   totalUsers: number;
@@ -16,45 +17,65 @@ export type AnalyticsData = {
   certClearanceRate: number;
 };
 
-export async function getAnalyticsData(): Promise<AnalyticsData | null> {
-  const supabase = await createClient();
+type AssignmentRow = {
+  id: string;
+  status: string;
+  progress_percent: number | null;
+  start_date: string;
+  target_completion: string | null;
+};
 
-  if (!supabase) {
+type SubmissionRow = {
+  id: string;
+  status: string;
+  submitted_at: string | null;
+};
+
+type CertificationRow = {
+  status: string;
+};
+
+type ProfileRow = {
+  id: string;
+  role: string;
+};
+
+export async function getAnalyticsData(tenantId: string): Promise<AnalyticsData | null> {
+  const scoped = tenantTable(tenantId);
+  if (!scoped) {
     return null;
   }
 
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const seRoles = ["basic_se", "senior_se", "advisory_solutions_consultant"];
+  const managerRoles = ["manager", "mentor", "director", "admin"];
+
+  const profilesResult = await scoped.select("profiles", "id, role");
+  const profiles = (profilesResult.data ?? []) as unknown as ProfileRow[];
+  const seUserIds = profiles.filter((p) => seRoles.includes(p.role)).map((p) => p.id);
+
   const [
-    profilesResult,
     assignmentsResult,
     submissionsResult,
-    coachingResult,
     activityResult,
     certificationsResult,
+    pendingReviewBreakdown,
   ] = await Promise.all([
-    supabase.from("profiles").select("id, role"),
-    supabase.from("plan_assignments").select("id, status, progress_percent, start_date, target_completion"),
-    supabase.from("challenge_submissions").select("id, status, submitted_at"),
-    supabase.from("coaching_cards").select("id, manager_review_status"),
-    supabase
-      .from("activity_logs")
-      .select("id")
-      .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
-    supabase.from("readiness_certifications").select("status"),
+    scoped.select("plan_assignments", "id, status, progress_percent, start_date, target_completion"),
+    scoped.select("challenge_submissions", "id, status, submitted_at"),
+    scoped.admin.from("activity_logs").select("id").eq("tenant_id", tenantId).gte("created_at", weekAgo),
+    scoped.select("readiness_certifications", "status"),
+    fetchPendingReviewBreakdown(tenantId, seUserIds),
   ]);
 
-  const profiles = profilesResult.data ?? [];
-  const assignments = assignmentsResult.data ?? [];
-  const submissions = submissionsResult.data ?? [];
-  const coachingCards = coachingResult.data ?? [];
-  const certifications = certificationsResult.data ?? [];
+  const assignments = (assignmentsResult.data ?? []) as unknown as AssignmentRow[];
+  const submissions = (submissionsResult.data ?? []) as unknown as SubmissionRow[];
+  const certifications = (certificationsResult.data ?? []) as unknown as CertificationRow[];
 
-  const certPendingSignoffs = certifications.filter((cert) => cert.status === "submitted").length;
+  const certPendingSignoffs = pendingReviewBreakdown.certSignoffs;
   const certApprovedTotal = certifications.filter((cert) => cert.status === "approved").length;
   const certClearanceRate =
     certifications.length > 0 ? Math.round((certApprovedTotal / certifications.length) * 100) : 0;
-
-  const seRoles = ["basic_se", "senior_se", "advisory_solutions_consultant"];
-  const managerRoles = ["manager", "mentor", "director", "admin"];
 
   const activePlans = assignments.filter((a) => a.status !== "completed").length;
   const completedPlans = assignments.filter((a) => a.status === "completed").length;
@@ -72,10 +93,7 @@ export async function getAnalyticsData(): Promise<AnalyticsData | null> {
     (s) => s.submitted_at && new Date(s.submitted_at) >= monthStart,
   ).length;
 
-  const pendingReviews =
-    submissions.filter((s) => s.status === "submitted").length +
-    coachingCards.filter((c) => c.manager_review_status === "pending").length +
-    certPendingSignoffs;
+  const pendingReviews = pendingReviewTotal(pendingReviewBreakdown);
 
   const completedAssignments = assignments.filter((a) => a.status === "completed" && a.start_date && a.target_completion);
   const avgDaysToComplete =

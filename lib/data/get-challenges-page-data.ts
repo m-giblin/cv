@@ -1,7 +1,16 @@
 import { cache } from "react";
+import { cookies } from "next/headers";
 import { getDemoDashboardData } from "@/lib/demo-data";
+import { getAuthenticatedUser } from "@/lib/data/get-authenticated-user";
 import { fetchPlansForUsers } from "@/lib/data/fetch-plans-bundle";
 import { createClient } from "@/lib/supabase/server";
+import { getTenantAdminClient } from "@/lib/data/tenant-scoped-query";
+import {
+  resolveEffectiveAccess,
+  SHADOW_MODE_COOKIE,
+  SHADOW_TENANT_COOKIE,
+  SHADOW_TENANT_NAME_COOKIE,
+} from "@/lib/auth/shadow-tenant";
 import type {
   Challenge,
   ChallengeSubmission,
@@ -32,6 +41,7 @@ function mapProfile(
     role: row.role,
     level: row.level,
     managerId: row.manager_id,
+    tenantId: (row as { tenant_id?: string | null }).tenant_id ?? null,
     avatarUrl: row.avatar_url,
     createdAt: row.created_at,
   };
@@ -223,6 +233,8 @@ async function fetchSupabaseChallengesPageData(): Promise<ChallengesPageData | n
 }
 
 export const getChallengesPageData = cache(async (): Promise<{ data: ChallengesPageData; source: DataSource }> => {
+  const authenticatedUser = await getAuthenticatedUser();
+
   try {
     const live = await fetchSupabaseChallengesPageData();
     if (live) {
@@ -230,6 +242,33 @@ export const getChallengesPageData = cache(async (): Promise<{ data: ChallengesP
     }
   } catch {
     // demo fallback
+  }
+
+  if (authenticatedUser) {
+    const supabase = await createClient();
+    const { data: profile } = supabase
+      ? await supabase
+          .from("profiles")
+          .select("id, email, full_name, role, level, manager_id, avatar_url, created_at, tenant_id")
+          .eq("id", authenticatedUser.id)
+          .maybeSingle()
+      : { data: null };
+
+    if (profile) {
+      const currentUser = mapProfile(profile);
+      return {
+        data: {
+          currentUser,
+          challenges: [],
+          submissions: [],
+          plans: [],
+          competencies: [],
+          coachingCards: [],
+          notifications: [],
+        },
+        source: "supabase",
+      };
+    }
   }
 
   const demo = getDemoDashboardData();
@@ -264,6 +303,76 @@ export async function getChallengesPageDataForTier(tier: "se" | "manager" | "adm
   } = await supabase.auth.getUser();
   if (!user) {
     return result;
+  }
+
+  if (tier === "admin") {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role, tenant_id")
+      .eq("id", user.id)
+      .maybeSingle();
+    const cookieStore = await cookies();
+    const access = resolveEffectiveAccess(
+      (profile as { role: Profile["role"] } | null)?.role ?? "basic_se",
+      (profile as { tenant_id: string | null } | null)?.tenant_id ?? null,
+      cookieStore.get(SHADOW_TENANT_COOKIE)?.value ?? null,
+      cookieStore.get(SHADOW_TENANT_NAME_COOKIE)?.value ?? null,
+      cookieStore.get(SHADOW_MODE_COOKIE)?.value ?? null,
+    );
+    const tenantId = access.tenantId ?? (profile as { tenant_id: string | null } | null)?.tenant_id ?? null;
+    if (!tenantId) {
+      return result;
+    }
+
+    const admin = getTenantAdminClient();
+    if (!admin) {
+      return result;
+    }
+
+    const [submissionsResult, challengesResult, competenciesResult] = await Promise.all([
+      admin
+        .from("challenge_submissions")
+        .select(
+          "id, user_id, challenge_id, status, reflection_text, manager_grade, manager_feedback, ai_suggested_score, submitted_at, reviewed_at",
+        )
+        .eq("tenant_id", tenantId),
+      admin
+        .from("challenges")
+        .select(
+          "id, title, description, difficulty, estimated_minutes, linked_solutions, target_level, is_ai_generated, created_by, ai_metadata",
+        )
+        .eq("tenant_id", tenantId)
+        .order("title"),
+      admin.from("competencies").select("id, name, category, description").eq("tenant_id", tenantId),
+    ]);
+
+    const submissions = submissionsResult.data ?? [];
+
+    return {
+      ...result,
+      data: {
+        ...result.data,
+        challenges: ((challengesResult.data ?? []) as DbChallenge[]).map(mapChallengeListItem),
+        competencies: ((competenciesResult.data ?? []) as DbCompetency[]).map((row) => ({
+          id: row.id,
+          name: row.name,
+          category: row.category,
+          description: row.description ?? "",
+        })),
+        submissions: submissions.map((row) => ({
+          id: row.id,
+          userId: row.user_id,
+          challengeId: row.challenge_id,
+          status: row.status,
+          reflectionText: row.reflection_text ?? "",
+          managerGrade: row.manager_grade,
+          managerFeedback: row.manager_feedback,
+          aiSuggestedScore: row.ai_suggested_score,
+          submittedAt: row.submitted_at,
+          reviewedAt: row.reviewed_at,
+        })),
+      },
+    };
   }
 
   let submissionsQuery = supabase

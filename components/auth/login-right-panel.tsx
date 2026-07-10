@@ -1,63 +1,48 @@
 import { LoginForm } from "@/components/auth/login-form";
-import { LoginSailMark, LockIcon } from "@/components/auth/login-icons";
 import { ALLOWED_EMAIL_DOMAINS } from "@/lib/auth/email-domain";
 
 export function LoginRightPanel({ initialError }: { initialError?: string | null }) {
-  return (
-    <div className="flex flex-1 items-center justify-center bg-[#f4f8fd] p-[40px_48px]">
-      <div className="w-full max-w-[400px]">
-        <div className="mb-[24px] flex items-center justify-center gap-[10px] lg:hidden">
-          <div
-            className="flex h-[36px] w-[36px] items-center justify-center rounded-[9px]"
-            style={{ background: "linear-gradient(135deg,#0033a1,#0071ce)" }}
-          >
-            <LoginSailMark size={20} />
-          </div>
-          <span className="font-display text-[15px] font-extrabold text-[#0a1628]">SailPoint SE Enablement</span>
-        </div>
+ return (
+ <div className="flex flex-1 items-center justify-center bg-[#F5F4F0] p-[48px_40px]">
+ <div className="w-full max-w-[360px] fade-in">
+ <div className="mb-[32px] flex items-center gap-[6px] lp-1">
+ <div className="flex h-[20px] w-[20px] items-center justify-center bg-[#00143A]">
+ <span className="font-mono text-[8px] font-medium text-white">1</span>
+ </div>
+ <span className="font-mono text-[10px] font-medium text-[#0D0E12]">Sign in</span>
+ <div className="mx-[6px] h-px flex-1 bg-[#D4D1CB]" />
+ <div className="flex h-[20px] w-[20px] items-center justify-center border border-[#D4D1CB]">
+ <span className="font-mono text-[8px] text-[#B0ADA8]">2</span>
+ </div>
+ <span className="font-mono text-[10px] text-[#B0ADA8]">Verify</span>
+ </div>
 
-        <div
-          className="fade-up delay-1 rounded-[18px] bg-white p-[38px_36px]"
-          style={{ border: "1px solid #e2eaf5", boxShadow: "0 4px 32px rgba(0,20,58,0.07)" }}
-        >
-          <div className="mb-[30px] text-center">
-            <div
-              className="mx-auto mb-[16px] flex h-[52px] w-[52px] items-center justify-center rounded-[14px]"
-              style={{
-                background: "linear-gradient(135deg,#0033a1,#0071ce)",
-                boxShadow: "0 6px 20px rgba(0,113,206,0.32)",
-              }}
-            >
-              <LoginSailMark size={26} />
-            </div>
-            <h2 className="mb-[6px] font-display text-[22px] font-extrabold tracking-[-0.02em] text-[#0a1628]">
-              Welcome back
-            </h2>
-            <p className="text-[13.5px] leading-[1.5] text-[#64748b]">
-              Sign in with your @sailpoint.com credentials
-            </p>
-          </div>
+ <div className="lp-2">
+ <h2 className="mb-[6px] font-display text-[26px] font-extrabold tracking-[-0.03em] text-[#0D0E12]">
+ Welcome back
+ </h2>
+ <p className="mb-[28px] text-[13px] leading-[1.55] text-[#6B6860]">
+ Sign in with your work email to continue
+ </p>
 
-          <LoginForm initialError={initialError} />
-        </div>
+ <LoginForm initialError={initialError} />
+ </div>
 
-        <div className="fade-up delay-4 mt-[16px] text-center">
-          <p className="text-[12px] leading-[1.6] text-[#94a3b8]">
-            Access restricted to{" "}
-            {ALLOWED_EMAIL_DOMAINS.map((domain, index) => (
-              <span key={domain}>
-                {index > 0 ? " and " : null}
-                <span className="font-semibold text-[#64748b]">@{domain}</span>
-              </span>
-            ))}{" "}
-            accounts
-          </p>
-          <p className="mt-[4px] flex items-center justify-center gap-[6px] text-[11.5px] text-[#94a3b8]">
-            <LockIcon className="h-[11px] w-[11px]" />
-            MFA required on every sign-in
-          </p>
-        </div>
-      </div>
-    </div>
-  );
+ <div className="lp-4 mt-[24px] text-center">
+ <p className="font-mono text-[10px] leading-[1.6] text-[#A09D98]">
+ Access restricted to{" "}
+ {ALLOWED_EMAIL_DOMAINS.map((domain, index) => (
+ <span key={domain}>
+ {index > 0 ? " and " : null}
+ <span className="text-[#6B6860]">@{domain}</span>
+ </span>
+ ))}
+ </p>
+ <p className="mt-[6px] font-mono text-[9px] uppercase tracking-[0.08em] text-[#B0ADA8]">
+ MFA required on every sign-in
+ </p>
+ </div>
+ </div>
+ </div>
+ );
 }

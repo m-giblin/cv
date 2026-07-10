@@ -9,24 +9,33 @@ type DbPlanAssignment = Database["public"]["Tables"]["plan_assignments"]["Row"];
 type DbPlanAssignmentStep = Database["public"]["Tables"]["plan_assignment_steps"]["Row"];
 type DbOnboardingPlan = Database["public"]["Tables"]["onboarding_plans"]["Row"];
 
-export async function fetchPlansBundle(supabase: SupabaseClient<Database>): Promise<UserPlan[]> {
-  const { data: assignments } = await supabase.from("plan_assignments").select("user_id");
+export async function fetchPlansBundle(
+  supabase: SupabaseClient<Database>,
+  tenantId?: string | null,
+): Promise<UserPlan[]> {
+  let query = supabase.from("plan_assignments").select("user_id");
+  if (tenantId) {
+    query = query.eq("tenant_id", tenantId);
+  }
+  const { data: assignments } = await query;
   const userIds = [...new Set((assignments ?? []).map((row) => row.user_id))];
-  return fetchPlansForUsers(supabase, userIds);
+  return fetchPlansForUsers(supabase, userIds, tenantId);
 }
 
 export async function fetchPlansForUsers(
   supabase: SupabaseClient<Database>,
   userIds: string[],
+  tenantId?: string | null,
 ): Promise<UserPlan[]> {
   if (userIds.length === 0) {
     return [];
   }
 
-  const { data: assignmentsRaw } = await supabase
-    .from("plan_assignments")
-    .select("*")
-    .in("user_id", userIds);
+  let assignmentsQuery = supabase.from("plan_assignments").select("*").in("user_id", userIds);
+  if (tenantId) {
+    assignmentsQuery = assignmentsQuery.eq("tenant_id", tenantId);
+  }
+  const { data: assignmentsRaw } = await assignmentsQuery;
 
   const assignments = (assignmentsRaw ?? []) as DbPlanAssignment[];
   if (assignments.length === 0) {
@@ -36,11 +45,15 @@ export async function fetchPlansForUsers(
   const assignmentIds = assignments.map((assignment) => assignment.id);
   const planIds = [...new Set(assignments.map((assignment) => assignment.plan_id))];
 
+  const plansQuery = supabase.from("onboarding_plans").select("id, name").in("id", planIds);
+  const planStepsQuery = supabase.from("plan_steps").select("*").in("plan_id", planIds).order("sort_order");
+  const contentAssetsQuery = supabase.from("content_assets").select("id, storage_path");
+
   const [plansResult, planStepsResult, assignmentStepsResult, contentAssetsResult] = await Promise.all([
-    supabase.from("onboarding_plans").select("id, name").in("id", planIds),
-    supabase.from("plan_steps").select("*").in("plan_id", planIds).order("sort_order"),
+    plansQuery,
+    planStepsQuery,
     supabase.from("plan_assignment_steps").select("*").in("assignment_id", assignmentIds),
-    supabase.from("content_assets").select("id, storage_path"),
+    contentAssetsQuery,
   ]);
   const planSteps = (planStepsResult.data ?? []) as DbPlanStep[];
   const assignmentSteps = (assignmentStepsResult.data ?? []) as DbPlanAssignmentStep[];

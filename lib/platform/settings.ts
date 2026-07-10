@@ -16,8 +16,10 @@ import {
   sessionIdleMsFromMinutes,
   type PlatformFeatureFlags,
 } from "@/lib/platform/settings-shared";
+import { DEFAULT_TENANT_ID } from "@/lib/tenant/types";
 
 export type PlatformSettings = {
+  tenantId: string | null;
   sessionIdleMinutes: number;
   featureFlags: PlatformFeatureFlags;
   auditLogRetentionDays: number;
@@ -25,9 +27,6 @@ export type PlatformSettings = {
   aiUsageRetentionDays: number;
   updatedAt: string | null;
 };
-
-/** @deprecated use PlatformSettings */
-export type PlatformBasicSettings = PlatformSettings;
 
 function clampRetentionDays(value: number): number {
   return Math.min(MAX_RETENTION_DAYS, Math.max(MIN_RETENTION_DAYS, Math.round(value)));
@@ -37,15 +36,19 @@ function clampSessionIdleMinutes(value: number): number {
   return Math.min(MAX_SESSION_IDLE_MINUTES, Math.max(MIN_SESSION_IDLE_MINUTES, Math.round(value)));
 }
 
-function rowToSettings(row: {
-  session_idle_minutes?: number | null;
-  feature_flags?: unknown;
-  audit_log_retention_days?: number | null;
-  activity_log_retention_days?: number | null;
-  ai_usage_retention_days?: number | null;
-  updated_at?: string | null;
-} | null): PlatformSettings {
+function rowToSettings(
+  row: {
+    tenant_id?: string | null;
+    session_idle_minutes?: number | null;
+    feature_flags?: unknown;
+    audit_log_retention_days?: number | null;
+    activity_log_retention_days?: number | null;
+    ai_usage_retention_days?: number | null;
+    updated_at?: string | null;
+  } | null,
+): PlatformSettings {
   return {
+    tenantId: row?.tenant_id ?? null,
     sessionIdleMinutes: clampSessionIdleMinutes(row?.session_idle_minutes ?? DEFAULT_SESSION_IDLE_MINUTES),
     featureFlags: mergeFeatureFlags(row?.feature_flags as PlatformFeatureFlags | undefined),
     auditLogRetentionDays: clampRetentionDays(row?.audit_log_retention_days ?? DEFAULT_AUDIT_LOG_RETENTION_DAYS),
@@ -57,7 +60,10 @@ function rowToSettings(row: {
   };
 }
 
-export async function loadPlatformSettings(): Promise<PlatformSettings> {
+const SETTINGS_SELECT =
+  "tenant_id, session_idle_minutes, feature_flags, audit_log_retention_days, activity_log_retention_days, ai_usage_retention_days, updated_at";
+
+export async function loadPlatformSettings(tenantId: string = DEFAULT_TENANT_ID): Promise<PlatformSettings> {
   const admin = createAdminClient();
   if (!admin) {
     return rowToSettings(null);
@@ -65,23 +71,24 @@ export async function loadPlatformSettings(): Promise<PlatformSettings> {
 
   const { data, error } = await admin
     .from("platform_settings")
-    .select(
-      "session_idle_minutes, feature_flags, audit_log_retention_days, activity_log_retention_days, ai_usage_retention_days, updated_at",
-    )
-    .eq("id", "default")
+    .select(SETTINGS_SELECT)
+    .eq("tenant_id", tenantId)
     .maybeSingle();
 
   if (error || !data) {
-    return rowToSettings(null);
+    const legacy = await admin
+      .from("platform_settings")
+      .select(SETTINGS_SELECT)
+      .eq("id", "default")
+      .maybeSingle();
+    return rowToSettings(legacy.data ?? null);
   }
 
   return rowToSettings(data);
 }
 
-export const loadPlatformBasicSettings = loadPlatformSettings;
-
-export async function getSessionIdleMs(): Promise<number> {
-  const settings = await loadPlatformSettings();
+export async function getSessionIdleMs(tenantId?: string | null): Promise<number> {
+  const settings = await loadPlatformSettings(tenantId ?? DEFAULT_TENANT_ID);
   return sessionIdleMsFromMinutes(settings.sessionIdleMinutes);
 }
 
@@ -89,6 +96,7 @@ export async function savePlatformSettings(
   admin: SupabaseClient<Database>,
   userId: string,
   input: {
+    tenantId?: string;
     sessionIdleMinutes?: number;
     featureFlags?: PlatformFeatureFlags;
     auditLogRetentionDays?: number;
@@ -96,9 +104,11 @@ export async function savePlatformSettings(
     aiUsageRetentionDays?: number;
   },
 ): Promise<PlatformSettings> {
+  const tenantId = input.tenantId ?? DEFAULT_TENANT_ID;
   const payload: {
     updated_at: string;
     updated_by: string;
+    tenant_id: string;
     session_idle_minutes?: number;
     feature_flags?: PlatformFeatureFlags;
     audit_log_retention_days?: number;
@@ -107,6 +117,7 @@ export async function savePlatformSettings(
   } = {
     updated_at: new Date().toISOString(),
     updated_by: userId,
+    tenant_id: tenantId,
   };
 
   if (typeof input.sessionIdleMinutes === "number") {
@@ -125,22 +136,18 @@ export async function savePlatformSettings(
     payload.ai_usage_retention_days = clampRetentionDays(input.aiUsageRetentionDays);
   }
 
-  const { data: updated, error } = await admin
+  const { data: existing } = await admin
     .from("platform_settings")
-    .update(payload)
-    .eq("id", "default")
-    .select(
-      "session_idle_minutes, feature_flags, audit_log_retention_days, activity_log_retention_days, ai_usage_retention_days, updated_at",
-    )
+    .select("id")
+    .eq("tenant_id", tenantId)
     .maybeSingle();
 
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  if (!updated) {
-    const { error: insertError } = await admin.from("platform_settings").insert({
-      id: "default",
+  if (existing?.id) {
+    const { error } = await admin.from("platform_settings").update(payload).eq("tenant_id", tenantId);
+    if (error) throw new Error(error.message);
+  } else {
+    const { error } = await admin.from("platform_settings").insert({
+      id: crypto.randomUUID(),
       provider: "xai",
       model: "grok-3-mini",
       session_idle_minutes: payload.session_idle_minutes ?? DEFAULT_SESSION_IDLE_MINUTES,
@@ -148,16 +155,13 @@ export async function savePlatformSettings(
       audit_log_retention_days: payload.audit_log_retention_days ?? DEFAULT_AUDIT_LOG_RETENTION_DAYS,
       activity_log_retention_days: payload.activity_log_retention_days ?? DEFAULT_ACTIVITY_LOG_RETENTION_DAYS,
       ai_usage_retention_days: payload.ai_usage_retention_days ?? DEFAULT_AI_USAGE_RETENTION_DAYS,
-      updated_at: payload.updated_at,
-      updated_by: userId,
+      ...payload,
     });
-
-    if (insertError) {
-      throw new Error(insertError.message);
-    }
+    if (error) throw new Error(error.message);
   }
 
-  return loadPlatformSettings();
+  return loadPlatformSettings(tenantId);
 }
 
+export const loadPlatformBasicSettings = loadPlatformSettings;
 export const savePlatformBasicSettings = savePlatformSettings;

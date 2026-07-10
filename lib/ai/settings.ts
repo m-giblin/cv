@@ -5,6 +5,7 @@ import { openApiKey, sealApiKey } from "@/lib/crypto/api-key-storage";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { AiProviderName } from "@/lib/ai/provider";
 import type { AiUsageSummary, PublicAiSettings } from "@/lib/ai/settings-shared";
+import { DEFAULT_TENANT_ID } from "@/lib/tenant/types";
 
 export type { AiUsageSummary, PublicAiSettings } from "@/lib/ai/settings-shared";
 export { formatTokenCount } from "@/lib/ai/settings-shared";
@@ -48,7 +49,7 @@ export function maskApiKey(key: string | null | undefined): string | null {
   return `${key.slice(0, 4)}…${key.slice(-4)}`;
 }
 
-export async function loadPlatformAiSettings(): Promise<PlatformAiSettings> {
+export async function loadPlatformAiSettings(tenantId: string = DEFAULT_TENANT_ID): Promise<PlatformAiSettings> {
   const admin = createAdminClient();
   if (!admin) {
     return envFallback();
@@ -57,7 +58,7 @@ export async function loadPlatformAiSettings(): Promise<PlatformAiSettings> {
   const { data, error } = await admin
     .from("platform_settings")
     .select("provider, model, api_key_ciphertext, updated_at")
-    .eq("id", "default")
+    .eq("tenant_id", tenantId)
     .maybeSingle();
 
   if (error || !data) {
@@ -107,34 +108,49 @@ export function toPublicAiSettings(settings: PlatformAiSettings, dbHasKey: boole
 export async function savePlatformAiSettings(
   admin: SupabaseClient,
   userId: string,
-  input: { provider: AiProviderName; model: string; apiKey?: string | null },
+  input: { provider: AiProviderName; model: string; apiKey?: string | null; tenantId?: string },
 ): Promise<void> {
+  const tenantId = input.tenantId ?? DEFAULT_TENANT_ID;
   const payload: {
     provider: string;
     model: string;
     updated_at: string;
     updated_by: string;
     api_key_ciphertext?: string;
+    tenant_id: string;
   } = {
     provider: input.provider,
     model: input.model.trim(),
     updated_at: new Date().toISOString(),
     updated_by: userId,
+    tenant_id: tenantId,
   };
 
   if (typeof input.apiKey === "string" && input.apiKey.trim().length > 0) {
     payload.api_key_ciphertext = sealApiKey(input.apiKey);
   }
 
-  const { error } = await admin.from("platform_settings").upsert({ id: "default", ...payload });
+  const { data: existing } = await admin
+    .from("platform_settings")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+
+  const { error } = await admin.from("platform_settings").upsert({
+    id: existing?.id ?? crypto.randomUUID(),
+    ...payload,
+  });
 
   if (error) {
     throw new Error(error.message);
   }
 }
 
-export async function loadAiUsageSummary(admin: SupabaseClient): Promise<AiUsageSummary> {
-  const settings = await loadPlatformAiSettings();
+export async function loadAiUsageSummary(
+  admin: SupabaseClient,
+  tenantId: string = DEFAULT_TENANT_ID,
+): Promise<AiUsageSummary> {
+  const settings = await loadPlatformAiSettings(tenantId);
   const now = new Date();
   const start30d = new Date(now);
   start30d.setDate(start30d.getDate() - 30);
@@ -143,6 +159,7 @@ export async function loadAiUsageSummary(admin: SupabaseClient): Promise<AiUsage
   const { data: rows } = await admin
     .from("ai_usage_logs")
     .select("feature, total_tokens, created_at")
+    .eq("tenant_id", tenantId)
     .gte("created_at", start30d.toISOString())
     .order("created_at", { ascending: false });
 

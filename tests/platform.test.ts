@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { canAccessRoute, getAccessTier } from "@/lib/auth/rbac";
+import { canAccessRoute, getAccessTier, getHomeRoute } from "@/lib/auth/rbac";
+import { filterNavHref } from "@/lib/platform/feature-flags";
+import { mergeFeatureFlags } from "@/lib/platform/settings-shared";
 import { allowedEmailError } from "@/lib/auth/email-domain";
 import { buildQuarterlyReviewsForGoal, currentQuarter } from "@/lib/development/plan-utils";
 import { dealPrepSchema, generatedChallengeSchema } from "@/lib/ai/schemas";
@@ -18,6 +20,43 @@ describe("RBAC", () => {
   it("restricts admin routes from SE tier", () => {
     expect(canAccessRoute("se", "/admin")).toBe(false);
     expect(canAccessRoute("admin", "/admin")).toBe(true);
+  });
+
+  it("resolves super-admin shadow mode as tenant admin tier", async () => {
+    const { resolveEffectiveAccess } = await import("@/lib/auth/shadow-tenant");
+    const tenantId = "00000000-0000-4000-8000-000000000099";
+
+    const shadowed = resolveEffectiveAccess("super_admin", null, tenantId, "Acme Corp", "admin");
+    expect(shadowed.tier).toBe("admin");
+    expect(shadowed.isShadowing).toBe(true);
+    expect(shadowed.tenantId).toBe(tenantId);
+    expect(canAccessRoute(shadowed.tier, "/admin")).toBe(true);
+    expect(canAccessRoute(shadowed.tier, "/platform")).toBe(false);
+
+    const training = resolveEffectiveAccess("super_admin", null, tenantId, "Acme Corp", "se");
+    expect(training.tier).toBe("se");
+    expect(training.shadowMode).toBe("se");
+    expect(canAccessRoute(training.tier, "/dashboard")).toBe(true);
+
+    const platform = resolveEffectiveAccess("super_admin", null, null, null);
+    expect(platform.tier).toBe("super_admin");
+    expect(platform.isShadowing).toBe(false);
+    expect(canAccessRoute(platform.tier, "/platform")).toBe(true);
+  });
+
+  it("routes tenant admins to the admin portal home", () => {
+    expect(getHomeRoute("admin")).toBe("/admin");
+  });
+
+  it("splits program tracker and assign plans entitlements", async () => {
+    const flags = mergeFeatureFlags({ "program-tracker": false, "assign-plans": false });
+    expect(filterNavHref("/manager?section=program", flags)).toBe(false);
+    expect(filterNavHref("/manager?section=assign", flags)).toBe(false);
+    expect(filterNavHref("/manager?section=command", flags)).toBe(true);
+
+    const programOnly = mergeFeatureFlags({ "program-tracker": false, "assign-plans": true });
+    expect(filterNavHref("/manager?section=program", programOnly)).toBe(false);
+    expect(filterNavHref("/manager?section=assign", programOnly)).toBe(true);
   });
 
   it("orders SE practice tools together after readiness items", async () => {

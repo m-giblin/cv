@@ -5,6 +5,10 @@ export type AuditAction =
   | "user.created"
   | "user.updated"
   | "user.deleted"
+  | "tenant.created"
+  | "tenant.updated"
+  | "tenant.feature_flags.updated"
+  | "tenant.admin_invited"
   | "plan.template_created"
   | "plan.template_updated"
   | "plan.template_deleted"
@@ -32,12 +36,18 @@ export type AuditAction =
   | "development_plan.created"
   | "development_review.updated"
   | "challenge.saved"
+  | "release.course.created"
+  | "release.course.assigned"
   | "simulation.assigned"
   | "submission.created"
   | "deal_prep.session_created"
   | "deal_prep.session_updated"
   | "pitch.submitted"
-  | "integration.connected";
+  | "tenant.shadow_started"
+  | "tenant.shadow_ended"
+  | "tenant.status_updated"
+  | "support.request_created"
+  | "support.request_updated"
 
 export async function logAuditEvent(
   actorId: string,
@@ -46,6 +56,7 @@ export async function logAuditEvent(
     targetType: string;
     targetId?: string;
     details?: Record<string, unknown>;
+    tenantId?: string | null;
   },
 ) {
   const admin = createAdminClient();
@@ -60,6 +71,7 @@ export async function logAuditEvent(
     p_target_id: params.targetId ?? undefined,
     p_details: (params.details ?? {}) as Json,
     p_actor_id: actorId,
+    p_tenant_id: params.tenantId ?? undefined,
   });
 
   if (error) {

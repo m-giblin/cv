@@ -53,18 +53,32 @@ async function forgeFetch(path: string, init?: RequestInit) {
   const headers = new Headers(init?.headers);
   headers.set("Authorization", `Bearer ${apiKey}`);
 
-  const res = await fetch(`${getForgeBaseUrl()}${path}`, {
-    ...init,
-    headers,
-    cache: "no-store",
-  });
+  const timeoutMs = 5_000;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new ForgeApiError(res.status, text || `Forge API ${res.status}`);
+  try {
+    const res = await fetch(`${getForgeBaseUrl()}${path}`, {
+      ...init,
+      headers,
+      cache: "no-store",
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new ForgeApiError(res.status, text || `Forge API ${res.status}`);
+    }
+
+    return res;
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new ForgeApiError(504, "Forge API timed out after 5s");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
   }
-
-  return res;
 }
 
 export async function resolveForgeAssigneeId(): Promise<string | null> {
