@@ -243,7 +243,8 @@ export function ManagerPlanAssignPanel({
  </label>
 
  <label className="block space-y-1.5 text-sm">
- <span className="font-semibold text-sp-navy">Mentor (optional)</span>
+ <span className="font-semibold text-sp-navy">Mentor</span>
+ <p className="text-xs text-sp-navy-muted">Any employee on your team — they coach; you sign off.</p>
  <select
  className="h-10 w-full border border-sp-blue/15 bg-white px-3"
  onChange={(event) => setMentorId(event.target.value)}

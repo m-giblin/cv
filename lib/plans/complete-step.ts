@@ -1,22 +1,33 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { Database } from "@/lib/database.types";
+import { parsePlanStepMetadata } from "@/lib/corpus/parse-step-metadata";
 import { maybeUnlockNextSegment } from "@/lib/plans/segment-gates";
-import { assertAssignmentStepNotLocked, StepSegmentLockedError } from "@/lib/plans/segment-lock";
 import { assertStepAccessible } from "@/lib/plans/step-prerequisites";
+import {
+  canManagerSignOffStep,
+  canMentorEndorseStep,
+  isMentorCoachingStep,
+} from "@/lib/plans/review-policy";
+import type { PlanStepType } from "@/lib/types";
+import { createNotification } from "@/lib/notifications/create-notification";
 
-export { StepSegmentLockedError };
+export { StepSegmentLockedError } from "@/lib/plans/segment-lock";
 
 export async function recalculatePlanProgress(
   supabase: SupabaseClient<Database>,
   assignmentId: string,
 ) {
-  const { data: steps } = await supabase
-    .from("plan_assignment_steps")
-    .select("status")
-    .eq("assignment_id", assignmentId);
+  const [{ data: steps }, { data: adHocSteps }] = await Promise.all([
+    supabase.from("plan_assignment_steps").select("status").eq("assignment_id", assignmentId),
+    supabase.from("plan_ad_hoc_steps").select("status").eq("assignment_id", assignmentId),
+  ]);
 
-  const total = steps?.length ?? 0;
-  const validated = steps?.filter((step) => step.status === "reviewed").length ?? 0;
+  const allStatuses = [
+    ...(steps ?? []).map((step) => step.status),
+    ...(adHocSteps ?? []).map((step) => step.status),
+  ];
+  const total = allStatuses.length;
+  const validated = allStatuses.filter((status) => status === "reviewed").length;
 
   const progress = total > 0 ? Math.round((validated / total) * 100) : 0;
 
@@ -54,6 +65,43 @@ async function getAssignmentStepContext(
   }
 
   return { step, assignment };
+}
+
+async function getPlanStepMeta(
+  supabase: SupabaseClient<Database>,
+  planStepId: string,
+): Promise<{ stepType: PlanStepType; isSegmentGate: boolean }> {
+  const { data: planStep } = await supabase
+    .from("plan_steps")
+    .select("step_type, metadata, sort_order")
+    .eq("id", planStepId)
+    .maybeSingle();
+
+  if (!planStep) {
+    return { stepType: "custom", isSegmentGate: false };
+  }
+
+  const meta = parsePlanStepMetadata(planStep.metadata, planStep.sort_order);
+  return {
+    stepType: planStep.step_type as PlanStepType,
+    isSegmentGate: meta.isSegmentGate,
+  };
+}
+
+async function getReviewerContext(
+  supabase: SupabaseClient<Database>,
+  reviewerId: string,
+  assigneeUserId: string,
+) {
+  const [{ data: reviewer }, { data: assignee }] = await Promise.all([
+    supabase.from("profiles").select("role").eq("id", reviewerId).maybeSingle(),
+    supabase.from("profiles").select("manager_id").eq("id", assigneeUserId).maybeSingle(),
+  ]);
+
+  return {
+    reviewerRole: reviewer?.role ?? "basic_se",
+    assigneeManagerId: assignee?.manager_id ?? null,
+  };
 }
 
 /** SE submits work — awaits manager/mentor validation. Never marks the step complete. */
@@ -106,7 +154,94 @@ export async function submitAssignmentStep(
   return { assignmentId: step.assignment_id, planStepId: step.plan_step_id };
 }
 
-/** Manager or mentor approves — step counts toward plan progress. */
+/** Mentor endorses a coaching check-in — awaits manager live sign-off. */
+export async function endorseAssignmentStep(
+  supabase: SupabaseClient<Database>,
+  params: {
+    assignmentStepId: string;
+    reviewerId: string;
+    feedback?: string;
+  },
+) {
+  const { step, assignment } = await getAssignmentStepContext(supabase, params.assignmentStepId);
+  const { stepType, isSegmentGate } = await getPlanStepMeta(supabase, step.plan_step_id);
+
+  if (
+    !canMentorEndorseStep({
+      reviewerId: params.reviewerId,
+      mentorId: assignment.mentor_id,
+      stepType,
+      isSegmentGate,
+    })
+  ) {
+    throw new Error("Only the assigned mentor can endorse coaching check-ins.");
+  }
+
+  if (step.status !== "submitted") {
+    throw new Error("Step must be submitted before mentor endorsement.");
+  }
+
+  const { error } = await supabase
+    .from("plan_assignment_steps")
+    .update({
+      status: "under_review",
+      completed_at: null,
+      notes: params.feedback ?? step.notes,
+    })
+    .eq("id", params.assignmentStepId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  await recalculatePlanProgress(supabase, step.assignment_id);
+
+  const { assigneeManagerId } = await getReviewerContext(supabase, params.reviewerId, assignment.user_id);
+
+  if (assigneeManagerId) {
+    await createNotificationForManager(supabase, {
+      managerId: assigneeManagerId,
+      seUserId: assignment.user_id,
+      title: "Mentor endorsed — manager sign-off needed",
+      body: "A mentor check-in is ready for your live validation.",
+      actionUrl: "/manager?section=inbox",
+    });
+  }
+
+  await supabase.from("activity_logs").insert({
+    user_id: assignment.user_id,
+    actor_id: params.reviewerId,
+    event_type: "manager_feedback_received",
+    title: "Mentor endorsed plan step — awaiting manager sign-off",
+    metadata: {
+      assignment_step_id: params.assignmentStepId,
+      plan_step_id: step.plan_step_id,
+      validation_status: "under_review",
+    },
+  });
+
+  return { assignmentId: step.assignment_id, userId: assignment.user_id };
+}
+
+async function createNotificationForManager(
+  supabase: SupabaseClient<Database>,
+  params: {
+    managerId: string;
+    seUserId: string;
+    title: string;
+    body: string;
+    actionUrl: string;
+  },
+) {
+  await createNotification(supabase, {
+    userId: params.managerId,
+    title: params.title,
+    body: params.body,
+    actionUrl: params.actionUrl,
+  });
+}
+
+/** Manager approves — step counts toward plan progress (live sign-off). */
 export async function approveAssignmentStep(
   supabase: SupabaseClient<Database>,
   params: {
@@ -116,26 +251,42 @@ export async function approveAssignmentStep(
   },
 ) {
   const { step, assignment } = await getAssignmentStepContext(supabase, params.assignmentStepId);
-
-  const { data: reviewer } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", params.reviewerId)
-    .maybeSingle();
-
-  const { data: assignee } = await supabase
-    .from("profiles")
-    .select("manager_id")
-    .eq("id", assignment.user_id)
-    .maybeSingle();
+  const { stepType, isSegmentGate } = await getPlanStepMeta(supabase, step.plan_step_id);
+  const { reviewerRole, assigneeManagerId } = await getReviewerContext(
+    supabase,
+    params.reviewerId,
+    assignment.user_id,
+  );
 
   const isMentor = assignment.mentor_id === params.reviewerId;
-  const isManager = assignee?.manager_id === params.reviewerId;
-  const isAssigner = assignment.assigned_by === params.reviewerId;
-  const isDirectorOrAdmin = reviewer?.role === "director" || reviewer?.role === "admin";
 
-  if (!isManager && !isMentor && !isAssigner && !isDirectorOrAdmin) {
-    throw new Error("Not authorized to approve this step.");
+  if (isMentor && isMentorCoachingStep(stepType, isSegmentGate)) {
+    return endorseAssignmentStep(supabase, params);
+  }
+
+  if (
+    !canManagerSignOffStep({
+      reviewerId: params.reviewerId,
+      assigneeManagerId,
+      assignedById: assignment.assigned_by,
+      reviewerRole,
+    })
+  ) {
+    throw new Error("Only the hiring manager can sign off on this step.");
+  }
+
+  if (isSegmentGate && !canManagerSignOffStep({
+    reviewerId: params.reviewerId,
+    assigneeManagerId,
+    assignedById: assignment.assigned_by,
+    reviewerRole,
+  })) {
+    throw new Error("Segment gates require manager live sign-off.");
+  }
+
+  const allowedStatuses = stepType === "mentor_review" ? ["submitted", "under_review"] : ["submitted"];
+  if (!allowedStatuses.includes(step.status)) {
+    throw new Error("Step is not ready for manager sign-off.");
   }
 
   const { error } = await supabase
@@ -180,29 +331,35 @@ export async function rejectAssignmentStep(
   },
 ) {
   const { step, assignment } = await getAssignmentStepContext(supabase, params.assignmentStepId);
+  const { stepType, isSegmentGate } = await getPlanStepMeta(supabase, step.plan_step_id);
+  const { reviewerRole, assigneeManagerId } = await getReviewerContext(
+    supabase,
+    params.reviewerId,
+    assignment.user_id,
+  );
 
   const isMentor = assignment.mentor_id === params.reviewerId;
-  const { data: reviewer } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", params.reviewerId)
-    .maybeSingle();
+  const canManager = canManagerSignOffStep({
+    reviewerId: params.reviewerId,
+    assigneeManagerId,
+    assignedById: assignment.assigned_by,
+    reviewerRole,
+  });
 
-  const { data: assignee } = await supabase
-    .from("profiles")
-    .select("manager_id")
-    .eq("id", assignment.user_id)
-    .maybeSingle();
+  if (isMentor && !isMentorCoachingStep(stepType, isSegmentGate)) {
+    throw new Error("Mentors cannot reject capability steps — manager sign-off only.");
+  }
 
-  const isManager = assignee?.manager_id === params.reviewerId;
+  if (!isMentor && !canManager) {
+    throw new Error("Not authorized to reject this step.");
+  }
 
-  if (
-    !isManager &&
-    !isMentor &&
-    reviewer?.role !== "manager" &&
-    reviewer?.role !== "director" &&
-    reviewer?.role !== "admin"
-  ) {
+  if (isMentor && !canMentorEndorseStep({
+    reviewerId: params.reviewerId,
+    mentorId: assignment.mentor_id,
+    stepType,
+    isSegmentGate,
+  })) {
     throw new Error("Not authorized to reject this step.");
   }
 

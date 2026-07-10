@@ -85,6 +85,12 @@ export const MANAGER_SECTION_HEADERS: Record<
  title: "Assign Plans",
  subtitle: "Assign week-based templates and monitor active onboarding plans",
  },
+ mentees: {
+ eyebrow: "Mentor workspace",
+ eyebrowColor: "#5b21b6",
+ title: "My Mentees",
+ subtitle: "Ramp plans and coaching notes for SEs assigned to you as mentor",
+ },
  leaderboard: {
  eyebrow: "Team competition",
  eyebrowColor: "#d97706",

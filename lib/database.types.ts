@@ -93,6 +93,42 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["plan_steps"]["Insert"]>;
         Relationships: [];
       };
+      plan_ad_hoc_steps: {
+        Row: {
+          id: string;
+          assignment_id: string;
+          tenant_id: string | null;
+          title: string;
+          description: string | null;
+          step_type: string;
+          status: Database["public"]["Enums"]["assignment_status"];
+          due_date: string | null;
+          notes: string | null;
+          is_manager_gate: boolean;
+          created_by: string | null;
+          sort_order: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          assignment_id: string;
+          tenant_id?: string | null;
+          title: string;
+          description?: string | null;
+          step_type?: string;
+          status?: Database["public"]["Enums"]["assignment_status"];
+          due_date?: string | null;
+          notes?: string | null;
+          is_manager_gate?: boolean;
+          created_by?: string | null;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["plan_ad_hoc_steps"]["Insert"]>;
+        Relationships: [];
+      };
       plan_assignments: {
         Row: {
           id: string;
@@ -929,6 +965,28 @@ export type Database = {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["manager_coaching_notes"]["Insert"]>;
+        Relationships: [];
+      };
+      mentor_coaching_notes: {
+        Row: {
+          id: string;
+          mentor_id: string;
+          se_user_id: string;
+          tenant_id: string | null;
+          notes: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          mentor_id: string;
+          se_user_id: string;
+          tenant_id?: string | null;
+          notes?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["mentor_coaching_notes"]["Insert"]>;
         Relationships: [];
       };
       readiness_certifications: {

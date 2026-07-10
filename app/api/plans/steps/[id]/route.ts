@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { submitAssignmentStep } from "@/lib/plans/complete-step";
+import { parseAdHocStepId, submitAdHocStep } from "@/lib/plans/ad-hoc-steps";
 import { StepSegmentLockedError } from "@/lib/plans/segment-lock";
 import { createClient } from "@/lib/supabase/server";
 
@@ -34,6 +35,16 @@ export async function PATCH(
  }
 
  try {
+ const adHocId = parseAdHocStepId(id);
+ if (adHocId) {
+ const result = await submitAdHocStep(supabase, {
+ adHocStepId: adHocId,
+ userId: user.id,
+ notes: parsed.data.notes,
+ });
+ return NextResponse.json({ success: true, ...result });
+ }
+
  const result = await submitAssignmentStep(supabase, {
  assignmentStepId: id,
  userId: user.id,

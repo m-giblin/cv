@@ -190,6 +190,50 @@ export function PlanStepActions({
  );
  }
 
+ if (step.type === "custom" && step.assignmentStepId?.startsWith("adhoc-")) {
+ return (
+ <Card>
+ <CardHeader>
+ <CardTitle>{step.title}</CardTitle>
+ <CardDescription>
+ {step.description || "Manager-assigned task — complete the work, then submit for manager live sign-off."}
+ </CardDescription>
+ </CardHeader>
+ <form
+ className="space-y-3"
+ onSubmit={async (event) => {
+ event.preventDefault();
+ setIsSaving(true);
+ const response = await fetch(`/api/plans/steps/${step.assignmentStepId}`, {
+ method: "PATCH",
+ headers: { "Content-Type": "application/json" },
+ body: JSON.stringify({ notes: contentNotes.trim() }),
+ });
+ if (!response.ok) {
+ toast.error("Could not submit task.");
+ setIsSaving(false);
+ return;
+ }
+ toast.success("Submitted for manager sign-off.");
+ router.push("/dashboard");
+ router.refresh();
+ }}
+ >
+ <Textarea
+ onChange={(e) => setContentNotes(e.target.value)}
+ placeholder="What did you complete? Summarize for your manager's live validation…"
+ required
+ rows={4}
+ value={contentNotes}
+ />
+ <Button disabled={isSaving || contentNotes.trim().length < 10} type="submit">
+ Submit for manager sign-off
+ </Button>
+ </form>
+ </Card>
+ );
+ }
+
  if (step.type === "mentor_review") {
  return (
  <Card>

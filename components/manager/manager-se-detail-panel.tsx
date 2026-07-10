@@ -17,7 +17,10 @@ import { toast } from "sonner";
 import { ActivityFeed } from "@/components/activity-feed";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
+import { ManagerAddAdHocTask } from "@/components/manager/manager-add-ad-hoc-task";
 import { ManagerCoachingNotes } from "@/components/manager/manager-coaching-notes";
+import { ManagerReassignMentor } from "@/components/manager/manager-reassign-mentor";
+import { MentorNotesForManager } from "@/components/manager/mentor-notes-for-manager";
 import { ManagerOutlineBtn, healthBadgeStyle } from "@/components/manager/manager-ui-primitives";
 import { ManagerPlanAssignPanel } from "@/components/manager/manager-plan-assign-panel";
 import { SimulationAssignForm } from "@/components/manager/simulation-assign-form";
@@ -60,6 +63,7 @@ export type SeManagerSnapshot = {
  quarterlyAlert: QuarterlyAlert | null;
  certSummary: CertSummary;
  managerNotes: string;
+ mentorNotes?: { mentorName: string; notes: string; updatedAt: string } | null;
 };
 
 function stepStatusTone(step: PlanStep) {
@@ -71,7 +75,8 @@ function stepStatusTone(step: PlanStep) {
 
 function stepStatusLabel(step: PlanStep) {
  if (step.status === "reviewed") return "Validated";
- if (step.status === "submitted") return "Awaiting your review";
+ if (step.status === "under_review") return "Mentor endorsed — your sign-off";
+ if (step.status === "submitted") return "Awaiting your sign-off";
  if (step.status === "in_progress") return "In progress";
  if (step.status === "not_started") return "Not started";
  return step.status.replaceAll("_", " ");
@@ -183,6 +188,8 @@ export function ManagerSeDetailPanel({
  quarterlyAlert,
  certSummary,
  managerNotes,
+ mentorNotes,
+ mentor,
  } = snapshot;
 
  const [selectedQuickPick, setSelectedQuickPick] = useState<string | null>(SIM_QUICK_PICKS[0]);
@@ -347,6 +354,11 @@ export function ManagerSeDetailPanel({
  <div className="h-[6px] overflow-hidden rounded-full bg-[#e8f2fc]">
  <div className="prog-fill h-full rounded-full bg-[#0071ce]" style={{ width: `${rampPct}%` }} />
  </div>
+ {mentor ? (
+ <p className="mt-[6px] text-[10px] text-[#6B6860]">
+ Mentor: <span className="font-semibold text-[#3D3C38]">{mentor.fullName}</span>
+ </p>
+ ) : null}
  </div>
  ) : (
  <div className="mt-[12px] space-y-3">
@@ -483,6 +495,25 @@ export function ManagerSeDetailPanel({
  </div>
 
  <div className="scroll-mt-3" id="se-detail-notes">
+ {plan ? (
+ <div className="mb-[14px]">
+ <ManagerReassignMentor
+ assignmentId={plan.id}
+ currentMentorId={plan.mentorId}
+ mentors={mentors}
+ seName={profile.fullName}
+ />
+ </div>
+ ) : null}
+ {mentorNotes ? (
+ <div className="mb-[14px]">
+ <MentorNotesForManager
+ mentorName={mentorNotes.mentorName}
+ notes={mentorNotes.notes}
+ updatedAt={mentorNotes.updatedAt}
+ />
+ </div>
+ ) : null}
  <ManagerCoachingNotes initialNotes={managerNotes} seUserId={profile.id} />
  </div>
 
@@ -774,6 +805,9 @@ export function ManagerSeDetailPanel({
  <Badge tone={stepStatusTone(step)}>{stepStatusLabel(step)}</Badge>
  </div>
  ))}
+ </div>
+ <div className="mt-4">
+ <ManagerAddAdHocTask assignmentId={plan.id} personName={profile.fullName} />
  </div>
  </section>
  ) : null}

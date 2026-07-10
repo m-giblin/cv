@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { AppShell } from "@/components/app-shell";
 import type { ManagerSection } from "@/components/manager/manager-page-shell";
 import { buildCoachingCadence } from "@/lib/manager/coaching-cadence";
+import { eligibleMentorsForOrg } from "@/lib/manager/eligible-mentors";
 import { buildReviewHistory } from "@/components/manager/manager-review-history";
 import type { SeManagerSnapshot } from "@/components/manager/manager-se-detail-panel";
 import { buildSeCoachingSummary } from "@/lib/manager/se-coaching-summary";
@@ -21,9 +22,14 @@ import { buildTeamLeaderboard } from "@/lib/gamification/leaderboard";
 import { requireManagerPageAccess } from "@/lib/auth/require-access";
 import { fetchDevelopmentPlans } from "@/lib/data/get-development-data";
 import {
+ fetchMenteeAssignments,
+ fetchMentorCoachingNotesForManager,
+} from "@/lib/data/fetch-mentor-mentees";
+import {
  fetchManagerCoachingNotes,
  fetchReadinessCertifications,
 } from "@/lib/data/get-manager-growth-data";
+import { createClient } from "@/lib/supabase/server";
 
 const ManagerPageShell = dynamic(
  () => import("@/components/manager/manager-page-shell").then((mod) => mod.ManagerPageShell),
@@ -47,6 +53,7 @@ const VALID_SECTIONS = new Set<ManagerSection>([
  "dev",
  "program",
  "assign",
+ "mentees",
 ]);
 
 type ManagerPageProps = {
@@ -73,22 +80,43 @@ export default async function ManagerPage({ searchParams }: ManagerPageProps) {
  const pendingPlanSteps = orgPlans.flatMap((userPlan) => {
  const person = data.profiles.find((profile) => profile.id === userPlan.userId);
  return userPlan.steps
- .filter((step) => step.status === "submitted" && step.assignmentStepId)
+ .filter(
+ (step) =>
+ (step.status === "submitted" || step.status === "under_review") && step.assignmentStepId,
+ )
  .map((step) => ({
  assignmentStepId: step.assignmentStepId!,
  userId: userPlan.userId,
  title: step.title,
  personName: person?.fullName ?? "Team member",
  stepType: step.type,
+ mentorEndorsed: step.status === "under_review",
+ isManagerGate: step.isSegmentGate ?? false,
  }));
  });
 
- const [certRows, dealPrepStats, sharedDealPrep, developmentPlans, managerNotes] = await Promise.all([
+ const [certRows, dealPrepStats, sharedDealPrep, developmentPlans, managerNotes, mentees, mentorNotesByUser] =
+ await Promise.all([
  fetchReadinessCertifications([...orgIds]),
  fetchDealPrepManagerStats([...orgIds]),
  fetchSharedDealPrepForManager([...orgIds]),
  fetchDevelopmentPlans([...orgIds]),
  fetchManagerCoachingNotes(data.currentUser.id, [...orgIds]),
+ (async () => {
+ const supabase = await createClient();
+ if (!supabase) return [];
+ return fetchMenteeAssignments(
+ supabase,
+ data.currentUser.id,
+ data.profiles,
+ data.currentUser.tenantId,
+ );
+ })(),
+ (async () => {
+ const supabase = await createClient();
+ if (!supabase) return {};
+ return fetchMentorCoachingNotesForManager(supabase, [...orgIds]);
+ })(),
  ]);
  const dealPrepReviewItems = sharedDealPrep.map((session) => {
  const person = data.profiles.find((profile) => profile.id === session.user_id);
@@ -295,6 +323,7 @@ export default async function ManagerPage({ searchParams }: ManagerPageProps) {
  quarterlyAlert,
  certSummary,
  managerNotes: managerNotes[profile.id] ?? "",
+ mentorNotes: mentorNotesByUser[profile.id] ?? null,
  };
  });
 
@@ -302,9 +331,7 @@ export default async function ManagerPage({ searchParams }: ManagerPageProps) {
  seSnapshots.map((snapshot) => [snapshot.profile.id, snapshot.coaching]),
  );
 
- const mentors = data.profiles.filter((profile) =>
- ["manager", "mentor", "director", "admin"].includes(profile.role),
- );
+ const mentors = eligibleMentorsForOrg(data.profiles, orgIds);
 
  return (
  <AppShell currentUser={data.currentUser} notifications={data.notifications}>
@@ -348,6 +375,7 @@ export default async function ManagerPage({ searchParams }: ManagerPageProps) {
  seSnapshots={seSnapshots}
  teamSize={data.myOrg.length}
  managerFirstName={data.currentUser.fullName.split(" ")[0]}
+ mentees={mentees}
  />
  </Suspense>
  </AppShell>

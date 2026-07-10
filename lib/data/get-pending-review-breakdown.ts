@@ -21,7 +21,11 @@ export function pendingReviewTotal(breakdown: PendingReviewBreakdown): number {
 export function pendingPlanStepsFromPlans(plans: UserPlan[]): number {
   return plans.reduce(
     (count, plan) =>
-      count + plan.steps.filter((step) => step.status === "submitted" && step.assignmentStepId).length,
+      count +
+      plan.steps.filter(
+        (step) =>
+          (step.status === "submitted" || step.status === "under_review") && step.assignmentStepId,
+      ).length,
     0,
   );
 }

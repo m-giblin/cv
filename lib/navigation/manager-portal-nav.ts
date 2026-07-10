@@ -32,6 +32,7 @@ export const MANAGER_PORTAL_NAV_GROUPS: ManagerPortalNavGroup[] = [
     label: "COACHING",
     items: [
       { href: "/manager?section=cadence", label: "Coaching Cadence" },
+      { href: "/manager?section=mentees", label: "My Mentees" },
       { href: "/manager?section=history", label: "Review History" },
       { href: "/manager?section=dev", label: "Development" },
     ],

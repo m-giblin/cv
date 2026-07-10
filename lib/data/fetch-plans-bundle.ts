@@ -3,6 +3,7 @@ import type { Database } from "@/lib/database.types";
 import type { PlanStep, UserPlan } from "@/lib/types";
 import { parsePlanStepMetadata } from "@/lib/corpus/parse-step-metadata";
 import { isStepLockedForSegment } from "@/lib/corpus/parse-step-metadata";
+import { fetchAdHocStepsForAssignments } from "@/lib/plans/ad-hoc-steps";
 
 type DbPlanStep = Database["public"]["Tables"]["plan_steps"]["Row"];
 type DbPlanAssignment = Database["public"]["Tables"]["plan_assignments"]["Row"];
@@ -79,6 +80,8 @@ export async function fetchPlansForUsers(
     assignmentStepsByAssignment.set(step.assignment_id, existing);
   }
 
+  const adHocByAssignment = await fetchAdHocStepsForAssignments(supabase, assignmentIds);
+
   return assignments.map((assignment) => {
     const template = onboardingPlans.find((plan) => plan.id === assignment.plan_id);
     const templateSteps = planStepsByPlan.get(assignment.plan_id) ?? [];
@@ -112,6 +115,8 @@ export async function fetchPlansForUsers(
       };
     });
 
+    const adHocSteps = adHocByAssignment.get(assignment.id) ?? [];
+
     return {
       id: assignment.id,
       userId: assignment.user_id,
@@ -122,7 +127,7 @@ export async function fetchPlansForUsers(
       status: assignment.status,
       progress: Number(assignment.progress_percent),
       unlockedSegmentMax,
-      steps,
+      steps: [...steps, ...adHocSteps],
     };
   });
 }

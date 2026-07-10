@@ -4,6 +4,7 @@ import { auditMutation } from "@/lib/audit/audit-mutation";
 import { requireManagerSession } from "@/lib/auth/require-manager";
 import { createNotification } from "@/lib/notifications/create-notification";
 import { approveAssignmentStep, rejectAssignmentStep } from "@/lib/plans/complete-step";
+import { parseAdHocStepId, reviewAdHocStep } from "@/lib/plans/ad-hoc-steps";
 
 const schema = z.object({
  decision: z.enum(["approve", "reject"]),
@@ -27,6 +28,23 @@ export async function PATCH(
  }
 
  try {
+ const adHocId = parseAdHocStepId(id);
+ if (adHocId) {
+ const result = await reviewAdHocStep(session.supabase, {
+ adHocStepId: adHocId,
+ reviewerId: session.user.id,
+ decision: parsed.data.decision,
+ feedback: parsed.data.feedback,
+ });
+ await createNotification(session.supabase, {
+ userId: result.userId,
+ title: parsed.data.decision === "approve" ? "Manager signed off on your task" : "Task needs revision",
+ body: parsed.data.feedback,
+ actionUrl: "/my-plan",
+ });
+ return NextResponse.json({ success: true });
+ }
+
  const result =
  parsed.data.decision === "approve"
  ? await approveAssignmentStep(session.supabase, {

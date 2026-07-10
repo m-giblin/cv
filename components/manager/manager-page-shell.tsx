@@ -5,6 +5,7 @@ import { useCallback, useMemo, type ReactNode } from "react";
 import { toast } from "sonner";
 import type { CertReviewItem } from "@/components/manager/cert-review-item";
 import type { DealPrepReviewItem } from "@/components/manager/deal-prep-review-item";
+import { ManagerMenteesPanel } from "@/components/manager/manager-mentees-panel";
 import { ManagerActionInbox } from "@/components/manager/manager-action-inbox";
 import { ManagerCoachingCadencePanel } from "@/components/manager/manager-coaching-cadence-panel";
 import { ManagerCommandCenter } from "@/components/manager/manager-command-center";
@@ -28,6 +29,7 @@ import { TeamLeaderboard } from "@/components/gamification/team-leaderboard";
 import type { CoachingCadenceRow } from "@/lib/manager/coaching-cadence";
 import type { SeCoachingSummary } from "@/lib/manager/se-coaching-summary";
 import type { TeamReadinessRow } from "@/lib/manager/team-readiness";
+import type { MenteeAssignment } from "@/lib/data/fetch-mentor-mentees";
 import type { LeaderboardEntry } from "@/lib/gamification/leaderboard";
 import type {
  ActivityLog,
@@ -50,7 +52,8 @@ export type ManagerSection =
  | "history"
  | "dev"
  | "program"
- | "assign";
+ | "assign"
+ | "mentees";
 
 function quarterDesc(plan: DevelopmentPlan, quarter: "Q1" | "Q2" | "Q3" | "Q4") {
  const reviews = plan.goals.flatMap((goal) =>
@@ -287,6 +290,7 @@ export function ManagerPageShell({
  approvedCertCountByUser,
  challengeTotalByUser,
  managerFirstName,
+ mentees = [],
 }: {
  section: ManagerSection;
  reviewCount: number;
@@ -316,6 +320,7 @@ export function ManagerPageShell({
  approvedCertCountByUser: Record<string, number>;
  challengeTotalByUser: Record<string, number>;
  managerFirstName?: string;
+ mentees?: MenteeAssignment[];
 }) {
  const router = useRouter();
  const searchParams = useSearchParams();
@@ -421,6 +426,13 @@ export function ManagerPageShell({
  content = (
  <div className="animate-[fadeUp_0.2s_ease-out]">
  <ManagerAssignPlansSection assignees={assignees} mentors={mentors} org={org} plans={plans} />
+ </div>
+ );
+ break;
+ case "mentees":
+ content = (
+ <div className="animate-[fadeUp_0.2s_ease-out]">
+ <ManagerMenteesPanel mentees={mentees} />
  </div>
  );
  break;

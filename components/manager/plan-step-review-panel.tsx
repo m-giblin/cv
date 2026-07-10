@@ -13,6 +13,8 @@ export type PlanStepReviewItem = {
  personName: string;
  stepType: string;
  notes?: string;
+ mentorEndorsed?: boolean;
+ isManagerGate?: boolean;
 };
 
 export function PlanStepReviewPanel({ items }: { items: PlanStepReviewItem[] }) {
@@ -39,7 +41,7 @@ export function PlanStepReviewPanel({ items }: { items: PlanStepReviewItem[] }) 
  return;
  }
 
- toast.success(decision === "approve" ? "Step approved." : "Sent back for revision.");
+ toast.success(decision === "approve" ? "Manager sign-off recorded." : "Sent back for revision.");
  setActiveId(null);
  setFeedback("");
  setIsSaving(false);
@@ -62,7 +64,11 @@ export function PlanStepReviewPanel({ items }: { items: PlanStepReviewItem[] }) 
  </p>
  <p className="mt-1 text-sm text-sp-navy">{item.title}</p>
  <Badge className="mt-2" tone="amber">
- Awaiting validation
+ {item.mentorEndorsed
+ ? "Mentor endorsed — manager live sign-off"
+ : item.isManagerGate
+ ? "Assessment gate — manager sign-off required"
+ : "Awaiting manager sign-off"}
  </Badge>
  </div>
  <Button
@@ -78,7 +84,7 @@ export function PlanStepReviewPanel({ items }: { items: PlanStepReviewItem[] }) 
  <div className="mt-4 space-y-3 border-t border-sp-blue/10 pt-4">
  <Textarea
  onChange={(e) => setFeedback(e.target.value)}
- placeholder="Feedback for the SE — approve if ready, or explain what to redo…"
+ placeholder="Live validation notes — what you observed during the sign-off…"
  value={feedback}
  />
  <div className="flex flex-wrap gap-2">
@@ -87,7 +93,7 @@ export function PlanStepReviewPanel({ items }: { items: PlanStepReviewItem[] }) 
  onClick={() => void reviewStep(item.assignmentStepId, "approve")}
  >
  {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
- Approve step
+ Sign off
  </Button>
  <Button
  disabled={isSaving || feedback.length < 3}
