@@ -42,6 +42,7 @@ export const MANAGER_PORTAL_NAV_GROUPS: ManagerPortalNavGroup[] = [
     label: "PROGRAM",
     items: [
       { href: "/manager?section=program", label: "Program Tracker" },
+      { href: "/plans", label: "Assign Plans" },
       { href: "/certifications", label: "Certifications" },
     ],
   },

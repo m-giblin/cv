@@ -78,7 +78,7 @@ export const MANAGER_SECTIONS = [
   { href: "/manager?section=history", label: "Review History", section: "history" },
   { href: "/manager?section=dev", label: "Development", section: "dev" },
   { href: "/manager?section=program", label: "Program Tracker", section: "program" },
-  { href: "/manager?section=assign", label: "Assign Plans", section: "assign" },
+  { href: "/plans", label: "Assign Plans", section: "assign" },
 ] as const;
 
 export type ManagerSectionId = (typeof MANAGER_SECTIONS)[number]["section"];
@@ -102,7 +102,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/manager?section=history", label: "Review History", icon: "feedback", tiers: ["admin", "manager"] },
   { href: "/manager?section=dev", label: "Development", icon: "development", tiers: ["admin", "manager"] },
   { href: "/manager?section=program", label: "Program Tracker", icon: "plans", tiers: ["admin", "manager"] },
-  { href: "/manager?section=assign", label: "Assign Plans", icon: "plans", tiers: ["admin", "manager"] },
+  { href: "/plans", label: "Assign Plans", icon: "plans", tiers: ["admin", "manager"] },
   /** Route exists for deep links + assign flows; not in sidebar (v8: Admin Console → Plans tab). */
   { href: "/plans", label: "Ramp Plans", icon: "plans", tiers: ["admin", "manager"] },
   { href: "/development", label: "Development", icon: "development", tiers: ["admin", "manager", "se"] },

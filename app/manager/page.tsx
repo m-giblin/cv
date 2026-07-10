@@ -67,7 +67,7 @@ export default async function ManagerPage({ searchParams }: ManagerPageProps) {
  ? (params.section as ManagerSection)
  : "command";
 
- const { data } = await requireManagerPageAccess();
+ const { data, role } = await requireManagerPageAccess();
  const orgIds = new Set(data.myOrg.map((profile) => profile.id));
  const orgPlans = data.plans.filter((plan) => orgIds.has(plan.userId));
  const orgActivity = data.activity.filter((item) => orgIds.has(item.userId));
@@ -376,6 +376,7 @@ export default async function ManagerPage({ searchParams }: ManagerPageProps) {
  teamSize={data.myOrg.length}
  managerFirstName={data.currentUser.fullName.split(" ")[0]}
  mentees={mentees}
+ viewerRole={role}
  />
  </Suspense>
  </AppShell>

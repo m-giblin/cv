@@ -44,7 +44,7 @@ export async function GET() {
 
  const { data: templates, error } = await admin
  .from("onboarding_plans")
- .select("id, name, description, is_template, created_at")
+ .select("id, name, description, is_template, is_locked, created_at")
  .eq("is_template", true)
  .eq("tenant_id", session.tenantId)
  .order("name");
@@ -96,6 +96,7 @@ export async function POST(request: Request) {
  name: parsed.data.name,
  description: parsed.data.description ?? null,
  is_template: true,
+ is_locked: false,
  created_by: session.user.id,
  tenant_id: session.tenantId,
  } as never)

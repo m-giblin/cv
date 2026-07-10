@@ -3,6 +3,7 @@ import { z } from "zod";
 import { logAuditEvent } from "@/lib/audit/log-admin-action";
 import { requireManagerSession } from "@/lib/auth/require-manager";
 import { assertTenantOwnedRow, getTenantAdminClient } from "@/lib/data/tenant-scoped-query";
+import { canEditTemplateStructure, isLockedTemplate } from "@/lib/plans/template-lock";
 
 const stepSchema = z.object({
  id: z.string().uuid().optional(),
@@ -82,7 +83,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
  const { data: plan, error: planError } = await admin
  .from("onboarding_plans")
- .select("id")
+ .select("id, name, is_locked")
  .eq("id", id)
  .eq("is_template", true)
  .eq("tenant_id", session.tenantId)
@@ -91,6 +92,9 @@ export async function PATCH(request: Request, context: RouteContext) {
  if (planError || !plan) {
  return NextResponse.json({ error: "Template not found." }, { status: 404 });
  }
+
+ const locked = isLockedTemplate(plan);
+ const canEditStructure = canEditTemplateStructure(session.role, locked);
 
  const { error: updateError } = await session.supabase
  .from("onboarding_plans")
@@ -115,7 +119,24 @@ export async function PATCH(request: Request, context: RouteContext) {
 
  const existingIds = new Set((existingSteps ?? []).map((step) => step.id));
  const payloadIds = new Set(parsed.data.steps.map((step) => step.id).filter(Boolean) as string[]);
+
+ if (locked && !canEditStructure) {
+ if (payloadIds.size !== existingIds.size || [...payloadIds].some((stepId) => !existingIds.has(stepId))) {
+ return NextResponse.json(
+ { error: "Locked plans cannot have steps added or removed. Reorder only, or contact an Admin." },
+ { status: 403 },
+ );
+ }
+ }
+
  const toRemove = [...existingIds].filter((stepId) => !payloadIds.has(stepId));
+
+ if (toRemove.length > 0 && locked && !canEditStructure) {
+ return NextResponse.json(
+ { error: "Locked plans cannot have steps deleted. Contact an Admin." },
+ { status: 403 },
+ );
+ }
 
  if (toRemove.length > 0) {
  const { data: referenced } = await session.supabase
@@ -153,6 +174,12 @@ export async function PATCH(request: Request, context: RouteContext) {
  return NextResponse.json({ error: error.message }, { status: 500 });
  }
  } else {
+ if (locked && !canEditStructure) {
+ return NextResponse.json(
+ { error: "Locked plans cannot have steps added. Contact an Admin." },
+ { status: 403 },
+ );
+ }
  const { error } = await session.supabase.from("plan_steps").insert(row);
 
  if (error) {
@@ -200,6 +227,16 @@ export async function DELETE(_request: Request, context: RouteContext) {
  { error: "Cannot delete a template that has active assignments." },
  { status: 400 },
  );
+ }
+
+ const { data: planRow } = await admin
+ .from("onboarding_plans")
+ .select("is_locked, name")
+ .eq("id", id)
+ .maybeSingle();
+
+ if (isLockedTemplate(planRow ?? { name: "", is_locked: false }) && !canEditTemplateStructure(session.role, true)) {
+ return NextResponse.json({ error: "Locked templates cannot be deleted. Contact an Admin." }, { status: 403 });
  }
 
  await admin.from("plan_steps").delete().eq("plan_id", id).eq("tenant_id", session.tenantId);

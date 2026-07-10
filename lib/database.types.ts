@@ -43,6 +43,7 @@ export type Database = {
           name: string;
           description: string | null;
           is_template: boolean;
+          is_locked: boolean;
           created_by: string | null;
           created_at: string;
           updated_at: string;
@@ -53,6 +54,7 @@ export type Database = {
           name: string;
           description?: string | null;
           is_template?: boolean;
+          is_locked?: boolean;
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;

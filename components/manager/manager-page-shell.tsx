@@ -291,6 +291,7 @@ export function ManagerPageShell({
  challengeTotalByUser,
  managerFirstName,
  mentees = [],
+ viewerRole = "manager",
 }: {
  section: ManagerSection;
  reviewCount: number;
@@ -321,6 +322,7 @@ export function ManagerPageShell({
  challengeTotalByUser: Record<string, number>;
  managerFirstName?: string;
  mentees?: MenteeAssignment[];
+ viewerRole?: import("@/lib/types").ProfileRole;
 }) {
  const router = useRouter();
  const searchParams = useSearchParams();
@@ -425,7 +427,7 @@ export function ManagerPageShell({
  case "assign":
  content = (
  <div className="animate-[fadeUp_0.2s_ease-out]">
- <ManagerAssignPlansSection assignees={assignees} mentors={mentors} org={org} plans={plans} />
+ <ManagerAssignPlansSection assignees={assignees} mentors={mentors} org={org} plans={plans} viewerRole={viewerRole} />
  </div>
  );
  break;
