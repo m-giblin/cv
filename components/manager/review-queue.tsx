@@ -13,6 +13,7 @@ type SubmissionReviewItem = {
  id: string;
  title: string;
  personName: string;
+ reflectionText?: string | null;
 };
 
 type CoachingReviewItem = {

@@ -282,7 +282,7 @@ export function GrowthDashboardNorthstar({ data }: { data: DashboardData }) {
  <Link className="sp-btn-outline px-3 py-1.5 text-[11.5px]" href="/prep">
  Deal prep brief
  </Link>
- <Link className="sp-btn-outline px-3 py-1.5 text-[11.5px]" href="/development">
+ <Link className="sp-btn-outline px-3 py-1.5 text-[11.5px]" href="/growth-plan">
  Development goals
  </Link>
  </div>

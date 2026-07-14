@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html,body{height:100%;}
+    body{font-family:'DM Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased;background:#DEDAD4;}
+    a,button{font-family:inherit;text-decoration:none;color:inherit;cursor:pointer;}
+    ::-webkit-scrollbar{width:3px;height:3px;}
+    ::-webkit-scrollbar-track{background:transparent;}
+    ::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.08);}
+    .ms::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);}
+
+    .ni{display:flex;align-items:center;gap:8px;padding:5px 14px 5px 16px;font-size:11.5px;font-weight:500;border-left:2px solid transparent;cursor:pointer;user-select:none;transition:background 80ms,color 80ms,border-color 80ms;letter-spacing:.005em;}
+    .na{background:rgba(255,255,255,.06);color:#fff!important;border-left-color:#0071CE;}
+    .no{color:rgba(255,255,255,.62);}
+    .no:hover{background:rgba(255,255,255,.05);color:rgba(255,255,255,.9);}
+
+    .btn{display:inline-flex;align-items:center;gap:5px;border:none;font-size:11px;font-weight:600;cursor:pointer;line-height:1;white-space:nowrap;transition:background 100ms,border-color 100ms,color 100ms;font-family:'DM Sans',sans-serif;letter-spacing:.01em;}
+    .bn{background:#00143A;color:white;padding:8px 14px;}.bn:hover{background:#001d50;}
+    .bb{background:#0071CE;color:white;padding:8px 14px;}.bb:hover{background:#005aab;}
+    .bo{background:transparent;color:#3D3C38;border:1px solid #D4D1CB;padding:7px 12px;}.bo:hover{border-color:#0071CE;color:#0071CE;}
+    .bsm{font-size:10px!important;padding:5px 10px!important;}
+    .bxs{font-size:9.5px!important;padding:4px 9px!important;}
+
+    @keyframes fadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+    .ai{animation:fadeIn .18s ease-out;}
+    @keyframes slideIn{from{transform:translateX(20px);opacity:0}to{transform:none;opacity:1}}
+    .si{animation:slideIn .2s cubic-bezier(.16,1,.3,1);}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}
+    .lp{animation:pulse 2.4s ease-in-out infinite;}
+
+    .cell{cursor:pointer;transition:background 80ms,outline 80ms;position:relative;}
+    .cell:hover{filter:brightness(.92);}
+    .cell.sel{outline:2px solid #0071CE;outline-offset:-1px;z-index:2;}
+
+    .se-row:hover .se-name{color:#0071CE;}
+    .se-row{cursor:pointer;}
+    .se-row:hover{background:#F9F8F6;}
+  </style>
+</helmet>
+
+<div id="co" style="width:100%;overflow:hidden;">
+<div id="cr" style="width:1360px;transform-origin:top left;padding:24px 28px 40px;">
+
+  <div style="margin-bottom:14px;">
+    <p style="font-family:'DM Mono',monospace;font-size:9.5px;color:#7A7772;letter-spacing:.1em;text-transform:uppercase;">Manager Experience · Readiness Map v2 · Click any heatmap cell for coaching actions</p>
+  </div>
+
+  <div style="border:1px solid rgba(0,0,0,.15);overflow:hidden;display:flex;height:920px;background:#F5F4F0;position:relative;box-shadow:0 24px 70px rgba(0,0,0,.2);">
+
+    <!-- ── SIDEBAR ── -->
+    <aside style="width:214px;flex-shrink:0;background:#00143A;display:flex;flex-direction:column;overflow:hidden;position:relative;">
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#0071CE,#CC27B0);z-index:2;"></div>
+      <div style="position:relative;z-index:1;display:flex;flex-direction:column;height:100%;padding-top:2px;">
+        <div style="padding:16px 16px 13px;border-bottom:1px solid rgba(255,255,255,.06);">
+          <div style="display:flex;align-items:center;gap:9px;">
+            <svg width="17" height="17" viewBox="0 0 20 20" fill="none" style="flex-shrink:0;"><path d="M10.5 2C10.5 2 16.5 6 16.5 13H10.5V2Z" fill="white"/><path d="M10.5 5C10.5 5 4.5 8 4.5 13H10.5V5Z" fill="rgba(255,255,255,0.32)"/><path d="M3 14.5H17" stroke="white" stroke-width="1.5" stroke-linecap="square"/></svg>
+            <span style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#fff;letter-spacing:-.015em;">SailPoint</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:7px;">
+            <span style="font-family:'DM Mono',monospace;font-size:8px;color:rgba(255,255,255,.2);letter-spacing:.14em;">ENABLEMENT</span>
+            <span style="width:3px;height:3px;border-radius:50%;background:rgba(204,39,176,.6);flex-shrink:0;"></span>
+            <span style="font-family:'DM Mono',monospace;font-size:8px;color:rgba(204,39,176,.65);letter-spacing:.1em;">MANAGER</span>
+          </div>
+        </div>
+        <div style="flex:1;overflow-y:auto;padding:10px 0 8px;" class="ms">
+          <div style="padding:10px 16px 3px;"><span style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(255,255,255,.38);letter-spacing:.16em;">COMMAND</span></div>
+          <div class="no ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" style="flex-shrink:0;opacity:.65;"><rect x="1.5" y="1.5" width="5.5" height="5.5" rx=".5"/><rect x="9" y="1.5" width="5.5" height="5.5" rx=".5"/><rect x="1.5" y="9" width="5.5" height="5.5" rx=".5"/><rect x="9" y="9" width="5.5" height="5.5" rx=".5"/></svg><span>Command Center</span></div>
+          <div class="no ni" style="justify-content:space-between;"><div style="display:flex;align-items:center;gap:8px;"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" style="flex-shrink:0;opacity:.65;"><path d="M2.5 3.5h11v8H9.5L7 14V11.5h-4.5z"/></svg><span>Action Inbox</span></div><span style="font-family:'DM Mono',monospace;background:#D4810A;color:white;font-size:8.5px;padding:1px 6px;" class="lp">7</span></div>
+          <div style="height:1px;background:rgba(255,255,255,.05);margin:8px 0;"></div>
+          <div style="padding:3px 16px 3px;"><span style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(255,255,255,.38);letter-spacing:.16em;">PROGRAM</span></div>
+          <div class="no ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" style="flex-shrink:0;opacity:.65;"><rect x="2" y="3" width="12" height="10" rx="1"/><path d="M5 3V2M11 3V2M2 7h12"/></svg><span>Program Tracker</span></div>
+          <div class="no ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" style="flex-shrink:0;opacity:.65;"><rect x="2" y="2" width="12" height="12" rx="1"/><path d="M5 8l2 2.5L11 5.5"/></svg><span>Assign Plans</span></div>
+          <div class="no ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" style="flex-shrink:0;opacity:.65;"><rect x="2" y="3" width="12" height="10" rx="1"/><path d="M2 7h12M7 3v10"/></svg><span>Plan Calendar</span></div>
+          <div class="no ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" style="flex-shrink:0;opacity:.65;"><circle cx="8" cy="8" r="5.5"/><path d="M8 5v3.5l2.5 1.5"/></svg><span>Certifications</span></div>
+          <div style="height:1px;background:rgba(255,255,255,.05);margin:8px 0;"></div>
+          <div style="padding:3px 16px 3px;"><span style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(255,255,255,.38);letter-spacing:.16em;">TEAM</span></div>
+          <div class="no ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" style="flex-shrink:0;opacity:.65;"><circle cx="6" cy="5" r="2.5"/><path d="M1 13c0-3 2-4.5 5-4.5s5 1.5 5 4.5"/><circle cx="12.5" cy="5.5" r="2"/><path d="M11 13c0-1.5.8-2.8 2-3.5"/></svg><span>Team Roster</span></div>
+          <div class="na ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" style="flex-shrink:0;opacity:.65;"><polyline points="2,13 5.5,8 8.5,10.5 14,3.5"/></svg><span>Readiness Map</span></div>
+          <div class="no ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" style="flex-shrink:0;opacity:.65;"><path d="M4 12L8 3l4 9"/><path d="M5.5 9h5"/></svg><span>Leaderboard</span></div>
+          <div style="height:1px;background:rgba(255,255,255,.05);margin:8px 0;"></div>
+          <div style="padding:3px 16px 3px;"><span style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(255,255,255,.38);letter-spacing:.16em;">COACHING</span></div>
+          <div class="no ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" style="flex-shrink:0;opacity:.65;"><circle cx="8" cy="6" r="3"/><path d="M2 14c0-3.5 2.7-5 6-5s6 1.5 6 5"/></svg><span>Coaching Cadence</span></div>
+          <div class="no ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" style="flex-shrink:0;opacity:.65;"><path d="M2.5 3.5h11v8H9.5L7 14V11.5h-4.5z"/></svg><span>My Mentees</span></div>
+        </div>
+        <div style="padding:10px 14px 12px;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:9px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#0033a1,#0071CE);display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:600;color:white;flex-shrink:0;font-family:'DM Mono',monospace;">DM</div>
+          <div><div style="font-size:11.5px;font-weight:500;color:rgba(255,255,255,.82);">Demo Manager</div><div style="font-family:'DM Mono',monospace;font-size:8px;color:rgba(255,255,255,.25);">Manager</div></div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ── MAIN ── -->
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;">
+
+      <!-- Topbar -->
+      <header style="height:44px;background:#fff;border-bottom:1px solid #E2DFD9;padding:0 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:0;">
+          <span style="font-family:'DM Mono',monospace;font-size:10.5px;color:#A09D98;">Team</span>
+          <span style="color:#C4C1BB;font-size:11px;margin:0 2px;">›</span>
+          <span style="font-family:'DM Mono',monospace;font-size:10.5px;color:#3D3C38;font-weight:500;">Readiness Map</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="display:flex;border:1px solid #D4D1CB;overflow:hidden;">
+            <div onClick="{{ setWeekly }}" style="padding:4px 10px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.06em;cursor:pointer;transition:background 100ms;">WEEKLY</div>
+            <div style="width:1px;background:#D4D1CB;"></div>
+            <div onClick="{{ setMonthly }}" style="padding:4px 10px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.06em;cursor:pointer;transition:background 100ms;">MONTHLY</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;background:#F0F7FF;border:1px solid #C5DCF5;padding:4px 10px;">
+            <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="#0071CE" stroke-width="1.5" stroke-linecap="round"><rect x="1" y="1" width="10" height="10" rx="1"/><path d="M1 4.5h10M4.5 1v10"/></svg>
+            <span style="font-family:'DM Mono',monospace;font-size:9px;color:#0071CE;letter-spacing:.06em;">{{ viewLabel }}</span>
+          </div>
+          <button class="btn bo bsm">
+            <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6 1v10M1 6h10"/></svg>
+            New coaching card
+          </button>
+          <div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#0033a1,#0071CE);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:9.5px;color:white;">DM</div>
+        </div>
+      </header>
+
+      <!-- ── BODY ── -->
+      <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
+
+        <!-- ── INTEL STRIP ── -->
+        <div style="background:#00143A;padding:10px 20px;display:flex;align-items:center;gap:0;flex-shrink:0;">
+          <!-- Composite score -->
+          <div style="display:flex;align-items:center;gap:12px;padding-right:20px;border-right:1px solid rgba(255,255,255,.08);">
+            <div>
+              <div style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(255,255,255,.35);letter-spacing:.13em;text-transform:uppercase;margin-bottom:2px;">Team Readiness</div>
+              <div style="display:flex;align-items:baseline;gap:6px;">
+                <span style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:#fff;line-height:1;">36</span>
+                <span style="font-family:'DM Mono',monospace;font-size:9px;color:rgba(255,255,255,.4);">/100</span>
+                <div style="display:flex;align-items:center;gap:3px;background:rgba(212,129,10,.18);border:1px solid rgba(212,129,10,.3);padding:2px 7px;">
+                  <svg width="7" height="7" viewBox="0 0 8 8" fill="none"><path d="M1 6l3-4 3 4" stroke="#D4810A" stroke-width="1.3" stroke-linecap="round"/></svg>
+                  <span style="font-family:'DM Mono',monospace;font-size:8.5px;color:#D4810A;">{{ trendDelta }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dimension pillars -->
+          <div style="display:flex;align-items:center;gap:0;padding-left:20px;flex:1;">
+            <div style="display:flex;flex-direction:column;gap:2px;padding-right:16px;border-right:1px solid rgba(255,255,255,.06);">
+              <span style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(255,255,255,.3);letter-spacing:.1em;">RAMP</span>
+              <div style="display:flex;align-items:center;gap:5px;">
+                <span style="font-size:14px;font-weight:600;color:#fff;">43%</span>
+                <span style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(212,129,10,.8);background:rgba(212,129,10,.12);padding:1px 5px;">AT RISK</span>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:2px;padding:0 16px;border-right:1px solid rgba(255,255,255,.06);">
+              <span style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(255,255,255,.3);letter-spacing:.1em;">SIMS</span>
+              <div style="display:flex;align-items:center;gap:5px;">
+                <span style="font-size:14px;font-weight:600;color:#fff;">20</span>
+                <span style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(184,49,40,.9);background:rgba(184,49,40,.15);padding:1px 5px;">LOW</span>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:2px;padding:0 16px;border-right:1px solid rgba(255,255,255,.06);">
+              <span style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(255,255,255,.3);letter-spacing:.1em;">SEGMENTS</span>
+              <div style="display:flex;align-items:center;gap:5px;">
+                <span style="font-size:14px;font-weight:600;color:#fff;">1.0</span>
+                <span style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(184,49,40,.9);background:rgba(184,49,40,.15);padding:1px 5px;">LOW</span>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:2px;padding:0 16px;border-right:1px solid rgba(255,255,255,.06);">
+              <span style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(255,255,255,.3);letter-spacing:.1em;">CERTS</span>
+              <div style="display:flex;align-items:center;gap:5px;">
+                <span style="font-size:14px;font-weight:600;color:#fff;">0</span>
+                <span style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(184,49,40,.9);background:rgba(184,49,40,.15);padding:1px 5px;">CRITICAL</span>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:2px;padding:0 16px;border-right:1px solid rgba(255,255,255,.06);">
+              <span style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(255,255,255,.3);letter-spacing:.1em;">LAB</span>
+              <div style="display:flex;align-items:center;gap:5px;">
+                <span style="font-size:14px;font-weight:600;color:#fff;">2.4h</span>
+                <span style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(212,129,10,.8);background:rgba(212,129,10,.12);padding:1px 5px;">AT RISK</span>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:2px;padding:0 16px;">
+              <span style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(255,255,255,.3);letter-spacing:.1em;">PITCH</span>
+              <div style="display:flex;align-items:center;gap:5px;">
+                <span style="font-size:14px;font-weight:600;color:#fff;">61</span>
+                <span style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(212,129,10,.8);background:rgba(212,129,10,.12);padding:1px 5px;">AT RISK</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Action CTA -->
+          <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+            <button class="btn" style="background:rgba(0,113,206,.15);border:1px solid rgba(0,113,206,.4);color:rgba(0,113,206,.9);padding:6px 12px;font-size:10px;">
+              <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="6" cy="6" r="5"/><path d="M4 6h4M6 4v4"/></svg>
+              Open all coaching plans
+            </button>
+          </div>
+        </div>
+
+        <!-- ── HEATMAP + PANEL ── -->
+        <div style="flex:1;display:flex;overflow:hidden;">
+
+          <!-- Heatmap area -->
+          <div style="flex:1;overflow-y:auto;padding:20px;">
+
+            <!-- Priority coaching callout -->
+            <div style="background:#fff;border:1px solid #E2DFD9;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:16px;" class="ai">
+              <div style="width:3px;align-self:stretch;background:#B83128;flex-shrink:0;"></div>
+              <div style="flex:1;">
+                <div style="font-size:11.5px;font-weight:600;color:#0D0E12;margin-bottom:3px;">3 coaching priorities this week</div>
+                <div style="display:flex;align-items:center;gap:16px;">
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <div style="width:20px;height:20px;border-radius:50%;background:#B83128;display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:9px;font-weight:600;color:white;flex-shrink:0;">F</div>
+                    <div>
+                      <span style="font-size:11px;font-weight:500;color:#0D0E12;">Finn</span>
+                      <span style="font-size:11px;color:#7A7772;"> — 0 sims, 0 certs, stuck on segment 1</span>
+                    </div>
+                    <button onClick="{{ selectCell }}" data-se="Finn" data-dim="Sims" class="btn bb bxs">Coach now →</button>
+                  </div>
+                  <div style="width:1px;height:20px;background:#E2DFD9;flex-shrink:0;"></div>
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <div style="width:20px;height:20px;border-radius:50%;background:#B83128;display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:9px;font-weight:600;color:white;flex-shrink:0;">D</div>
+                    <div>
+                      <span style="font-size:11px;font-weight:500;color:#0D0E12;">Demo</span>
+                      <span style="font-size:11px;color:#7A7772;"> — ramp only 12%, 0 certs</span>
+                    </div>
+                    <button onClick="{{ selectCell }}" data-se="Demo" data-dim="Ramp" class="btn bb bxs">Coach now →</button>
+                  </div>
+                  <div style="width:1px;height:20px;background:#E2DFD9;flex-shrink:0;"></div>
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <div style="width:20px;height:20px;border-radius:50%;background:#D4810A;display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:9px;font-weight:600;color:white;flex-shrink:0;">G</div>
+                    <div>
+                      <span style="font-size:11px;font-weight:500;color:#0D0E12;">Gray</span>
+                      <span style="font-size:11px;color:#7A7772;"> — cert gap, lab hours behind</span>
+                    </div>
+                    <button onClick="{{ selectCell }}" data-se="Gray" data-dim="Certs" class="btn bo bxs">Coach now →</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- HEATMAP TABLE -->
+            <div style="background:#fff;border:1px solid #E2DFD9;overflow:hidden;" class="ai">
+
+              <!-- Header -->
+              <div style="display:grid;grid-template-columns:180px repeat(6,1fr) 90px;border-bottom:1px solid #E2DFD9;background:#F9F8F6;">
+                <div style="padding:10px 14px;display:flex;align-items:center;justify-content:space-between;">
+                  <span style="font-family:'DM Mono',monospace;font-size:8px;color:#A09D98;letter-spacing:.1em;text-transform:uppercase;">SE</span>
+                  <span style="font-family:'DM Mono',monospace;font-size:8px;color:#A09D98;letter-spacing:.05em;">Composite</span>
+                </div>
+                <div style="padding:10px 8px;border-left:1px solid #E2DFD9;">
+                  <div style="font-family:'DM Mono',monospace;font-size:8px;color:#3D3C38;letter-spacing:.07em;text-transform:uppercase;font-weight:500;">Ramp</div>
+                  <div style="font-size:9px;color:#A09D98;margin-top:1px;">plan %</div>
+                </div>
+                <div style="padding:10px 8px;border-left:1px solid #E2DFD9;">
+                  <div style="font-family:'DM Mono',monospace;font-size:8px;color:#3D3C38;letter-spacing:.07em;text-transform:uppercase;font-weight:500;">Sims</div>
+                  <div style="font-size:9px;color:#A09D98;margin-top:1px;">avg score /100</div>
+                </div>
+                <div style="padding:10px 8px;border-left:1px solid #E2DFD9;">
+                  <div style="font-family:'DM Mono',monospace;font-size:8px;color:#3D3C38;letter-spacing:.07em;text-transform:uppercase;font-weight:500;">Segments</div>
+                  <div style="font-size:9px;color:#A09D98;margin-top:1px;">unlocked /4</div>
+                </div>
+                <div style="padding:10px 8px;border-left:1px solid #E2DFD9;">
+                  <div style="font-family:'DM Mono',monospace;font-size:8px;color:#3D3C38;letter-spacing:.07em;text-transform:uppercase;font-weight:500;">Certs</div>
+                  <div style="font-size:9px;color:#A09D98;margin-top:1px;">approved /8</div>
+                </div>
+                <div style="padding:10px 8px;border-left:1px solid #E2DFD9;">
+                  <div style="font-family:'DM Mono',monospace;font-size:8px;color:#3D3C38;letter-spacing:.07em;text-transform:uppercase;font-weight:500;">Lab</div>
+                  <div style="font-size:9px;color:#A09D98;margin-top:1px;">hours this week</div>
+                </div>
+                <div style="padding:10px 8px;border-left:1px solid #E2DFD9;">
+                  <div style="font-family:'DM Mono',monospace;font-size:8px;color:#3D3C38;letter-spacing:.07em;text-transform:uppercase;font-weight:500;">Pitch</div>
+                  <div style="font-size:9px;color:#A09D98;margin-top:1px;">last score /100</div>
+                </div>
+                <div style="padding:10px 8px;border-left:1px solid #E2DFD9;">
+                  <div style="font-family:'DM Mono',monospace;font-size:8px;color:#A09D98;letter-spacing:.07em;text-transform:uppercase;">{{ trendLabel }}</div>
+                  <div style="font-size:9px;color:#A09D98;margin-top:1px;">{{ trendSub }}</div>
+                </div>
+              </div>
+
+              <!-- SE Rows -->
+              <!-- FINN (worst) -->
+              <div class="se-row" style="display:grid;grid-template-columns:180px repeat(6,1fr) 90px;border-bottom:1px solid #E2DFD9;transition:background 80ms;">
+                <div onClick="{{ selectCell }}" data-se="Finn" data-dim="Ramp" style="padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;">
+                  <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#B83128,#7c1d1d);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:10px;font-weight:600;color:white;flex-shrink:0;">F</div>
+                  <div>
+                    <div class="se-name" style="font-size:12px;font-weight:500;color:#0D0E12;transition:color 80ms;">Finn</div>
+                    <div style="font-family:'DM Mono',monospace;font-size:8px;color:#A09D98;">Day 22</div>
+                  </div>
+                  <div style="margin-left:auto;font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:#B83128;">14</div>
+                </div>
+                <!-- Ramp 18% -->
+                <div data-se="Finn" data-dim="Ramp" onClick="{{ selectCell }}" class="cell" style="border-left:1px solid #E2DFD9;background:rgba(184,49,40,.12);padding:12px 8px;display:flex;flex-direction:column;justify-content:center;gap:3px;">
+                  <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:#B83128;">18%</div>
+                  <div style="height:3px;background:#F5E8E7;"><div style="height:3px;width:18%;background:#B83128;"></div></div>
+                  <div style="font-size:8.5px;color:#B83128;">Behind pace</div>
+                </div>
+                <!-- Sims 0 -->
+                <div data-se="Finn" data-dim="Sims" onClick="{{ selectCell }}" class="cell" style="border-left:1px solid #E2DFD9;background:rgba(184,49,40,.16);padding:12px 8px;display:flex;flex-direction:column;justify-content:center;gap:3px;">
+                  <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:#B83128;">0</div>
+                  <div style="font-size:8.5px;color:#B83128;">No sims run</div>
+                </div>
+                <!-- Segments 1 -->
+                <div data-se="Finn" data-dim="Segments" onClick="{{ selectCell }}" class="cell" style="border-left:1px solid #E2DFD9;background:rgba(184,49,40,.12);padding:12px 8px;display:flex;flex-direction:column;justify-content:center;gap:3px;">
+                  <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:#B83128;">1/4</div>
+                  <div style="height:3px;background:#F5E8E7;display:flex;gap:2px;"><div style="flex:1;background:#B83128;"></div><div style="flex:1;background:#F5E8E7;"></div><div style="flex:1;background:#F5E8E7;"></div><div style="flex:1;background:#F5E8E7;"></div></div>
+                  <div style="font-size:8.5px;color:#B83128;">Seg 1 only</div>
+                </div>
+                <!-- Certs 0 -->
+                <div data-se="Finn" data-dim="Certs" onClick="{{ selectCell }}" class="cell" style="border-left:1px solid #E2DFD9;background:rgba(184,49,40,.16);padding:12px 8px;display:flex;flex-direction:column;justify-content:center;gap:3px;">
+                  <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:#B83128;">0/8</div>
+                  <div style="font-size:8.5px;color:#B83128;">None approved</div>
+                </div>
+                <!-- Lab 0.5h -->
+                <div data-se="Finn" data-dim="Lab" onClick="{{ selectCell }}" class="cell" style="border-left:1px solid #E2DFD9;background:rgba(184,49,40,.12);padding:12px 8px;display:flex;flex-direction:column;justify-content:center;gap:3px;">
+                  <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:#B83128;">0.5h</div>
+                  <div style="font-size:8.5px;color:#B83128;">Target: 5h</div>
+                </div>
+                <!-- Pitch 52 -->
+                <div data-se="Finn" data-dim="Pitch" onClick="{{ selectCell }}" class="cell" style="border-left:1px solid #E2DFD9;background:rgba(212,129,10,.1);padding:12px 8px;display:flex;flex-direction:column;justify-content:center;gap:3px;">
+                  <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:#D4810A;">52</div>
+                  <div style="height:3px;background:#F5E8E7;"><div style="height:3px;width:52%;background:#D4810A;"></div></div>
+                  <div style="font-size:8.5px;color:#D4810A;">Needs work</div>
+                </div>
+                <!-- Trend sparkline Finn -->
+                <div style="border-left:1px solid #E2DFD9;padding:12px 8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;">
+                  <svg width="60" height="24" viewBox="0 0 60 24">
+                    <polyline points="{{ finnSparkline }}" fill="none" stroke="#D4810A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="60" cy="{{ finnEndY }}" r="2.5" fill="#D4810A"/>
+                  </svg>
+                  <div style="font-family:'DM Mono',monospace;font-size:8px;color:#D4810A;">{{ finnDelta }}</div>
+                </div>
+              </div>
+
+              <!-- DEMO (worst ramp) -->
+              <div class="se-row" style="display:grid;grid-template-columns:180px repeat(6,1fr) 90px;border-bottom:1px solid #E2DFD9;transition:background 80ms;">
+                <div onClick="{{ selectCell }}" data-se="Demo" data-dim="Ramp" style="padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;">
+                  <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#5a2d82,#9b44c8);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:10px;font-weight:600;color:white;flex-shrink:0;">D</div>
+                  <div>
+                    <div class="se-name" style="font-size:12px;font-weight:500;color:#0D0E12;transition:color 80ms;">Demo</div>
+                    <div style="font-family:'DM Mono',monospace;font-size:8px;color:#A09D98;">Day 45</div>
+                  </div>
+                  <div style="margin-left:auto;font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:#B83128;">22</div>
+                </div>
+                <!-- Ramp 12% -->
+                <div data-se="Demo" data-dim="Ramp" onClick="{{ selectCell }}" class="cell" style="border-left:1px solid #E2DFD9;background:rgba(184,49,40,.18);padding:12px 8px;display:flex;flex-direction:column;justify-content:center;gap:3px;">
+                  <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:#B83128;">12%</div>
+                  <div style="height:3px;background:#F5E8E7;"><div style="height:3px;width:12%;background:#B83128;"></div></div>
+                  <div style="font-size:8.5px;color:#B83128;">Critical delay</div>
+                </div>
+                <!-- Sims 78 -->
+                <div data-se="Demo" data-dim="Sims" onClick="{{ selectCell }}" class="cell" style="border-left:1px solid #E2DFD9;background:rgba(10,110,69,.1);padding:12px 8px;display:flex;flex-direction:column;justify-content:center;gap:3px;">
+                  <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:#0A6E45;">78</div>
+                  <div style="height:3px;background:#E6F5EE;"><div style="height:3px;width:78%;background:#0A6E45;"></div></div>
+                  <div style="font-size:8.5px;color:#0A6E45;">Strong</div>
+                </div>
+                <!-- Segments 1 -->
+                <div data-se="Demo" data-dim="Segments" onClick="{{ selectCell }}" class="cell" style="border-left:1px solid #E2DFD9;background:rgba(184,49,40,.12);padding:12px 8px;display:flex;flex-direction:column;justify-content:center;gap:3px;">
+                  <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:#B83128;">1/4</div>
+                  <div style="height:3px;background:#F5E8E7;display:flex;gap:2px;"><div style="flex:1;background:#B83128;"></div><div style="flex:1;background:#F5E8E7;"></div><div style="flex:1;background:#F5E8E7;"></div><div style="flex:1;background:#F5E8E7;"></div></div>
+                  <div style="font-size:8.5px;color:#B83128;">Seg 1 only</div>
+                </div>
+                <!-- Certs 0 -->
+                <div data-se="Demo" data-dim="Certs" onClick="{{ selectCell }}" class="cell" style="border-left:1px solid #E2DFD9;background:rgba(184,49,40,.16);padding:12px 8px;display:flex;flex-direction:column;justify-content:center;gap:3px;">
+                  <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:#B83128;">0/8</div>
+                  <div style="font-size:8.5px;color:#B83128;">None approved</div>
+                </div>
+                <!-- Lab 3.2h -->
+                <div data-se="Demo" data-dim="Lab" onClick="{{ selectCell }}" class="cell" style="border-left:1px solid #E2DFD9;background:rgba(212,129,10,.1);padding:12px 8px;display:flex;flex-direction:column;justify-content:center;gap:3px;">
+                  <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:#D4810A;">3.2h</div>
+                  <div style="font-size:8.5px;color:#D4810A;">Target: 5h</div>
+                </div>
+                <!-- Pitch 63 -->
+                <div data-se="Demo" data-dim="Pitch" onClick="{{ selectCell }}" class="cell" style="border-left:1px solid #E2DFD9;background:rgba(212,129,10,.1);padding:12px 8px;display:flex;flex-direction:column;justify-content:center;gap:3px;">
+                  <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:#D4810A;">63</div>
+                  <div style="height:3px;background:#F5E8E7;"><div style="height:3px;width:63%;background:#D4810A;"></div></div>
+                  <div style="font-size:8.5px;color:#D4810A;">Improving</div>
+                </div>
+                <!-- Trend Demo -->
+                <div style="border-left:1px solid #E2DFD9;padding:12px 8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;">
+                  <svg width="60" height="24" viewBox="0 0 60 24">
+                    <polyline points="{{ demoSparkline }}" fill="none" stroke="#0A6E45" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="60" cy="{{ demoEndY }}" r="2.5" fill="#0A6E45"/>
+                  </svg>
+                  <div style="font-family:'DM Mono',monospace;font-size:8px;color:#0A6E45;">{{ demoDelta }}</div>
+                </div>
+              </div>
+
+              <!-- GRAY (cert gap) -->
+              <div class="se-row" style="display:grid;grid-template-columns:180px repeat(6,1fr) 90px;border-bottom:1px solid #E2DFD9;transition:background 80ms;">
+                <div onClick="{{ selectCell }}" data-se="Gray" data-dim="Sims" style="padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;">
+                  <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#1a5c8a,#0071CE);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:10px;font-weight:600;color:white;flex-shrink:0;">G</div>
+                  <div>
+                    <div class="se-name" style="font-size:12px;font-weight:500;color:#0D0E12;transition:color 80ms;">Gray</div>
+                    <div style="font-family:'DM Mono',monospace;font-size:8px;color:#A09D98;">Day 68</div>
+                  </div>
+                  <div style="margin-left:auto;font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:#D4810A;">48</div>
+                </div>
+                <!-- Ramp 62% -->
+                <div data-se="Gray" data-dim="Ramp" onClick="{{ selectCell }}" class="cell" style="border-left:1px solid #E2DFD9;background:rgba(212,129,10,.08);padding:12px 8px;display:flex;flex-direction:column;justify-content:center;gap:3px;">
+                  <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:#D4810A;">62%</div>
+                  <div style="height:3px;background:#FAF3E5;"><div style="height:3px;width:62%;background:#D4810A;"></div></div>
+                  <div style="font-size:8.5px;color:#D4810A;">On pace</div>
+                </div>
+                <!-- Sims 0 -->
+                <div data-se="Gray" data-dim="Sims" onClick="{{ selectCell }}" class="cell" style="border-left:1px solid #E2DFD9;background:rgba(184,49,40,.16);padding:12px 8px;display:flex;flex-direction:column;justify-content:center;gap:3px;">
+                  <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:#B83128;">0</div>
+                  <div style="font-size:8.5px;color:#B83128;">No sims run</div>
+                </div>
+                <!-- Segments 1 -->
+                <div data-se="Gray" data-dim="Segments" onClick="{{ selectCell }}" class="cell" style="border-left:1px solid #E2DFD9;background:rgba(184,49,40,.12);padding:12px 8px;display:flex;flex-direction:column;justify-content:center;gap:3px;">
+                  <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:#B83128;">1/4</div>
+                  <div style="height:3px;background:#F5E8E7;display:flex;gap:2px;"><div style="flex:1;background:#B83128;"></div><div style="flex:1;background:#F5E8E7;"></div><div style="flex:1;background:#F5E8E7;"></div><div style="flex:1;background:#F5E8E7;"></div></div>
+                  <div style="font-size:8.5px;color:#B83128;">Seg 1 only</div>
+                </div>
+                <!-- Certs 0 -->
+                <div data-se="Gray" data-dim="Certs" onClick="{{ selectCell }}" class="cell" style="border-left:1px solid #E2DFD9;background:rgba(184,49,40,.16);padding:12px 8px;display:flex;flex-direction:column;justify-content:center;gap:3px;">
+                  <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:#B83128;">0/8</div>
+                  <div style="font-size:8.5px;color:#B83128;">None approved</div>
+                </div>
+                <!-- Lab 1.8h -->
+                <div data-se="Gray" data-dim="Lab" onClick="{{ selectCell }}" class="cell" style="border-left:1px solid #E2DFD9;background:rgba(184,49,40,.12);padding:12px 8px;display:flex;flex-direction:column;justify-content:center;gap:3px;">
+                  <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:#B83128;">1.8h</div>
+                  <div style="font-size:8.5px;color:#B83128;">Target: 5h</div>
+                </div>
+                <!-- Pitch 71 -->
+                <div data-se="Gray" data-dim="Pitch" onClick="{{ selectCell }}" class="cell" style="border-left:1px solid #E2DFD9;background:rgba(10,110,69,.1);padding:12px 8px;display:flex;flex-direction:column;justify-content:center;gap:3px;">
+                  <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:#0A6E45;">71</div>
+                  <div style="height:3px;background:#E6F5EE;"><div style="height:3px;width:71%;background:#0A6E45;"></div></div>
+                  <div style="font-size:8.5px;color:#0A6E45;">Good</div>
+                </div>
+                <!-- Trend Gray -->
+                <div style="border-left:1px solid #E2DFD9;padding:12px 8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;">
+                  <svg width="60" height="24" viewBox="0 0 60 24">
+                    <polyline points="{{ graySparkline }}" fill="none" stroke="#0A6E45" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="60" cy="{{ grayEndY }}" r="2.5" fill="#0A6E45"/>
+                  </svg>
+                  <div style="font-family:'DM Mono',monospace;font-size:8px;color:#0A6E45;">{{ grayDelta }}</div>
+                </div>
+              </div>
+
+              <!-- HARPER (best) -->
+              <div class="se-row" style="display:grid;grid-template-columns:180px repeat(6,1fr) 90px;transition:background 80ms;">
+                <div onClick="{{ selectCell }}" data-se="Harper" data-dim="Certs" style="padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;">
+                  <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#0A6E45,#14a065);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:10px;font-weight:600;color:white;flex-shrink:0;">H</div>
+                  <div>
+                    <div class="se-name" style="font-size:12px;font-weight:500;color:#0D0E12;transition:color 80ms;">Harper</div>
+                    <div style="font-family:'DM Mono',monospace;font-size:8px;color:#A09D98;">Day 90</div>
+                  </div>
+                  <div style="margin-left:auto;font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:#0A6E45;">71</div>
+                </div>
+                <!-- Ramp 78% -->
+                <div data-se="Harper" data-dim="Ramp" onClick="{{ selectCell }}" class="cell" style="border-left:1px solid #E2DFD9;background:rgba(10,110,69,.1);padding:12px 8px;display:flex;flex-direction:column;justify-content:center;gap:3px;">
+                  <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:#0A6E45;">78%</div>
+                  <div style="height:3px;background:#E6F5EE;"><div style="height:3px;width:78%;background:#0A6E45;"></div></div>
+                  <div style="font-size:8.5px;color:#0A6E45;">Ahead of pace</div>
+                </div>
+                <!-- Sims 78 -->
+                <div data-se="Harper" data-dim="Sims" onClick="{{ selectCell }}" class="cell" style="border-left:1px solid #E2DFD9;background:rgba(10,110,69,.1);padding:12px 8px;display:flex;flex-direction:column;justify-content:center;gap:3px;">
+                  <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:#0A6E45;">78</div>
+                  <div style="height:3px;background:#E6F5EE;"><div style="height:3px;width:78%;background:#0A6E45;"></div></div>
+                  <div style="font-size:8.5px;color:#0A6E45;">Strong</div>
+                </div>
+                <!-- Segments 1 -->
+                <div data-se="Harper" data-dim="Segments" onClick="{{ selectCell }}" class="cell" style="border-left:1px solid #E2DFD9;background:rgba(212,129,10,.08);padding:12px 8px;display:flex;flex-direction:column;justify-content:center;gap:3px;">
+                  <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:#D4810A;">2/4</div>
+                  <div style="height:3px;background:#FAF3E5;display:flex;gap:2px;"><div style="flex:1;background:#D4810A;"></div><div style="flex:1;background:#D4810A;"></div><div style="flex:1;background:#FAF3E5;"></div><div style="flex:1;background:#FAF3E5;"></div></div>
+                  <div style="font-size:8.5px;color:#D4810A;">Halfway</div>
+                </div>
+                <!-- Certs 0 -->
+                <div data-se="Harper" data-dim="Certs" onClick="{{ selectCell }}" class="cell" style="border-left:1px solid #E2DFD9;background:rgba(184,49,40,.12);padding:12px 8px;display:flex;flex-direction:column;justify-content:center;gap:3px;">
+                  <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:#B83128;">0/8</div>
+                  <div style="font-size:8.5px;color:#B83128;">In progress</div>
+                </div>
+                <!-- Lab 4.2h -->
+                <div data-se="Harper" data-dim="Lab" onClick="{{ selectCell }}" class="cell" style="border-left:1px solid #E2DFD9;background:rgba(212,129,10,.08);padding:12px 8px;display:flex;flex-direction:column;justify-content:center;gap:3px;">
+                  <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:#D4810A;">4.2h</div>
+                  <div style="font-size:8.5px;color:#D4810A;">Target: 5h</div>
+                </div>
+                <!-- Pitch 82 -->
+                <div data-se="Harper" data-dim="Pitch" onClick="{{ selectCell }}" class="cell" style="border-left:1px solid #E2DFD9;background:rgba(10,110,69,.12);padding:12px 8px;display:flex;flex-direction:column;justify-content:center;gap:3px;">
+                  <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:#0A6E45;">82</div>
+                  <div style="height:3px;background:#E6F5EE;"><div style="height:3px;width:82%;background:#0A6E45;"></div></div>
+                  <div style="font-size:8.5px;color:#0A6E45;">Ready</div>
+                </div>
+                <!-- Trend Harper -->
+                <div style="border-left:1px solid #E2DFD9;padding:12px 8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;">
+                  <svg width="60" height="24" viewBox="0 0 60 24">
+                    <polyline points="{{ harperSparkline }}" fill="none" stroke="#0A6E45" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="60" cy="{{ harperEndY }}" r="2.5" fill="#0A6E45"/>
+                  </svg>
+                  <div style="font-family:'DM Mono',monospace;font-size:8px;color:#0A6E45;">{{ harperDelta }}</div>
+                </div>
+              </div>
+
+              <!-- Column averages footer -->
+              <div style="display:grid;grid-template-columns:180px repeat(6,1fr) 90px;background:#F9F8F6;border-top:2px solid #E2DFD9;">
+                <div style="padding:8px 14px;display:flex;align-items:center;">
+                  <span style="font-family:'DM Mono',monospace;font-size:8px;color:#A09D98;letter-spacing:.08em;text-transform:uppercase;">Team avg</span>
+                </div>
+                <div style="border-left:1px solid #E2DFD9;padding:8px;"><span style="font-family:'DM Mono',monospace;font-size:11px;font-weight:500;color:#D4810A;">43%</span></div>
+                <div style="border-left:1px solid #E2DFD9;padding:8px;"><span style="font-family:'DM Mono',monospace;font-size:11px;font-weight:500;color:#B83128;">20</span></div>
+                <div style="border-left:1px solid #E2DFD9;padding:8px;"><span style="font-family:'DM Mono',monospace;font-size:11px;font-weight:500;color:#B83128;">1.0/4</span></div>
+                <div style="border-left:1px solid #E2DFD9;padding:8px;"><span style="font-family:'DM Mono',monospace;font-size:11px;font-weight:500;color:#B83128;">0/8</span></div>
+                <div style="border-left:1px solid #E2DFD9;padding:8px;"><span style="font-family:'DM Mono',monospace;font-size:11px;font-weight:500;color:#B83128;">2.4h</span></div>
+                <div style="border-left:1px solid #E2DFD9;padding:8px;"><span style="font-family:'DM Mono',monospace;font-size:11px;font-weight:500;color:#D4810A;">67</span></div>
+                <div style="border-left:1px solid #E2DFD9;"></div>
+              </div>
+            </div>
+
+            <!-- Legend -->
+            <div style="display:flex;align-items:center;gap:16px;margin-top:12px;padding-left:2px;">
+              <div style="display:flex;align-items:center;gap:5px;"><div style="width:10px;height:10px;background:rgba(184,49,40,.18);border:1px solid rgba(184,49,40,.3);"></div><span style="font-size:10px;color:#7A7772;">Critical (&lt;40)</span></div>
+              <div style="display:flex;align-items:center;gap:5px;"><div style="width:10px;height:10px;background:rgba(212,129,10,.12);border:1px solid rgba(212,129,10,.3);"></div><span style="font-size:10px;color:#7A7772;">At risk (40–69)</span></div>
+              <div style="display:flex;align-items:center;gap:5px;"><div style="width:10px;height:10px;background:rgba(10,110,69,.12);border:1px solid rgba(10,110,69,.25);"></div><span style="font-size:10px;color:#7A7772;">On track (70+)</span></div>
+              <div style="margin-left:auto;font-size:10px;color:#A09D98;">Click any cell to open coaching actions</div>
+            </div>
+          </div>
+
+          <!-- ── COACHING PANEL ── -->
+          <div style="width:300px;flex-shrink:0;border-left:1px solid #E2DFD9;overflow-y:auto;background:#fff;display:flex;flex-direction:column;transform:translateX({{ panelTranslate }});transition:transform .2s cubic-bezier(.16,1,.3,1);">
+            <div style="flex:1;display:flex;flex-direction:column;" class="si">
+              <!-- Panel header -->
+              <div style="padding:14px 16px;border-bottom:1px solid #E2DFD9;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:#F9F8F6;">
+                <div>
+                  <div style="font-family:'DM Mono',monospace;font-size:8px;color:#A09D98;letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px;">Coaching Focus</div>
+                  <div style="font-size:13px;font-weight:600;color:#0D0E12;">{{ selectedSe }} · {{ selectedDim }}</div>
+                </div>
+                <div onClick="{{ closePanel }}" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:1px solid #E2DFD9;background:#fff;cursor:pointer;color:#7A7772;flex-shrink:0;z-index:10;">
+                  <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M1 1l10 10M11 1L1 11"/></svg>
+                </div>
+              </div>
+
+              <!-- Context score -->
+              <div style="padding:14px 16px;border-bottom:1px solid #E2DFD9;flex-shrink:0;">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+                  <div style="width:36px;height:36px;border-radius:50%;background:{{ panelColor }};display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:white;">{{ panelInitial }}</div>
+                  <div>
+                    <div style="font-size:13px;font-weight:600;color:#0D0E12;">{{ selectedSe }}</div>
+                    <div style="font-size:11px;color:#7A7772;">{{ panelTenure }} · composite score {{ panelComposite }}</div>
+                  </div>
+                  <div style="margin-left:auto;text-align:right;">
+                    <div style="font-family:'DM Mono',monospace;font-size:9px;color:#A09D98;margin-bottom:1px;">{{ selectedDim }}</div>
+                    <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:{{ panelScoreColor }};">{{ panelScore }}</div>
+                  </div>
+                </div>
+                <div style="background:{{ panelBgColor }};border:1px solid {{ panelBorderColor }};padding:8px 10px;">
+                  <div style="font-size:11px;font-weight:500;color:{{ panelScoreColor }};margin-bottom:2px;">{{ panelStatus }}</div>
+                  <div style="font-size:10.5px;color:#5A5855;line-height:1.4;">{{ panelInsight }}</div>
+                </div>
+              </div>
+
+              <!-- Recommended actions -->
+              <div style="padding:14px 16px;flex:1;">
+                <div style="font-family:'DM Mono',monospace;font-size:8px;color:#A09D98;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;">Recommended Actions</div>
+
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                  <div style="border:1px solid #E2DFD9;padding:10px 12px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+                      <div style="display:flex;align-items:center;gap:6px;">
+                        <div style="width:5px;height:5px;border-radius:50%;background:#0071CE;flex-shrink:0;"></div>
+                        <span style="font-size:11.5px;font-weight:500;color:#0D0E12;">{{ action1Title }}</span>
+                      </div>
+                      <button onClick="{{ doAction1 }}" class="btn bb bxs">Go →</button>
+                    </div>
+                    <div style="font-size:10.5px;color:#7A7772;padding-left:11px;">{{ action1Desc }}</div>
+                  </div>
+
+                  <div style="border:1px solid #E2DFD9;padding:10px 12px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+                      <div style="display:flex;align-items:center;gap:6px;">
+                        <div style="width:5px;height:5px;border-radius:50%;background:#CC27B0;flex-shrink:0;"></div>
+                        <span style="font-size:11.5px;font-weight:500;color:#0D0E12;">{{ action2Title }}</span>
+                      </div>
+                      <button onClick="{{ doAction2 }}" class="btn bo bxs">Go →</button>
+                    </div>
+                    <div style="font-size:10.5px;color:#7A7772;padding-left:11px;">{{ action2Desc }}</div>
+                  </div>
+
+                  <div style="border:1px solid #E2DFD9;padding:10px 12px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+                      <div style="display:flex;align-items:center;gap:6px;">
+                        <div style="width:5px;height:5px;border-radius:50%;background:#0A6E45;flex-shrink:0;"></div>
+                        <span style="font-size:11.5px;font-weight:500;color:#0D0E12;">{{ action3Title }}</span>
+                      </div>
+                      <button onClick="{{ doAction3 }}" class="btn bo bxs">Go →</button>
+                    </div>
+                    <div style="font-size:10.5px;color:#7A7772;padding-left:11px;">{{ action3Desc }}</div>
+                  </div>
+                </div>
+
+                <!-- Schedule 1:1 -->
+                <div style="margin-top:14px;border-top:1px solid #E2DFD9;padding-top:14px;">
+                  <button onClick="{{ scheduleOneOnOne }}" class="btn bn" style="width:100%;justify-content:center;padding:10px;">
+                    <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="1" y="2" width="10" height="9" rx="1"/><path d="M1 5h10M4 1v2M8 1v2"/></svg>
+                    Schedule 1:1 with {{ selectedSe }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;$preview&quot;: {&quot;width&quot;: 1360, &quot;height&quot;: 968}
+}">
+class Component extends DCLogic {
+  state = {
+    panelOpen: false,
+    selectedSe: '',
+    selectedDim: '',
+    viewMode: 'weekly',
+  };
+
+
+
+  getCoachingData() { return {
+    'Finn': {
+      initial: 'F', color: 'linear-gradient(135deg,#B83128,#7c1d1d)', composite: 14, tenure: 'Day 22',
+      Ramp:     { score: '18%', status: 'Critical delay', insight: 'Finn is at 18% completion on day 22 — expected pace is ~35%. Recommend reviewing blockers in next 1:1 and adjusting step deadlines.', scoreColor: '#B83128', bgColor: 'rgba(184,49,40,.06)', borderColor: 'rgba(184,49,40,.2)', a1: ['Open ramp plan', 'Review Finn\'s current step and unblock'], a2: ['Assign challenge', 'A targeted practice challenge to re-engage'], a3: ['Adjust step dates', 'Push out blocked steps in Plan Calendar'] },
+      Sims:     { score: '0', status: 'No sims completed', insight: 'Finn has not run any simulations yet. At day 22, at least 2 coaching sim reviews should be logged.', scoreColor: '#B83128', bgColor: 'rgba(184,49,40,.06)', borderColor: 'rgba(184,49,40,.2)', a1: ['Assign SailPoint sim', 'Send discovery call sim to Finn today'], a2: ['Create coaching card', 'Log a manual coaching card after next shadow'], a3: ['View sim library', 'Browse available sims for Finn\'s current segment'] },
+      Segments: { score: '1/4', status: 'Segment 1 only', insight: 'Finn has only unlocked Segment 1. Segment 2 requires completing 3 ramp activities — check which are blocking.', scoreColor: '#B83128', bgColor: 'rgba(184,49,40,.06)', borderColor: 'rgba(184,49,40,.2)', a1: ['View segment criteria', 'See exactly what unlocks Segment 2 for Finn'], a2: ['Assign lab exercise', 'Technical lab to accelerate segment unlock'], a3: ['Add mentor session', 'Pair Finn with Harper for segment walkthrough'] },
+      Certs:    { score: '0/8', status: 'No certifications', insight: 'Zero certs at day 22 is expected — first cert is typically targeted at day 45. No action needed yet, but set a target.', scoreColor: '#D4810A', bgColor: 'rgba(212,129,10,.06)', borderColor: 'rgba(212,129,10,.2)', a1: ['Set cert target date', 'Pin the first cert goal in Certifications'], a2: ['Preview cert path', 'Show Finn the 8-cert roadmap so they plan ahead'], a3: ['Assign prep material', 'Queue cert prep activities in ramp plan'] },
+      Lab:      { score: '0.5h', status: 'Far behind target', insight: 'Target is 5 lab hours per week. 0.5h means Finn may not have access to the lab environment. Check lab provisioning.', scoreColor: '#B83128', bgColor: 'rgba(184,49,40,.06)', borderColor: 'rgba(184,49,40,.2)', a1: ['Check lab access', 'Verify Finn\'s lab environment is provisioned'], a2: ['Assign lab challenge', 'Add a 2h structured lab activity to the plan'], a3: ['Schedule lab time', 'Block 1h daily in calendar for lab practice'] },
+      Pitch:    { score: '52', status: 'Needs coaching', insight: 'Pitch score of 52 is below the 70 threshold. Finn has room to improve value positioning — recommend a roleplay session.', scoreColor: '#D4810A', bgColor: 'rgba(212,129,10,.06)', borderColor: 'rgba(212,129,10,.2)', a1: ['Run pitch sim', 'Assign a product pitch sim for immediate practice'], a2: ['Send pitch framework', 'Share SailPoint value framework reference card'], a3: ['Shadow next pitch', 'Schedule Finn to shadow your next customer call'] },
+    },
+    'Demo': {
+      initial: 'D', color: 'linear-gradient(135deg,#5a2d82,#9b44c8)', composite: 22, tenure: 'Day 45',
+      Ramp:     { score: '12%', status: 'Critical — 33pts behind pace', insight: 'At day 45, expected completion is ~45%. Demo is at 12% — this is a significant gap. Identify if it\'s a workload, motivation, or clarity issue.', scoreColor: '#B83128', bgColor: 'rgba(184,49,40,.06)', borderColor: 'rgba(184,49,40,.2)', a1: ['1:1 ramp review', 'Dedicated 30min to walk the plan step by step'], a2: ['Remove blockers', 'Check for steps waiting on manager approval'], a3: ['Adjust plan scope', 'Consider resetting timeline in Assign Plans'] },
+      Sims:     { score: '78', status: 'Strong performer', insight: 'Demo has the highest sim score on the team at 78. This is a genuine strength — leverage for peer coaching.', scoreColor: '#0A6E45', bgColor: 'rgba(10,110,69,.06)', borderColor: 'rgba(10,110,69,.2)', a1: ['Peer coaching', 'Ask Demo to run a sim debrief for Finn'], a2: ['Advanced sim', 'Assign a complex multi-stakeholder sim'], a3: ['Recognize achievement', 'Log a positive coaching card for this strength'] },
+      Certs:    { score: '0/8', status: 'No certifications yet', insight: 'At day 45, first cert is overdue by ~2 weeks. Demo\'s ramp delay may be blocking cert eligibility — check prereqs.', scoreColor: '#B83128', bgColor: 'rgba(184,49,40,.06)', borderColor: 'rgba(184,49,40,.2)', a1: ['Check cert prereqs', 'See what ramp steps unlock cert eligibility'], a2: ['Fast-track cert prep', 'Prioritize cert-adjacent ramp activities'], a3: ['Set cert deadline', 'Create an urgent milestone in Plan Calendar'] },
+      Lab:      { score: '3.2h', status: 'Short of 5h target', insight: '3.2h lab time is decent but below the weekly target of 5h. Encourage focused lab sessions on SailPoint core modules.', scoreColor: '#D4810A', bgColor: 'rgba(212,129,10,.06)', borderColor: 'rgba(212,129,10,.2)', a1: ['Recommend lab module', 'Queue the IIQ core module for this week'], a2: ['Block lab time', 'Add 2h lab blocks to calendar to hit target'], a3: ['Lab buddy pairing', 'Pair Demo with Harper for co-lab sessions'] },
+      Pitch:    { score: '63', status: 'Approaching threshold', insight: 'Demo\'s pitch is trending up. 7 more points to hit the 70 threshold. One focused roleplay session could close the gap.', scoreColor: '#D4810A', bgColor: 'rgba(212,129,10,.06)', borderColor: 'rgba(212,129,10,.2)', a1: ['Roleplay session', 'Schedule a 30min pitch practice with feedback'], a2: ['Assign pitch sim', 'Send executive pitch sim for extra practice'], a3: ['Review last pitch card', 'Revisit notes from last coaching card together'] },
+      Segments: { score: '1/4', status: 'Segment 1 only', insight: 'Segment unlock depends on ramp completion. Demo\'s ramp delay is the root cause — fixing ramp unblocks segments.', scoreColor: '#B83128', bgColor: 'rgba(184,49,40,.06)', borderColor: 'rgba(184,49,40,.2)', a1: ['Accelerate ramp steps', 'Focus this week on segment-unlocking activities'], a2: ['Pair with Harper', 'Harper completed seg 2 — can guide Demo'], a3: ['Review segment map', 'Clarify what each segment unlock requires'] },
+    },
+    'Gray': {
+      initial: 'G', color: 'linear-gradient(135deg,#1a5c8a,#0071CE)', composite: 48, tenure: 'Day 68',
+      Ramp:     { score: '62%', status: 'On pace', insight: 'Gray is on pace for their tenure. Expected is ~65% at day 68 — nearly there. Maintain current momentum.', scoreColor: '#D4810A', bgColor: 'rgba(212,129,10,.06)', borderColor: 'rgba(212,129,10,.2)', a1: ['Review next milestones', 'Preview the remaining plan steps together'], a2: ['Accelerate one step', 'Identify one step to complete ahead of schedule'], a3: ['Plan final stretch', 'Map out remaining weeks to completion'] },
+      Sims:     { score: '0', status: 'No sims completed', insight: 'At day 68, Gray should have completed 4–6 sim reviews. Zero sims is a gap — may indicate coaching cadence missed.', scoreColor: '#B83128', bgColor: 'rgba(184,49,40,.06)', borderColor: 'rgba(184,49,40,.2)', a1: ['Assign 2 sims now', 'Queue discovery + technical sims immediately'], a2: ['Open coaching cadence', 'Review Gray\'s coaching schedule — likely missed'], a3: ['Schedule shadow', 'Book a live customer call shadow with debrief'] },
+      Certs:    { score: '0/8', status: 'Urgent at day 68', insight: 'Zero certs at day 68 is a red flag. First 2 certs should be approved by now. Check if submissions are in review or not started.', scoreColor: '#B83128', bgColor: 'rgba(184,49,40,.06)', borderColor: 'rgba(184,49,40,.2)', a1: ['Check cert submissions', 'See if any certs are in review or blocked'], a2: ['Fast-track first cert', 'Start the IdentityIQ core cert this week'], a3: ['Set cert deadline', 'Add urgent cert deadline in Plan Calendar'] },
+      Lab:      { score: '1.8h', status: 'Critical lab gap', insight: '1.8h vs 5h target is a significant deficit at day 68. Gray may have capacity constraints — worth exploring in 1:1.', scoreColor: '#B83128', bgColor: 'rgba(184,49,40,.06)', borderColor: 'rgba(184,49,40,.2)', a1: ['1:1 capacity check', 'Discuss what\'s blocking lab time this week'], a2: ['Assign focused lab', '3h lab exercise targeting cert prereqs'], a3: ['Remove meetings', 'Check if over-scheduled — clear lab time in calendar'] },
+      Pitch:    { score: '71', status: 'Above threshold', insight: 'Pitch score of 71 is above the 70 threshold. Gray is solid here — no action needed beyond routine coaching.', scoreColor: '#0A6E45', bgColor: 'rgba(10,110,69,.06)', borderColor: 'rgba(10,110,69,.2)', a1: ['Advanced pitch sim', 'Challenge Gray with a C-level pitch sim'], a2: ['Peer coach', 'Ask Gray to mentor Finn on pitch delivery'], a3: ['Log coaching card', 'Document this strength for Gray\'s record'] },
+      Segments: { score: '1/4', status: 'Behind at day 68', insight: 'Segment 1 only at day 68 is behind. At this stage, seg 2 should be unlocked. Linked to ramp and lab gaps.', scoreColor: '#B83128', bgColor: 'rgba(184,49,40,.06)', borderColor: 'rgba(184,49,40,.2)', a1: ['Unlock seg 2 sprint', 'Focused week on the 3 activities blocking seg 2'], a2: ['Review with Harper', 'Harper on seg 2 — pair for peer walkthrough'], a3: ['Adjust seg milestones', 'Reset target dates in Program Tracker'] },
+    },
+    'Harper': {
+      initial: 'H', color: 'linear-gradient(135deg,#0A6E45,#14a065)', composite: 71, tenure: 'Day 90',
+      Ramp:     { score: '78%', status: 'Ahead of pace — strong', insight: 'Harper is ahead of expected pace at day 90. On track to complete ramp before the 120-day target. Minimal management needed.', scoreColor: '#0A6E45', bgColor: 'rgba(10,110,69,.06)', borderColor: 'rgba(10,110,69,.2)', a1: ['Accelerate final steps', 'Identify steps completable in next 2 weeks'], a2: ['Plan post-ramp goals', 'Start discussing Q3 development goals'], a3: ['Peer mentor role', 'Formalize Harper as a peer mentor for Finn'] },
+      Sims:     { score: '78', status: 'Strong performer', insight: 'Harper\'s sim score of 78 is the team high. Consistently strong — ready for advanced sim scenarios.', scoreColor: '#0A6E45', bgColor: 'rgba(10,110,69,.06)', borderColor: 'rgba(10,110,69,.2)', a1: ['Enterprise sim', 'Assign advanced multi-stakeholder sim'], a2: ['Log coaching card', 'Document this strength for career record'], a3: ['Peer sim debrief', 'Run a team sim debrief led by Harper'] },
+      Segments: { score: '2/4', status: 'Halfway through', insight: 'Seg 2 unlocked at day 90 is reasonable but seg 3 should be targeted this month. At current pace, will finish on schedule.', scoreColor: '#D4810A', bgColor: 'rgba(212,129,10,.06)', borderColor: 'rgba(212,129,10,.2)', a1: ['Unlock seg 3 plan', 'Map the 4 activities needed for seg 3'], a2: ['Assign seg 3 lab', 'Technical lab aligned to segment 3 criteria'], a3: ['Set target date', 'Pin seg 3 milestone in Plan Calendar'] },
+      Certs:    { score: '0/8', status: 'First cert overdue', insight: 'At day 90, first cert should be approved. Check if a submission is in progress or if it hasn\'t been started yet.', scoreColor: '#B83128', bgColor: 'rgba(184,49,40,.06)', borderColor: 'rgba(184,49,40,.2)', a1: ['Check cert status', 'See if Harper has a cert in review'], a2: ['Start first cert now', 'Begin the IdentityIQ Admin cert immediately'], a3: ['Set cert deadline', 'Target: first cert approved by end of month'] },
+      Lab:      { score: '4.2h', status: 'Close to target', insight: '4.2h vs 5h target — Harper is nearly there. One additional focused session would clear the weekly goal.', scoreColor: '#D4810A', bgColor: 'rgba(212,129,10,.06)', borderColor: 'rgba(212,129,10,.2)', a1: ['One more lab session', 'Encourage a 1h session to hit the 5h target'], a2: ['Advanced lab module', 'Assign a complex IIQ module matching seg 3'], a3: ['Track lab habit', 'Check in on daily lab routine in next 1:1'] },
+      Pitch:    { score: '82', status: 'Ready for field', insight: 'Harper\'s pitch score of 82 is excellent — top of the team. Ready to lead customer pitches independently.', scoreColor: '#0A6E45', bgColor: 'rgba(10,110,69,.06)', borderColor: 'rgba(10,110,69,.2)', a1: ['Solo pitch assignment', 'Give Harper a real customer discovery call'], a2: ['Document as example', 'Capture pitch recording as team training material'], a3: ['Advanced scenario', 'Assign a competitive displacement pitch sim'] },
+    },
+  }; }
+
+  getSeData(se) {
+    return (this.getCoachingData()[se]) || {};
+  }
+
+  getDimData(se, dim) {
+    const seData = this.getSeData(se);
+    return seData[dim] || {};
+  }
+
+  openPanel(se, dim) {
+    this.setState({ panelOpen: true, selectedSe: se, selectedDim: dim });
+  }
+
+  renderVals() {
+    const { panelOpen, selectedSe, selectedDim, viewMode } = this.state;
+    const SPARKLINES = {
+      weekly: {
+        finn:   { pts: '0,20 12,18 24,22 36,20 48,17 60,16', endY: '16', delta: '+2 wk' },
+        demo:   { pts: '0,22 12,18 24,16 36,14 48,11 60,10', endY: '10', delta: '+5 wk' },
+        gray:   { pts: '0,18 12,20 24,17 36,15 48,14 60,13', endY: '13', delta: '+3 wk' },
+        harper: { pts: '0,22 12,17 24,13 36,10 48,7 60,5',   endY: '5',  delta: '+8 wk' },
+      },
+      monthly: {
+        finn:   { pts: '0,22 15,21 30,20 45,19 60,17', endY: '17', delta: '+5 mo' },
+        demo:   { pts: '0,23 15,20 30,17 45,14 60,10', endY: '10', delta: '+13 mo' },
+        gray:   { pts: '0,21 15,19 30,17 45,15 60,12', endY: '12', delta: '+9 mo' },
+        harper: { pts: '0,20 15,16 30,12 45,8 60,4',   endY: '4',  delta: '+16 mo' },
+      },
+    };
+    const sp = SPARKLINES[viewMode] || SPARKLINES.weekly;
+    const seData = this.getSeData(selectedSe);
+    const dimData = this.getDimData(selectedSe, selectedDim);
+
+    const actions = dimData.a1 ? [dimData.a1, dimData.a2, dimData.a3] : [['—',''], ['—',''], ['—','']];
+
+    return {
+      panelOpen,
+      selectedSe: selectedSe || '—',
+      selectedDim: selectedDim || '—',
+      panelColor: seData.color || '#ccc',
+      panelInitial: seData.initial || '?',
+      panelComposite: seData.composite || '—',
+      panelTenure: seData.tenure || '—',
+      panelScore: dimData.score || '—',
+      panelScoreColor: dimData.scoreColor || '#0D0E12',
+      panelBgColor: dimData.bgColor || 'transparent',
+      panelBorderColor: dimData.borderColor || '#E2DFD9',
+      panelStatus: dimData.status || '',
+      panelInsight: dimData.insight || '',
+      action1Title: actions[0][0],
+      action1Desc: actions[0][1],
+      action2Title: actions[1][0],
+      action2Desc: actions[1][1],
+      action3Title: actions[2][0],
+      action3Desc: actions[2][1],
+
+      // Row click shortcuts
+      selectFinn: () => this.openPanel('Finn', 'Ramp'),
+      selectDemo: () => this.openPanel('Demo', 'Ramp'),
+      selectGray: () => this.openPanel('Gray', 'Sims'),
+      selectHarper: () => this.openPanel('Harper', 'Certs'),
+
+      // Cell clicks — find cell via target traversal (currentTarget can be null in event pooling)
+      selectCell: (e) => {
+        const cell = e.target && e.target.closest ? e.target.closest('[data-se]') : null;
+        const se = cell && cell.dataset && cell.dataset.se;
+        const dim = cell && cell.dataset && cell.dataset.dim;
+        if (se && dim) this.openPanel(se, dim);
+      },
+
+      // Coaching callout buttons
+      coachFinn: () => this.openPanel('Finn', 'Sims'),
+      coachDemo: () => this.openPanel('Demo', 'Ramp'),
+      coachGray: () => this.openPanel('Gray', 'Certs'),
+      coachAll: () => this.openPanel('Finn', 'Ramp'),
+
+      // View toggle
+      viewMode,
+      weeklyBg: viewMode === 'weekly' ? '#00143A' : '#fff',
+      weeklyColor: viewMode === 'weekly' ? '#fff' : '#7A7772',
+      monthlyBg: viewMode === 'monthly' ? '#00143A' : '#fff',
+      monthlyColor: viewMode === 'monthly' ? '#fff' : '#7A7772',
+      viewLabel: viewMode === 'weekly' ? 'W28 · Jul 7–13' : 'Jun 2026',
+      setWeekly: () => this.setState({ viewMode: 'weekly' }),
+      setMonthly: () => this.setState({ viewMode: 'monthly' }),
+      trendLabel: viewMode === 'weekly' ? 'Trend' : '4-wk Trend',
+      trendSub: viewMode === 'weekly' ? 'vs last week' : 'rolling 4 weeks',
+      trendDelta: viewMode === 'weekly' ? '+4 vs last week' : '+11 vs last month',
+
+      // Sparklines
+      finnSparkline: sp.finn.pts,   finnEndY: sp.finn.endY,   finnDelta: sp.finn.delta,
+      demoSparkline: sp.demo.pts,   demoEndY: sp.demo.endY,   demoDelta: sp.demo.delta,
+      graySparkline: sp.gray.pts,   grayEndY: sp.gray.endY,   grayDelta: sp.gray.delta,
+      harperSparkline: sp.harper.pts, harperEndY: sp.harper.endY, harperDelta: sp.harper.delta,
+
+      panelTranslate: panelOpen ? '0px' : '300px',
+
+      closePanel: () => this.setState({ panelOpen: false }),
+
+      doAction1: () => {},
+      doAction2: () => {},
+      doAction3: () => {},
+      scheduleOneOnOne: () => {},
+    };
+  }
+}
+
+</script>
+</body>
+</html>

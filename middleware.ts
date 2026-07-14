@@ -19,6 +19,11 @@ import {
   SHADOW_MODE_COOKIE,
   clearShadowCookiesOnResponse,
 } from "@/lib/auth/shadow-tenant";
+import {
+  enforceSessionIdle,
+  sessionExpiredResponse,
+  shouldSkipSessionIdleCheck,
+} from "@/lib/auth/session-idle-middleware";
 import { mergeFeatureFlags } from "@/lib/platform/settings-shared";
 import { isShareRateLimited } from "@/lib/security/share-rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -78,6 +83,34 @@ function redirectSuperAdminHome(request: NextRequest, access: ReturnType<typeof 
   return response;
 }
 
+function copyResponseCookies(from: NextResponse, to: NextResponse) {
+  from.cookies.getAll().forEach((cookie) => {
+    to.cookies.set(cookie.name, cookie.value);
+  });
+}
+
+async function expireIdleSession(
+  request: NextRequest,
+  response: NextResponse,
+  supabase: ReturnType<typeof createServerClient<Database>>,
+  tenantId: string | null,
+): Promise<NextResponse | null> {
+  const { pathname } = request.nextUrl;
+  if (shouldSkipSessionIdleCheck(pathname)) {
+    return null;
+  }
+
+  const idleStatus = await enforceSessionIdle(request, response, tenantId);
+  if (idleStatus !== "expired") {
+    return null;
+  }
+
+  await supabase.auth.signOut();
+  const expiredResponse = sessionExpiredResponse(request, pathname.startsWith("/api/"));
+  copyResponseCookies(response, expiredResponse);
+  return expiredResponse;
+}
+
 export async function middleware(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -126,20 +159,8 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  if (pathname === "/") {
-    if (!user) {
-      return NextResponse.redirect(new URL(AUTH_ROUTES.login, request.url));
-    }
-
-    const { role, tenantId } = await getProfileContext(supabase, user.id);
-    const access = resolveEffectiveAccess(
-      role,
-      tenantId,
-      request.cookies.get(SHADOW_TENANT_COOKIE)?.value ?? null,
-      request.cookies.get(SHADOW_TENANT_NAME_COOKIE)?.value ?? null,
-      request.cookies.get(SHADOW_MODE_COOKIE)?.value ?? null,
-    );
-    return redirectSuperAdminHome(request, access);
+  if (pathname === "/" && !user) {
+    return NextResponse.redirect(new URL(AUTH_ROUTES.login, request.url));
   }
 
   if (!user) {
@@ -210,6 +231,16 @@ export async function middleware(request: NextRequest) {
     }
 
     return response;
+  }
+
+  const idleExpired = await expireIdleSession(
+    request,
+    response,
+    supabase,
+    profileContext.tenantId,
+  );
+  if (idleExpired) {
+    return idleExpired;
   }
 
   const maintenanceAccess = resolveEffectiveAccess(
@@ -292,6 +323,17 @@ export async function middleware(request: NextRequest) {
     if (routeAccess && !tierMeetsRequirement(apiTier, routeAccess.minTier)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
+  }
+
+  if (pathname === "/") {
+    const access = resolveEffectiveAccess(
+      profileContext.role,
+      profileContext.tenantId,
+      request.cookies.get(SHADOW_TENANT_COOKIE)?.value ?? null,
+      request.cookies.get(SHADOW_TENANT_NAME_COOKIE)?.value ?? null,
+      request.cookies.get(SHADOW_MODE_COOKIE)?.value ?? null,
+    );
+    return redirectSuperAdminHome(request, access);
   }
 
   return response;

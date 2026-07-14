@@ -18,6 +18,7 @@ import {
  isNavItemActive,
  resolveNavHref,
  type AccessTier,
+ usesManagerPortalNav,
 } from "@/lib/auth/rbac";
 import type { PlatformFeatureFlags } from "@/lib/platform/settings-shared";
 import { mergeFeatureFlags } from "@/lib/platform/settings-shared";
@@ -70,7 +71,7 @@ function AdminPortalSidebar() {
   );
 }
 
-function ManagerPortalSidebar() {
+function ManagerPortalSidebar({ showPlatformLink = false }: { showPlatformLink?: boolean }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -100,6 +101,21 @@ function ManagerPortalSidebar() {
           </div>
         </div>
       ))}
+      {showPlatformLink ? (
+        <div>
+          <div className="mx-4 my-[10px] h-px bg-white/[0.05]" />
+          <p className="sp-sidebar-group-label px-4 pb-1 pt-2">PLATFORM</p>
+          <Link
+            className={cn(
+              "sp-sidebar-nav-item",
+              pathname.startsWith("/platform") ? "sp-sidebar-nav-active" : "sp-sidebar-nav-inactive",
+            )}
+            href="/platform"
+          >
+            <span className="min-w-0 flex-1 truncate">Platform Console</span>
+          </Link>
+        </div>
+      ) : null}
     </nav>
   );
 }
@@ -118,7 +134,7 @@ export function NavSidebar({
  const managerSection = pathname === "/manager" ? searchParams.get("section") : null;
 
  useEffect(() => {
- if (tier === "super_admin") return;
+ if (tier === "super_admin" || tier === "admin") return;
 
  const cacheKey = "tenant-feature-flags";
  const cached = sessionStorage.getItem(cacheKey);
@@ -168,8 +184,8 @@ export function NavSidebar({
     return <AdminPortalSidebar />;
   }
 
-  if (tier === "manager") {
-    return <ManagerPortalSidebar />;
+  if (usesManagerPortalNav(tier)) {
+    return <ManagerPortalSidebar showPlatformLink={tier === "super_admin"} />;
   }
 
  return (
@@ -213,8 +229,11 @@ export function NavMobile({ tier }: { tier: AccessTier }) {
   const navItems =
     tier === "admin"
       ? ADMIN_PORTAL_NAV_GROUPS.flatMap((g) => g.items)
-      : tier === "manager"
-        ? MANAGER_PORTAL_NAV_GROUPS.flatMap((g) => g.items)
+      : usesManagerPortalNav(tier)
+        ? [
+            ...MANAGER_PORTAL_NAV_GROUPS.flatMap((g) => g.items),
+            ...(tier === "super_admin" ? [{ href: "/platform", label: "Platform" }] : []),
+          ]
         : getNavItemsForTier(tier);
 
  return (

@@ -29,6 +29,7 @@ import type {
   Profile,
   SimulationAssignment,
 } from "@/lib/types";
+import { uniqueIds, uniqueProfiles } from "@/lib/utils";
 import type { Database } from "@/lib/database.types";
 
 type DbChallenge = Database["public"]["Tables"]["challenges"]["Row"];
@@ -44,7 +45,7 @@ async function resolveOrgUserIds(
   userId: string,
 ): Promise<string[]> {
   const { data: subtree } = await supabase.rpc("get_profile_subtree", { root_profile_id: userId });
-  return (subtree ?? []).map((row) => row.id);
+  return uniqueIds((subtree ?? []).map((row) => row.id));
 }
 
 async function fetchSupabaseManagerPageDataForTenant(
@@ -142,7 +143,7 @@ async function fetchSupabaseManagerPageDataForTenant(
     fetchPlansForUsers(admin, scopedUserIds, tenantId),
   ]);
 
-  const myOrg = seProfiles;
+  const myOrg = uniqueProfiles(seProfiles);
 
   const challenges: Challenge[] = ((challengesResult.data ?? []) as DbChallenge[]).map(mapChallenge);
   const submissions: ChallengeSubmission[] = ((submissionsResult.data ?? []) as DbChallengeSubmission[]).map((row) => ({
@@ -248,7 +249,7 @@ async function fetchSupabaseManagerPageData(): Promise<DashboardData | null> {
     return fetchSupabaseManagerPageDataForTenant(access.tenantId, user.id);
   }
 
-  const orgIds = await resolveOrgUserIds(supabase, user.id);
+  const orgIds = uniqueIds(await resolveOrgUserIds(supabase, user.id));
   const scopedUserIds = orgIds.length > 0 ? orgIds : [user.id];
 
   const [
@@ -343,7 +344,11 @@ async function fetchSupabaseManagerPageData(): Promise<DashboardData | null> {
 
   const profiles = [...profileById.values()];
   const currentUser = mapProfile(currentProfileResult.data);
-  const myOrg = orgIds.length > 0 ? profiles.filter((profile) => orgIds.includes(profile.id)) : getSubtree(currentUser.id, profiles);
+  const myOrg = uniqueProfiles(
+    orgIds.length > 0
+      ? profiles.filter((profile) => orgIds.includes(profile.id))
+      : getSubtree(currentUser.id, profiles),
+  );
 
   const challenges: Challenge[] = ((challengesResult.data ?? []) as DbChallenge[]).map(mapChallenge);
   const submissions: ChallengeSubmission[] = ((submissionsResult.data ?? []) as DbChallengeSubmission[]).map((row) => ({

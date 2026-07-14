@@ -1,4 +1,5 @@
 import type { CoachingCard, Profile } from "@/lib/types";
+import { uniqueProfiles } from "@/lib/utils";
 
 export type LeaderboardEntry = {
   profileId: string;
@@ -43,7 +44,7 @@ export function buildTeamLeaderboard(params: {
   reviewedChallengeCountByUser: Record<string, number>;
   reviewedSimCountByUser: Record<string, number>;
 }): LeaderboardEntry[] {
-  const rows = params.org.map((profile) => {
+  const rows = uniqueProfiles(params.org).map((profile) => {
     const cards = params.coachingCards.filter((c) => c.userId === profile.id && !c.isPractice);
     const trophies =
       (params.reviewedChallengeCountByUser[profile.id] ?? 0) +

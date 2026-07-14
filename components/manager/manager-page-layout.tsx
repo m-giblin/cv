@@ -88,9 +88,12 @@ export const MANAGER_SECTION_HEADERS: Record<
     compact: true,
   },
   dev: {
-    eyebrow: "Annual development",
-    title: "Development Plans",
-    subtitle: "Quarterly attestations and goal progress across your team",
+    eyebrow: "Development",
+    eyebrowColor: "#0071ce",
+    title: "AI Growth Plans",
+    subtitle: "AI-generated development goals, approvals, and content gap requests",
+    compact: true,
+    bleed: true,
   },
   program: {
     eyebrow: "Onboarding program",

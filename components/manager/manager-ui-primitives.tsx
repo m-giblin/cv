@@ -1,6 +1,175 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import type { CoachingHealth } from "@/lib/manager/se-coaching-summary";
 import { avatarGradientForId } from "@/lib/se/avatar-gradients";
+
+/** Amber alert strip — design_handoff_portals/COMPONENT_SPECS.md */
+export function ManagerAlertStrip({
+  message,
+  cta,
+  ctaHref,
+  accent = "#D4810A",
+}: {
+  message: ReactNode;
+  cta: string;
+  ctaHref: string;
+  accent?: string;
+}) {
+  return (
+    <div
+      className="mb-5 flex items-center justify-between gap-3 border border-t border-b px-[14px] py-[9px]"
+      style={{
+        borderLeft: `3px solid ${accent}`,
+        background: "#FFFBF0",
+        borderColor: "rgba(212,129,10,.12)",
+        borderLeftColor: accent,
+      }}
+    >
+      <div className="flex min-w-0 items-center gap-2">
+        <svg
+          className="shrink-0"
+          fill="none"
+          height="13"
+          stroke={accent}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="1.5"
+          viewBox="0 0 16 16"
+          width="13"
+        >
+          <path d="M8 2L15 13H1z" />
+          <line x1="8" x2="8" y1="7" y2="10" />
+          <circle cx="8" cy="11.5" fill={accent} r=".5" stroke="none" />
+        </svg>
+        <span className="text-[11.5px] font-medium text-[#5C4200]">{message}</span>
+      </div>
+      <ManagerOutlineBtn className="shrink-0" href={ctaHref}>
+        {cta}
+      </ManagerOutlineBtn>
+    </div>
+  );
+}
+
+/** 1px grid-line bento container */
+export function ManagerBentoGrid({
+  children,
+  columns,
+  className = "",
+}: {
+  children: ReactNode;
+  columns: string;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`mb-[14px] grid gap-px border border-[#E2DFD9] bg-[#E2DFD9] ${className}`}
+      style={{ gridTemplateColumns: columns }}
+    >
+      {children}
+    </div>
+  );
+}
+
+/** Zone 3 oversized metric — Command Center sidebar */
+export function ManagerStatColumn({
+  label,
+  value,
+  sub,
+  valueColor = "#0D0E12",
+  subColor,
+  href,
+  highlight = false,
+}: {
+  label: string;
+  value: string | number;
+  sub?: string;
+  valueColor?: string;
+  subColor?: string;
+  href?: string;
+  highlight?: boolean;
+}) {
+  const body = (
+    <>
+      <div className="mb-1.5 font-mono text-[9px] uppercase tracking-[0.1em] text-[#B0ADA8]">{label}</div>
+      <div
+        className="font-mono text-[48px] font-normal leading-none tracking-[-0.02em]"
+        style={{ color: valueColor }}
+      >
+        {value}
+      </div>
+      {sub ? (
+        <div className="mt-[5px] font-mono text-[8.5px]" style={{ color: subColor ?? valueColor }}>
+          {sub}
+        </div>
+      ) : null}
+    </>
+  );
+
+  const className = `border-b border-[#ECEAE6] p-[14px] last:border-b-0 ${highlight ? "bg-[#FEF9F8]" : "bg-[#F9F8F6]"}`;
+
+  if (href) {
+    return (
+      <Link className={`block transition hover:brightness-[0.98] ${className}`} href={href}>
+        {body}
+      </Link>
+    );
+  }
+
+  return <div className={className}>{body}</div>;
+}
+
+/** 4-up stat strip — Team Roster */
+export function ManagerStatStrip({
+  items,
+}: {
+  items: Array<{
+    label: string;
+    value: string | number;
+    sub?: string;
+    valueColor?: string;
+    subColor?: string;
+    href?: string;
+    highlight?: boolean;
+  }>;
+}) {
+  return (
+    <div className="mb-[14px] grid grid-cols-4 gap-px border border-[#E2DFD9] bg-[#E2DFD9]">
+      {items.map((item) => {
+        const inner = (
+          <>
+            <div className="mb-1 font-mono text-[9px] uppercase tracking-[0.1em] text-[#B0ADA8]">
+              {item.label}
+            </div>
+            <div
+              className="font-mono text-[34px] font-normal leading-none"
+              style={{ color: item.valueColor ?? "#0D0E12" }}
+            >
+              {item.value}
+            </div>
+            {item.sub ? (
+              <div className="mt-1 font-mono text-[8.5px]" style={{ color: item.subColor ?? item.valueColor }}>
+                {item.sub}
+              </div>
+            ) : null}
+          </>
+        );
+        const className = `p-[14px_16px] ${item.highlight ? "bg-[#FEF9F8]" : "bg-white"}`;
+        if (item.href) {
+          return (
+            <Link className={`block transition hover:brightness-[0.98] ${className}`} href={item.href} key={item.label}>
+              {inner}
+            </Link>
+          );
+        }
+        return (
+          <div className={className} key={item.label}>
+            {inner}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export function ManagerOutlineBtn({
  children,

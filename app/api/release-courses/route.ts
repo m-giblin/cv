@@ -143,6 +143,7 @@ export async function PATCH(request: Request) {
  assignedBy: session.user.id,
  startDate: body.data.assign.startDate,
  targetCompletion: body.data.assign.targetCompletion ?? null,
+ tenantId: session.tenantId,
  });
  assignmentIds.push(assignmentId);
 

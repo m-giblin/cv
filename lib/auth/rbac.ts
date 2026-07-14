@@ -43,6 +43,31 @@ export function getAccessDeniedRedirect(tier: AccessTier, pathname: string): str
   return getHomeRoute(tier);
 }
 
+/** Practice and readiness routes managers/admins/operators use in manager portal (incl. My Practice hub). */
+const OPERATOR_SELF_SERVICE_PREFIXES = [
+  "/my-practice",
+  "/growth",
+  "/feedback",
+  "/learn",
+  "/lab",
+  "/development",
+  "/growth-plan",
+  "/certifications",
+  "/resources",
+  "/market-pulse",
+  "/flight-check",
+  "/prep",
+  "/challenges",
+  "/simulations",
+  "/pitch",
+] as const;
+
+function isOperatorSelfServicePath(pathname: string): boolean {
+  return OPERATOR_SELF_SERVICE_PREFIXES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`),
+  );
+}
+
 type NavItem = {
   href: string;
   label: string;
@@ -85,34 +110,36 @@ export type ManagerSectionId = (typeof MANAGER_SECTIONS)[number]["section"];
 
 export const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "My Workspace", icon: "dashboard", tiers: ["se"] },
-  { href: "/my-practice", label: "My Practice", icon: "simulations", tiers: ["admin", "manager"] },
+  { href: "/my-practice", label: "My Practice", icon: "simulations", tiers: ["admin", "manager", "super_admin"] },
   { href: "/my-plan", label: "My Ramp Plan", icon: "plans", tiers: ["se"] },
-  { href: "/growth", label: "My Growth", icon: "growth", tiers: ["se"] },
+  { href: "/growth-plan", label: "My Growth Plan", icon: "development", tiers: ["se"] },
+  { href: "/growth", label: "My Growth", icon: "growth", tiers: ["se", "manager", "admin", "super_admin"] },
   { href: "/feedback", label: "My Feedback", icon: "feedback", tiers: ["se"] },
-  { href: "/learn", label: "Learn", icon: "resources", tiers: ["admin", "manager", "se"] },
-  { href: "/lab", label: "ISC Lab", icon: "challenges", tiers: ["admin", "manager", "se"] },
-  { href: "/market-pulse", label: "Market Pulse", icon: "challenges", tiers: ["admin", "manager", "se"] },
-  { href: "/manager?section=command", label: "Command Center", icon: "manager", tiers: ["admin", "manager"] },
-  { href: "/manager?section=inbox", label: "Action Inbox", icon: "feedback", tiers: ["admin", "manager"] },
-  { href: "/manager?section=roster", label: "Team Roster", icon: "manager", tiers: ["admin", "manager"] },
-  { href: "/manager?section=readiness", label: "Readiness Map", icon: "growth", tiers: ["admin", "manager"] },
-  { href: "/manager?section=leaderboard", label: "Leaderboard", icon: "challenges", tiers: ["admin", "manager"] },
-  { href: "/manager?section=cadence", label: "Coaching Cadence", icon: "development", tiers: ["admin", "manager"] },
-  { href: "/manager?section=mentees", label: "My Mentees", icon: "manager", tiers: ["admin", "manager"] },
-  { href: "/manager?section=history", label: "Review History", icon: "feedback", tiers: ["admin", "manager"] },
-  { href: "/manager?section=dev", label: "Development", icon: "development", tiers: ["admin", "manager"] },
-  { href: "/manager?section=program", label: "Program Tracker", icon: "plans", tiers: ["admin", "manager"] },
-  { href: "/plans", label: "Assign Plans", icon: "plans", tiers: ["admin", "manager"] },
+  { href: "/learn", label: "Learn", icon: "resources", tiers: ["admin", "manager", "se", "super_admin"] },
+  { href: "/lab", label: "ISC Lab", icon: "challenges", tiers: ["admin", "manager", "se", "super_admin"] },
+  { href: "/market-pulse", label: "Market Pulse", icon: "challenges", tiers: ["admin", "manager", "se", "super_admin"] },
+  { href: "/manager?section=command", label: "Command Center", icon: "manager", tiers: ["admin", "manager", "super_admin"] },
+  { href: "/manager?section=inbox", label: "Action Inbox", icon: "feedback", tiers: ["admin", "manager", "super_admin"] },
+  { href: "/manager?section=roster", label: "Team Roster", icon: "manager", tiers: ["admin", "manager", "super_admin"] },
+  { href: "/manager?section=readiness", label: "Readiness Map", icon: "growth", tiers: ["admin", "manager", "super_admin"] },
+  { href: "/manager?section=leaderboard", label: "Leaderboard", icon: "challenges", tiers: ["admin", "manager", "super_admin"] },
+  { href: "/manager?section=cadence", label: "Coaching Cadence", icon: "development", tiers: ["admin", "manager", "super_admin"] },
+  { href: "/manager?section=mentees", label: "My Mentees", icon: "manager", tiers: ["admin", "manager", "super_admin"] },
+  { href: "/manager?section=history", label: "Review History", icon: "feedback", tiers: ["admin", "manager", "super_admin"] },
+  { href: "/manager?section=dev", label: "Development", icon: "development", tiers: ["admin", "manager", "super_admin"] },
+  { href: "/manager?section=program", label: "Program Tracker", icon: "plans", tiers: ["admin", "manager", "super_admin"] },
+  { href: "/plans", label: "Assign Plans", icon: "plans", tiers: ["admin", "manager", "super_admin"] },
+  { href: "/plan-calendar", label: "Plan Calendar", icon: "plans", tiers: ["admin", "manager", "super_admin", "se"] },
   /** Route exists for deep links + assign flows; not in sidebar (v8: Admin Console → Plans tab). */
-  { href: "/plans", label: "Ramp Plans", icon: "plans", tiers: ["admin", "manager"] },
-  { href: "/development", label: "Development", icon: "development", tiers: ["admin", "manager", "se"] },
-  { href: "/resources", label: "Resources", icon: "resources", tiers: ["admin", "manager", "se"] },
-  { href: "/certifications", label: "Certifications", icon: "certifications", tiers: ["admin", "manager", "se"] },
-  { href: "/prep", label: "Deal Prep", icon: "prep", tiers: ["admin", "manager", "se"] },
-  { href: "/challenges", label: "Challenges", icon: "challenges", tiers: ["admin", "manager", "se"] },
-  { href: "/simulations", label: "Simulations", icon: "simulations", tiers: ["admin", "manager", "se"] },
-  { href: "/pitch", label: "Pitch Studio", icon: "prep", tiers: ["admin", "manager", "se"] },
-  { href: "/flight-check", label: "Flight Check", icon: "flight-check", tiers: ["admin", "manager", "se"] },
+  { href: "/plans", label: "Ramp Plans", icon: "plans", tiers: ["admin", "manager", "super_admin"] },
+  { href: "/development", label: "Development", icon: "development", tiers: ["admin", "manager", "super_admin"] },
+  { href: "/resources", label: "Resources", icon: "resources", tiers: ["admin", "manager", "se", "super_admin"] },
+  { href: "/certifications", label: "Certifications", icon: "certifications", tiers: ["admin", "manager", "se", "super_admin"] },
+  { href: "/prep", label: "Deal Prep", icon: "prep", tiers: ["admin", "manager", "se", "super_admin"] },
+  { href: "/challenges", label: "Challenges", icon: "challenges", tiers: ["admin", "manager", "se", "super_admin"] },
+  { href: "/simulations", label: "Simulations", icon: "simulations", tiers: ["admin", "manager", "se", "super_admin"] },
+  { href: "/pitch", label: "Pitch Studio", icon: "prep", tiers: ["admin", "manager", "se", "super_admin"] },
+  { href: "/flight-check", label: "Flight Check", icon: "flight-check", tiers: ["admin", "manager", "se", "super_admin"] },
   { href: "/admin", label: "Admin Console", icon: "admin", tiers: ["admin"] },
   { href: "/platform", label: "Platform", icon: "admin", tiers: ["super_admin"] },
   { href: "/account", label: "Account", icon: "account", tiers: ["admin", "manager", "se", "super_admin"] },
@@ -133,8 +160,8 @@ const NAV_GROUP_LABELS: Record<NavGroupId, string> = {
 /** Workflow-oriented nav order per role — groups reflect how SEs and managers actually work. */
 const TIER_NAV_GROUPS: Record<AccessTier, { id: NavGroupId; hrefs: string[] }[]> = {
   se: [
-    { id: "workspace", hrefs: ["/dashboard", "/my-plan", "/growth", "/feedback"] },
-    { id: "readiness", hrefs: ["/learn", "/lab", "/development", "/certifications"] },
+    { id: "workspace", hrefs: ["/dashboard", "/my-plan", "/plan-calendar", "/growth-plan", "/growth", "/feedback"] },
+    { id: "readiness", hrefs: ["/learn", "/lab", "/certifications"] },
     {
       id: "practice",
       hrefs: ["/flight-check", "/market-pulse", "/prep", "/challenges", "/simulations", "/pitch", "/resources"],
@@ -142,9 +169,9 @@ const TIER_NAV_GROUPS: Record<AccessTier, { id: NavGroupId; hrefs: string[] }[]>
   ],
   manager: [
     { id: "command", hrefs: ["/manager?section=command", "/manager?section=inbox"] },
+    { id: "program", hrefs: ["/manager?section=program", "/plans", "/plan-calendar"] },
     { id: "team", hrefs: ["/manager?section=roster", "/manager?section=readiness", "/manager?section=leaderboard"] },
     { id: "coaching", hrefs: ["/manager?section=cadence", "/manager?section=history", "/manager?section=dev"] },
-    { id: "program", hrefs: ["/manager?section=program", "/manager?section=assign"] },
     { id: "readiness", hrefs: ["/learn", "/lab", "/resources", "/certifications"] },
     {
       id: "practice",
@@ -154,9 +181,9 @@ const TIER_NAV_GROUPS: Record<AccessTier, { id: NavGroupId; hrefs: string[] }[]>
   admin: [
     { id: "workspace", hrefs: ["/dashboard"] },
     { id: "command", hrefs: ["/manager?section=command", "/manager?section=inbox"] },
+    { id: "program", hrefs: ["/manager?section=program", "/plans", "/plan-calendar"] },
     { id: "team", hrefs: ["/manager?section=roster", "/manager?section=readiness", "/manager?section=leaderboard"] },
     { id: "coaching", hrefs: ["/manager?section=cadence", "/manager?section=history", "/manager?section=dev"] },
-    { id: "program", hrefs: ["/manager?section=program", "/manager?section=assign"] },
     { id: "readiness", hrefs: ["/learn", "/lab", "/resources", "/certifications"] },
     {
       id: "practice",
@@ -164,7 +191,12 @@ const TIER_NAV_GROUPS: Record<AccessTier, { id: NavGroupId; hrefs: string[] }[]>
     },
     { id: "system", hrefs: ["/admin"] },
   ],
-  super_admin: [{ id: "system", hrefs: ["/platform"] }],
+  super_admin: [
+    { id: "command", hrefs: ["/manager?section=command", "/manager?section=inbox"] },
+    { id: "program", hrefs: ["/manager?section=program", "/plans", "/plan-calendar"] },
+    { id: "team", hrefs: ["/manager?section=roster", "/manager?section=readiness", "/manager?section=mentees"] },
+    { id: "system", hrefs: ["/platform"] },
+  ],
 };
 
 function findNavItem(href: string): NavItem | undefined {
@@ -231,6 +263,14 @@ export function canAccessRoute(
   if (featureFlags && !filterNavHref(pathname, featureFlags)) {
     return false;
   }
+
+  if (
+    (tier === "super_admin" || tier === "admin" || tier === "manager") &&
+    isOperatorSelfServicePath(pathname)
+  ) {
+    return true;
+  }
+
   if (pathname.startsWith("/account")) {
     return true;
   }
@@ -240,11 +280,19 @@ export function canAccessRoute(
   }
 
   if (pathname === "/manager" || pathname.startsWith("/manager/")) {
-    return tier === "admin" || tier === "manager";
+    return tier === "admin" || tier === "manager" || tier === "super_admin";
   }
 
   if (pathname === "/my-practice") {
-    return tier === "admin" || tier === "manager" || tier === "se";
+    return tier === "admin" || tier === "manager" || tier === "super_admin" || tier === "se";
+  }
+
+  if (pathname === "/plans" || pathname.startsWith("/plans/")) {
+    return tier === "admin" || tier === "manager" || tier === "super_admin";
+  }
+
+  if (pathname === "/plan-calendar" || pathname.startsWith("/plan-calendar/")) {
+    return tier === "admin" || tier === "manager" || tier === "super_admin" || tier === "se";
   }
 
   const match = NAV_ITEMS.find((item) => {
@@ -284,4 +332,14 @@ export function getTierLabel(tier: AccessTier): string {
     case "se":
       return "Sales Engineer";
   }
+}
+
+/** Manager portal sidebar + team workflows (distinct from tenant admin console). */
+export function usesManagerPortalNav(tier: AccessTier): boolean {
+  return tier === "manager" || tier === "super_admin";
+}
+
+/** Data/API scoping for manager team views — super-admins with reports use org scope. */
+export function managerTeamDataTier(tier: AccessTier): "admin" | "manager" {
+  return tier === "admin" ? "admin" : "manager";
 }

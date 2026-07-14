@@ -6,8 +6,9 @@ import {
  ForgeApiError,
  addForgeComment,
  createForgeIssue,
+ issueKey,
  listForgeIssues,
- uploadForgeAttachment,
+ uploadForgeAttachmentsSequential,
 } from "@/lib/forge/client";
 
 function normalizeCategoryId(value: string | null | undefined) {
@@ -64,7 +65,10 @@ export async function POST(request: Request) {
 
  try {
  const issue = await createForgeIssueFromPayload(parsed.data, session.user.email ?? undefined);
- return NextResponse.json({ data: issue }, { status: 201 });
+ return NextResponse.json(
+ { data: { ...issue, key: issue.key ?? issueKey(issue.number) } },
+ { status: 201 },
+ );
  } catch (error) {
  const message = error instanceof ForgeApiError ? error.message : "Failed to create issue.";
  return NextResponse.json({ error: message }, { status: 502 });
@@ -101,11 +105,34 @@ async function handleMultipartCreate(
  const issue = await createForgeIssueFromPayload(parsed.data, user.email);
  const files = form.getAll("files").filter((item): item is File => item instanceof File);
 
- for (const file of files) {
- await uploadForgeAttachment(issue.id, file, file.name);
+ // Forge two-call flow: issue must exist before any attachment upload.
+ const attachments =
+ files.length > 0
+ ? await uploadForgeAttachmentsSequential(
+ issue.id,
+ files,
+ files.map((file) => file.name),
+ )
+ : { uploaded: [], failed: [] };
+
+ if (attachments.failed.length > 0 && attachments.uploaded.length === 0) {
+ return NextResponse.json(
+ {
+ data: { ...issue, key: issue.key ?? issueKey(issue.number) },
+ attachments,
+ error: "Issue created but attachments failed to upload.",
+ },
+ { status: 207 },
+ );
  }
 
- return NextResponse.json({ data: issue }, { status: 201 });
+ return NextResponse.json(
+ {
+ data: { ...issue, key: issue.key ?? issueKey(issue.number) },
+ attachments,
+ },
+ { status: 201 },
+ );
  } catch (error) {
  const message = error instanceof ForgeApiError ? error.message : "Failed to create issue.";
  return NextResponse.json({ error: message }, { status: 502 });

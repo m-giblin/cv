@@ -33,7 +33,8 @@ export function NavTopBar({
     fallbackTitle: branding.productName,
   });
 
-  const searchPlaceholder = tier === "manager" ? "Search team..." : "search...";
+  const searchPlaceholder =
+    tier === "manager" || tier === "super_admin" ? "Search team..." : "search...";
   const showDemoRoleSwitcher = tier === "se" && practiceMeta !== null;
 
   return (

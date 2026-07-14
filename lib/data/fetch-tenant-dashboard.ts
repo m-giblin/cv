@@ -9,6 +9,7 @@ import {
 } from "@/lib/data/get-dashboard-data";
 import { getTenantAdminClient } from "@/lib/data/tenant-scoped-query";
 import { createClient } from "@/lib/supabase/server";
+import { uniqueIds, uniqueProfiles } from "@/lib/utils";
 import type {
   ActivityLog,
   Challenge,
@@ -156,12 +157,13 @@ export async function fetchTenantDashboard(
         ? profiles.filter((profile) => scopedUserIds.includes(profile.id))
         : profiles.filter((profile) => profile.id === userId || profile.id === currentUser.managerId);
 
-  const myOrg =
+  const myOrg = uniqueProfiles(
     scope === "org"
       ? profiles.filter((profile) => scopedUserIds.includes(profile.id) && profile.id !== userId)
       : scope === "tenant"
         ? getSubtree(userId, profiles)
-        : [];
+        : [],
+  );
 
   const challenges: Challenge[] = ((challengesResult.data ?? []) as DbChallenge[]).map(mapChallenge);
   const submissions: ChallengeSubmission[] = ((submissionsResult.data ?? []) as DbChallengeSubmission[]).map((row) => ({

@@ -31,5 +31,6 @@ export const getTenantShellBranding = cache(async (tenantId: string | null): Pro
     productTagline: "PLATFORM",
     primaryColor: normalizeTenantPrimaryColor(tenant.branding.primaryColor),
     logoUrl: tenant.branding.logoUrl,
+    tenantSlug: tenant.slug,
   };
 });

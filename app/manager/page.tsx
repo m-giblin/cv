@@ -217,6 +217,7 @@ export default async function ManagerPage({ searchParams }: ManagerPageProps) {
  id: submission.id,
  title: challenge?.title ?? "Challenge submission",
  personName: person?.fullName ?? "Team member",
+ reflectionText: submission.reflectionText,
  };
  }),
  ...pendingCards.map((card) => {
@@ -334,7 +335,7 @@ export default async function ManagerPage({ searchParams }: ManagerPageProps) {
  const mentors = eligibleMentorsForOrg(data.profiles, orgIds);
 
  return (
- <AppShell currentUser={data.currentUser} notifications={data.notifications}>
+ <AppShell contentWidth="wide" currentUser={data.currentUser} notifications={data.notifications}>
  <Suspense
  fallback={
  <div className="flex min-h-[40vh] items-center justify-center text-[#6B6860]">

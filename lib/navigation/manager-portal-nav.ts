@@ -19,6 +19,16 @@ export const MANAGER_PORTAL_NAV_GROUPS: ManagerPortalNavGroup[] = [
     ],
   },
   {
+    id: "program",
+    label: "PROGRAM",
+    items: [
+      { href: "/manager?section=program", label: "Program Tracker" },
+      { href: "/plans", label: "Assign Plans" },
+      { href: "/plan-calendar", label: "Plan Calendar" },
+      { href: "/certifications", label: "Certifications" },
+    ],
+  },
+  {
     id: "team",
     label: "TEAM",
     items: [
@@ -38,20 +48,23 @@ export const MANAGER_PORTAL_NAV_GROUPS: ManagerPortalNavGroup[] = [
     ],
   },
   {
-    id: "program",
-    label: "PROGRAM",
-    items: [
-      { href: "/manager?section=program", label: "Program Tracker" },
-      { href: "/plans", label: "Assign Plans" },
-      { href: "/certifications", label: "Certifications" },
-    ],
-  },
-  {
     id: "my-skills",
     label: "MY SKILLS",
     items: [
       { href: "/growth", label: "My Readiness" },
       { href: "/my-practice", label: "My Practice" },
+    ],
+  },
+  {
+    id: "practice",
+    label: "PRACTICE",
+    items: [
+      { href: "/simulations", label: "Simulations" },
+      { href: "/challenges", label: "Challenges" },
+      { href: "/pitch", label: "Pitch Studio" },
+      { href: "/prep", label: "Deal Prep" },
+      { href: "/flight-check", label: "Flight Check" },
+      { href: "/market-pulse", label: "Market Pulse" },
     ],
   },
 ];

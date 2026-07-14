@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { User } from "@supabase/supabase-js";
-import { getAccessTier } from "@/lib/auth/rbac";
 import {
   canShadowTenantStatus,
   resolveEffectiveAccess,
@@ -12,6 +11,7 @@ import {
 import { getTenantAdminClient } from "@/lib/data/tenant-scoped-query";
 import { createClient } from "@/lib/supabase/server";
 import { applySessionTenant } from "@/lib/supabase/tenant-session";
+import { DEFAULT_TENANT_ID } from "@/lib/tenant/types";
 import { ProfileRole } from "@/lib/types";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { Database } from "@/lib/database.types";
@@ -61,13 +61,14 @@ export async function requireManagerSession(): Promise<ManagerSession | NextResp
     cookieStore.get(SHADOW_MODE_COOKIE)?.value ?? null,
   );
 
-  if (access.tier !== "admin" && access.tier !== "manager") {
+  const managerCapable =
+    access.tier === "admin" || access.tier === "manager" || access.actualTier === "super_admin";
+
+  if (!managerCapable) {
     return NextResponse.json({ error: "Manager access required." }, { status: 403 });
   }
 
-  if (!access.tenantId) {
-    return NextResponse.json({ error: "Tenant context required." }, { status: 403 });
-  }
+  const tenantId = access.tenantId ?? profileTenantId ?? DEFAULT_TENANT_ID;
 
   if (access.isShadowing) {
     const admin = getTenantAdminClient();
@@ -79,19 +80,17 @@ export async function requireManagerSession(): Promise<ManagerSession | NextResp
     }
 
     try {
-      await applySessionTenant(supabase, access.tenantId);
+      await applySessionTenant(supabase, tenantId);
     } catch {
       // App-layer tenant scoping remains the primary guard.
     }
-  } else if (getAccessTier(role) !== "admin" && getAccessTier(role) !== "manager") {
-    return NextResponse.json({ error: "Manager access required." }, { status: 403 });
   }
 
   return {
     supabase,
     user,
     role,
-    tenantId: access.tenantId,
+    tenantId,
     isShadowing: access.isShadowing,
   };
 }

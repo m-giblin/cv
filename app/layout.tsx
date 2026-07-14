@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { DM_Mono, DM_Sans, Syne } from "next/font/google";
+import { ForgeSdkLoader } from "@/components/forge/forge-sdk-loader";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
@@ -38,6 +39,7 @@ export default function RootLayout({
  <body
  className={`${syne.variable} ${dmSans.variable} ${dmMono.variable} font-[family-name:var(--font-dm-sans)] antialiased`}
  >
+ <ForgeSdkLoader />
  <Providers>{children}</Providers>
  </body>
  </html>

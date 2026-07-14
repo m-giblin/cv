@@ -26,6 +26,21 @@ export async function POST(request: Request) {
  }
 
  try {
+ const { data: existingAssignment } = await session.supabase
+ .from("plan_assignments")
+ .select("id")
+ .eq("user_id", parsed.data.userId)
+ .eq("plan_id", parsed.data.planId)
+ .neq("status", "completed")
+ .maybeSingle();
+
+ if (existingAssignment) {
+ return NextResponse.json(
+ { error: "This plan is already assigned to this team member." },
+ { status: 409 },
+ );
+ }
+
  const assignmentId = await assignPlanToUser(session.supabase, {
  planId: parsed.data.planId,
  userId: parsed.data.userId,
@@ -33,6 +48,7 @@ export async function POST(request: Request) {
  assignedBy: session.user.id,
  startDate: parsed.data.startDate,
  targetCompletion: parsed.data.targetCompletion ?? null,
+ tenantId: session.tenantId,
  });
 
  const { data: assignee } = await session.supabase

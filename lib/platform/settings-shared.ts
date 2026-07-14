@@ -84,6 +84,14 @@ export const PLATFORM_FEATURE_FLAG_DEFS: PlatformFeatureFlagDef[] = [
     routePrefixes: ["/manager", "/plans"],
     managerSection: "assign",
   },
+  {
+    id: "plan-calendar",
+    label: "Plan calendar",
+    description: "Visual ramp plan calendar with timeline, month, and week views.",
+    category: "manager",
+    defaultEnabled: true,
+    routePrefixes: ["/plan-calendar"],
+  },
   // Readiness
   {
     id: "learn",
@@ -107,7 +115,7 @@ export const PLATFORM_FEATURE_FLAG_DEFS: PlatformFeatureFlagDef[] = [
     description: "Annual development goals and quarterly attestation.",
     category: "readiness",
     defaultEnabled: true,
-    routePrefixes: ["/development"],
+    routePrefixes: ["/development", "/growth-plan"],
   },
   {
     id: "certifications",

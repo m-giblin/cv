@@ -194,6 +194,50 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["plan_assignment_steps"]["Insert"]>;
         Relationships: [];
       };
+      plan_holidays: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          holiday_date: string;
+          label: string;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          tenant_id: string;
+          holiday_date: string;
+          label?: string;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["plan_holidays"]["Insert"]>;
+        Relationships: [];
+      };
+      review_reminder_log: {
+        Row: {
+          id: string;
+          tenant_id: string | null;
+          review_kind: string;
+          review_id: string;
+          manager_id: string;
+          se_user_id: string;
+          trigger_source: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          tenant_id?: string | null;
+          review_kind: string;
+          review_id: string;
+          manager_id: string;
+          se_user_id: string;
+          trigger_source: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["review_reminder_log"]["Insert"]>;
+        Relationships: [];
+      };
       challenges: {
         Row: {
           id: string;
@@ -242,6 +286,7 @@ export type Database = {
           manager_grade: number | null;
           manager_feedback: string | null;
           ai_suggested_score: number | null;
+          ai_review: Json | null;
           submitted_at: string | null;
           reviewed_at: string | null;
           tenant_id: string | null;
@@ -1420,6 +1465,8 @@ export type Database = {
           reviewed_by: string | null;
           created_at: string;
           tenant_id: string | null;
+          scenario_id: string | null;
+          queue_slot_id: string | null;
         };
         Insert: {
           id?: string;
@@ -1436,8 +1483,104 @@ export type Database = {
           reviewed_by?: string | null;
           created_at?: string;
           tenant_id?: string | null;
+          scenario_id?: string | null;
+          queue_slot_id?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["pitch_submissions"]["Insert"]>;
+        Relationships: [];
+      };
+      pitch_scenario_templates: {
+        Row: {
+          id: string;
+          tenant_id: string | null;
+          slug: string;
+          track: Database["public"]["Enums"]["pitch_scenario_track"];
+          short_label: string;
+          label: string;
+          prompt_label: string;
+          prompt: string;
+          description: string;
+          competencies: string[];
+          linked_solution: string | null;
+          max_duration_sec: number;
+          sort_order: number;
+          active: boolean;
+          passing_grade: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          tenant_id?: string | null;
+          slug: string;
+          track: Database["public"]["Enums"]["pitch_scenario_track"];
+          short_label: string;
+          label: string;
+          prompt_label: string;
+          prompt: string;
+          description: string;
+          competencies?: string[];
+          linked_solution?: string | null;
+          max_duration_sec?: number;
+          sort_order?: number;
+          active?: boolean;
+          passing_grade?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["pitch_scenario_templates"]["Insert"]>;
+        Relationships: [];
+      };
+      pitch_se_queue: {
+        Row: {
+          id: string;
+          tenant_id: string | null;
+          user_id: string;
+          scenario_id: string;
+          slot: number;
+          status: string;
+          submission_id: string | null;
+          completed_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          tenant_id?: string | null;
+          user_id: string;
+          scenario_id: string;
+          slot: number;
+          status?: string;
+          submission_id?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["pitch_se_queue"]["Insert"]>;
+        Relationships: [];
+      };
+      pitch_practice_sessions: {
+        Row: {
+          id: string;
+          tenant_id: string | null;
+          user_id: string;
+          scenario_id: string | null;
+          title: string;
+          reflection_text: string | null;
+          evidence_path: string | null;
+          ai_scores: Json | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          tenant_id?: string | null;
+          user_id: string;
+          scenario_id?: string | null;
+          title: string;
+          reflection_text?: string | null;
+          evidence_path?: string | null;
+          ai_scores?: Json | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["pitch_practice_sessions"]["Insert"]>;
         Relationships: [];
       };
       resource_engagement: {
@@ -1717,6 +1860,7 @@ export type Database = {
         | "mcp_governance";
       certification_status: "not_started" | "submitted" | "approved" | "revoked";
       pitch_target_type: "challenge" | "certification" | "practice";
+      pitch_scenario_track: "elevator" | "discovery" | "competitive" | "executive" | "governance";
     };
   };
 };

@@ -393,10 +393,37 @@ async function ensureReportsToManager({ seId, managerId }) {
   console.log(`  Assigned Demo SE → demo manager`);
 }
 
+async function ensureChallengeEvidence(seId) {
+  const storagePath = `${seId}/isc-search-evidence.pdf`;
+  const pdfBody = `%PDF-1.4
+1 0 obj<< /Type /Catalog /Pages 2 0 R >>endobj
+2 0 obj<< /Type /Pages /Kids [3 0 R] /Count 1 >>endobj
+3 0 obj<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources<< /Font<< /F1 5 0 R >> >> >>endobj
+4 0 obj<< /Length 55 >>stream
+BT /F1 12 Tf 72 720 Td (ISC Search stale accounts - demo evidence) Tj ET
+endstream endobj
+5 0 obj<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>endobj
+xref
+0 6
+trailer<< /Size 6 /Root 1 0 R >>
+startxref
+0
+%%EOF`;
+
+  const { error } = await admin.storage.from("evidence").upload(storagePath, Buffer.from(pdfBody), {
+    contentType: "application/pdf",
+    upsert: true,
+  });
+  if (error) throw new Error(error.message);
+  return `storage:evidence/${storagePath}`;
+}
+
 async function seedManagerInboxItems({ seId, managerId }) {
+  const evidencePath = await ensureChallengeEvidence(seId);
+
   const { data: submission } = await admin
     .from("challenge_submissions")
-    .select("id, status")
+    .select("id, status, evidence_files")
     .eq("user_id", seId)
     .eq("challenge_id", CHALLENGE_IDS[0])
     .maybeSingle();
@@ -411,14 +438,27 @@ async function seedManagerInboxItems({ seId, managerId }) {
       status: "submitted",
       reflection_text:
         "Completed ISC Search lab exercise — documented 10 stale interactive accounts and recommended certification campaign for healthcare app owners.",
-      evidence_files: ["demo-se/isc-search-evidence.pdf"],
+      evidence_files: [evidencePath],
       submitted_at: new Date().toISOString(),
     });
 
     if (insertError) throw new Error(insertError.message);
     console.log(`  Challenge submitted for manager review`);
-  } else if (submission?.status === "submitted" || submission?.status === "reviewed") {
-    console.log(`  Challenge already submitted for review`);
+  } else if (submission) {
+    const needsEvidenceFix =
+      !submission.evidence_files?.length ||
+      submission.evidence_files.some((entry) => !entry.startsWith("storage:evidence/"));
+
+    if (needsEvidenceFix) {
+      const { error: updateError } = await admin
+        .from("challenge_submissions")
+        .update({ evidence_files: [evidencePath] })
+        .eq("id", submission.id);
+      if (updateError) throw new Error(updateError.message);
+      console.log(`  Challenge evidence repaired for manager review`);
+    } else {
+      console.log(`  Challenge already submitted for review`);
+    }
   }
 
   const { data: sim } = await admin

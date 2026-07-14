@@ -5,6 +5,8 @@ const TABS = [
  { id: "users", label: "Users" },
  { id: "plans", label: "Plans" },
  { id: "competencies", label: "Competencies" },
+ { id: "content-portal", label: "Content Portal" },
+ { id: "reviews", label: "Reviews" },
  { id: "analytics", label: "Analytics" },
  { id: "ai", label: "AI & Sims" },
  { id: "corpus", label: "Corpus" },

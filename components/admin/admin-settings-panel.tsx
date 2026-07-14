@@ -46,19 +46,14 @@ export function AdminSettingsPanel({
 }) {
  return (
  <div className="anim-in flex flex-col gap-6 lg:flex-row lg:items-start">
- <div className="mb-[4px] lg:hidden">
- <h1 className="font-display text-[20px] font-extrabold text-[#0D0E12]">Platform Settings</h1>
- <p className="mt-[2px] text-[12px] text-[#6B6860]">Feature flags, integrations, session policy, and retention</p>
- </div>
-
- <nav aria-label="Settings sections" className="flex w-full shrink-0 flex-row gap-1 overflow-x-auto lg:w-[200px] lg:flex-col lg:gap-0.5">
+ <nav aria-label="Settings sections" className="flex w-full shrink-0 flex-row gap-1 overflow-x-auto border-b border-[#E2DFD9] lg:w-[200px] lg:flex-col lg:border-b-0 lg:gap-0.5">
  {ADMIN_SETTINGS_SECTIONS.map((item) => (
  <button
  className={cn(
- "whitespace-nowrap px-3 py-2 text-left text-[12px] font-semibold transition",
+ "whitespace-nowrap border border-b-0 px-3 py-2 text-left text-[12px] font-semibold transition lg:border-0 lg:px-3 lg:py-2",
  section === item.id
- ? "bg-[#00143a] text-white"
- : "text-[#6B6860] hover:bg-[#ECEAE6] hover:text-[#0D0E12]",
+ ? "bg-white text-[#0D0E12] lg:bg-[rgba(204,39,176,0.12)] lg:text-[#cc27b0]"
+ : "bg-[#F9F8F6] text-[#6B6860] hover:bg-[#ECEAE6] hover:text-[#0D0E12]",
  )}
  key={item.id}
  onClick={() => onSectionChange(item.id)}
@@ -70,10 +65,6 @@ export function AdminSettingsPanel({
  </nav>
 
  <div className="min-w-0 flex-1">
- <div className="mb-[18px] hidden lg:block">
- <h1 className="font-display text-[20px] font-extrabold text-[#0D0E12]">Platform Settings</h1>
- <p className="mt-[2px] text-[12px] text-[#6B6860]">Feature flags, integrations, session policy, and retention</p>
- </div>
  {section === "flags" ? <AdminSettingsFeatureFlagsSection /> : null}
  {section === "integrations" ? <AdminSettingsIntegrationsSection /> : null}
  {section === "ai" ? <AdminSettingsAiSection /> : null}

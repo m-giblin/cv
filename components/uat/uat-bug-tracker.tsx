@@ -223,23 +223,55 @@ export function UatBugTrackerPanel({
 
  setSubmitting(true);
  try {
- const form = new FormData();
- form.set("title", title.trim());
- form.set("comments", comments.trim());
- form.set("priority", priority);
- form.set("category_id", categoryId);
- form.set("page_url", pageUrl);
- form.set("reporter_name", reporterName);
+ // Step 1 — create issue (JSON only; Forge attachments are a separate call).
+ const createRes = await fetch("/api/uat-bugs/issues", {
+ method: "POST",
+ headers: { "Content-Type": "application/json" },
+ credentials: "same-origin",
+ body: JSON.stringify({
+ title: title.trim(),
+ comments: comments.trim(),
+ priority,
+ category_id: categoryId,
+ page_url: pageUrl,
+ reporter_name: reporterName,
+ }),
+ });
+ const createJson = (await createRes.json()) as {
+ data?: { id: string; number: number; key?: string };
+ error?: string;
+ };
+ if (!createRes.ok) throw new Error(createJson.error ?? "Failed to submit bug");
+
+ const issue = createJson.data;
+ if (!issue?.id) throw new Error("Forge did not return an issue id.");
+
+ // Step 2 — upload each screenshot/file sequentially to the new issue.
+ const failedUploads: string[] = [];
  for (const file of files) {
- form.append("files", file);
+ const uploadForm = new FormData();
+ uploadForm.append("file", file, file.name);
+ const uploadRes = await fetch(`/api/uat-bugs/issues/${issue.id}/attachments`, {
+ method: "POST",
+ body: uploadForm,
+ credentials: "same-origin",
+ });
+ if (!uploadRes.ok) {
+ failedUploads.push(file.name);
+ }
  }
 
- const res = await fetch("/api/uat-bugs/issues", { method: "POST", body: form, credentials: "same-origin" });
- const json = (await res.json()) as { data?: { key?: string; number: number }; error?: string };
- if (!res.ok) throw new Error(json.error ?? "Failed to submit bug");
-
- const key = json.data?.key ?? `${meta?.projectKey ?? "SEENA"}-${json.data?.number}`;
+ const key = issue.key ?? `${meta?.projectKey ?? "SEENA"}-${issue.number}`;
+ if (failedUploads.length > 0) {
+ toast.warning(
+ `Logged ${key}, but ${failedUploads.length} attachment(s) failed: ${failedUploads.join(", ")}`,
+ );
+ } else if (files.length > 0) {
+ toast.success(`Logged ${key} with ${files.length} attachment(s).`);
+ } else {
  toast.success(`Logged ${key} — assigned to ${meta?.assigneeEmail ?? "Matt"}.`);
+ }
+
  setTitle("");
  setComments("");
  setFiles([]);
@@ -358,7 +390,27 @@ export function UatBugTrackerPanel({
  </div>
  ) : null}
  {tab === "report" ? (
- <form className="space-y-3" onSubmit={(event) => void handleSubmit(event)}>
+ <form
+ className="space-y-3"
+ onPaste={(event) => {
+ const items = event.clipboardData?.items;
+ if (!items) return;
+ const pasted: File[] = [];
+ for (const item of Array.from(items)) {
+ if (!item.type.startsWith("image/")) continue;
+ const blob = item.getAsFile();
+ if (blob) {
+ pasted.push(new File([blob], `screenshot-${Date.now()}.png`, { type: blob.type || "image/png" }));
+ }
+ }
+ if (pasted.length > 0) {
+ event.preventDefault();
+ addFiles(pasted);
+ toast.message(`Pasted ${pasted.length} screenshot(s).`);
+ }
+ }}
+ onSubmit={(event) => void handleSubmit(event)}
+ >
  <div>
  <label className="mb-1 block text-xs font-semibold text-slate-600" htmlFor="uat-title">
  Title <span className="text-red-500">*</span>
@@ -487,7 +539,8 @@ export function UatBugTrackerPanel({
  ) : null}
 
  <p className="text-[10px] text-slate-400">
- Page URL captured automatically. All bugs go to <strong>backlog</strong> and assign to{" "}
+ Page URL captured automatically. Paste screenshots with Ctrl/Cmd+V. Attachments upload after the
+ issue is created (Forge two-step flow). All bugs go to <strong>backlog</strong> and assign to{" "}
  {assigneeName} ({assigneeEmail}).
  </p>
 

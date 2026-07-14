@@ -54,6 +54,7 @@ type PendingAssignment = {
   planName: string;
   userId: string;
   personName: string;
+  existingPlanCount: number;
 };
 
 type PlanTab = "all" | "locked" | "custom";
@@ -141,8 +142,13 @@ export function AssignPlansWorkspace({
   const [assignMentorId, setAssignMentorId] = useState("");
   const [isAssigning, setIsAssigning] = useState(false);
   const [isSavingSteps, setIsSavingSteps] = useState(false);
-  const [editingDatesUserId, setEditingDatesUserId] = useState<string | null>(null);
+  const [editingAssignmentId, setEditingAssignmentId] = useState<string | null>(null);
   const [editStartDate, setEditStartDate] = useState(todayIso());
+  const [localPlans, setLocalPlans] = useState(plans);
+
+  useEffect(() => {
+    setLocalPlans(plans);
+  }, [plans]);
 
   const loadTemplates = useCallback(async () => {
     setIsLoading(true);
@@ -187,15 +193,25 @@ export function AssignPlansWorkspace({
     ? canEditTemplateStructure(viewerRole, isLockedTemplate(selectedTemplate))
     : false;
 
-  const activePlanByUser = useMemo(() => {
-    const map = new Map<string, UserPlan>();
-    for (const plan of plans) {
-      if (plan.status !== "completed") {
-        map.set(plan.userId, plan);
-      }
+  const plansByUser = useMemo(() => {
+    const map = new Map<string, UserPlan[]>();
+    for (const plan of localPlans) {
+      if (plan.status === "completed") continue;
+      const existing = map.get(plan.userId) ?? [];
+      existing.push(plan);
+      map.set(plan.userId, existing);
+    }
+    for (const [userId, userPlans] of map) {
+      userPlans.sort((a, b) => a.startDate.localeCompare(b.startDate));
+      map.set(userId, userPlans);
     }
     return map;
-  }, [plans]);
+  }, [localPlans]);
+
+  function userAlreadyHasTemplate(userId: string, planId: string) {
+    const userPlans = plansByUser.get(userId) ?? [];
+    return userPlans.some((plan) => plan.planTemplateId === planId);
+  }
 
   const usageByTemplateName = useMemo(() => {
     const counts = new Map<string, number>();
@@ -221,13 +237,13 @@ export function AssignPlansWorkspace({
     );
 
     return seAssignees.filter((profile) => {
-      const hasPlan = activePlanByUser.has(profile.id);
+      const hasPlan = (plansByUser.get(profile.id)?.length ?? 0) > 0;
       if (empFilter === "new") return isNewHire(profile);
       if (empFilter === "existing") return !isNewHire(profile);
       if (empFilter === "unassigned") return !hasPlan;
       return true;
     });
-  }, [assignees, activePlanByUser, empFilter]);
+  }, [assignees, plansByUser, empFilter]);
 
   const newHireEmps = roster.filter((profile) => isNewHire(profile));
   const existingEmps = roster.filter((profile) => !isNewHire(profile));
@@ -325,9 +341,22 @@ export function AssignPlansWorkspace({
   }
 
   async function confirmAssignment() {
-    if (!pendingAssignment || !selectedTemplate) return;
+    if (!pendingAssignment) return;
+
+    const templateToAssign = templates.find((template) => template.id === pendingAssignment.planId);
+    if (!templateToAssign) {
+      toast.error("Plan template not found. Refresh and try again.");
+      return;
+    }
+
+    if (userAlreadyHasTemplate(pendingAssignment.userId, pendingAssignment.planId)) {
+      toast.error(`${pendingAssignment.planName} is already assigned to ${pendingAssignment.personName}.`);
+      return;
+    }
+
     setIsAssigning(true);
-    const durationDays = templateDurationDays(selectedTemplate.steps);
+
+    const durationDays = templateDurationDays(templateToAssign.steps);
     const targetCompletion = addDaysToIsoDate(assignStartDate, durationDays);
 
     const response = await fetch("/api/plans/assignments", {
@@ -344,9 +373,36 @@ export function AssignPlansWorkspace({
     setIsAssigning(false);
 
     if (!response.ok) {
-      toast.error("Could not assign plan.");
+      const body = (await response.json().catch(() => null)) as { error?: string } | null;
+      toast.error(body?.error ?? "Could not assign plan.");
       return;
     }
+
+    const body = (await response.json()) as { id: string };
+    setLocalPlans((prev) => [
+      ...prev.filter(
+        (plan) => !(plan.userId === pendingAssignment.userId && plan.planTemplateId === pendingAssignment.planId),
+      ),
+      {
+        id: body.id,
+        planTemplateId: pendingAssignment.planId,
+        userId: pendingAssignment.userId,
+        mentorId: assignMentorId || null,
+        name: templateToAssign.name,
+        startDate: assignStartDate,
+        targetCompletion,
+        status: "not_started",
+        progress: 0,
+        steps: templateToAssign.steps.map((step, index) => ({
+          id: step.id,
+          title: step.title,
+          description: step.description ?? "",
+          type: step.step_type,
+          order: step.sort_order,
+          status: "not_started" as const,
+        })),
+      },
+    ]);
 
     toast.success(`${pendingAssignment.planName} assigned to ${pendingAssignment.personName}.`);
     setPendingAssignment(null);
@@ -363,6 +419,7 @@ export function AssignPlansWorkspace({
       toast.error(body?.error ?? "Could not remove assignment.");
       return;
     }
+    setLocalPlans((prev) => prev.filter((plan) => plan.id !== assignment.id));
     toast.success("Assignment removed.");
     router.refresh();
   }
@@ -378,44 +435,67 @@ export function AssignPlansWorkspace({
       return;
     }
     toast.success("Start date updated.");
-    setEditingDatesUserId(null);
+    setEditingAssignmentId(null);
     router.refresh();
   }
 
   function renderEmployeeCard(profile: Profile) {
-    const assignment = activePlanByUser.get(profile.id);
+    const userPlans = plansByUser.get(profile.id) ?? [];
     const badge = roleBadge(profile);
     const isDragOver = dragOverUserId === profile.id;
     const dropBorderColor = isDragOver ? "#0071CE" : "#D4D1CB";
     const dropBg = isDragOver ? "#F0F7FF" : "transparent";
     const dropIconColor = isDragOver ? "#0071CE" : "#C4C1BB";
     const dropTextColor = isDragOver ? "#0071CE" : "#B0ADA8";
-    const dropLabel = isDragOver ? "Release to assign" : "Drop plan here";
+    const dropLabel = isDragOver
+      ? userPlans.length > 0
+        ? "Release to add plan"
+        : "Release to assign"
+      : userPlans.length > 0
+        ? "Drop to add another plan"
+        : "Drop plan here";
 
     return (
       <div
         className={`emp-card bg-white transition-colors ${
-          assignment ? "border-[#0A6E45] bg-[#EDFAF3]" : "border border-[#E2DFD9]"
-        } ${isDragOver && !assignment ? "!border-[#0071CE] !bg-[#F0F7FF]" : ""}`}
+          userPlans.length > 0 ? "border-[#0A6E45] bg-[#EDFAF3]" : "border border-[#E2DFD9]"
+        } ${isDragOver ? "!border-[#0071CE] !bg-[#F0F7FF]" : ""}`}
         key={profile.id}
-        onDragLeave={() => setDragOverUserId(null)}
+        onDragLeave={(event) => {
+          const related = event.relatedTarget as Node | null;
+          if (related && event.currentTarget.contains(related)) return;
+          setDragOverUserId(null);
+        }}
         onDragOver={(event) => {
-          if (!dragPlanId || assignment) return;
+          const hasPlanDrag =
+            Boolean(dragPlanId) ||
+            event.dataTransfer.types.includes("application/x-plan-id") ||
+            event.dataTransfer.types.includes("text/plain");
+          if (!hasPlanDrag) return;
           event.preventDefault();
+          event.dataTransfer.dropEffect = "copy";
           setDragOverUserId(profile.id);
         }}
         onDrop={(event) => {
           event.preventDefault();
           setDragOverUserId(null);
-          const planId = dragPlanId ?? selectedPlanId;
-          if (!planId || assignment) return;
+          const planId =
+            event.dataTransfer.getData("application/x-plan-id") ||
+            dragPlanId ||
+            selectedPlanId;
+          if (!planId) return;
           const plan = templates.find((item) => item.id === planId);
           if (!plan) return;
+          if (userAlreadyHasTemplate(profile.id, plan.id)) {
+            toast.error(`${plan.name} is already assigned to ${profile.fullName}.`);
+            return;
+          }
           setPendingAssignment({
             planId: plan.id,
             planName: plan.name,
             userId: profile.id,
             personName: profile.fullName,
+            existingPlanCount: userPlans.length,
           });
           selectPlan(plan);
         }}
@@ -440,80 +520,86 @@ export function AssignPlansWorkspace({
                 <span className="font-mono text-[8.5px] text-[#A09D98]">{profileMeta(profile)}</span>
               </div>
             </div>
-            {assignment ? (
+            {userPlans.length > 0 ? (
               <div className="flex shrink-0 items-center gap-1 border border-[rgba(10,110,69,.15)] bg-[#EDFAF3] px-2 py-1">
-                <span className="font-mono text-[8px] tracking-wide text-[#0A6E45]">ASSIGNED</span>
+                <span className="font-mono text-[8px] tracking-wide text-[#0A6E45]">
+                  {userPlans.length} PLAN{userPlans.length === 1 ? "" : "S"}
+                </span>
               </div>
             ) : null}
           </div>
 
-          {assignment ? (
-            <>
-              <div className="mb-1.5 border-l-[3px] border-[#0A6E45] bg-[#F0FDF7] px-2.5 py-2">
-                <p className="text-[11.5px] font-semibold text-[#0A6E45]">{assignment.name}</p>
-                <p className="font-mono text-[8.5px] text-[#A09D98]">
-                  Start {format(parseISO(assignment.startDate), "MMM d")} · {assignment.steps.length} steps
-                </p>
-              </div>
-              {editingDatesUserId === profile.id ? (
-                <div className="mt-1.5 flex gap-1.5">
-                  <input
-                    className="inp flex-1 border border-[#D4D1CB] bg-white px-2 py-1 text-[10.5px]"
-                    onChange={(event) => setEditStartDate(event.target.value)}
-                    type="date"
-                    value={editStartDate}
-                  />
-                  <button
-                    className="btn bn bxs px-2 py-1 text-[10px]"
-                    onClick={() => void saveEditedDates(assignment)}
-                    type="button"
-                  >
-                    Save
-                  </button>
-                  <button
-                    className="btn bo bxs px-2 py-1 text-[10px]"
-                    onClick={() => setEditingDatesUserId(null)}
-                    type="button"
-                  >
-                    Cancel
-                  </button>
+          {userPlans.length > 0 ? (
+            <div className="space-y-2">
+              {userPlans.map((assignment) => (
+                <div key={assignment.id}>
+                  <div className="mb-1.5 border-l-[3px] border-[#0A6E45] bg-[#F0FDF7] px-2.5 py-2">
+                    <p className="text-[11.5px] font-semibold text-[#0A6E45]">{assignment.name}</p>
+                    <p className="font-mono text-[8.5px] text-[#A09D98]">
+                      Start {format(parseISO(assignment.startDate), "MMM d")} · {assignment.steps.length} steps
+                    </p>
+                  </div>
+                  {editingAssignmentId === assignment.id ? (
+                    <div className="mt-1.5 flex gap-1.5">
+                      <input
+                        className="inp flex-1 border border-[#D4D1CB] bg-white px-2 py-1 text-[10.5px]"
+                        onChange={(event) => setEditStartDate(event.target.value)}
+                        type="date"
+                        value={editStartDate}
+                      />
+                      <button
+                        className="btn bn bxs px-2 py-1 text-[10px]"
+                        onClick={() => void saveEditedDates(assignment)}
+                        type="button"
+                      >
+                        Save
+                      </button>
+                      <button
+                        className="btn bo bxs px-2 py-1 text-[10px]"
+                        onClick={() => setEditingAssignmentId(null)}
+                        type="button"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="mt-1.5 flex gap-1.5">
+                      <button
+                        className="btn bo bxs flex-1 justify-center py-1 text-[10px]"
+                        onClick={() => {
+                          setEditingAssignmentId(assignment.id);
+                          setEditStartDate(assignment.startDate);
+                        }}
+                        type="button"
+                      >
+                        Edit dates
+                      </button>
+                      <button
+                        className="btn bxs shrink-0 border border-[rgba(184,49,40,.15)] bg-[#FEF0EE] px-2 py-1 text-[10px] text-[#B83128]"
+                        onClick={() => void removeAssignment(assignment, profile.fullName)}
+                        type="button"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="mt-1.5 flex gap-1.5">
-                  <button
-                    className="btn bo bxs flex-1 justify-center py-1 text-[10px]"
-                    onClick={() => {
-                      setEditingDatesUserId(profile.id);
-                      setEditStartDate(assignment.startDate);
-                    }}
-                    type="button"
-                  >
-                    Edit dates
-                  </button>
-                  <button
-                    className="btn bxs shrink-0 border border-[rgba(184,49,40,.15)] bg-[#FEF0EE] px-2 py-1 text-[10px] text-[#B83128]"
-                    onClick={() => void removeAssignment(assignment, profile.fullName)}
-                    type="button"
-                  >
-                    Remove
-                  </button>
-                </div>
-              )}
-            </>
-          ) : (
-            <div
-              className="flex items-center gap-2 border border-dashed px-2.5 py-2 transition-colors"
-              style={{ borderColor: dropBorderColor, background: dropBg }}
-            >
-              <svg fill="none" height="12" stroke={dropIconColor} strokeWidth="1.3" viewBox="0 0 14 14" width="12">
-                <path d="M7 2v7M4 6l3 4 3-4" strokeLinecap="round" />
-                <path d="M2 11h10" strokeLinecap="round" />
-              </svg>
-              <span className="font-mono text-[9px] tracking-wide" style={{ color: dropTextColor }}>
-                {dropLabel}
-              </span>
+              ))}
             </div>
-          )}
+          ) : null}
+
+          <div
+            className={`${userPlans.length > 0 ? "mt-2" : ""} flex items-center gap-2 border border-dashed px-2.5 py-2 transition-colors`}
+            style={{ borderColor: dropBorderColor, background: dropBg }}
+          >
+            <svg fill="none" height="12" stroke={dropIconColor} strokeWidth="1.3" viewBox="0 0 14 14" width="12">
+              <path d="M7 2v7M4 6l3 4 3-4" strokeLinecap="round" />
+              <path d="M2 11h10" strokeLinecap="round" />
+            </svg>
+            <span className="font-mono text-[9px] tracking-wide" style={{ color: dropTextColor }}>
+              {dropLabel}
+            </span>
+          </div>
         </div>
       </div>
     );
@@ -526,6 +612,65 @@ export function AssignPlansWorkspace({
       </div>
     );
   }
+
+  const confirmAssignmentPanel = pendingAssignment ? (
+    <div className="animate-[dropIn_0.15s_ease-out] border border-[#0071CE]/25 border-l-[3px] border-l-[#0071CE] bg-white p-3 shadow-[0_10px_40px_rgba(0,20,58,.16)]">
+      <p className="mb-1 font-mono text-[8px] tracking-wide text-[#0071CE]">CONFIRM ASSIGNMENT</p>
+      <p className="text-[12px] font-semibold leading-snug text-[#0D0E12]">
+        {pendingAssignment.planName} → {pendingAssignment.personName}
+      </p>
+      {pendingAssignment.existingPlanCount > 0 ? (
+        <p className="mt-1 text-[10.5px] leading-snug text-[#6B6860]">
+          Adds to {pendingAssignment.existingPlanCount} existing plan
+          {pendingAssignment.existingPlanCount === 1 ? "" : "s"} — stagger the start date to lay out their calendar.
+        </p>
+      ) : null}
+      <div className="mt-2.5 grid grid-cols-2 gap-2">
+        <div>
+          <p className="mb-0.5 font-mono text-[7.5px] text-[#A09D98]">Start date</p>
+          <input
+            className="w-full border border-[#D4D1CB] bg-white px-2 py-1.5 text-[10.5px]"
+            onChange={(event) => setAssignStartDate(event.target.value)}
+            type="date"
+            value={assignStartDate}
+          />
+        </div>
+        <div>
+          <p className="mb-0.5 font-mono text-[7.5px] text-[#A09D98]">Mentor</p>
+          <select
+            className="w-full border border-[#D4D1CB] bg-white px-2 py-1.5 text-[10.5px]"
+            onChange={(event) => setAssignMentorId(event.target.value)}
+            value={assignMentorId}
+          >
+            <option value="">No mentor</option>
+            {mentors.map((mentor) => (
+              <option key={mentor.id} value={mentor.id}>
+                {mentor.fullName}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+      <div className="mt-2.5 flex gap-1.5">
+        <button
+          className="btn bn bsm flex flex-1 items-center justify-center gap-1 bg-[#00143A] px-3 py-2 text-[10.5px] font-semibold text-white"
+          disabled={isAssigning}
+          onClick={() => void confirmAssignment()}
+          type="button"
+        >
+          {isAssigning ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+          Confirm & assign →
+        </button>
+        <button
+          className="btn bo bsm border border-[#D4D1CB] px-3 py-2 text-[10.5px] font-semibold text-[#3D3C38]"
+          onClick={() => setPendingAssignment(null)}
+          type="button"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  ) : null;
 
   return (
     <div className="overflow-hidden border border-[#E2DFD9] bg-[#F5F4F0]">
@@ -559,9 +704,23 @@ export function AssignPlansWorkspace({
         </div>
       </div>
 
-      <div className="grid min-h-[640px] grid-cols-1 lg:grid-cols-[280px_1fr_300px]">
+      <div className="relative grid h-[min(720px,calc(100vh-10rem))] min-h-[640px] grid-cols-1 overflow-hidden lg:grid-cols-[280px_1fr_300px]">
+        {confirmAssignmentPanel ? (
+          <div
+            className="pointer-events-none absolute inset-0 z-20 hidden lg:block"
+            aria-hidden={!pendingAssignment}
+          >
+            <div className="pointer-events-auto absolute right-3 top-3 w-[min(300px,calc(100%-1.5rem))]">
+              {confirmAssignmentPanel}
+            </div>
+          </div>
+        ) : null}
+
+        {confirmAssignmentPanel ? (
+          <div className="border-b border-[#E2DFD9] bg-white p-3 lg:hidden">{confirmAssignmentPanel}</div>
+        ) : null}
         {/* Col 1 — Plan library */}
-        <div className="flex flex-col border-[#E2DFD9] bg-[#F9F8F6] lg:border-r">
+        <div className="flex h-full min-h-0 flex-col overflow-hidden border-[#E2DFD9] bg-[#F9F8F6] lg:border-r">
           <div className="border-b border-[#E2DFD9] px-3.5 py-3">
             <div className="mb-2 flex items-center justify-between gap-2">
               <div>
@@ -594,7 +753,7 @@ export function AssignPlansWorkspace({
               ))}
             </div>
           </div>
-          <div className="flex-1 space-y-2 overflow-y-auto p-2">
+          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain p-2">
             {visiblePlans.map((template) => {
               const locked = isLockedTemplate(template);
               const usedBy = usageByTemplateName.get(template.name) ?? 0;
@@ -618,6 +777,8 @@ export function AssignPlansWorkspace({
                     setDragPlanId(template.id);
                     selectPlan(template);
                     event.dataTransfer.effectAllowed = "copy";
+                    event.dataTransfer.setData("application/x-plan-id", template.id);
+                    event.dataTransfer.setData("text/plain", template.id);
                   }}
                 >
                   <div className="h-[3px]" style={{ background: templateAccentGradient(template.name) }} />
@@ -680,7 +841,7 @@ export function AssignPlansWorkspace({
         </div>
 
         {/* Col 2 — Employee roster */}
-        <div className="flex flex-col bg-[#F5F4F0]">
+        <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[#F5F4F0]">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E2DFD9] bg-white px-4 py-3">
             <div>
               <p className="font-display text-sm font-extrabold text-[#0D0E12]">My team</p>
@@ -742,7 +903,7 @@ export function AssignPlansWorkspace({
         </div>
 
         {/* Col 3 — Preview + confirm */}
-        <div className="flex flex-col border-[#E2DFD9] bg-[#F9F8F6] lg:border-l">
+        <div className="flex h-full min-h-0 flex-col overflow-hidden border-[#E2DFD9] bg-[#F9F8F6] lg:border-l">
           <div className="border-b border-[#E2DFD9] px-3.5 py-3">
             <p className="font-display text-sm font-extrabold text-[#0D0E12]">
               {selectedTemplate?.name ?? "Select a plan"}
@@ -872,62 +1033,11 @@ export function AssignPlansWorkspace({
           </div>
 
           <div className="shrink-0 border-t border-[#E2DFD9] bg-white p-2.5">
-            {pendingAssignment ? (
-              <div className="animate-[dropIn_0.15s_ease-out] border-l-[3px] border-[#0071CE] bg-[#F0F7FF] p-2.5">
-                <p className="mb-1 font-mono text-[8px] tracking-wide text-[#0071CE]">CONFIRM ASSIGNMENT</p>
-                <p className="text-[11.5px] font-semibold text-[#0D0E12]">
-                  {pendingAssignment.planName} → {pendingAssignment.personName}
-                </p>
-                <div className="mt-2 grid grid-cols-2 gap-1.5">
-                  <div>
-                    <p className="mb-0.5 font-mono text-[7.5px] text-[#A09D98]">Start date</p>
-                    <input
-                      className="w-full border border-[#D4D1CB] bg-white px-2 py-1 text-[10.5px]"
-                      onChange={(event) => setAssignStartDate(event.target.value)}
-                      type="date"
-                      value={assignStartDate}
-                    />
-                  </div>
-                  <div>
-                    <p className="mb-0.5 font-mono text-[7.5px] text-[#A09D98]">Mentor</p>
-                    <select
-                      className="w-full border border-[#D4D1CB] bg-white px-2 py-1 text-[10.5px]"
-                      onChange={(event) => setAssignMentorId(event.target.value)}
-                      value={assignMentorId}
-                    >
-                      <option value="">No mentor</option>
-                      {mentors.map((mentor) => (
-                        <option key={mentor.id} value={mentor.id}>
-                          {mentor.fullName}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div className="mt-2 flex gap-1.5">
-                  <button
-                    className="btn bn bsm flex flex-1 items-center justify-center gap-1 bg-[#00143A] px-3 py-1.5 text-[10px] font-semibold text-white"
-                    disabled={isAssigning}
-                    onClick={() => void confirmAssignment()}
-                    type="button"
-                  >
-                    {isAssigning ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
-                    Confirm & assign →
-                  </button>
-                  <button
-                    className="btn bo bsm border border-[#D4D1CB] px-3 py-1.5 text-[10px] font-semibold text-[#3D3C38]"
-                    onClick={() => setPendingAssignment(null)}
-                    type="button"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            ) : (
+            {!pendingAssignment ? (
               <p className="py-2 text-center font-mono text-[9px] text-[#B0ADA8]">
                 Drop a plan onto an employee to assign it
               </p>
-            )}
+            ) : null}
           </div>
         </div>
       </div>

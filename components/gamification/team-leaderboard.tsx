@@ -31,7 +31,7 @@ export function TeamLeaderboard({
  }
 
  const rows = visible.map((entry, index) => (
- <div className="flex items-center gap-[12px] px-[16px] py-[10px]" key={entry.profileId}>
+ <div className="flex items-center gap-[12px] border-b border-[#F2F0EC] px-4 py-[9px] last:border-b-0" key={entry.profileId}>
  <span
  className="w-[22px] shrink-0 text-center font-display text-[16px] font-extrabold"
  style={{

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { DevelopmentPlanPanel } from "@/components/development/development-plan-panel";
@@ -34,6 +35,10 @@ export default async function DevelopmentPage({ searchParams }: DevelopmentPageP
  : data.myOrg;
 
  const isSe = tier === "se";
+
+ if (isSe) {
+ redirect("/growth-plan");
+ }
 
  return (
  <AppShell currentUser={data.currentUser} notifications={data.notifications}>

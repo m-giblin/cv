@@ -29,3 +29,30 @@ export function getForgeAssigneeIdFromEnv() {
 export function getForgeBaseUrl() {
   return (process.env.FORGE_API_BASE_URL ?? "https://forge-nu-ochre.vercel.app").replace(/\/$/, "");
 }
+
+export function getPublicForgeBaseUrl() {
+  return (
+    process.env.NEXT_PUBLIC_FORGE_API_BASE_URL ??
+    process.env.FORGE_API_BASE_URL ??
+    "https://forge-nu-ochre.vercel.app"
+  ).replace(/\/$/, "");
+}
+
+/** Browser SDK key (issues:write only) — safe to expose; separate from server FORGE_API_KEY. */
+export function getPublicForgeSdkConfig() {
+  const apiKey = process.env.NEXT_PUBLIC_FORGE_SDK_API_KEY?.trim();
+  if (!apiKey) {
+    return null;
+  }
+
+  return {
+    apiKey,
+    baseUrl: getPublicForgeBaseUrl(),
+    projectKey: FORGE_PROJECT_KEY,
+    environment: process.env.NEXT_PUBLIC_FORGE_SDK_ENVIRONMENT ?? "uat",
+  };
+}
+
+export function isForgeSdkEnabled() {
+  return Boolean(process.env.NEXT_PUBLIC_FORGE_SDK_API_KEY?.trim());
+}

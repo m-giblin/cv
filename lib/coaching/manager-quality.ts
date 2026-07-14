@@ -54,7 +54,7 @@ export async function buildManagerCoachingQuality(
     }
   }
 
-  return managerIds.map((managerId) => {
+  return managerIds.filter((id, index, list) => list.indexOf(id) === index).map((managerId) => {
     const rows = (signoffs ?? []).filter((row) => row.manager_id === managerId);
     const approveRows = rows.filter((row) => row.decision === "approve");
     const durations = approveRows

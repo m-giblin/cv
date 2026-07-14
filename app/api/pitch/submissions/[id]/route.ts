@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { processReviewSignoff } from "@/lib/coaching/process-review-signoff";
 import { requireManagerSession } from "@/lib/auth/require-manager";
+import { rotateQueueOnPitchApproval } from "@/lib/pitch/pitch-queue";
 import { createClient } from "@/lib/supabase/server";
 
 const patchSchema = z.object({
@@ -81,6 +82,12 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
  points: (parsed.data.managerGrade ?? 4) * 5,
  metadata: { pitchId: id, grade: parsed.data.managerGrade },
  });
+
+ await rotateQueueOnPitchApproval(
+ managerSession.supabase,
+ id,
+ parsed.data.managerGrade ?? null,
+ );
  }
 
  return NextResponse.json({ success: true });

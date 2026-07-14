@@ -130,18 +130,20 @@ a {
 }
 
 .sp-sidebar-nav-inactive {
- color: rgba(255, 255, 255, 0.5);
+ /* Product override: white inactive labels (design handoff uses rgba white .62) */
+ color: #ffffff;
 }
 
 .sp-sidebar-nav-inactive:hover {
  background: rgba(255, 255, 255, 0.05);
- color: rgba(255, 255, 255, 0.85);
+ color: #ffffff;
 }
 
 .sp-sidebar-nav-active {
- background: rgba(255, 255, 255, 0.07);
- color: #ffffff;
- border-left-color: var(--tenant-primary, #0071ce);
+ /* Product override: magenta active state (design handoff uses blue #0071CE) */
+ background: rgba(204, 39, 176, 0.12);
+ color: #cc27b0;
+ border-left-color: #cc27b0;
 }
 
 .sp-sidebar-nav-badge {
@@ -162,7 +164,7 @@ a {
  font-weight: 500;
  letter-spacing: 0.12em;
  text-transform: uppercase;
- color: rgba(255, 255, 255, 0.28);
+ color: rgba(255, 255, 255, 0.55);
  padding: 0 16px;
  margin-bottom: 4px;
 }
@@ -241,6 +243,27 @@ a {
  }
 }
 
+@keyframes slideIn {
+ from {
+ transform: translateX(40px);
+ opacity: 0;
+ }
+ to {
+ transform: none;
+ opacity: 1;
+ }
+}
+
+@keyframes alertPulse {
+ 0%,
+ 100% {
+ opacity: 1;
+ }
+ 50% {
+ opacity: 0.6;
+ }
+}
+
 @keyframes pf {
  from {
  width: 0;
@@ -275,6 +298,21 @@ a {
 
 .pulse-dot {
  animation: pulse-dot 2.2s ease-in-out infinite;
+}
+
+.ai-dot {
+ animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes fadeUp {
+ from {
+ transform: translateY(8px);
+ opacity: 0;
+ }
+ to {
+ transform: translateY(0);
+ opacity: 1;
+ }
 }
 
 .prog-fill {

@@ -1,7 +1,19 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { Database } from "@/lib/database.types";
+import { DEFAULT_TENANT_ID } from "@/lib/tenant/types";
 
 type PlanStepRow = Database["public"]["Tables"]["plan_steps"]["Row"];
+
+async function resolveTenantIdForUser(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  tenantId?: string | null,
+): Promise<string> {
+  if (tenantId) return tenantId;
+
+  const { data } = await supabase.from("profiles").select("tenant_id").eq("id", userId).maybeSingle();
+  return data?.tenant_id ?? DEFAULT_TENANT_ID;
+}
 
 async function resolveProgramIdForPlan(
   supabase: SupabaseClient<Database>,
@@ -24,8 +36,11 @@ export async function assignPlanToUser(
     assignedBy: string;
     startDate: string;
     targetCompletion: string | null;
+    tenantId?: string | null;
   },
 ) {
+  const tenantId = await resolveTenantIdForUser(supabase, params.userId, params.tenantId);
+
   const { data: assignment, error: assignmentError } = await supabase
     .from("plan_assignments")
     .insert({
@@ -38,6 +53,7 @@ export async function assignPlanToUser(
       status: "not_started",
       progress_percent: 0,
       program_id: await resolveProgramIdForPlan(supabase, params.planId),
+      tenant_id: tenantId,
     })
     .select("id")
     .single();

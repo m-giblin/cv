@@ -137,7 +137,7 @@ export function GrowthDashboard({ data }: { data: DashboardData }) {
  <Link className="border border-sp-blue/20 px-4 py-2 text-sm font-semibold text-sp-blue hover:bg-sp-blue-soft/30" href="/prep">
  Deal prep brief
  </Link>
- <Link className="border border-sp-blue/20 px-4 py-2 text-sm font-semibold text-sp-blue hover:bg-sp-blue-soft/30" href="/development">
+ <Link className="border border-sp-blue/20 px-4 py-2 text-sm font-semibold text-sp-blue hover:bg-sp-blue-soft/30" href="/growth-plan">
  Development goals
  </Link>
  </div>

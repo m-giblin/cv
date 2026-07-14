@@ -18,6 +18,7 @@ import {
   useCoachingSignoffState,
 } from "@/components/manager/coaching-signoff-form";
 import { SimulationCoachingReviewPanel } from "@/components/manager/simulation-coaching-review-panel";
+import { ChallengeSubmissionReviewPanel } from "@/components/manager/challenge-submission-review-panel";
 import { ManagerOutlineBtn } from "@/components/manager/manager-ui-primitives";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -216,7 +217,10 @@ function briefPayloadForItem(item: InboxItem) {
  item.inboxType === "plan_step" ? item.isManagerGate : item.inboxType === "cert",
  context:
  item.inboxType === "submission"
- ? `Challenge submission for ${item.personName}`
+ ? [
+ `Challenge submission for ${item.personName}`,
+ item.reflectionText ? `SE reflection: ${item.reflectionText}` : null,
+ ].filter(Boolean).join("\n")
  : item.inboxType === "plan_step"
  ? `Plan step: ${item.stepType}${item.mentorEndorsed ? " (mentor endorsed)" : ""}`
  : undefined,
@@ -286,6 +290,7 @@ function itemPreview(item: InboxItem) {
  }
  if (item.inboxType === "mentor" && item.seNotes) return item.seNotes;
  if (item.inboxType === "pitch" && item.reflectionText) return item.reflectionText;
+ if (item.inboxType === "submission" && item.reflectionText) return item.reflectionText;
  if (item.inboxType === "deal_prep") return `Deal prep shared by ${item.personName}`;
  return itemTitle(item);
 }
@@ -492,18 +497,19 @@ export function ManagerActionInbox({
 
  return (
  <div>
- <div className="mb-[16px] flex flex-wrap gap-[8px]">
+ <div className="mb-4 flex gap-0 border-b border-[#E2DFD9]">
  {SPEC_FILTERS.map((key) => {
  if (key !== "all" && counts[key] === 0) return null;
+ const active = filter === key;
  return (
  <button
- className="font-mono text-[8px] uppercase tracking-[0.08em] px-[16px] py-[7px] text-[12px] font-semibold transition"
+ className="mb-[-1px] border border-b-0 px-[14px] py-[7px] text-[11px] font-medium transition"
  key={key}
  onClick={() => setFilter(key)}
  style={
- filter === key
- ? { background: "#00143a", color: "white", border: "1.5px solid #00143a" }
- : { background: "white", color: "#6B6860", border: "1.5px solid #E2DFD9" }
+ active
+ ? { background: "#fff", color: "#0D0E12", borderColor: "#E2DFD9" }
+ : { background: "#F9F8F6", color: "#6B6860", borderColor: "transparent" }
  }
  type="button"
  >
@@ -616,6 +622,21 @@ export function ManagerActionInbox({
  onDraft={(text) => {
  signoff.setNextAction(text);
  }}
+ />
+ ) : null}
+
+ {isOpen && item.inboxType === "submission" ? (
+ <ChallengeSubmissionReviewPanel
+ challengeTitle={item.title}
+ onAppendMoment={(moment) => {
+ const current = signoff.value.nextAction;
+ signoff.setNextAction(current.trim() ? `${current.trim()}\n\n• ${moment}` : moment);
+ }}
+ onDraft={(text) => {
+ signoff.setNextAction(text);
+ }}
+ onSuggestedGrade={(suggested) => setGrade(String(suggested))}
+ submissionId={item.id}
  />
  ) : null}
 

@@ -87,8 +87,7 @@ export function MfaVerifyForm() {
  }
 
  toast.success("MFA verified.");
- router.push(AUTH_ROUTES.dashboard);
- router.refresh();
+ window.location.assign(AUTH_ROUTES.dashboard);
  }
 
  if (isLoading) {

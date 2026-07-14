@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { dashboardScopeForContext, resolveTenantContext } from "@/lib/auth/tenant-context";
+import { DEFAULT_TENANT_ID } from "@/lib/tenant/types";
 import { fetchTenantDashboard } from "@/lib/data/fetch-tenant-dashboard";
 import { getAuthenticatedUser } from "@/lib/data/get-authenticated-user";
 import { getDemoDashboardData } from "@/lib/demo-data";
@@ -124,7 +125,7 @@ export function parseSessionData(
 
 async function fetchSupabaseDashboard(): Promise<DashboardData | null> {
   const context = await resolveTenantContext();
-  if (!context?.tenantId) {
+  if (!context) {
     return null;
   }
 
@@ -133,7 +134,9 @@ async function fetchSupabaseDashboard(): Promise<DashboardData | null> {
     return null;
   }
 
-  return fetchTenantDashboard(context.tenantId, context.userId, scope, context.role);
+  const tenantId = context.tenantId ?? DEFAULT_TENANT_ID;
+
+  return fetchTenantDashboard(tenantId, context.userId, scope, context.role);
 }
 
 export const getDashboardData = cache(async (preferredUserId?: string): Promise<{

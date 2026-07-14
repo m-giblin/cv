@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', system-ui, sans-serif; background: #F5F4F0; color: #0D0E12; }
+a, a:hover { color: #0071CE; text-decoration: none; }
+::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #D4D1CB; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+@keyframes slideUp { from{transform:translateY(20px);opacity:0} to{transform:translateY(0);opacity:1} }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+.btn { font-family: 'DM Sans', sans-serif; cursor: pointer; font-weight: 600; letter-spacing: .01em; border: none; transition: opacity .15s; }
+.btn:hover { opacity: .85; }
+.card { background: #fff; border: 1px solid #E2DFD9; }
+.mono { font-family: 'DM Mono', monospace; }
+.ai-dot { animation: pulse 2s infinite; }
+.tr:hover { background: #FAFAF8 !important; }
+.writer-opt:hover { background: #F0F7FF !important; cursor: pointer; }
+</style>
+</helmet>
+
+<div style="display:flex;flex-direction:column;height:100vh;overflow:hidden">
+
+  <!-- Topbar -->
+  <div style="height:44px;background:#fff;border-bottom:1px solid #E2DFD9;padding:0 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+    <div style="display:flex;align-items:center;gap:12px">
+      <span class="mono" style="font-size:10.5px;color:#3D3C38">Admin › Content Portal</span>
+      <div style="display:flex;align-items:center;gap:5px;background:rgba(204,39,176,.06);border:1px solid rgba(204,39,176,.15);padding:3px 9px">
+        <div class="ai-dot" style="width:5px;height:5px;border-radius:50%;background:#CC27B0;flex-shrink:0"></div>
+        <span class="mono" style="font-size:7.5px;color:#CC27B0;letter-spacing:.1em">AI TASK ENGINE</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="btn" style="font-size:9.5px;background:#F5F4F0;color:#3D3C38;border:1px solid #D4D1CB;padding:5px 12px">Export queue</button>
+      <button onClick="{{ openNewTaskFn }}" class="btn" style="font-size:9.5px;background:#0071CE;color:white;padding:5px 12px">+ New content task</button>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div style="flex:1;display:flex;overflow:hidden">
+
+    <!-- Left panel -->
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden">
+
+      <!-- Summary bar -->
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:#E2DFD9;border-bottom:1px solid #E2DFD9;flex-shrink:0">
+        <sc-for list="{{ summaryCards }}" as="sc">
+          <div style="background:#fff;padding:11px 16px">
+            <div class="mono" style="font-size:7.5px;color:#A09D98;letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px">{{ sc.label }}</div>
+            <div style="font-size:20px;font-weight:700;color:{{ sc.color }}">{{ sc.value }}</div>
+            <div class="mono" style="font-size:7.5px;color:#6B6860;margin-top:1px">{{ sc.sub }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <!-- Filter tabs -->
+      <div style="display:flex;gap:0;border-bottom:1px solid #E2DFD9;background:#fff;flex-shrink:0">
+        <sc-for list="{{ filterTabs }}" as="tab">
+          <button onClick="{{ tab.fn }}" class="btn" style="padding:9px 16px;font-size:10px;background:transparent;color:{{ tab.color }};border:none;border-bottom:{{ tab.active }};font-weight:{{ tab.weight }}">{{ tab.label }}</button>
+        </sc-for>
+      </div>
+
+      <!-- Task table -->
+      <div style="flex:1;overflow-y:auto;padding:16px 20px 20px 24px">
+        <div class="card">
+          <!-- Header -->
+          <div style="display:grid;grid-template-columns:28px 1fr 88px 76px 100px 110px 90px;padding:8px 14px;border-bottom:1px solid #F0EFEB;background:#FAFAF8">
+            <div></div>
+            <div class="mono" style="font-size:7px;color:#A09D98;letter-spacing:.1em">TASK</div>
+            <div class="mono" style="font-size:7px;color:#A09D98;letter-spacing:.1em">TYPE</div>
+            <div class="mono" style="font-size:7px;color:#A09D98;letter-spacing:.1em">PRIORITY</div>
+            <div class="mono" style="font-size:7px;color:#A09D98;letter-spacing:.1em">ASSIGNED TO</div>
+            <div class="mono" style="font-size:7px;color:#A09D98;letter-spacing:.1em">STATUS</div>
+            <div class="mono" style="font-size:7px;color:#A09D98;letter-spacing:.1em">DUE</div>
+          </div>
+          <sc-for list="{{ tasks }}" as="t">
+            <div class="tr" onClick="{{ t.selectFn }}" style="display:grid;grid-template-columns:28px 1fr 88px 76px 100px 110px 90px;padding:10px 14px;border-bottom:1px solid #F5F4F0;cursor:pointer;background:{{ t.rowBg }};transition:background .1s">
+              <div style="display:flex;align-items:center;padding-top:2px">
+                <sc-if value="{{ t.isAI }}" hint-placeholder-val="{{ false }}">
+                  <div class="ai-dot" style="width:6px;height:6px;border-radius:50%;background:#CC27B0"></div>
+                </sc-if>
+              </div>
+              <div>
+                <div style="font-size:11.5px;font-weight:600;color:#0D0E12;margin-bottom:2px;line-height:1.3">{{ t.title }}</div>
+                <div class="mono" style="font-size:7.5px;color:#A09D98">{{ t.meta }}</div>
+              </div>
+              <div style="display:flex;align-items:center"><span class="mono" style="font-size:7.5px;padding:2px 7px;background:{{ t.typeBg }};color:{{ t.typeColor }}">{{ t.type }}</span></div>
+              <div style="display:flex;align-items:center"><span class="mono" style="font-size:7.5px;padding:2px 7px;background:{{ t.priBg }};color:{{ t.priColor }}">{{ t.priority }}</span></div>
+              <div style="display:flex;align-items:center;font-size:10px;color:{{ t.assigneeColor }}">{{ t.assigneeLabel }}</div>
+              <div style="display:flex;align-items:center"><span class="mono" style="font-size:7.5px;padding:2px 7px;background:{{ t.statusBg }};color:{{ t.statusColor }};white-space:nowrap">{{ t.status }}</span></div>
+              <div class="mono" style="display:flex;align-items:center;font-size:8px;color:{{ t.dueColor }}">{{ t.due }}</div>
+            </div>
+          </sc-for>
+          <sc-if value="{{ noTasks }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:32px;text-align:center;color:#A09D98;font-size:12px">No tasks match this filter</div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: detail panel -->
+    <div style="width:420px;flex-shrink:0;border-left:1px solid #E2DFD9;display:flex;flex-direction:column;background:#fff;overflow:hidden">
+
+      <!-- Detail header -->
+      <div style="background:#00143A;padding:14px 16px;flex-shrink:0;position:relative">
+        <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#CC27B0,#0071CE)"></div>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap">
+              <sc-if value="{{ sel.isAI }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;align-items:center;gap:4px;background:rgba(204,39,176,.3);padding:2px 7px">
+                  <div class="ai-dot" style="width:4px;height:4px;border-radius:50%;background:#E87FD4;flex-shrink:0"></div>
+                  <span class="mono" style="font-size:7px;color:#E87FD4;letter-spacing:.1em">AI-GENERATED</span>
+                </div>
+              </sc-if>
+              <span class="mono" style="font-size:7px;color:rgba(255,255,255,.3);letter-spacing:.08em">{{ sel.type }} · {{ sel.priority }} PRIORITY</span>
+            </div>
+            <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:white;line-height:1.25">{{ sel.title }}</div>
+            <div class="mono" style="font-size:7.5px;color:rgba(255,255,255,.35);margin-top:3px">{{ sel.requestedBy }} · For {{ sel.forSE }}</div>
+          </div>
+          <span class="mono" style="font-size:7.5px;padding:3px 8px;background:{{ sel.statusBg }};color:{{ sel.statusColor }};flex-shrink:0;white-space:nowrap">{{ sel.status }}</span>
+        </div>
+        <!-- Quick actions row -->
+        <div style="display:flex;gap:6px;margin-top:10px">
+          <button onClick="{{ sel.assignFn }}" class="btn" style="flex:1;font-size:8.5px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);padding:5px 8px">{{ sel.assignLabel }}</button>
+          <button onClick="{{ sel.startFn }}" class="btn" style="flex:1;font-size:8.5px;background:rgba(0,113,206,.3);border:1px solid rgba(0,113,206,.4);color:white;padding:5px 8px">{{ sel.startLabel }}</button>
+          <button onClick="{{ sel.publishFn }}" class="btn" style="flex:1;font-size:8.5px;background:rgba(10,110,69,.3);border:1px solid rgba(10,110,69,.4);color:white;padding:5px 8px">Publish ✓</button>
+        </div>
+      </div>
+
+      <!-- Detail tabs -->
+      <div style="display:flex;border-bottom:1px solid #E2DFD9;background:#fff;flex-shrink:0">
+        <sc-for list="{{ detailTabs }}" as="dt">
+          <button onClick="{{ dt.fn }}" class="btn" style="flex:1;padding:8px 4px;font-size:9.5px;background:transparent;color:{{ dt.color }};border:none;border-bottom:{{ dt.active }};font-weight:{{ dt.weight }}">{{ dt.label }}</button>
+        </sc-for>
+      </div>
+
+      <!-- Detail body -->
+      <div style="flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:11px">
+
+        <!-- BRIEF TAB -->
+        <sc-if value="{{ briefTab }}" hint-placeholder-val="{{ true }}">
+
+          <sc-if value="{{ sel.isAI }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:9px 11px;background:rgba(204,39,176,.04);border:1px solid rgba(204,39,176,.15);display:flex;gap:6px">
+              <div class="ai-dot" style="width:5px;height:5px;border-radius:50%;background:#CC27B0;flex-shrink:0;margin-top:3px"></div>
+              <div style="font-size:10px;color:#6B6860;line-height:1.5">{{ sel.aiNote }}</div>
+            </div>
+          </sc-if>
+
+          <div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+              <div class="mono" style="font-size:7.5px;color:#A09D98;letter-spacing:.1em;text-transform:uppercase">Scenario context</div>
+              <button onClick="{{ toggleEditFn }}" class="btn" style="font-size:8px;background:{{ editBg }};color:{{ editColor }};border:1px solid {{ editBorder }};padding:2px 8px">{{ editLabel }}</button>
+            </div>
+            <sc-if value="{{ isEditing }}" hint-placeholder-val="{{ false }}">
+              <textarea id="ctx-edit" style="width:100%;height:100px;border:1px solid #0071CE;padding:9px 11px;font-family:'DM Sans',sans-serif;font-size:11px;color:#3D3C38;resize:vertical;outline:none;line-height:1.6">{{ sel.context }}</textarea>
+            </sc-if>
+            <sc-if value="{{ notEditing }}" hint-placeholder-val="{{ true }}">
+              <div style="font-size:11px;color:#3D3C38;line-height:1.6;padding:9px 11px;background:#FAFAF8;border:1px solid #EEECE8">{{ sel.context }}</div>
+            </sc-if>
+          </div>
+
+          <div>
+            <div class="mono" style="font-size:7.5px;color:#A09D98;letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px">Success criteria</div>
+            <div style="display:flex;flex-direction:column;gap:3px">
+              <sc-for list="{{ sel.criteria }}" as="crit">
+                <div style="display:flex;gap:7px;font-size:10.5px;color:#3D3C38;padding:6px 10px;background:#FAFAF8;border:1px solid #EEECE8;align-items:flex-start">
+                  <span style="color:#0A6E45;font-weight:700;flex-shrink:0;margin-top:1px">✓</span><span>{{ crit }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div>
+              <div class="mono" style="font-size:7.5px;color:#A09D98;letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px">Competencies</div>
+              <div style="display:flex;flex-wrap:wrap;gap:4px">
+                <sc-for list="{{ sel.competencies }}" as="comp">
+                  <span style="font-size:9px;padding:2px 8px;background:#F0F7FF;color:#0071CE;border:1px solid rgba(0,113,206,.12)">{{ comp }}</span>
+                </sc-for>
+              </div>
+            </div>
+            <div>
+              <div class="mono" style="font-size:7.5px;color:#A09D98;letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px">Details</div>
+              <div style="font-size:10px;color:#3D3C38;display:flex;flex-direction:column;gap:3px">
+                <div>⏱ {{ sel.estTime }} estimated</div>
+                <div>🎯 {{ sel.difficulty }}</div>
+                <div>👤 {{ sel.roleTarget }}</div>
+              </div>
+            </div>
+          </div>
+
+        </sc-if>
+
+        <!-- TIMELINE TAB -->
+        <sc-if value="{{ timelineTab }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <sc-for list="{{ sel.timeline }}" as="tl">
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:{{ tl.bg }};border:1px solid {{ tl.border }}">
+                <div onClick="{{ tl.toggleFn }}" style="width:18px;height:18px;border-radius:50%;background:{{ tl.dotBg }};border:1px solid {{ tl.dotBorder }};display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer">
+                  <sc-if value="{{ tl.done }}" hint-placeholder-val="{{ false }}"><span style="font-size:8px;color:white">✓</span></sc-if>
+                </div>
+                <span style="flex:1;font-size:10.5px;color:{{ tl.textColor }};line-height:1.3">{{ tl.label }}</span>
+                <span class="mono" style="font-size:8px;color:#A09D98;white-space:nowrap">{{ tl.date }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="padding:10px;background:#F5FDF9;border:1px solid rgba(10,110,69,.12);font-size:10px;color:#0A6E45">
+            ✓ Click any step to mark it done. Progress auto-saves and updates the task status.
+          </div>
+        </sc-if>
+
+        <!-- ACTIVITY TAB -->
+        <sc-if value="{{ activityTab }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <sc-for list="{{ sel.activity }}" as="act">
+              <div style="display:flex;gap:8px;padding:8px 10px;background:#FAFAF8;border:1px solid #EEECE8">
+                <div style="width:28px;height:28px;border-radius:50%;background:{{ act.avatarBg }};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:white;flex-shrink:0">{{ act.initials }}</div>
+                <div style="flex:1">
+                  <div style="font-size:10.5px;color:#0D0E12;line-height:1.4">{{ act.note }}</div>
+                  <div class="mono" style="font-size:7.5px;color:#A09D98;margin-top:2px">{{ act.time }}</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <!-- Add comment -->
+          <div style="border:1px solid #E2DFD9;padding:10px">
+            <div class="mono" style="font-size:7.5px;color:#A09D98;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">Add note</div>
+            <textarea id="activity-note" placeholder="Leave a note for the team…" style="width:100%;height:64px;border:1px solid #D4D1CB;padding:7px 9px;font-family:'DM Sans',sans-serif;font-size:11px;color:#3D3C38;resize:none;outline:none;line-height:1.5;display:block"></textarea>
+            <button onClick="{{ addNoteFn }}" class="btn" style="margin-top:6px;font-size:9px;background:#0071CE;color:white;padding:5px 12px">Post note</button>
+          </div>
+        </sc-if>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Assign writer modal -->
+  <sc-if value="{{ assignModal }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:800;display:flex;align-items:center;justify-content:center" onClick="{{ closeAssignFn }}">
+  <div style="background:#fff;width:400px;box-shadow:0 24px 60px rgba(0,0,0,.3);animation:slideUp .2s ease" onClick="{{ stopPropFn }}">
+    <div style="background:#00143A;padding:14px 18px;display:flex;align-items:center;justify-content:space-between">
+      <span class="mono" style="font-size:9px;color:rgba(255,255,255,.6);letter-spacing:.1em;text-transform:uppercase">Assign to writer</span>
+      <button onClick="{{ closeAssignFn }}" class="btn" style="background:none;border:none;color:rgba(255,255,255,.5);font-size:18px;width:24px;height:24px;display:flex;align-items:center;justify-content:center">×</button>
+    </div>
+    <div style="padding:14px 18px;display:flex;flex-direction:column;gap:6px">
+      <div class="mono" style="font-size:7.5px;color:#A09D98;letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px">Content team</div>
+      <sc-for list="{{ writers }}" as="w">
+        <div class="writer-opt" onClick="{{ w.assignFn }}" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid #E2DFD9;background:#fff;transition:background .1s">
+          <div style="width:32px;height:32px;border-radius:50%;background:{{ w.avatarBg }};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:white;flex-shrink:0">{{ w.initials }}</div>
+          <div style="flex:1">
+            <div style="font-size:12px;font-weight:600;color:#0D0E12">{{ w.name }}</div>
+            <div class="mono" style="font-size:7.5px;color:#A09D98">{{ w.role }} · {{ w.load }}</div>
+          </div>
+          <span class="mono" style="font-size:7.5px;padding:2px 7px;background:{{ w.availBg }};color:{{ w.availColor }}">{{ w.avail }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  </div>
+  </sc-if>
+
+  <!-- New task modal -->
+  <sc-if value="{{ newTaskModal }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:800;display:flex;align-items:center;justify-content:center;padding:20px" onClick="{{ closeNewTaskFn }}">
+  <div style="background:#fff;width:520px;box-shadow:0 24px 60px rgba(0,0,0,.3);animation:slideUp .2s ease" onClick="{{ stopPropFn }}">
+    <div style="background:#00143A;padding:14px 18px;display:flex;align-items:center;justify-content:space-between">
+      <span class="mono" style="font-size:9px;color:rgba(255,255,255,.6);letter-spacing:.1em;text-transform:uppercase">New content task</span>
+      <button onClick="{{ closeNewTaskFn }}" class="btn" style="background:none;border:none;color:rgba(255,255,255,.5);font-size:18px;width:24px;height:24px;display:flex;align-items:center;justify-content:center">×</button>
+    </div>
+    <div style="padding:18px;display:flex;flex-direction:column;gap:12px">
+      <div>
+        <div class="mono" style="font-size:7.5px;color:#A09D98;letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px">Task title</div>
+        <input id="new-title" placeholder="e.g. SailPoint IIQ Advanced Integration Sim" style="width:100%;border:1px solid #D4D1CB;padding:8px 10px;font-family:'DM Sans',sans-serif;font-size:12px;color:#0D0E12;outline:none;display:block">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div>
+          <div class="mono" style="font-size:7.5px;color:#A09D98;letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px">Type</div>
+          <select id="new-type" style="width:100%;border:1px solid #D4D1CB;padding:8px 10px;font-family:'DM Sans',sans-serif;font-size:11px;color:#0D0E12;outline:none;background:#fff">
+            <option>Simulation</option><option>Module</option><option>Challenge</option><option>Certification prep</option>
+          </select>
+        </div>
+        <div>
+          <div class="mono" style="font-size:7.5px;color:#A09D98;letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px">Priority</div>
+          <select id="new-pri" style="width:100%;border:1px solid #D4D1CB;padding:8px 10px;font-family:'DM Sans',sans-serif;font-size:11px;color:#0D0E12;outline:none;background:#fff">
+            <option>High</option><option>Medium</option><option>Low</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <div class="mono" style="font-size:7.5px;color:#A09D98;letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px">Context / brief</div>
+        <textarea id="new-context" placeholder="Describe the scenario, audience, and learning objectives…" style="width:100%;height:80px;border:1px solid #D4D1CB;padding:8px 10px;font-family:'DM Sans',sans-serif;font-size:11px;color:#3D3C38;resize:none;outline:none;line-height:1.5;display:block"></textarea>
+      </div>
+      <div>
+        <div class="mono" style="font-size:7.5px;color:#A09D98;letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px">Due date</div>
+        <input id="new-due" type="date" style="width:100%;border:1px solid #D4D1CB;padding:8px 10px;font-family:'DM Mono',sans-serif;font-size:11px;color:#0D0E12;outline:none;display:block">
+      </div>
+      <div style="display:flex;gap:8px;padding-top:4px">
+        <button onClick="{{ closeNewTaskFn }}" class="btn" style="flex:1;font-size:10px;background:#F5F4F0;color:#3D3C38;border:1px solid #D4D1CB;padding:8px">Cancel</button>
+        <button onClick="{{ submitNewTaskFn }}" class="btn" style="flex:2;font-size:10px;background:#0071CE;color:white;padding:8px">Create task</button>
+      </div>
+    </div>
+  </div>
+  </div>
+  </sc-if>
+
+  <!-- Toast -->
+  <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:{{ toastColor }};color:white;font-size:12px;font-weight:500;padding:10px 20px;z-index:1000;box-shadow:0 8px 24px rgba(0,0,0,.25);pointer-events:none;white-space:nowrap">{{ toastMsg }}</div>
+  </sc-if>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    selectedId: 'ai-1',
+    filter: 'all',
+    detailTab: 'brief',
+    isEditing: false,
+    assignModal: false,
+    newTaskModal: false,
+    toast: null,
+    // Per-task mutable state
+    taskStatus: {},      // id -> status string
+    taskAssignee: {},    // id -> writer name
+    taskActivity: {},    // id -> [{initials,avatarBg,note,time}]
+    taskTimeline: {},    // id -> [{...tl, done: bool}]
+  };
+
+  showToast(msg, color = '#0071CE') {
+    this.setState({ toast: { msg, color } });
+    setTimeout(() => this.setState({ toast: null }), 3000);
+  }
+
+  tl(label, date, done) {
+    return { label, date, done };
+  }
+
+  tlStyle(done) {
+    return {
+      dotBg: done ? '#0A6E45' : '#fff',
+      dotBorder: done ? '#0A6E45' : '#D4D1CB',
+      textColor: done ? '#3D3C38' : '#6B6860',
+      bg: done ? '#F5FDF9' : '#FAFAF8',
+      border: done ? 'rgba(10,110,69,.12)' : '#EEECE8',
+    };
+  }
+
+  get baseTasks() {
+    return [
+      {
+        id: 'ai-1', isAI: true,
+        title: 'SE Multi-Stakeholder Discovery: Healthcare IT + CISO + HR',
+        meta: 'From Dev Plans · Demo SE · Discovery score 45',
+        type: 'Simulation', typeBg: 'rgba(0,113,206,.08)', typeColor: '#0071CE',
+        priority: 'High', priBg: 'rgba(184,49,40,.08)', priColor: '#B83128',
+        requestedBy: 'Demo Manager', forSE: 'Demo SE',
+        due: 'Jul 25', dueColor: '#D4810A',
+        aiNote: 'AI detected a Discovery gap (score 45) for Demo SE with no multi-stakeholder scenario in the library. Task auto-created from the manager\'s content request in Development Plans. All fields were pre-filled by AI — review before assigning.',
+        context: 'A mid-market healthcare company (2,800 employees) is evaluating IGA vendors. The team includes the CISO, IT Director, and HR VP — three stakeholders with competing priorities. The SE must run a structured discovery call surfacing all three agendas without losing control.',
+        criteria: ['SE identifies all stakeholder priorities within 12 minutes', 'SE pivots pitch based on mid-call CISO objection', 'Score ≥72 across 5 competency dimensions', 'Manager debrief completed within 48 hours'],
+        competencies: ['Discovery', 'Multi-stakeholder', 'Active listening', 'Healthcare'],
+        estTime: '45 min', difficulty: 'Advanced', roleTarget: 'Basic SE',
+        baseTimeline: [this.tl('AI task created + auto-filled','Jul 14',true), this.tl('Assign to writer','Jul 15',false), this.tl('Draft scenario + rubric','Jul 18',false), this.tl('Manager review','Jul 21',false), this.tl('Publish to library','Jul 25',false), this.tl('Auto-assign to Demo SE','Jul 25',false)],
+        baseActivity: [{initials:'AI',avatarBg:'#CC27B0',note:'Task auto-created from Demo Manager\'s content request in Development Plans.',time:'Just now'},{initials:'AI',avatarBg:'#CC27B0',note:'Pre-filled scenario context, criteria, and competency tags from gap analysis.',time:'Just now'}],
+      },
+      {
+        id: 'ai-2', isAI: true,
+        title: 'SailPoint vs. Saviynt Competitive Bakeoff: IGA Hybrid Cloud',
+        meta: 'From Dev Plans · Gray Hayes · Competitive score 52',
+        type: 'Simulation', typeBg: 'rgba(0,113,206,.08)', typeColor: '#0071CE',
+        priority: 'High', priBg: 'rgba(184,49,40,.08)', priColor: '#B83128',
+        requestedBy: 'Demo Manager', forSE: 'Gray Hayes',
+        due: 'Jul 28', dueColor: '#D4810A',
+        aiNote: 'AI detected a Competitive Positioning gap (score 52) for Gray Hayes. No bakeoff scenario exists in the library. AI sourced competitive context from the product knowledge base — Saviynt differentiation points and known objections.',
+        context: 'A Fortune 500 financial services firm has shortlisted SailPoint and Saviynt for a hybrid cloud IGA deployment. The SE presents to a joint IT + Security panel who already saw the Saviynt demo. Task: counter three specific Saviynt claims with live product proof points.',
+        criteria: ['SE addresses Saviynt UI advantage claim with live counter-demo', 'SE quantifies SailPoint\'s connector ecosystem advantage', 'SE handles "SailPoint is more expensive" with TCO data', 'Score ≥75 on competitive rubric'],
+        competencies: ['Competitive positioning', 'Demo execution', 'Objection handling', 'FinServ'],
+        estTime: '40 min', difficulty: 'Advanced', roleTarget: 'Senior SE',
+        baseTimeline: [this.tl('AI task created','Jul 14',true), this.tl('Assign to competitive content owner','Jul 15',false), this.tl('Draft scenario + rubric','Jul 20',false), this.tl('Review with Sales Enablement','Jul 24',false), this.tl('Publish + notify manager','Jul 28',false)],
+        baseActivity: [{initials:'AI',avatarBg:'#CC27B0',note:'Auto-created from Demo Manager\'s request for Gray Hayes development plan.',time:'Just now'},{initials:'AI',avatarBg:'#CC27B0',note:'Competitive context sourced from product knowledge base.',time:'Just now'}],
+      },
+      {
+        id: 'ai-3', isAI: true,
+        title: 'SE as Deal Driver: Solo Pipeline Ownership — Enterprise Cycle',
+        meta: 'From Dev Plans · Harper Ivan · Advisory track',
+        type: 'Challenge', typeBg: 'rgba(90,45,130,.08)', typeColor: '#5a2d82',
+        priority: 'Medium', priBg: 'rgba(212,129,10,.08)', priColor: '#D4810A',
+        requestedBy: 'Demo Manager', forSE: 'Harper Ivan',
+        due: 'Aug 5', dueColor: '#6B6860',
+        aiNote: 'Harper Ivan is on an Advisory SE growth track. No solo pipeline ownership challenge exists for Senior SEs. AI created this stretch goal scenario where the SE acts as deal driver without AE support.',
+        context: 'A strategic enterprise account (8,000 seats) needs a POC delivered in 10 business days. The SE owns scoping, environment setup, scenario design, and the executive readout — no AE support during the technical phase.',
+        criteria: ['SE scopes POC requirements in a 30-min discovery call', 'SE sets up environment independently within 3 days', 'Executive readout scores ≥80 on communication rubric', 'Deal progresses to next stage in scenario'],
+        competencies: ['Technical depth', 'Project management', 'Executive communication', 'POC delivery'],
+        estTime: 'Multi-day', difficulty: 'Expert', roleTarget: 'Senior SE',
+        baseTimeline: [this.tl('AI task created','Jul 14',true), this.tl('Assign to Senior SE writer','Jul 17',false), this.tl('Draft challenge brief + rubric','Jul 25',false), this.tl('Pilot with one SE','Aug 1',false), this.tl('Publish + notify manager','Aug 5',false)],
+        baseActivity: [{initials:'AI',avatarBg:'#CC27B0',note:'Auto-created from Demo Manager\'s request for Harper Ivan advisory track.',time:'Just now'}],
+      },
+      {
+        id: 'm-1', isAI: false,
+        title: 'SailPoint IIQ Advanced Connector Configuration',
+        meta: 'Manual request · Technical depth curriculum',
+        type: 'Module', typeBg: 'rgba(10,110,69,.08)', typeColor: '#0A6E45',
+        priority: 'Medium', priBg: 'rgba(212,129,10,.08)', priColor: '#D4810A',
+        requestedBy: 'Sarah K.', forSE: 'All SEs',
+        due: 'Jul 30', dueColor: '#6B6860',
+        aiNote: '',
+        context: 'Deep-dive module on SailPoint IIQ connector configuration for complex enterprise environments including SAP, Workday, and custom JDBC connectors.',
+        criteria: ['Complete connector setup walkthrough', 'Include troubleshooting scenarios', 'Assessment score ≥70 to pass'],
+        competencies: ['Technical depth', 'IIQ architecture', 'Connector framework'],
+        estTime: '60 min', difficulty: 'Intermediate', roleTarget: 'All SEs',
+        baseTimeline: [this.tl('Task created','Jul 8',true), this.tl('Outline approved','Jul 10',true), this.tl('Draft content','Jul 25',false), this.tl('Review + publish','Jul 30',false)],
+        baseActivity: [{initials:'SK',avatarBg:'#0071CE',note:'Outline approved by SE Practice lead.',time:'Jul 10'},{initials:'SK',avatarBg:'#0071CE',note:'Task created manually.',time:'Jul 8'}],
+      },
+    ];
+  }
+
+  renderVals() {
+    const { selectedId, filter, detailTab, isEditing, assignModal, newTaskModal, toast, taskStatus, taskAssignee, taskActivity, taskTimeline } = this.state;
+
+    const writers = [
+      { name: 'Alex Rivera', initials: 'AR', role: 'Senior Content Writer', load: '2 active tasks', avail: 'AVAILABLE', availBg: 'rgba(10,110,69,.08)', availColor: '#0A6E45', avatarBg: 'linear-gradient(135deg,#1a5c8a,#0071CE)', assignFn: () => { this.doAssign('Alex Rivera'); } },
+      { name: 'Jordan Kim', initials: 'JK', role: 'Sim Designer', load: '4 active tasks', avail: 'BUSY', availBg: 'rgba(212,129,10,.08)', availColor: '#D4810A', avatarBg: 'linear-gradient(135deg,#5a2d82,#9b44c8)', assignFn: () => { this.doAssign('Jordan Kim'); } },
+      { name: 'Morgan Chen', initials: 'MC', role: 'Content Writer', load: '1 active task', avail: 'AVAILABLE', availBg: 'rgba(10,110,69,.08)', availColor: '#0A6E45', avatarBg: 'linear-gradient(135deg,#0D6B4F,#0A6E45)', assignFn: () => { this.doAssign('Morgan Chen'); } },
+      { name: 'Taylor Patel', initials: 'TP', role: 'Competitive Content', load: '3 active tasks', avail: 'AVAILABLE', availBg: 'rgba(10,110,69,.08)', availColor: '#0A6E45', avatarBg: 'linear-gradient(135deg,#B83128,#D4810A)', assignFn: () => { this.doAssign('Taylor Patel'); } },
+    ];
+
+    const statusLabel = (id, base) => {
+      const s = taskStatus[id];
+      if (s) return s;
+      if (taskAssignee[id]) return 'ASSIGNED';
+      return base;
+    };
+
+    const statusStyle = (label) => {
+      if (label === 'NEW') return { bg: 'rgba(204,39,176,.08)', color: '#CC27B0' };
+      if (label === 'ASSIGNED') return { bg: 'rgba(212,129,10,.08)', color: '#D4810A' };
+      if (label === 'IN PROGRESS') return { bg: 'rgba(0,113,206,.08)', color: '#0071CE' };
+      if (label === 'COMPLETE') return { bg: 'rgba(10,110,69,.08)', color: '#0A6E45' };
+      return { bg: '#F5F4F0', color: '#6B6860' };
+    };
+
+    const baseStatuses = { 'ai-1': 'NEW', 'ai-2': 'NEW', 'ai-3': 'NEW', 'm-1': 'IN PROGRESS' };
+
+    const allTasks = this.baseTasks.map(t => {
+      const sl = statusLabel(t.id, baseStatuses[t.id] || 'NEW');
+      const ss = statusStyle(sl);
+      const assignee = taskAssignee[t.id];
+      return {
+        ...t,
+        status: sl, statusBg: ss.bg, statusColor: ss.color,
+        assigneeLabel: assignee || '—',
+        assigneeColor: assignee ? '#0D0E12' : '#A09D98',
+        rowBg: t.id === selectedId ? '#F0F7FF' : '#fff',
+        selectFn: () => this.setState({ selectedId: t.id, detailTab: 'brief', isEditing: false }),
+      };
+    });
+
+    const filterMap = { all: allTasks, ai: allTasks.filter(t => t.isAI), new: allTasks.filter(t => t.status === 'NEW'), progress: allTasks.filter(t => t.status === 'IN PROGRESS' || t.status === 'ASSIGNED'), complete: allTasks.filter(t => t.status === 'COMPLETE') };
+    const tasks = filterMap[filter] || allTasks;
+    const noTasks = tasks.length === 0;
+
+    const counts = { ai: allTasks.filter(t => t.isAI).length, new: allTasks.filter(t => t.status === 'NEW').length, progress: allTasks.filter(t => t.status === 'IN PROGRESS' || t.status === 'ASSIGNED').length, complete: allTasks.filter(t => t.status === 'COMPLETE').length };
+
+    const summaryCards = [
+      { label: 'Open tasks', value: String(allTasks.filter(t => t.status !== 'COMPLETE').length), sub: counts.ai + ' AI-generated', color: '#0D0E12' },
+      { label: 'AI-generated', value: String(counts.ai), sub: 'Pending review', color: '#CC27B0' },
+      { label: 'In progress', value: String(counts.progress), sub: 'Being built', color: '#0071CE' },
+      { label: 'Due this week', value: '4', sub: '1 overdue', color: '#D4810A' },
+      { label: 'Published this month', value: '11', sub: 'Avg 3.2 days', color: '#0A6E45' },
+    ];
+
+    const filterTabs = [
+      { label: 'All (' + allTasks.length + ')', fn: () => this.setState({ filter: 'all' }), active: filter === 'all' ? '2px solid #0071CE' : '2px solid transparent', color: filter === 'all' ? '#0071CE' : '#6B6860', weight: filter === 'all' ? 700 : 500 },
+      { label: 'AI-generated (' + counts.ai + ')', fn: () => this.setState({ filter: 'ai' }), active: filter === 'ai' ? '2px solid #CC27B0' : '2px solid transparent', color: filter === 'ai' ? '#CC27B0' : '#6B6860', weight: filter === 'ai' ? 700 : 500 },
+      { label: 'New (' + counts.new + ')', fn: () => this.setState({ filter: 'new' }), active: filter === 'new' ? '2px solid #0D0E12' : '2px solid transparent', color: filter === 'new' ? '#0D0E12' : '#6B6860', weight: filter === 'new' ? 700 : 500 },
+      { label: 'In progress (' + counts.progress + ')', fn: () => this.setState({ filter: 'progress' }), active: filter === 'progress' ? '2px solid #0D0E12' : '2px solid transparent', color: filter === 'progress' ? '#0D0E12' : '#6B6860', weight: filter === 'progress' ? 700 : 500 },
+      { label: 'Complete (' + counts.complete + ')', fn: () => this.setState({ filter: 'complete' }), active: filter === 'complete' ? '2px solid #0A6E45' : '2px solid transparent', color: filter === 'complete' ? '#0A6E45' : '#6B6860', weight: filter === 'complete' ? 700 : 500 },
+    ];
+
+    const detailTabs = [
+      { label: 'Brief', fn: () => this.setState({ detailTab: 'brief' }), active: detailTab === 'brief' ? '2px solid #0071CE' : '2px solid transparent', color: detailTab === 'brief' ? '#0071CE' : '#6B6860', weight: detailTab === 'brief' ? 700 : 500 },
+      { label: 'Timeline', fn: () => this.setState({ detailTab: 'timeline' }), active: detailTab === 'timeline' ? '2px solid #0071CE' : '2px solid transparent', color: detailTab === 'timeline' ? '#0071CE' : '#6B6860', weight: detailTab === 'timeline' ? 700 : 500 },
+      { label: 'Activity', fn: () => this.setState({ detailTab: 'activity' }), active: detailTab === 'activity' ? '2px solid #0071CE' : '2px solid transparent', color: detailTab === 'activity' ? '#0071CE' : '#6B6860', weight: detailTab === 'activity' ? 700 : 500 },
+    ];
+
+    const base = this.baseTasks.find(t => t.id === selectedId) || this.baseTasks[0];
+    const selStatus = statusLabel(base.id, baseStatuses[base.id] || 'NEW');
+    const selSS = statusStyle(selStatus);
+    const selAssignee = taskAssignee[base.id];
+
+    // Timeline with toggle
+    const baseTL = taskTimeline[base.id] || base.baseTimeline;
+    const timeline = baseTL.map((tl, i) => ({
+      ...tl,
+      ...this.tlStyle(tl.done),
+      toggleFn: () => {
+        const updated = baseTL.map((t, j) => j === i ? { ...t, done: !t.done } : t);
+        this.setState({ taskTimeline: { ...taskTimeline, [base.id]: updated } });
+      },
+    }));
+
+    const activity = [...(taskActivity[base.id] || []), ...base.baseActivity];
+
+    const addNoteFn = () => {
+      const el = document.getElementById('activity-note');
+      const val = el ? el.value.trim() : '';
+      if (!val) return;
+      const newEntry = { initials: 'DM', avatarBg: '#0D0E12', note: val, time: 'Just now' };
+      this.setState({ taskActivity: { ...taskActivity, [base.id]: [newEntry, ...(taskActivity[base.id] || [])] } });
+      if (el) el.value = '';
+      this.showToast('Note added', '#0071CE');
+    };
+
+    const sel = {
+      ...base,
+      status: selStatus, statusBg: selSS.bg, statusColor: selSS.color,
+      assignLabel: selAssignee ? ('Writer: ' + selAssignee) : 'Assign writer',
+      startLabel: selStatus === 'IN PROGRESS' ? 'In progress ✓' : 'Start building',
+      timeline, activity,
+      assignFn: () => this.setState({ assignModal: true }),
+      startFn: () => {
+        this.setState({ taskStatus: { ...taskStatus, [base.id]: 'IN PROGRESS' } });
+        this.showToast('Task moved to In Progress', '#0071CE');
+      },
+      publishFn: () => {
+        this.setState({ taskStatus: { ...taskStatus, [base.id]: 'COMPLETE' } });
+        this.showToast('Published! Manager notified — scenario now live in library', '#0A6E45');
+      },
+    };
+
+    const toggleEditFn = () => {
+      if (isEditing) {
+        const el = document.getElementById('ctx-edit');
+        if (el) this.showToast('Brief updated', '#0A6E45');
+      }
+      this.setState({ isEditing: !isEditing });
+    };
+
+    return {
+      summaryCards, tasks, filterTabs, detailTabs, noTasks, sel, writers,
+      briefTab: detailTab === 'brief',
+      timelineTab: detailTab === 'timeline',
+      activityTab: detailTab === 'activity',
+      isEditing, notEditing: !isEditing,
+      editLabel: isEditing ? 'Save edits' : 'Edit brief',
+      editBg: isEditing ? '#F0FDF7' : '#F5F4F0',
+      editColor: isEditing ? '#0A6E45' : '#6B6860',
+      editBorder: isEditing ? 'rgba(10,110,69,.3)' : '#D4D1CB',
+      toggleEditFn,
+      assignModal, newTaskModal,
+      closeAssignFn: () => this.setState({ assignModal: false }),
+      openNewTaskFn: () => this.setState({ newTaskModal: true }),
+      closeNewTaskFn: () => this.setState({ newTaskModal: false }),
+      submitNewTaskFn: () => { this.setState({ newTaskModal: false }); this.showToast('Task created successfully', '#0071CE'); },
+      stopPropFn: (e) => e.stopPropagation(),
+      addNoteFn,
+      hasToast: !!toast,
+      toastMsg: toast ? toast.msg : '',
+      toastColor: toast ? toast.color : '#0071CE',
+    };
+  }
+
+  doAssign(name) {
+    const { selectedId, taskActivity, taskStatus } = this.state;
+    const newEntry = { initials: 'DM', avatarBg: '#0D0E12', note: 'Assigned to ' + name + '.', time: 'Just now' };
+    this.setState({
+      assignModal: false,
+      taskAssignee: { ...this.state.taskAssignee, [selectedId]: name },
+      taskStatus: { ...taskStatus, [selectedId]: 'ASSIGNED' },
+      taskActivity: { ...taskActivity, [selectedId]: [newEntry, ...(taskActivity[selectedId] || [])] },
+    });
+    this.showToast(name + ' assigned — they\'ve been notified', '#0A6E45');
+  }
+}
+
+</script>
+</body>
+</html>

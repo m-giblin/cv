@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireManagerSession } from "@/lib/auth/require-manager";
+import { getTenantAdminClient } from "@/lib/data/tenant-scoped-query";
 
 const patchSchema = z.object({
   mentorId: z.string().uuid().nullable().optional(),
@@ -57,7 +58,7 @@ export async function DELETE(
 
   const { data: assignment, error: fetchError } = await session.supabase
     .from("plan_assignments")
-    .select("id, progress_percent, status")
+    .select("id, user_id, progress_percent, status, tenant_id")
     .eq("id", assignmentId)
     .maybeSingle();
 
@@ -72,13 +73,36 @@ export async function DELETE(
     );
   }
 
-  await session.supabase.from("plan_assignment_steps").delete().eq("assignment_id", assignmentId);
-
-  const { error } = await session.supabase.from("plan_assignments").delete().eq("id", assignmentId);
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  const admin = getTenantAdminClient();
+  if (!admin) {
+    return NextResponse.json({ error: "Database is not configured." }, { status: 503 });
   }
 
-  return NextResponse.json({ success: true });
+  let stepsDelete = admin.from("plan_assignment_steps").delete().eq("assignment_id", assignmentId);
+  let assignmentDelete = admin.from("plan_assignments").delete().eq("id", assignmentId);
+
+  if (assignment.tenant_id) {
+    stepsDelete = stepsDelete.eq("tenant_id", assignment.tenant_id);
+    assignmentDelete = assignmentDelete.eq("tenant_id", assignment.tenant_id);
+  }
+
+  const { error: stepsError } = await stepsDelete;
+  if (stepsError) {
+    return NextResponse.json({ error: stepsError.message }, { status: 500 });
+  }
+
+  const { data: deleted, error: deleteError } = await assignmentDelete.select("id").maybeSingle();
+
+  if (deleteError) {
+    return NextResponse.json({ error: deleteError.message }, { status: 500 });
+  }
+
+  if (!deleted) {
+    return NextResponse.json(
+      { error: "Assignment could not be removed. Refresh and try again." },
+      { status: 500 },
+    );
+  }
+
+  return NextResponse.json({ success: true, id: deleted.id });
 }

@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ArrowRightIcon, GlobeIcon, LockIcon, MailIcon } from "@/components/auth/login-icons";
@@ -15,7 +14,6 @@ const inputClass =
  "w-full border border-[#D4D1CB] bg-white py-[11px] pl-[40px] pr-[14px] text-[14px] text-[#0D0E12] outline-none transition placeholder:text-[#B0ADA8] focus:border-[#0071CE]";
 
 export function LoginForm({ initialError }: { initialError?: string | null }) {
- const router = useRouter();
  const [email, setEmail] = useState("");
  const [password, setPassword] = useState("");
  const [isSubmitting, setIsSubmitting] = useState(false);
@@ -68,7 +66,7 @@ export function LoginForm({ initialError }: { initialError?: string | null }) {
  return;
  }
 
- const { error } = await supabase.auth.signInWithPassword({
+ const { data: signInData, error } = await supabase.auth.signInWithPassword({
  email: email.trim().toLowerCase(),
  password,
  });
@@ -79,9 +77,7 @@ export function LoginForm({ initialError }: { initialError?: string | null }) {
  return;
  }
 
- const {
- data: { user },
- } = await supabase.auth.getUser();
+ const user = signInData.user;
 
  if (!user?.email || allowedEmailError(user.email)) {
  await supabase.auth.signOut();
@@ -98,20 +94,15 @@ export function LoginForm({ initialError }: { initialError?: string | null }) {
  return;
  }
 
- if (aal.currentLevel === "aal2") {
- router.push(AUTH_ROUTES.dashboard);
- router.refresh();
- return;
+ let destination = AUTH_ROUTES.mfaEnroll;
+ if (aal?.currentLevel === "aal2") {
+ destination = AUTH_ROUTES.dashboard;
+ } else if (aal?.nextLevel === "aal2") {
+ destination = AUTH_ROUTES.mfaVerify;
  }
 
- if (aal.nextLevel === "aal2") {
- router.push(AUTH_ROUTES.mfaVerify);
- router.refresh();
- return;
- }
-
- router.push(AUTH_ROUTES.mfaEnroll);
- router.refresh();
+ // Full navigation so Supabase auth cookies are on the request before middleware runs.
+ window.location.assign(destination);
  }
 
  return (

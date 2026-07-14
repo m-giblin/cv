@@ -123,8 +123,7 @@ export function MfaEnrollForm() {
  }
 
  toast.success("Authenticator enrolled. Your session is now MFA-protected.");
- router.push(AUTH_ROUTES.dashboard);
- router.refresh();
+ window.location.assign(AUTH_ROUTES.dashboard);
  }
 
  if (isLoading) {

@@ -56,9 +56,8 @@ export default async function AdminPage() {
  }));
 
  return (
- <AppShell currentUser={data.currentUser} notifications={data.notifications}>
- <div className="space-y-6">
- <Suspense fallback={<div className="text-sm text-stone-500">Loading admin console…</div>}>
+ <AppShell contentWidth="wide" currentUser={data.currentUser} notifications={data.notifications}>
+ <Suspense fallback={<div className="text-sm text-[#6B6860]">Loading admin console…</div>}>
  <AdminConsole
  activity={data.activity}
  aiUsage={aiUsage}
@@ -71,7 +70,6 @@ export default async function AdminPage() {
  profiles={data.profiles}
  />
  </Suspense>
- </div>
  </AppShell>
  );
 }

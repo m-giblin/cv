@@ -4,11 +4,12 @@ import { ChevronRight, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import {
- ROSTER_GRID_COLS,
- SeAvatar,
- healthBadgeStyle,
- rampBarColor,
- simScoreColor,
+  ManagerStatStrip,
+  ROSTER_GRID_COLS,
+  SeAvatar,
+  healthBadgeStyle,
+  rampBarColor,
+  simScoreColor,
 } from "@/components/manager/manager-ui-primitives";
 import type { CoachingHealth } from "@/lib/manager/se-coaching-summary";
 import type { SeCoachingSummary } from "@/lib/manager/se-coaching-summary";
@@ -191,7 +192,58 @@ export function ManagerTeamRoster({
  });
  }, [sorted, coachingByUser, search, filter]);
 
+ const rosterStats = useMemo(() => {
+  const progresses = org.map((profile) => {
+   const plan = plans.find((item) => item.userId === profile.id);
+   return plan?.progress ?? coachingByUser[profile.id]?.onboardingProgress ?? 0;
+  });
+  const avgRamp = progresses.length
+   ? Math.round(progresses.reduce((sum, value) => sum + value, 0) / progresses.length)
+   : 0;
+  const simScores = org
+   .map((profile) => coachingByUser[profile.id]?.avgSimScore ?? coachingByUser[profile.id]?.latestSimScore)
+   .filter((score): score is number => score != null);
+  const avgSim = simScores.length
+   ? Math.round(simScores.reduce((sum, value) => sum + value, 0) / simScores.length)
+   : null;
+  const atRisk = org.filter((profile) => {
+   const health = coachingByUser[profile.id]?.health ?? "on_track";
+   return health === "coach_now" || health === "at_risk" || health === "stalled";
+  });
+  const inboxTotal = org.reduce((sum, profile) => sum + (coachingByUser[profile.id]?.openReviewCount ?? 0), 0);
+  const atRiskProfile = atRisk[0];
+
+  return { avgRamp, avgSim, atRiskCount: atRisk.length, atRiskProfile, inboxTotal };
+ }, [org, plans, coachingByUser]);
+
  return (
+ <>
+ <ManagerStatStrip
+  items={[
+   { label: "Avg ramp", value: `${rosterStats.avgRamp}%` },
+   {
+    label: "Avg sim",
+    value: rosterStats.avgSim ?? "—",
+    sub: rosterStats.avgSim != null ? "Team average" : undefined,
+    subColor: "#0A6E45",
+   },
+   {
+    label: "At risk",
+    value: rosterStats.atRiskCount,
+    valueColor: "#B83128",
+    sub: rosterStats.atRiskProfile ? `${rosterStats.atRiskProfile.fullName.split(" ")[0]} →` : "None",
+    subColor: "#B83128",
+    highlight: rosterStats.atRiskCount > 0,
+    href: rosterStats.atRiskProfile ? `/manager?profile=${rosterStats.atRiskProfile.id}` : undefined,
+   },
+   {
+    label: "Inbox",
+    value: rosterStats.inboxTotal,
+    valueColor: rosterStats.inboxTotal > 0 ? "#D4810A" : "#0D0E12",
+    href: rosterStats.inboxTotal > 0 ? "/manager?section=inbox" : undefined,
+   },
+  ]}
+ />
  <div className="overflow-hidden border border-[#E2DFD9] bg-white">
  <div className="space-y-3 border-b border-[#ECEAE6] p-[14px_18px]">
  <div>
@@ -271,5 +323,6 @@ export function ManagerTeamRoster({
  Click any row for the full growth story — detail opens in the side panel.
  </p>
  </div>
+ </>
  );
 }

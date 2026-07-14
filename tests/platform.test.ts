@@ -82,6 +82,13 @@ describe("RBAC", () => {
       "/manager?section=command",
       "/manager?section=inbox",
     ]);
+    expect(groups[1]?.id).toBe("program");
+    expect(groups.find((group) => group.id === "program")?.items.map((item) => item.href)).toEqual([
+      "/manager?section=program",
+      "/plans",
+      "/plan-calendar",
+    ]);
+    expect(groups[2]?.id).toBe("team");
     expect(groups.find((group) => group.id === "team")?.items.map((item) => item.href)).toEqual([
       "/manager?section=roster",
       "/manager?section=readiness",
@@ -92,11 +99,7 @@ describe("RBAC", () => {
       "/manager?section=history",
       "/manager?section=dev",
     ]);
-    expect(groups.find((group) => group.id === "program")?.items.map((item) => item.href)).toEqual([
-      "/manager?section=program",
-      "/manager?section=assign",
-    ]);
-    expect(hrefs).not.toContain("/plans");
+    expect(hrefs).toContain("/plans");
     expect(groups.find((group) => group.id === "practice")?.items.map((item) => item.href)).toEqual([
       "/flight-check",
       "/market-pulse",
@@ -107,8 +110,24 @@ describe("RBAC", () => {
     ]);
   });
 
-  it("allows development and prep for all tiers", () => {
-    expect(canAccessRoute("se", "/development")).toBe(true);
+  it("allows platform operators to open practice tools without shadowing", () => {
+    const practicePaths = [
+      "/my-practice",
+      "/simulations",
+      "/challenges",
+      "/pitch",
+      "/prep",
+      "/flight-check",
+      "/growth",
+    ];
+    for (const path of practicePaths) {
+      expect(canAccessRoute("super_admin", path)).toBe(true);
+    }
+  });
+
+  it("allows growth plan and prep for SE tier", () => {
+    expect(canAccessRoute("se", "/growth-plan")).toBe(true);
+    expect(canAccessRoute("se", "/development")).toBe(false);
     expect(canAccessRoute("se", "/prep")).toBe(true);
     expect(canAccessRoute("se", "/certifications")).toBe(true);
   });

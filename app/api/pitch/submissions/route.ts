@@ -8,8 +8,10 @@ const postSchema = z.object({
  title: z.string().min(3),
  evidencePath: z.string().min(3),
  reflectionText: z.string().optional(),
- targetType: z.enum(["challenge", "certification", "practice"]).default("practice"),
+ targetType: z.enum(["challenge", "certification", "practice"]).default("certification"),
  targetId: z.string().optional(),
+ scenarioId: z.string().uuid().optional(),
+ queueSlotId: z.string().uuid().optional(),
 });
 
 export async function GET(request: Request) {
@@ -72,6 +74,13 @@ export async function POST(request: Request) {
  return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
  }
 
+ if (parsed.data.targetType === "practice") {
+ return NextResponse.json(
+ { error: "Practice pitches save via /api/pitch/practice and do not notify your manager." },
+ { status: 400 },
+ );
+ }
+
  if (!parsed.data.evidencePath.startsWith(`${user.id}/`)) {
  return NextResponse.json({ error: "Invalid evidence path." }, { status: 403 });
  }
@@ -80,6 +89,22 @@ export async function POST(request: Request) {
  void fileList;
 
  const tenantId = await resolveProfileTenantId(supabase, user.id);
+
+ if (parsed.data.queueSlotId) {
+ const { data: slot } = await supabase
+ .from("pitch_se_queue")
+ .select("id, user_id, status, scenario_id")
+ .eq("id", parsed.data.queueSlotId)
+ .maybeSingle();
+
+ if (!slot || slot.user_id !== user.id || slot.status !== "active") {
+ return NextResponse.json({ error: "Invalid or inactive queue slot." }, { status: 400 });
+ }
+
+ if (parsed.data.scenarioId && slot.scenario_id !== parsed.data.scenarioId) {
+ return NextResponse.json({ error: "Scenario does not match queue slot." }, { status: 400 });
+ }
+ }
 
  const { data, error } = await supabase
  .from("pitch_submissions")
@@ -90,6 +115,8 @@ export async function POST(request: Request) {
  reflection_text: parsed.data.reflectionText ?? null,
  target_type: parsed.data.targetType,
  target_id: parsed.data.targetId ?? null,
+ scenario_id: parsed.data.scenarioId ?? null,
+ queue_slot_id: parsed.data.queueSlotId ?? null,
  status: "submitted",
  tenant_id: tenantId,
  })
@@ -109,6 +136,14 @@ export async function POST(request: Request) {
  body: `Review ${parsed.data.title} from your SE.`,
  actionUrl: "/manager?section=inbox",
  });
+ }
+
+ if (parsed.data.queueSlotId) {
+ await supabase
+ .from("pitch_se_queue")
+ .update({ submission_id: data.id })
+ .eq("id", parsed.data.queueSlotId)
+ .eq("user_id", user.id);
  }
 
  await supabase.from("activity_logs").insert({

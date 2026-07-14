@@ -63,7 +63,7 @@ export type DashboardScope = "personal" | "org" | "tenant";
 
 export function dashboardScopeForContext(context: TenantContext): DashboardScope | null {
   if (context.tier === "super_admin" && !context.isShadowing) {
-    return null;
+    return "org";
   }
 
   if (context.tier === "admin") {

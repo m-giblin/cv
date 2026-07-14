@@ -1,16 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { Bot, Zap } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Bell, Bot, Loader2, Zap } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { HandoffMetricStrip } from "@/components/dashboard/handoff-section-page";
 import { SP_BLUE_BTN, SP_OUTLINE_BTN } from "@/components/se/sp-form-primitives";
 import { DashboardData } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { formatDistanceToNow } from "date-fns";
 
 type FeedbackKind = "challenge" | "coaching";
+
+type NudgeStatus = {
+  canNudge: boolean;
+  pendingDays?: number;
+  nextNudgeAt?: string | null;
+  reason?: string | null;
+};
 
 type FeedbackRow = {
  id: string;
@@ -59,6 +66,8 @@ function statusLabel(status: string) {
 export function FeedbackInbox({ data }: { data: DashboardData }) {
  const userId = data.currentUser.id;
  const [acknowledged, setAcknowledged] = useState<Set<string>>(new Set());
+ const [nudgeStatus, setNudgeStatus] = useState<Record<string, NudgeStatus>>({});
+ const [nudgingKey, setNudgingKey] = useState<string | null>(null);
 
  const revisionSubmissions = data.submissions.filter(
  (submission) => submission.userId === userId && submission.status === "in_progress" && Boolean(submission.managerFeedback),
@@ -141,6 +150,31 @@ export function FeedbackInbox({ data }: { data: DashboardData }) {
  return rows.sort((a, b) => new Date(b.date ?? 0).getTime() - new Date(a.date ?? 0).getTime());
  }, [data, userId]);
 
+ useEffect(() => {
+ if (awaitingManagerRows.length === 0) {
+ setNudgeStatus({});
+ return;
+ }
+
+ const items = awaitingManagerRows.map((row) => `${row.kind}:${row.id}`).join(",");
+ void fetch(`/api/reviews/remind?items=${encodeURIComponent(items)}`, { credentials: "same-origin" })
+ .then((res) => (res.ok ? res.json() : null))
+ .then((json: { items?: Array<NudgeStatus & { kind: FeedbackKind; id: string }> } | null) => {
+ if (!json?.items) return;
+ const next: Record<string, NudgeStatus> = {};
+ for (const item of json.items) {
+ next[`${item.kind}-${item.id}`] = {
+ canNudge: item.canNudge,
+ pendingDays: item.pendingDays,
+ nextNudgeAt: item.nextNudgeAt,
+ reason: item.reason,
+ };
+ }
+ setNudgeStatus(next);
+ })
+ .catch(() => undefined);
+ }, [awaitingManagerRows]);
+
  const pendingRows = historyRows.filter(
  (row) =>
  (row.status === "redo" || row.status === "needs_revision" || row.status === "in_progress") &&
@@ -164,6 +198,50 @@ export function FeedbackInbox({ data }: { data: DashboardData }) {
  function acknowledge(id: string, kind: FeedbackKind) {
  setAcknowledged((current) => new Set(current).add(`${kind}-${id}`));
  toast.success("Acknowledged");
+ }
+
+ async function nudgeManager(kind: FeedbackKind, id: string) {
+ const key = `${kind}-${id}`;
+ setNudgingKey(key);
+ try {
+ const res = await fetch("/api/reviews/remind", {
+ method: "POST",
+ headers: { "Content-Type": "application/json" },
+ credentials: "same-origin",
+ body: JSON.stringify({ kind, id }),
+ });
+ const json = (await res.json()) as {
+ error?: string;
+ eligibility?: NudgeStatus & { nextReminderAt?: string | null };
+ };
+ if (!res.ok) {
+ if (json.eligibility) {
+ setNudgeStatus((current) => ({
+ ...current,
+ [key]: {
+ canNudge: false,
+ pendingDays: json.eligibility?.pendingDays,
+ nextNudgeAt: json.eligibility?.nextReminderAt ?? json.eligibility?.nextNudgeAt,
+ reason: json.error ?? json.eligibility?.reason,
+ },
+ }));
+ }
+ throw new Error(json.error ?? "Could not send reminder");
+ }
+ toast.success("Reminder sent to your manager.");
+ setNudgeStatus((current) => ({
+ ...current,
+ [key]: {
+ canNudge: false,
+ nextNudgeAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+ reason: "Reminder sent — available again in 7 days",
+ },
+ }));
+ } catch (error) {
+ toast.error(error instanceof Error ? error.message : "Could not nudge manager.");
+ } finally {
+ setNudgingKey(null);
+ }
  }
 
  function ctaForRow(row: FeedbackRow) {
@@ -231,6 +309,9 @@ export function FeedbackInbox({ data }: { data: DashboardData }) {
  <div className="space-y-2.5">
  {awaitingManagerRows.map((row) => {
  const Icon = row.kind === "challenge" ? Zap : Bot;
+ const statusKey = `${row.kind}-${row.id}`;
+ const status = nudgeStatus[statusKey];
+ const isNudging = nudgingKey === statusKey;
  return (
  <div className={CARD} key={`awaiting-${row.kind}-${row.id}`} style={{ border: "1.5px solid rgba(0,113,206,0.15)" }}>
  <div className="flex items-start gap-3 p-[14px_18px]">
@@ -248,10 +329,30 @@ export function FeedbackInbox({ data }: { data: DashboardData }) {
  Submitted {row.date ? formatDistanceToNow(new Date(row.date), { addSuffix: true }) : "recently"} ·
  waiting on your manager
  </p>
+ {status && !status.canNudge && status.reason ? (
+ <p className="mt-1 text-[10px] text-[#a09d98]">{status.reason}</p>
+ ) : null}
  </div>
- <span className="shrink-0 rounded-full bg-[#dbeafe] px-2 py-0.5 text-[9.5px] font-bold text-[#1d4ed8]">
+ <div className="flex shrink-0 flex-col items-end gap-2">
+ <span className="rounded-full bg-[#dbeafe] px-2 py-0.5 text-[9.5px] font-bold text-[#1d4ed8]">
  Pending
  </span>
+ <button
+ className={cn(
+ "inline-flex items-center gap-1 border px-2 py-1 text-[10px] font-semibold transition",
+ status?.canNudge
+ ? "border-[#0071ce] text-[#0071ce] hover:bg-[#eff6ff]"
+ : "cursor-not-allowed border-[#e2dfd9] text-[#c4c1bb]",
+ )}
+ disabled={!status?.canNudge || isNudging}
+ onClick={() => void nudgeManager(row.kind, row.id)}
+ title={status?.canNudge ? "Send your manager a reminder email" : status?.reason ?? "Loading…"}
+ type="button"
+ >
+ {isNudging ? <Loader2 className="h-3 w-3 animate-spin" /> : <Bell className="h-3 w-3" />}
+ Nudge manager
+ </button>
+ </div>
  </div>
  </div>
  );

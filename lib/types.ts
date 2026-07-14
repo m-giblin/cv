@@ -66,6 +66,7 @@ export type PlanStep = {
 
 export type UserPlan = {
   id: string;
+  planTemplateId: string;
   userId: string;
   mentorId: string | null;
   name: string;

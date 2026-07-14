@@ -1,4 +1,8 @@
 import {
+  type AttachmentUploadResult,
+  fileToUploadBlob,
+} from "@/lib/forge/attachments";
+import {
   FORGE_ASSIGNEE_EMAIL,
   FORGE_ASSIGNEE_NAME,
   FORGE_PROJECT_KEY,
@@ -194,12 +198,40 @@ export async function addForgeComment(
 }
 
 export async function uploadForgeAttachment(issueId: string, file: File | Blob, filename: string) {
+  const blob = await fileToUploadBlob(file, filename);
   const form = new FormData();
-  form.append("file", file, filename);
+  form.append("file", blob, filename);
+
   await forgeFetch(`/api/v1/issues/${issueId}/attachments`, {
     method: "POST",
     body: form,
   });
+}
+
+/** Forge requires create-then-upload — never parallel with issue create. */
+export async function uploadForgeAttachmentsSequential(
+  issueId: string,
+  files: Array<File | Blob>,
+  filenames: string[],
+): Promise<AttachmentUploadResult> {
+  const uploaded: string[] = [];
+  const failed: AttachmentUploadResult["failed"] = [];
+
+  for (let index = 0; index < files.length; index += 1) {
+    const file = files[index];
+    const filename = filenames[index] ?? `attachment-${index + 1}`;
+    try {
+      await uploadForgeAttachment(issueId, file, filename);
+      uploaded.push(filename);
+    } catch (error) {
+      failed.push({
+        filename,
+        error: error instanceof Error ? error.message : "Upload failed",
+      });
+    }
+  }
+
+  return { uploaded, failed };
 }
 
 export function issueKey(number: number) {

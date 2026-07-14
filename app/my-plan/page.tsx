@@ -59,8 +59,8 @@ export default async function MyPlanPage() {
 
  <p className="text-sm text-[#6B6860]">
  Track long-term growth on{" "}
- <Link className="font-semibold text-[#0071ce]" href="/development">
- Development
+ <Link className="font-semibold text-[#0071ce]" href="/growth-plan">
+ My Growth Plan
  </Link>{" "}
  · career ladder on{" "}
  <Link className="font-semibold text-[#0071ce]" href="/growth">

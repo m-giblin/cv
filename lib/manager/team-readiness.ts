@@ -1,6 +1,7 @@
 import { CERT_LABELS } from "@/lib/growth/career-readiness";
 import type { CertificationRecord } from "@/lib/data/get-certifications-data";
 import type { CoachingCard, DashboardData, Profile } from "@/lib/types";
+import { uniqueProfiles } from "@/lib/utils";
 
 export type TeamReadinessRow = {
   profileId: string;
@@ -66,7 +67,7 @@ export function buildTeamReadiness(
   certsByUser: Record<string, Pick<CertificationRecord, "status">[]>,
   openReviewsByUser: Record<string, number>,
 ): TeamReadinessRow[] {
-  return org.map((profile) => {
+  return uniqueProfiles(org).map((profile) => {
     const cards = data.coachingCards
       .filter((c) => c.userId === profile.id && !c.isPractice)
       .sort((a, b) => new Date(b.sentToManagerAt).getTime() - new Date(a.sentToManagerAt).getTime());

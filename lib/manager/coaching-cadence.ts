@@ -1,4 +1,5 @@
 import type { CoachingCard, Profile } from "@/lib/types";
+import { uniqueProfiles } from "@/lib/utils";
 
 export type CoachingCadenceRow = {
   profileId: string;
@@ -18,7 +19,9 @@ export function buildCoachingCadence(
 ): CoachingCadenceRow[] {
   const now = Date.now();
 
-  return org.map((profile) => {
+  const team = uniqueProfiles(org);
+
+  return team.map((profile) => {
     const reviewed = coachingCards
       .filter((c) => c.userId === profile.id && c.managerReviewStatus === "reviewed" && !c.isPractice)
       .sort((a, b) => b.sentToManagerAt.localeCompare(a.sentToManagerAt));

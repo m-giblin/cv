@@ -6,6 +6,7 @@ export type TenantShellBranding = {
   productTagline: string;
   primaryColor: string;
   logoUrl: string | null;
+  tenantSlug?: string | null;
 };
 
 /** Fix common typos like #CC27BO → #CC27B0 */

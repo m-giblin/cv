@@ -6,6 +6,7 @@ import { CoachingCadence } from "@/components/manager/coaching-cadence/CoachingC
 import { mockProfiles } from "@/components/manager/coaching-cadence/data";
 import { ManagerCoachingQualityPanel } from "@/components/manager/manager-coaching-quality-panel";
 import type { Profile } from "@/lib/types";
+import { uniqueProfiles } from "@/lib/utils";
 
 export function ManagerCoachingCadencePanel({ org = [] }: { org?: Profile[] }) {
   const router = useRouter();
@@ -39,7 +40,7 @@ export function ManagerCoachingCadencePanel({ org = [] }: { org?: Profile[] }) {
         <p className="mb-3 text-[11px] text-[#6B6860]">
           Structured sign-off patterns — flags fast rubber-stamping and cadence gaps.
         </p>
-        <ManagerCoachingQualityPanel orgIds={org.map((profile) => profile.id)} />
+        <ManagerCoachingQualityPanel orgIds={uniqueProfiles(org).map((profile) => profile.id)} />
       </div>
     </div>
   );

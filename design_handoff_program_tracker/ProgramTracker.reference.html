@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html,body{height:100%;font-family:'DM Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased;background:#DEDAD4;}
+    ::-webkit-scrollbar{width:3px;height:3px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:rgba(0,0,0,.1);}
+    .ms::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}.ai{animation:fadeUp .18s ease-out;}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.15}}.lp{animation:pulse 2.4s ease-in-out infinite;}
+    .btn{display:inline-flex;align-items:center;gap:5px;border:none;font-size:11px;font-weight:600;cursor:pointer;line-height:1;font-family:'DM Sans',sans-serif;letter-spacing:.01em;transition:background 100ms,border-color 100ms,color 100ms;}
+    .bn{background:#00143A;color:white;padding:8px 14px;}.bn:hover{background:#001d50;}
+    .bb{background:#0071CE;color:white;padding:8px 14px;}.bb:hover{background:#005aab;}
+    .bo{background:transparent;color:#3D3C38;border:1px solid #D4D1CB;padding:7px 12px;}.bo:hover{border-color:#0071CE;color:#0071CE;}
+    .bsm{font-size:10px!important;padding:5px 10px!important;}
+    .bxs{font-size:9px!important;padding:3px 8px!important;}
+    .ni{display:flex;align-items:center;gap:8px;padding:5px 14px 5px 16px;font-size:11.5px;font-weight:500;border-left:2px solid transparent;cursor:pointer;user-select:none;transition:background 80ms,color 80ms;}
+    .na{background:rgba(255,255,255,.06);color:#fff!important;border-left-color:#0071CE;}
+    .no{color:rgba(255,255,255,.62);}.no:hover{background:rgba(255,255,255,.05);color:rgba(255,255,255,.9);}
+    .tr:hover{background:#F9F8F6;}
+    .pbar{height:3px;background:#ECEAE6;overflow:hidden;}
+    .pbar-fill{height:3px;}
+    @keyframes alertPulse{0%,100%{opacity:1}50%{opacity:.6}}.ap{animation:alertPulse 2.8s ease-in-out infinite;}
+    @keyframes slideIn{from{transform:translateX(40px);opacity:0}to{transform:none;opacity:1}}
+  </style>
+</helmet>
+
+<div id="co" style="width:100%;overflow:hidden;">
+<div id="cr" style="width:1360px;transform-origin:top left;padding:24px 28px 40px;">
+
+  <div style="margin-bottom:14px;">
+    <p style="font-family:'DM Mono',monospace;font-size:9.5px;color:#7A7772;letter-spacing:.1em;text-transform:uppercase;">Program Tracker v2 · All programs · Manager view · Cohort | Programs | Milestones tabs</p>
+  </div>
+
+  <div style="border:1px solid rgba(0,0,0,.15);overflow:hidden;display:flex;height:920px;background:#F5F4F0;box-shadow:0 24px 70px rgba(0,0,0,.2);">
+
+    <!-- ── SIDEBAR ── -->
+    <aside style="width:214px;flex-shrink:0;background:#00143A;display:flex;flex-direction:column;overflow:hidden;position:relative;">
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#0071CE,#CC27B0);z-index:2;"></div>
+      <div style="position:relative;z-index:1;display:flex;flex-direction:column;height:100%;padding-top:2px;">
+        <div style="padding:16px 16px 13px;border-bottom:1px solid rgba(255,255,255,.06);">
+          <div style="display:flex;align-items:center;gap:9px;">
+            <svg width="17" height="17" viewBox="0 0 20 20" fill="none"><path d="M10.5 2C10.5 2 16.5 6 16.5 13H10.5V2Z" fill="white"/><path d="M10.5 5C10.5 5 4.5 8 4.5 13H10.5V5Z" fill="rgba(255,255,255,0.32)"/><path d="M3 14.5H17" stroke="white" stroke-width="1.5" stroke-linecap="square"/></svg>
+            <div>
+              <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#fff;">SailPoint</div>
+              <div style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(255,255,255,.2);letter-spacing:.14em;">MANAGER</div>
+            </div>
+          </div>
+        </div>
+        <div style="flex:1;overflow-y:auto;padding:10px 0;" class="ms">
+          <div style="padding:8px 16px 3px;"><span style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(255,255,255,.38);letter-spacing:.16em;">COMMAND</span></div>
+          <div class="no ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" style="flex-shrink:0;opacity:.65;"><rect x="1.5" y="1.5" width="5.5" height="5.5" rx=".5"/><rect x="9" y="1.5" width="5.5" height="5.5" rx=".5"/><rect x="1.5" y="9" width="5.5" height="5.5" rx=".5"/><rect x="9" y="9" width="5.5" height="5.5" rx=".5"/></svg><span>Command Center</span></div>
+          <div class="no ni" style="justify-content:space-between;"><div style="display:flex;align-items:center;gap:8px;"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" style="flex-shrink:0;opacity:.65;"><path d="M2.5 3.5h11v8H9.5L7 14V11.5h-4.5z"/></svg><span>Action Inbox</span></div><span style="font-family:'DM Mono',monospace;background:#D4810A;color:white;font-size:8.5px;padding:1px 6px;" class="lp">7</span></div>
+          <div style="height:1px;background:rgba(255,255,255,.05);margin:8px 0;"></div>
+          <div style="padding:3px 16px;"><span style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(255,255,255,.38);letter-spacing:.16em;">PROGRAM</span></div>
+          <div class="na ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" style="flex-shrink:0;opacity:.65;"><rect x="2" y="2" width="12" height="12" rx="1"/><path d="M5 6h6M5 9h4"/><line x1="5" y1="2" x2="5" y2="14"/></svg><span>Program Tracker</span></div>
+          <div class="no ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" style="flex-shrink:0;opacity:.65;"><rect x="2" y="2" width="12" height="12" rx="1"/><path d="M5 8l2 2.5L11 5.5"/></svg><span>Assign Plans</span></div>
+          <div class="no ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" style="flex-shrink:0;opacity:.65;"><rect x="2" y="3" width="12" height="10" rx="1"/><path d="M5 3V2M11 3V2M2 7h12"/></svg><span>Plan Calendar</span></div>
+          <div class="no ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" style="flex-shrink:0;opacity:.65;"><circle cx="8" cy="8" r="5.5"/><path d="M8 5v3.5l2.5 1.5"/></svg><span>Certifications</span></div>
+          <div style="height:1px;background:rgba(255,255,255,.05);margin:8px 0;"></div>
+          <div style="padding:3px 16px;"><span style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(255,255,255,.38);letter-spacing:.16em;">TEAM</span></div>
+          <div class="no ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" style="flex-shrink:0;opacity:.65;"><circle cx="6" cy="5" r="2.5"/><path d="M1 13c0-3 2-4.5 5-4.5s5 1.5 5 4.5"/><circle cx="12.5" cy="5.5" r="2"/><path d="M11 13c0-1.5.8-2.8 2-3.5"/></svg><span>Team Roster</span></div>
+          <div class="no ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" style="flex-shrink:0;opacity:.65;"><polyline points="2,13 5.5,8 8.5,10.5 14,3.5"/></svg><span>Readiness Map</span></div>
+          <div style="height:1px;background:rgba(255,255,255,.05);margin:8px 0;"></div>
+          <div style="padding:3px 16px;"><span style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(255,255,255,.38);letter-spacing:.16em;">COACHING</span></div>
+          <div class="no ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" style="flex-shrink:0;opacity:.65;"><circle cx="8" cy="6" r="3"/><path d="M2 14c0-3.5 2.7-5 6-5s6 1.5 6 5"/></svg><span>Coaching Cadence</span></div>
+          <div class="no ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" style="flex-shrink:0;opacity:.65;"><path d="M2.5 3.5h11v8H9.5L7 14V11.5h-4.5z"/></svg><span>My Mentees</span></div>
+        </div>
+        <div style="padding:10px 14px 12px;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:9px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#0033a1,#0071CE);display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:600;color:white;flex-shrink:0;font-family:'DM Mono',monospace;">DM</div>
+          <div><div style="font-size:11.5px;font-weight:500;color:rgba(255,255,255,.82);">Demo Manager</div><div style="font-family:'DM Mono',monospace;font-size:8px;color:rgba(255,255,255,.25);">Manager</div></div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ── MAIN ── -->
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;">
+
+      <!-- Topbar -->
+      <header style="height:44px;background:#fff;border-bottom:1px solid #E2DFD9;padding:0 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:0;">
+          <span style="font-family:'DM Mono',monospace;font-size:10.5px;color:#A09D98;">Program</span>
+          <span style="color:#C4C1BB;font-size:11px;margin:0 2px;">›</span>
+          <span style="font-family:'DM Mono',monospace;font-size:10.5px;color:#3D3C38;font-weight:500;">Program Tracker</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button class="btn bo bsm">
+            <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6 1v10M1 6h10"/></svg>
+            Add program
+          </button>
+          <div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#0033a1,#0071CE);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:9.5px;color:white;">DM</div>
+        </div>
+      </header>
+
+      <!-- ── MANAGER NEEDS ACTION STRIP ── -->
+      <div style="background:#00143A;padding:8px 20px;display:flex;align-items:center;gap:16px;flex-shrink:0;">
+        <div style="width:6px;height:6px;border-radius:50%;background:#D4810A;flex-shrink:0;" class="ap"></div>
+        <span style="font-family:'DM Mono',monospace;font-size:8px;color:rgba(255,255,255,.5);letter-spacing:.12em;text-transform:uppercase;">Manager queue</span>
+        <div style="display:flex;align-items:center;gap:10px;flex:1;">
+          <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);padding:5px 12px;">
+            <span style="font-size:11px;color:rgba(255,255,255,.75);">Demo SE — Gate 1 sign-off pending</span>
+            <button class="btn bxs" style="background:#D4810A;color:white;border:none;">Sign off →</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);padding:5px 12px;">
+            <span style="font-size:11px;color:rgba(255,255,255,.75);">Finn — IIQ Cert submission needs review</span>
+            <button class="btn bxs" style="background:rgba(0,113,206,.6);color:white;border:none;">Review →</button>
+          </div>
+        </div>
+        <span style="font-family:'DM Mono',monospace;font-size:9px;color:rgba(255,255,255,.3);">2 pending your action</span>
+      </div>
+
+      <!-- ── PAGE HEADER + STATS ── -->
+      <div style="background:#fff;border-bottom:1px solid #E2DFD9;padding:16px 20px 0;flex-shrink:0;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;">
+          <div>
+            <div style="font-family:'DM Mono',monospace;font-size:8.5px;color:#A09D98;letter-spacing:.14em;text-transform:uppercase;margin-bottom:4px;">West Region · Q3 FY2026 · 4 SEs</div>
+            <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:#0D0E12;letter-spacing:-.025em;line-height:1;margin-bottom:4px;">Program Tracker</div>
+            <div style="font-size:11.5px;color:#7A7772;">All structured programs — onboarding, certifications, specialization tracks, dev plans</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div style="display:flex;border:1px solid #D4D1CB;overflow:hidden;">
+              <div onClick="{{ setCohortFilter }}" style="padding:4px 10px;font-family:'DM Mono',monospace;font-size:8.5px;cursor:pointer;background:#00143A;color:#fff;">Q3 FY2026</div>
+              <div style="padding:4px 10px;font-family:'DM Mono',monospace;font-size:8.5px;cursor:pointer;color:#7A7772;">Q2 FY2026</div>
+              <div style="padding:4px 10px;font-family:'DM Mono',monospace;font-size:8.5px;cursor:pointer;color:#7A7772;border-left:1px solid #D4D1CB;">All</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stats strip -->
+        <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:0;border-top:1px solid #E2DFD9;margin:0 -20px;">
+          <div style="padding:12px 16px;border-right:1px solid #E2DFD9;">
+            <div style="font-family:'DM Mono',monospace;font-size:8px;color:#A09D98;letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;">Active programs</div>
+            <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:700;color:#0D0E12;line-height:1;">14</div>
+            <div style="font-size:10px;color:#7A7772;margin-top:2px;">across 4 SEs</div>
+          </div>
+          <div style="padding:12px 16px;border-right:1px solid #E2DFD9;">
+            <div style="font-family:'DM Mono',monospace;font-size:8px;color:#A09D98;letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;">On track</div>
+            <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:700;color:#0A6E45;line-height:1;">9</div>
+            <div style="font-size:10px;color:#7A7772;margin-top:2px;">64% of programs</div>
+          </div>
+          <div style="padding:12px 16px;border-right:1px solid #E2DFD9;">
+            <div style="font-family:'DM Mono',monospace;font-size:8px;color:#A09D98;letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;">At risk</div>
+            <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:700;color:#D4810A;line-height:1;">3</div>
+            <div style="font-size:10px;color:#7A7772;margin-top:2px;">behind pace</div>
+          </div>
+          <div style="padding:12px 16px;border-right:1px solid #E2DFD9;">
+            <div style="font-family:'DM Mono',monospace;font-size:8px;color:#A09D98;letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;">Overdue items</div>
+            <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:700;color:#B83128;line-height:1;">6</div>
+            <div style="font-size:10px;color:#B83128;margin-top:2px;">need action now</div>
+          </div>
+          <div style="padding:12px 16px;border-right:1px solid #E2DFD9;">
+            <div style="font-family:'DM Mono',monospace;font-size:8px;color:#A09D98;letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;">Avg completion</div>
+            <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:700;color:#0071CE;line-height:1;">43%</div>
+            <div style="height:3px;background:#ECEAE6;margin-top:6px;"><div style="height:3px;width:43%;background:#0071CE;"></div></div>
+          </div>
+          <div style="padding:12px 16px;">
+            <div style="font-family:'DM Mono',monospace;font-size:8px;color:#A09D98;letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;">Cert gates cleared</div>
+            <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:700;color:#0D0E12;line-height:1;">3<span style="font-size:14px;color:#A09D98;font-weight:500;">/20</span></div>
+            <div style="font-size:10px;color:#7A7772;margin-top:2px;">this quarter</div>
+          </div>
+        </div>
+
+        <!-- Tab bar -->
+        <div style="display:flex;margin:0 -20px;border-top:1px solid #E2DFD9;">
+          <div onClick="{{ setTabCohort }}" style="padding:10px 20px;font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.08em;cursor:pointer;border-bottom:{{ cohortBorder }};color:{{ cohortColor }};">COHORT</div>
+          <div onClick="{{ setTabPrograms }}" style="padding:10px 20px;font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.08em;cursor:pointer;border-bottom:{{ programsBorder }};color:{{ programsColor }};">PROGRAMS</div>
+          <div onClick="{{ setTabMilestones }}" style="padding:10px 20px;font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.08em;cursor:pointer;border-bottom:{{ milestonesBorder }};color:{{ milestonesColor }};display:flex;align-items:center;gap:6px;">MILESTONES <span style="background:#B83128;color:white;font-size:7.5px;padding:1px 5px;border-radius:99px;">6</span></div>
+        </div>
+      </div>
+
+      <!-- ── BODY (scrollable) ── -->
+      <div style="flex:1;overflow-y:auto;background:#F5F4F0;">
+
+        <!-- ════ COHORT TAB ════ -->
+        <div id="tab-cohort" style="padding:20px;" class="ai">
+
+          <!-- Phase grid -->
+          <div style="background:#fff;border:1px solid #E2DFD9;overflow:hidden;margin-bottom:16px;">
+            <div style="padding:11px 16px;border-bottom:1px solid #E2DFD9;background:#F9F8F6;display:flex;align-items:center;justify-content:space-between;">
+              <div>
+                <span style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#0D0E12;">SE-I Onboarding Program</span>
+                <span style="font-family:'DM Mono',monospace;font-size:8px;color:#A09D98;letter-spacing:.1em;text-transform:uppercase;margin-left:10px;">4-phase · Weeks 1–12</span>
+              </div>
+              <button class="btn bo bxs">View plan calendar →</button>
+            </div>
+
+            <!-- Header row -->
+            <div style="display:grid;grid-template-columns:180px repeat(4,1fr) 80px;gap:1px;background:#E2DFD9;border-bottom:1px solid #E2DFD9;">
+              <div style="background:#F9F8F6;padding:8px 14px;display:flex;align-items:center;"><span style="font-family:'DM Mono',monospace;font-size:7.5px;color:#A09D98;letter-spacing:.1em;text-transform:uppercase;">SE</span></div>
+              <div style="background:#F9F8F6;padding:8px 12px;"><div style="font-family:'DM Mono',monospace;font-size:7.5px;color:#3D3C38;font-weight:500;">PHASE 1</div><div style="font-size:9px;color:#A09D98;margin-top:1px;">Foundations · Wks 1–2</div></div>
+              <div style="background:#F9F8F6;padding:8px 12px;"><div style="font-family:'DM Mono',monospace;font-size:7.5px;color:#3D3C38;font-weight:500;">PHASE 2</div><div style="font-size:9px;color:#A09D98;margin-top:1px;">Technical Depth · Wks 3–4</div></div>
+              <div style="background:#F9F8F6;padding:8px 12px;"><div style="font-family:'DM Mono',monospace;font-size:7.5px;color:#3D3C38;font-weight:500;">PHASE 3</div><div style="font-size:9px;color:#A09D98;margin-top:1px;">Field Application · Wks 5–6</div></div>
+              <div style="background:#F9F8F6;padding:8px 12px;"><div style="font-family:'DM Mono',monospace;font-size:7.5px;color:#3D3C38;font-weight:500;">PHASE 4</div><div style="font-size:9px;color:#A09D98;margin-top:1px;">Cert Gates · Ongoing</div></div>
+              <div style="background:#F9F8F6;padding:8px 12px;text-align:center;"><span style="font-family:'DM Mono',monospace;font-size:7.5px;color:#A09D98;letter-spacing:.08em;text-transform:uppercase;">Overall</span></div>
+            </div>
+
+            <!-- SE rows -->
+            <sc-for list="{{ cohortRows }}" as="row">
+            <div class="tr" onClick="{{ row.onClick }}" style="display:grid;grid-template-columns:180px repeat(4,1fr) 80px;gap:1px;background:#E2DFD9;border-bottom:1px solid #E2DFD9;cursor:pointer;transition:background 80ms;">
+              <!-- SE name -->
+              <div style="background:#fff;padding:10px 14px;display:flex;align-items:center;gap:9px;">
+                <div style="width:28px;height:28px;border-radius:50%;background:{{ row.avatarBg }};display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:9.5px;color:white;font-weight:500;flex-shrink:0;">{{ row.initials }}</div>
+                <div>
+                  <div style="font-size:12px;font-weight:500;color:#0D0E12;">{{ row.name }}</div>
+                  <div style="font-family:'DM Mono',monospace;font-size:8px;color:#A09D98;">{{ row.level }} · Day {{ row.day }}</div>
+                </div>
+              </div>
+              <!-- Phase cells -->
+              <sc-for list="{{ row.phases }}" as="ph">
+              <div style="background:{{ ph.bg }};padding:10px 12px;display:flex;flex-direction:column;justify-content:center;gap:2px;">
+                <div style="display:flex;align-items:center;gap:5px;">
+                  <span style="font-size:11px;color:{{ ph.color }};line-height:1;">{{ ph.icon }}</span>
+                  <span style="font-size:11px;font-weight:500;color:{{ ph.color }};">{{ ph.label }}</span>
+                </div>
+                <div style="font-size:9px;color:#A09D98;">{{ ph.sub }}</div>
+              </div>
+              </sc-for>
+              <!-- Overall -->
+              <div style="background:#fff;padding:10px 12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;">
+                <span style="font-family:'DM Mono',monospace;font-size:14px;font-weight:500;color:{{ row.overallColor }};">{{ row.overall }}</span>
+                <div class="pbar" style="width:56px;"><div class="pbar-fill" style="width:{{ row.overall }};background:{{ row.overallColor }};"></div></div>
+              </div>
+            </div>
+            </sc-for>
+          </div>
+
+          <!-- Phase definitions + milestones split -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <!-- Phase definitions -->
+            <div style="background:#fff;border:1px solid #E2DFD9;padding:14px 16px;">
+              <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#0D0E12;margin-bottom:12px;">Phase definitions</div>
+              <sc-for list="{{ phaseDefs }}" as="pd">
+              <div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #F0EFEB;">
+                <div style="width:28px;height:28px;background:{{ pd.bg }};border:1px solid {{ pd.border }};display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;">{{ pd.emoji }}</div>
+                <div>
+                  <div style="font-size:12px;font-weight:600;color:#0D0E12;margin-bottom:2px;">{{ pd.title }}</div>
+                  <div style="font-size:10.5px;color:#7A7772;line-height:1.5;">{{ pd.desc }}</div>
+                </div>
+              </div>
+              </sc-for>
+            </div>
+
+            <!-- Upcoming milestones (overdue focus) -->
+            <div style="background:#fff;border:1px solid #E2DFD9;">
+              <div style="padding:12px 16px;border-bottom:1px solid #E2DFD9;display:flex;align-items:center;justify-content:space-between;">
+                <div>
+                  <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#0D0E12;">Overdue milestones</div>
+                  <div style="font-size:10.5px;color:#B83128;margin-top:1px;">6 items need action now</div>
+                </div>
+                <button onClick="{{ setTabMilestones }}" class="btn bo bxs">See all →</button>
+              </div>
+              <sc-for list="{{ overdueItems }}" as="od">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 16px;border-bottom:1px solid #F0EFEB;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div style="width:32px;flex-shrink:0;text-align:center;">
+                    <div style="font-family:'DM Mono',monospace;font-size:8px;color:#B83128;font-weight:500;">{{ od.dateLabel }}</div>
+                  </div>
+                  <div>
+                    <div style="font-size:11px;font-weight:500;color:#0D0E12;">{{ od.label }}</div>
+                    <div style="font-size:9.5px;color:#A09D98;margin-top:1px;">{{ od.program }}</div>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <span style="font-family:'DM Mono',monospace;font-size:8px;background:#FEF0EE;color:#B83128;padding:2px 7px;letter-spacing:.05em;">OVERDUE</span>
+                  <button onClick="{{ od.nudge }}" class="btn bxs" style="background:#F0F7FF;color:#0071CE;border:1px solid rgba(0,113,206,.2);">Nudge</button>
+                </div>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <!-- ════ PROGRAMS TAB ════ -->
+        <div id="tab-programs" style="padding:20px;display:none;" class="ai">
+
+          <!-- Per-SE program stacks -->
+          <sc-for list="{{ sePrograms }}" as="sep">
+          <div style="margin-bottom:16px;">
+            <!-- SE header -->
+            <div onClick="{{ sep.onClick }}" style="display:flex;align-items:center;gap:10px;margin-bottom:8px;cursor:pointer;">
+              <div style="width:32px;height:32px;border-radius:50%;background:{{ sep.avatarBg }};display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:10px;color:white;font-weight:500;">{{ sep.initials }}</div>
+              <div>
+                <span style="font-size:13px;font-weight:600;color:#0D0E12;">{{ sep.name }}</span>
+                <span style="font-family:'DM Mono',monospace;font-size:9px;color:#A09D98;margin-left:8px;">{{ sep.level }} · Day {{ sep.day }}</span>
+              </div>
+              <span style="font-family:'DM Mono',monospace;font-size:8px;color:{{ sep.healthColor }};background:{{ sep.healthBg }};padding:2px 8px;margin-left:4px;letter-spacing:.06em;">{{ sep.healthLabel }}</span>
+              <span style="font-size:10px;color:#A09D98;margin-left:auto;">{{ sep.programCount }} active programs</span>
+            </div>
+            <!-- Program cards row -->
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+              <sc-for list="{{ sep.programs }}" as="prog">
+              <div style="background:#fff;border:1px solid {{ prog.borderColor }};padding:13px 14px;">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px;">
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <div style="width:8px;height:8px;border-radius:50%;background:{{ prog.typeColor }};flex-shrink:0;"></div>
+                    <span style="font-family:'DM Mono',monospace;font-size:7.5px;color:{{ prog.typeColor }};letter-spacing:.07em;text-transform:uppercase;">{{ prog.type }}</span>
+                  </div>
+                  <span style="font-family:'DM Mono',monospace;font-size:7.5px;color:{{ prog.statusColor }};background:{{ prog.statusBg }};padding:2px 6px;letter-spacing:.05em;">{{ prog.status }}</span>
+                </div>
+                <div style="font-size:12px;font-weight:600;color:#0D0E12;margin-bottom:4px;line-height:1.3;">{{ prog.name }}</div>
+                <div style="font-size:10px;color:#7A7772;margin-bottom:8px;">{{ prog.subtitle }}</div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                  <span style="font-size:9.5px;color:#6B6860;">{{ prog.pctLabel }}</span>
+                  <span style="font-family:'DM Mono',monospace;font-size:9.5px;font-weight:500;color:{{ prog.statusColor }};">{{ prog.pct }}%</span>
+                </div>
+                <div class="pbar"><div class="pbar-fill" style="width:{{ prog.pct }}%;background:{{ prog.statusColor }};"></div></div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
+                  <span style="font-size:9px;color:#A09D98;">Due {{ prog.due }}</span>
+                  <button class="btn bxs bo">Open →</button>
+                </div>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+          </sc-for>
+        </div>
+
+        <!-- ════ MILESTONES TAB ════ -->
+        <div id="tab-milestones" style="padding:20px;display:none;" class="ai">
+
+          <div style="display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:start;">
+            <!-- Main milestone list -->
+            <div>
+              <!-- Overdue section -->
+              <div style="margin-bottom:14px;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                  <div style="width:8px;height:8px;border-radius:50%;background:#B83128;" class="ap"></div>
+                  <span style="font-family:'DM Mono',monospace;font-size:8px;color:#B83128;letter-spacing:.1em;text-transform:uppercase;font-weight:500;">Overdue · 6 items</span>
+                </div>
+                <div style="background:#fff;border:1px solid rgba(184,49,40,.2);">
+                  <sc-for list="{{ milestoneOverdue }}" as="ms">
+                  <div style="display:flex;align-items:center;padding:10px 16px;border-bottom:1px solid #F0EFEB;gap:14px;">
+                    <div style="width:36px;flex-shrink:0;text-align:center;">
+                      <div style="font-family:'DM Mono',monospace;font-size:9px;color:#B83128;font-weight:500;">{{ ms.dateShort }}</div>
+                      <div style="font-family:'DM Mono',monospace;font-size:7.5px;color:#B83128;opacity:.7;">{{ ms.dayOfWeek }}</div>
+                    </div>
+                    <div style="width:1px;height:28px;background:rgba(184,49,40,.2);flex-shrink:0;"></div>
+                    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+                      <div style="width:24px;height:24px;border-radius:50%;background:{{ ms.avatarBg }};display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:8.5px;color:white;font-weight:500;flex-shrink:0;">{{ ms.initials }}</div>
+                      <span style="font-size:11px;font-weight:500;color:#0D0E12;white-space:nowrap;">{{ ms.se }}</span>
+                    </div>
+                    <div style="flex:1;">
+                      <div style="font-size:11.5px;color:#0D0E12;">{{ ms.label }}</div>
+                      <div style="font-family:'DM Mono',monospace;font-size:8.5px;color:#A09D98;margin-top:1px;">{{ ms.program }}</div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                      <button onClick="{{ ms.nudge }}" class="btn bxs" style="background:#F0F7FF;border:1px solid rgba(0,113,206,.2);color:#0071CE;">Nudge SE</button>
+                      <button onClick="{{ ms.reschedule }}" class="btn bxs bo">Reschedule</button>
+                      <button onClick="{{ ms.complete }}" class="btn bxs" style="background:#EDFAF3;border:1px solid rgba(10,110,69,.2);color:#0A6E45;">Mark done</button>
+                    </div>
+                  </div>
+                  </sc-for>
+                </div>
+              </div>
+
+              <!-- Due this week section -->
+              <div style="margin-bottom:14px;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                  <div style="width:8px;height:8px;border-radius:50%;background:#D4810A;"></div>
+                  <span style="font-family:'DM Mono',monospace;font-size:8px;color:#D4810A;letter-spacing:.1em;text-transform:uppercase;font-weight:500;">Due this week · 3 items</span>
+                </div>
+                <div style="background:#fff;border:1px solid rgba(212,129,10,.2);">
+                  <sc-for list="{{ milestonesThisWeek }}" as="ms">
+                  <div style="display:flex;align-items:center;padding:10px 16px;border-bottom:1px solid #F0EFEB;gap:14px;">
+                    <div style="width:36px;flex-shrink:0;text-align:center;">
+                      <div style="font-family:'DM Mono',monospace;font-size:9px;color:#D4810A;font-weight:500;">{{ ms.dateShort }}</div>
+                      <div style="font-family:'DM Mono',monospace;font-size:7.5px;color:#D4810A;opacity:.7;">{{ ms.dayOfWeek }}</div>
+                    </div>
+                    <div style="width:1px;height:28px;background:rgba(212,129,10,.2);flex-shrink:0;"></div>
+                    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+                      <div style="width:24px;height:24px;border-radius:50%;background:{{ ms.avatarBg }};display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:8.5px;color:white;font-weight:500;flex-shrink:0;">{{ ms.initials }}</div>
+                      <span style="font-size:11px;font-weight:500;color:#0D0E12;white-space:nowrap;">{{ ms.se }}</span>
+                    </div>
+                    <div style="flex:1;">
+                      <div style="font-size:11.5px;color:#0D0E12;">{{ ms.label }}</div>
+                      <div style="font-family:'DM Mono',monospace;font-size:8.5px;color:#A09D98;margin-top:1px;">{{ ms.program }}</div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                      <button class="btn bxs" style="background:#FFFBF0;border:1px solid rgba(212,129,10,.2);color:#D4810A;">Remind SE</button>
+                      <button class="btn bxs bo">View step</button>
+                    </div>
+                  </div>
+                  </sc-for>
+                </div>
+              </div>
+
+              <!-- Upcoming -->
+              <div>
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                  <div style="width:8px;height:8px;border-radius:50%;background:#A09D98;"></div>
+                  <span style="font-family:'DM Mono',monospace;font-size:8px;color:#A09D98;letter-spacing:.1em;text-transform:uppercase;font-weight:500;">Upcoming · next 2 weeks</span>
+                </div>
+                <div style="background:#fff;border:1px solid #E2DFD9;">
+                  <sc-for list="{{ milestonesUpcoming }}" as="ms">
+                  <div style="display:flex;align-items:center;padding:10px 16px;border-bottom:1px solid #F0EFEB;gap:14px;">
+                    <div style="width:36px;flex-shrink:0;text-align:center;">
+                      <div style="font-family:'DM Mono',monospace;font-size:9px;color:#6B6860;font-weight:500;">{{ ms.dateShort }}</div>
+                      <div style="font-family:'DM Mono',monospace;font-size:7.5px;color:#A09D98;">{{ ms.dayOfWeek }}</div>
+                    </div>
+                    <div style="width:1px;height:28px;background:#E2DFD9;flex-shrink:0;"></div>
+                    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+                      <div style="width:24px;height:24px;border-radius:50%;background:{{ ms.avatarBg }};display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:8.5px;color:white;font-weight:500;flex-shrink:0;">{{ ms.initials }}</div>
+                      <span style="font-size:11px;font-weight:500;color:#0D0E12;white-space:nowrap;">{{ ms.se }}</span>
+                    </div>
+                    <div style="flex:1;">
+                      <div style="font-size:11.5px;color:#0D0E12;">{{ ms.label }}</div>
+                      <div style="font-family:'DM Mono',monospace;font-size:8.5px;color:#A09D98;margin-top:1px;">{{ ms.program }}</div>
+                    </div>
+                    <span style="font-family:'DM Mono',monospace;font-size:8.5px;color:#A09D98;flex-shrink:0;">{{ ms.daysAway }}</span>
+                  </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: Manager sign-off queue -->
+            <div style="background:#fff;border:1px solid #E2DFD9;position:sticky;top:0;">
+              <div style="padding:12px 14px;border-bottom:1px solid #E2DFD9;background:#F9F8F6;">
+                <div style="font-family:'DM Mono',monospace;font-size:8px;color:#D4810A;letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px;">Manager sign-off queue</div>
+                <div style="font-size:11.5px;font-weight:600;color:#0D0E12;">2 items waiting on you</div>
+              </div>
+              <div style="padding:12px 14px;border-bottom:1px solid #E2DFD9;">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+                  <div style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#5a2d82,#9b44c8);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:8px;color:white;font-weight:500;">DS</div>
+                  <span style="font-size:11px;font-weight:500;color:#0D0E12;">Demo SE — Gate 1</span>
+                </div>
+                <div style="font-size:10.5px;color:#6B6860;line-height:1.5;margin-bottom:8px;">SE-I Onboarding Phase 1 completion. Demo completed all required activities. Sign off to unlock Phase 2.</div>
+                <div style="display:flex;gap:6px;">
+                  <button class="btn bxs bb" style="flex:1;justify-content:center;">Approve ✓</button>
+                  <button class="btn bxs bo">Review first</button>
+                </div>
+              </div>
+              <div style="padding:12px 14px;border-bottom:1px solid #E2DFD9;">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+                  <div style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#B83128,#7c1d1d);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:8px;color:white;font-weight:500;">FG</div>
+                  <span style="font-size:11px;font-weight:500;color:#0D0E12;">Finn — IIQ Cert submission</span>
+                </div>
+                <div style="font-size:10.5px;color:#6B6860;line-height:1.5;margin-bottom:8px;">Finn submitted IdentityIQ Admin certification. Review the submission and approve to log the cert.</div>
+                <div style="display:flex;gap:6px;">
+                  <button class="btn bxs bb" style="flex:1;justify-content:center;">Approve ✓</button>
+                  <button class="btn bxs bo">Review first</button>
+                </div>
+              </div>
+              <!-- Completed this quarter -->
+              <div style="padding:12px 14px;">
+                <div style="font-family:'DM Mono',monospace;font-size:8px;color:#0A6E45;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;">Completed this quarter</div>
+                <div style="display:flex;flex-direction:column;gap:5px;">
+                  <div style="display:flex;align-items:center;gap:8px;"><div style="width:6px;height:6px;border-radius:50%;background:#0A6E45;flex-shrink:0;"></div><span style="font-size:10.5px;color:#3D3C38;">Harper — SLED Vertical cert ✓</span></div>
+                  <div style="display:flex;align-items:center;gap:8px;"><div style="width:6px;height:6px;border-radius:50%;background:#0A6E45;flex-shrink:0;"></div><span style="font-size:10.5px;color:#3D3C38;">Gray — Phase 2 sign-off ✓</span></div>
+                  <div style="display:flex;align-items:center;gap:8px;"><div style="width:6px;height:6px;border-radius:50%;background:#0A6E45;flex-shrink:0;"></div><span style="font-size:10.5px;color:#3D3C38;">Harper — Phase 1 sign-off ✓</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /body -->
+    </div><!-- /main -->
+  </div><!-- /shell -->
+
+  <!-- ── SE PROFILE DRAWER ── -->
+  <sc-if value="{{ drawerOpen }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;inset:0;z-index:200;display:flex;justify-content:flex-end;" onClick="{{ doCloseDrawer }}">
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,.32);"></div>
+    <div onClick="{{ stopProp }}" style="position:relative;z-index:1;width:560px;height:100%;background:#fff;display:flex;flex-direction:column;box-shadow:-12px 0 48px rgba(0,0,0,.22);animation:slideIn .2s ease-out;">
+      <!-- Drawer header -->
+      <div style="background:#00143A;padding:16px 18px;flex-shrink:0;position:relative;">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#0071CE,#CC27B0);"></div>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-top:2px;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:44px;height:44px;border-radius:50%;background:{{ drawerSE.avatarBg }};display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:14px;color:white;font-weight:500;flex-shrink:0;border:2px solid rgba(255,255,255,.15);">{{ drawerSE.initials }}</div>
+            <div>
+              <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:#fff;line-height:1;">{{ drawerSE.name }}</div>
+              <div style="font-family:'DM Mono',monospace;font-size:8.5px;color:rgba(255,255,255,.45);letter-spacing:.12em;margin-top:3px;">{{ drawerSE.level }} · Day {{ drawerSE.day }} of ramp</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-family:'DM Mono',monospace;font-size:8px;color:{{ drawerSE.healthColor }};background:{{ drawerSE.healthBg }};padding:3px 9px;letter-spacing:.07em;">{{ drawerSE.healthLabel }}</span>
+            <button onClick="{{ doCloseDrawer }}" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);width:28px;height:28px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;">×</button>
+          </div>
+        </div>
+        <!-- Quick stats -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:rgba(255,255,255,.08);margin-top:14px;border:1px solid rgba(255,255,255,.08);">
+          <div style="background:rgba(0,0,0,.2);padding:8px 10px;text-align:center;">
+            <div style="font-family:'DM Mono',monospace;font-size:14px;font-weight:500;color:#fff;">{{ drawerSE.programCount }}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(255,255,255,.4);letter-spacing:.08em;margin-top:1px;">PROGRAMS</div>
+          </div>
+          <div style="background:rgba(0,0,0,.2);padding:8px 10px;text-align:center;">
+            <div style="font-family:'DM Mono',monospace;font-size:14px;font-weight:500;color:{{ drawerSE.healthColor }};">{{ drawerSE.overall }}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(255,255,255,.4);letter-spacing:.08em;margin-top:1px;">AVG PROGRESS</div>
+          </div>
+          <div style="background:rgba(0,0,0,.2);padding:8px 10px;text-align:center;">
+            <div style="font-family:'DM Mono',monospace;font-size:14px;font-weight:500;color:#B83128;">{{ drawerSE.overdueCount }}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(255,255,255,.4);letter-spacing:.08em;margin-top:1px;">OVERDUE</div>
+          </div>
+          <div style="background:rgba(0,0,0,.2);padding:8px 10px;text-align:center;">
+            <div style="font-family:'DM Mono',monospace;font-size:14px;font-weight:500;color:#0A6E45;">{{ drawerSE.certsCleared }}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(255,255,255,.4);letter-spacing:.08em;margin-top:1px;">GATES CLEARED</div>
+          </div>
+        </div>
+        <!-- Quick actions -->
+        <div style="display:flex;gap:6px;margin-top:10px;">
+          <button class="btn bxs bb" style="flex:1;justify-content:center;font-size:10px;padding:7px 10px;">Schedule 1:1</button>
+          <button class="btn bxs" style="flex:1;justify-content:center;font-size:10px;padding:7px 10px;background:#D4810A;color:white;border:none;">Nudge SE</button>
+          <button class="btn bxs bo" style="flex:1;justify-content:center;font-size:10px;padding:7px 10px;border-color:rgba(255,255,255,.2);color:rgba(255,255,255,.7);">View plan →</button>
+        </div>
+      </div>
+
+      <!-- Drawer body (scrollable) -->
+      <div style="flex:1;overflow-y:auto;background:#F5F4F0;">
+
+        <!-- Programs list -->
+        <div style="padding:14px 16px 0;">
+          <div style="font-family:'DM Mono',monospace;font-size:8px;color:#A09D98;letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px;">Active programs</div>
+          <sc-for list="{{ drawerSE.programs }}" as="prog">
+          <div style="background:#fff;border:1px solid {{ prog.borderColor }};margin-bottom:10px;">
+            <!-- Program header -->
+            <div style="padding:10px 12px;border-bottom:1px solid #F0EFEB;display:flex;align-items:center;justify-content:space-between;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div style="width:7px;height:7px;border-radius:50%;background:{{ prog.typeColor }};flex-shrink:0;"></div>
+                <span style="font-size:12px;font-weight:600;color:#0D0E12;">{{ prog.name }}</span>
+                <span style="font-family:'DM Mono',monospace;font-size:7.5px;color:{{ prog.typeColor }};letter-spacing:.06em;text-transform:uppercase;">{{ prog.type }}</span>
+              </div>
+              <span style="font-family:'DM Mono',monospace;font-size:7.5px;color:{{ prog.statusColor }};background:{{ prog.statusBg }};padding:2px 7px;letter-spacing:.05em;">{{ prog.status }}</span>
+            </div>
+            <!-- Progress bar + due -->
+            <div style="padding:8px 12px;display:flex;align-items:center;gap:12px;">
+              <div style="flex:1;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                  <span style="font-size:9.5px;color:#6B6860;">Progress</span>
+                  <span style="font-family:'DM Mono',monospace;font-size:9.5px;color:{{ prog.statusColor }};font-weight:500;">{{ prog.pct }}%</span>
+                </div>
+                <div class="pbar" style="height:4px;"><div class="pbar-fill" style="height:4px;width:{{ prog.pct }}%;background:{{ prog.statusColor }};"></div></div>
+              </div>
+              <span style="font-size:9.5px;color:#A09D98;white-space:nowrap;">Due {{ prog.due }}</span>
+            </div>
+            <!-- Step checklist -->
+            <div style="border-top:1px solid #F0EFEB;">
+              <sc-for list="{{ prog.steps }}" as="step">
+              <div style="display:flex;align-items:center;gap:9px;padding:6px 12px;border-bottom:1px solid #F9F8F6;">
+                <div style="width:16px;height:16px;border-radius:50%;background:{{ step.dotBg }};border:1.5px solid {{ step.dotBorder }};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <span style="font-size:8px;color:{{ step.dotColor }};">{{ step.check }}</span>
+                </div>
+                <span style="font-size:11px;color:{{ step.textColor }};flex:1;text-decoration:{{ step.strike }};">{{ step.label }}</span>
+                <span style="font-family:'DM Mono',monospace;font-size:8.5px;color:{{ step.dateColor }};white-space:nowrap;">{{ step.date }}</span>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+          </sc-for>
+        </div>
+
+        <!-- Activity log -->
+        <div style="padding:14px 16px;">
+          <div style="font-family:'DM Mono',monospace;font-size:8px;color:#A09D98;letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px;">Recent activity</div>
+          <sc-for list="{{ drawerSE.activity }}" as="act">
+          <div style="display:flex;gap:10px;padding:7px 0;border-bottom:1px solid #ECEAE6;">
+            <div style="width:6px;height:6px;border-radius:50%;background:{{ act.dotColor }};flex-shrink:0;margin-top:4px;"></div>
+            <div style="flex:1;">
+              <span style="font-size:11px;color:#0D0E12;">{{ act.label }}</span>
+              <span style="font-size:10px;color:#A09D98;margin-left:6px;">{{ act.program }}</span>
+            </div>
+            <span style="font-family:'DM Mono',monospace;font-size:8.5px;color:#A09D98;white-space:nowrap;">{{ act.date }}</span>
+          </div>
+          </sc-for>
+        </div>
+
+      </div><!-- /drawer body -->
+    </div>
+  </div>
+  </sc-if>
+
+</div></div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 1360, &quot;height&quot;: 968}}">
+class Component extends DCLogic {
+  state = { tab: 'cohort', drawerOpen: false, drawerSEKey: null };
+
+  getDrawerData() {
+    const s = (label, date, status) => { const done = status==='done', blocked=status==='blocked', active=status==='active'; return { label, date, dotBg: done?'#0A6E45':blocked?'#B83128':active?'#0071CE':'#F9F8F6', dotBorder: done?'#0A6E45':blocked?'#B83128':active?'#0071CE':'#D4D1CB', dotColor: done?'#fff':blocked?'#fff':active?'#fff':'#D4D1CB', check: done?'\u2713':blocked?'!':active?'\u2192':'', textColor: done?'#6B6860':blocked?'#B83128':'#0D0E12', dateColor: blocked?'#B83128':'#A09D98', strike: done?'line-through':'none' }; };
+    const a = (label, program, date, dotColor) => ({ label, program, date, dotColor });
+    return {
+      GH: {
+        name:'Gray Hayes', initials:'GH', level:'Senior SE', day:45, avatarBg:'linear-gradient(135deg,#1a5c8a,#0071CE)',
+        healthLabel:'ON PACE', healthColor:'#0A6E45', healthBg:'rgba(10,110,69,.15)',
+        programCount:4, overall:'62%', overdueCount:0, certsCleared:1,
+        programs:[
+          { name:'90-Day Ramp', type:'Onboarding', typeColor:'#0071CE', pct:62, status:'On track', statusColor:'#0071CE', statusBg:'rgba(0,113,206,.08)', due:'Sep 30', borderColor:'#E2DFD9',
+            steps:[ s('Product overview & ISC basics','Jul 1','done'), s('Sales motion & IGA landscape','Jul 3','done'), s('Demo env setup','Jul 8','done'), s('ISC lab environment','Jul 14','active'), s('Technical challenges practice','Jul 18','upcoming'), s('Discovery sims','Jul 25','upcoming') ] },
+          { name:'IdentityIQ Admin Cert', type:'Certification', typeColor:'#0A6E45', pct:35, status:'In progress', statusColor:'#0A6E45', statusBg:'rgba(10,110,69,.08)', due:'Aug 15', borderColor:'#E2DFD9',
+            steps:[ s('IIQ fundamentals module','Jul 5','done'), s('Admin lab','Jul 10','done'), s('Policy configuration','Jul 14','active'), s('Certification exam','Aug 1','upcoming'), s('Manager sign-off','Aug 15','upcoming') ] },
+        ],
+        activity:[ a('Completed ISC lab environment setup','90-Day Ramp','Jul 8','#0A6E45'), a('Attended SLED team meet-and-greet','90-Day Ramp','Jul 7','#0A6E45'), a('Started IIQ admin lab','IIQ Cert','Jul 10','#0071CE') ],
+      },
+      HI: {
+        name:'Harper Ivan', initials:'HI', level:'Advisory SE', day:68, avatarBg:'linear-gradient(135deg,#0A6E45,#14a065)',
+        healthLabel:'AHEAD', healthColor:'#0071CE', healthBg:'rgba(0,113,206,.15)',
+        programCount:3, overall:'78%', overdueCount:0, certsCleared:2,
+        programs:[
+          { name:'90-Day Ramp', type:'Onboarding', typeColor:'#0071CE', pct:78, status:'Ahead of pace', statusColor:'#0071CE', statusBg:'rgba(0,113,206,.08)', due:'Sep 30', borderColor:'#E2DFD9',
+            steps:[ s('Phase 1 Foundations','Jun 28','done'), s('Phase 2 Technical Depth','Jul 5','done'), s('Phase 3 Field Application','Jul 14','active'), s('Phase 4 Cert Gates','Sep 1','upcoming') ] },
+          { name:'IdentityIQ Admin Cert', type:'Certification', typeColor:'#0A6E45', pct:65, status:'On track', statusColor:'#0A6E45', statusBg:'rgba(10,110,69,.08)', due:'Aug 15', borderColor:'#E2DFD9',
+            steps:[ s('IIQ fundamentals','Jun 30','done'), s('Admin lab','Jul 6','done'), s('Policy config','Jul 11','done'), s('Cert exam','Aug 1','upcoming'), s('Manager sign-off','Aug 15','upcoming') ] },
+        ],
+        activity:[ a('Completed Phase 2 sign-off','90-Day Ramp','Jul 5','#0A6E45'), a('Passed IIQ policy config','IIQ Cert','Jul 11','#0A6E45'), a('Started Field Application phase','90-Day Ramp','Jul 14','#0071CE') ],
+      },
+      DS: {
+        name:'Demo SE', initials:'DS', level:'Basic SE', day:22, avatarBg:'linear-gradient(135deg,#5a2d82,#9b44c8)',
+        healthLabel:'CRITICAL', healthColor:'#B83128', healthBg:'rgba(184,49,40,.15)',
+        programCount:3, overall:'12%', overdueCount:4, certsCleared:0,
+        programs:[
+          { name:'90-Day Ramp', type:'Onboarding', typeColor:'#B83128', pct:12, status:'Critical', statusColor:'#B83128', statusBg:'rgba(184,49,40,.08)', due:'Sep 30', borderColor:'rgba(184,49,40,.3)',
+            steps:[ s('SLED & FED team meet-and-greet','Jul 9','blocked'), s('SailPoint tools overview','Jul 9','blocked'), s('Start shadowing SE meetings','Jul 13','blocked'), s('Demo env setup','Jul 18','upcoming'), s('ISC lab environment','Jul 22','upcoming') ] },
+          { name:'IdentityNow Basics', type:'Certification', typeColor:'#D4810A', pct:0, status:'Not started', statusColor:'#D4810A', statusBg:'rgba(212,129,10,.08)', due:'Sep 1', borderColor:'#E2DFD9',
+            steps:[ s('IdentityNow fundamentals','Jul 20','upcoming'), s('SaaS configuration basics','Jul 28','upcoming'), s('Integration lab','Aug 5','upcoming') ] },
+        ],
+        activity:[ a('Day 22 no activity logged this week','90-Day Ramp','Jul 13','#B83128'), a('Missed SLED meet-and-greet','90-Day Ramp','Jul 9','#B83128'), a('Enrolled in 90-Day Ramp','90-Day Ramp','Jun 21','#A09D98') ],
+      },
+      FG: {
+        name:'Finn Grant', initials:'FG', level:'Basic SE', day:22, avatarBg:'linear-gradient(135deg,#B83128,#7c1d1d)',
+        healthLabel:'BEHIND', healthColor:'#D4810A', healthBg:'rgba(212,129,10,.15)',
+        programCount:2, overall:'18%', overdueCount:4, certsCleared:0,
+        programs:[
+          { name:'90-Day Ramp', type:'Onboarding', typeColor:'#D4810A', pct:18, status:'Behind pace', statusColor:'#D4810A', statusBg:'rgba(212,129,10,.08)', due:'Sep 30', borderColor:'rgba(212,129,10,.3)',
+            steps:[ s('SailPoint tools overview','Jul 9','blocked'), s('Slack communication setup','Jul 10','blocked'), s('DemoHub submission','Jul 11','blocked'), s('Booking travel guidelines','Jul 12','blocked'), s('ISC lab environment','Jul 20','upcoming') ] },
+          { name:'IdentityIQ Admin Cert', type:'Certification', typeColor:'#A09D98', pct:0, status:'Not started', statusColor:'#A09D98', statusBg:'#F9F8F6', due:'Oct 15', borderColor:'#E2DFD9',
+            steps:[ s('IIQ fundamentals','Aug 1','upcoming'), s('Admin lab','Aug 10','upcoming'), s('Cert exam','Oct 1','upcoming') ] },
+        ],
+        activity:[ a('4 overdue milestones no completion logged','90-Day Ramp','Jul 13','#B83128'), a('Enrolled in 90-Day Ramp','90-Day Ramp','Jun 21','#A09D98') ],
+      },
+    };
+  }
+
+  componentDidMount() {
+    const scale = () => {
+      const root = document.getElementById('cr');
+      const outer = document.getElementById('co');
+      if (!root || !outer) return;
+      const r = outer.clientWidth / 1360;
+      root.style.transform = 'scale(' + r + ')';
+      outer.style.height = (920 * r + 64) + 'px';
+    };
+    scale();
+    window.addEventListener('resize', scale);
+
+    const switchTab = (t) => {
+      ['cohort','programs','milestones'].forEach(name => {
+        const el = document.getElementById('tab-' + name);
+        if (el) el.style.display = name === t ? 'block' : 'none';
+      });
+    };
+    document.body.addEventListener('click', (e) => {
+      const tab = e.target.closest('[data-tab]');
+      if (tab) { this.setState({ tab: tab.dataset.tab }); switchTab(tab.dataset.tab); }
+    }, true);
+    setTimeout(() => switchTab('cohort'), 80);
+  }
+
+  renderVals() {
+    const { tab } = this.state;
+    const c = '#0071CE', a = '#D4810A', r = '#B83128', g = '#0A6E45';
+
+    const doOpenDrawer = (key) => () => this.setState({ drawerOpen: true, drawerSEKey: key }); // v2
+    const doCloseDrawer = () => this.setState({ drawerOpen: false });
+
+    const tabStyle = (t) => ({ border: tab===t ? '2px solid #0071CE' : '2px solid transparent', color: tab===t ? '#0071CE' : '#A09D98' });
+
+    // Cohort rows
+    const phaseCell = (status) => {
+      const S = {
+        complete: { bg:'#EDFAF3', color:'#0A6E45', icon:'✓', label:'Complete', sub:'Signed off' },
+        active:   { bg:'#F0F7FF', color:'#0071CE', icon:'→', label:'In progress', sub:'On track' },
+        blocked:  { bg:'#FEF0EE', color:'#B83128', icon:'!', label:'Blocked', sub:'Needs help' },
+        upcoming: { bg:'#F9F8F6', color:'#A09D98', icon:'○', label:'Upcoming', sub:'' },
+      };
+      return S[status] || S.upcoming;
+    };
+
+    const cohortRows = [
+      { initials:'GH', name:'Gray Hayes',   level:'Senior', day:45, avatarBg:'linear-gradient(135deg,#1a5c8a,#0071CE)', overall:'62%', overallColor: c, onClick: doOpenDrawer('GH'), phases:[phaseCell('complete'),phaseCell('active'),phaseCell('upcoming'),phaseCell('upcoming')] },
+      { initials:'HI', name:'Harper Ivan',  level:'Advisory',day:68, avatarBg:'linear-gradient(135deg,#0A6E45,#14a065)', overall:'78%', overallColor: c, onClick: doOpenDrawer('HI'), phases:[phaseCell('complete'),phaseCell('complete'),phaseCell('active'),phaseCell('upcoming')] },
+      { initials:'DS', name:'Demo SE',      level:'Basic',  day:22, avatarBg:'linear-gradient(135deg,#5a2d82,#9b44c8)', overall:'12%', overallColor: r, onClick: doOpenDrawer('DS'), phases:[phaseCell('blocked'),phaseCell('upcoming'),phaseCell('upcoming'),phaseCell('upcoming')] },
+      { initials:'FG', name:'Finn Grant',   level:'Basic',  day:22, avatarBg:'linear-gradient(135deg,#B83128,#7c1d1d)',  overall:'18%', overallColor: a, onClick: doOpenDrawer('FG'), phases:[phaseCell('active'),phaseCell('upcoming'),phaseCell('upcoming'),phaseCell('upcoming')] },
+    ];
+
+    const phaseDefs = [
+      { emoji:'📚', bg:'#F0F7FF', border:'rgba(0,113,206,.15)', title:'Phase 1 — Foundations (Wks 1–2)', desc:'Product overview · ISC basics · Sales motion · IGA landscape' },
+      { emoji:'⚙️', bg:'#F0FDF7', border:'rgba(10,110,69,.15)',   title:'Phase 2 — Technical Depth (Wks 3–4)', desc:'Demo env setup · ISC lab · Technical challenges · Architecture' },
+      { emoji:'🎯', bg:'#FFF7ED', border:'rgba(212,129,10,.15)',  title:'Phase 3 — Field Application (Wks 5–6)', desc:'Discovery sims · Deal prep · Objection handling · SLED/ENT verticals' },
+      { emoji:'🏆', bg:'#EDFAF3', border:'rgba(10,110,69,.15)',   title:'Phase 4 — Cert Gates (Ongoing)', desc:'Solo discovery · Executive demo · Competitive bakeoff · Manager sign-off' },
+    ];
+
+    const mkOD = (dateShort, dayOfWeek, se, initials, avatarBg, label, program) => ({ dateShort, dayOfWeek, dateLabel: dateShort, se, initials, avatarBg, label, program, nudge:()=>{}, reschedule:()=>{}, complete:()=>{} });
+    const overdueItems = [
+      mkOD('Jul 9',  'Wed','Demo SE',    'DS','linear-gradient(135deg,#5a2d82,#9b44c8)','SLED & FED team meet-and-greet',     'SE-I Onboarding · Phase 1'),
+      mkOD('Jul 9',  'Wed','Finn Grant', 'FG','linear-gradient(135deg,#B83128,#7c1d1d)', 'SailPoint tools overview',            'SE-I Onboarding · Phase 1'),
+      mkOD('Jul 10', 'Thu','Finn Grant', 'FG','linear-gradient(135deg,#B83128,#7c1d1d)', 'Slack communication setup',           'SE-I Onboarding · Phase 1'),
+      mkOD('Jul 11', 'Fri','Finn Grant', 'FG','linear-gradient(135deg,#B83128,#7c1d1d)', 'DemoHub submission & management',     'SE-I Onboarding · Phase 1'),
+      mkOD('Jul 12', 'Sat','Finn Grant', 'FG','linear-gradient(135deg,#B83128,#7c1d1d)', 'Booking travel guidelines',           'SE-I Onboarding · Phase 1'),
+      mkOD('Jul 13', 'Sun','Demo SE',    'DS','linear-gradient(135deg,#5a2d82,#9b44c8)','Start shadowing SE meetings',         'SE-I Onboarding · Phase 2'),
+    ];
+
+    // SE Programs tab data
+    const mkProg = (name, subtitle, type, typeColor, pct, status, statusColor, statusBg, due, borderColor) => ({ name, subtitle, type, typeColor, pct, status, statusColor, statusBg, due, borderColor, pctLabel: 'Progress' });
+    const sePrograms = [
+      { initials:'GH', name:'Gray Hayes', level:'Senior SE', day:45, avatarBg:'linear-gradient(135deg,#1a5c8a,#0071CE)', healthLabel:'ON PACE', healthColor:g, healthBg:'rgba(10,110,69,.1)', programCount:4,
+        programs:[
+          mkProg('90-Day Ramp','SE-I Onboarding Program','Onboarding',c,62,'On track',c,'rgba(0,113,206,.08)','Sep 30','#E2DFD9'),
+          mkProg('IdentityIQ Admin Cert','Core certification track','Certification',g,35,'In progress',g,'rgba(10,110,69,.08)','Aug 15','#E2DFD9'),
+          mkProg('SLED Vertical Track','Specialization program','Specialization','#CC27B0',20,'In progress','#CC27B0','rgba(204,39,176,.08)','Oct 1','#E2DFD9'),
+          mkProg('Q3 Dev Goals','Annual development plan','Dev Plan',a,50,'On track',a,'rgba(212,129,10,.08)','Sep 29','#E2DFD9'),
+        ]},
+      { initials:'HI', name:'Harper Ivan',  level:'Advisory SE', day:68, avatarBg:'linear-gradient(135deg,#0A6E45,#14a065)', healthLabel:'AHEAD', healthColor:c, healthBg:'rgba(0,113,206,.1)', programCount:3,
+        programs:[
+          mkProg('90-Day Ramp','SE-I Onboarding Program','Onboarding',c,78,'Ahead',c,'rgba(0,113,206,.08)','Sep 30','#E2DFD9'),
+          mkProg('IdentityIQ Admin Cert','Core certification track','Certification',g,65,'On track',g,'rgba(10,110,69,.08)','Aug 15','#E2DFD9'),
+          mkProg('Q3 Dev Goals','Annual development plan','Dev Plan',g,70,'On track',g,'rgba(10,110,69,.08)','Sep 29','#E2DFD9'),
+        ]},
+      { initials:'DS', name:'Demo SE',      level:'Basic SE',    day:22, avatarBg:'linear-gradient(135deg,#5a2d82,#9b44c8)', healthLabel:'CRITICAL', healthColor:r, healthBg:'rgba(184,49,40,.12)', programCount:3,
+        programs:[
+          mkProg('90-Day Ramp','SE-I Onboarding Program','Onboarding',r,12,'Critical',r,'rgba(184,49,40,.08)','Sep 30','rgba(184,49,40,.3)'),
+          mkProg('IdentityNow Basics','Core certification track','Certification',a,0,'Not started',a,'rgba(212,129,10,.08)','Sep 1','#E2DFD9'),
+          mkProg('Q3 Dev Goals','Annual development plan','Dev Plan',a,15,'At risk',a,'rgba(212,129,10,.08)','Sep 29','#E2DFD9'),
+        ]},
+      { initials:'FG', name:'Finn Grant',   level:'Basic SE',    day:22, avatarBg:'linear-gradient(135deg,#B83128,#7c1d1d)',  healthLabel:'BEHIND',   healthColor:a, healthBg:'rgba(212,129,10,.1)',  programCount:2,
+        programs:[
+          mkProg('90-Day Ramp','SE-I Onboarding Program','Onboarding',a,18,'Behind',a,'rgba(212,129,10,.08)','Sep 30','rgba(212,129,10,.25)'),
+          mkProg('IdentityIQ Admin Cert','Core certification track','Certification',a,0,'Not started',a,'rgba(212,129,10,.08)','Oct 15','#E2DFD9'),
+        ]},
+    ];
+
+    const drawerSE = this.getDrawerData()[this.state.drawerSEKey] || this.getDrawerData()['GH'];
+
+    const mkMs = (dateShort, dayOfWeek, se, initials, avatarBg, label, program, daysAway) => ({ dateShort, dayOfWeek, se, initials, avatarBg, label, program, daysAway: daysAway||'', nudge:()=>{}, reschedule:()=>{} });
+
+    const milestoneOverdue = overdueItems;
+    const milestonesThisWeek = [
+      mkMs('Jul 14','Mon','Gray Hayes','GH','linear-gradient(135deg,#1a5c8a,#0071CE)','ISC lab environment setup','90-Day Ramp · Phase 2'),
+      mkMs('Jul 15','Tue','Demo SE',   'DS','linear-gradient(135deg,#5a2d82,#9b44c8)','Complete product overview module','90-Day Ramp · Phase 1'),
+      mkMs('Jul 16','Wed','Finn Grant','FG','linear-gradient(135deg,#B83128,#7c1d1d)', 'First 1:1 with mentor','90-Day Ramp · Phase 1'),
+    ];
+    const milestonesUpcoming = [
+      mkMs('Jul 18','Fri','Harper Ivan','HI','linear-gradient(135deg,#0A6E45,#14a065)','Phase 3 kickoff — discovery sims start','90-Day Ramp · Phase 3','in 5d'),
+      mkMs('Jul 21','Mon','Gray Hayes', 'GH','linear-gradient(135deg,#1a5c8a,#0071CE)','IdentityIQ cert study group','IIQ Admin Cert','in 8d'),
+      mkMs('Jul 22','Tue','Demo SE',    'DS','linear-gradient(135deg,#5a2d82,#9b44c8)','Gate 1 assessment due','90-Day Ramp · Phase 1 gate','in 9d'),
+      mkMs('Jul 24','Thu','Finn Grant', 'FG','linear-gradient(135deg,#B83128,#7c1d1d)', 'SailPoint competitive positioning training','SLED Track','in 11d'),
+      mkMs('Jul 25','Fri','Harper Ivan','HI','linear-gradient(135deg,#0A6E45,#14a065)','Q3 dev plan mid-point review','Q3 Dev Goals','in 12d'),
+    ];
+
+    return {
+      // Tab state
+      cohortBorder:    tab==='cohort'     ? '2px solid #0071CE' : '2px solid transparent',
+      cohortColor:     tab==='cohort'     ? '#0071CE' : '#A09D98',
+      programsBorder:  tab==='programs'   ? '2px solid #0071CE' : '2px solid transparent',
+      programsColor:   tab==='programs'   ? '#0071CE' : '#A09D98',
+      milestonesBorder:tab==='milestones' ? '2px solid #0071CE' : '2px solid transparent',
+      milestonesColor: tab==='milestones' ? '#0071CE' : '#A09D98',
+      setTabCohort:    () => { this.setState({tab:'cohort'});     const e=document.getElementById('tab-cohort');     const p=document.getElementById('tab-programs'); const m=document.getElementById('tab-milestones'); if(e){e.style.display='block';} if(p){p.style.display='none';} if(m){m.style.display='none';} },
+      setTabPrograms:  () => { this.setState({tab:'programs'});   const e=document.getElementById('tab-cohort');     const p=document.getElementById('tab-programs'); const m=document.getElementById('tab-milestones'); if(e){e.style.display='none';} if(p){p.style.display='block';} if(m){m.style.display='none';} },
+      setTabMilestones:() => { this.setState({tab:'milestones'}); const e=document.getElementById('tab-cohort');     const p=document.getElementById('tab-programs'); const m=document.getElementById('tab-milestones'); if(e){e.style.display='none';} if(p){p.style.display='none';} if(m){m.style.display='block';} },
+
+      // Data
+      cohortRows, phaseDefs, overdueItems,
+      sePrograms: sePrograms.map(s => ({ ...s, onClick: doOpenDrawer(s.initials) })),
+      milestoneOverdue, milestonesThisWeek, milestonesUpcoming,
+      setCohortFilter: () => {},
+
+      // Drawer
+      drawerOpen: this.state.drawerOpen,
+      drawerSE,
+      doCloseDrawer,
+      closeDrawerBg: doCloseDrawer,
+      stopProp: (e) => e.stopPropagation(),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

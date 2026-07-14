@@ -3,6 +3,7 @@
 import { Loader2, Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { AdminStatStrip } from "@/components/admin/admin-ui-primitives";
 import { allowedEmailDomainsLabel } from "@/lib/auth/email-domain";
 import { avatarGradientForId } from "@/lib/se/avatar-gradients";
 import { Button } from "@/components/ui/button";
@@ -121,6 +122,15 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  }, [managerFilter, managerNameById, levelFilter, roleFilter, search, users]);
 
  const { rows, page: safePage, pageCount } = paginate(filteredUsers, page, PAGE_SIZE);
+
+ const userStats = useMemo(() => {
+  const seCount = users.filter((u) =>
+    ["basic_se", "senior_se", "advisory_solutions_consultant"].includes(u.role),
+  ).length;
+  const managerCount = users.filter((u) => ["manager", "director", "mentor"].includes(u.role)).length;
+  const adminCount = users.filter((u) => u.role === "admin").length;
+  return { total: users.length, seCount, managerCount, adminCount };
+ }, [users]);
 
  useEffect(() => {
  setPage(1);
@@ -275,15 +285,21 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  }
 
  return (
- <div className="space-y-6">
+ <div className="space-y-4">
+ <AdminStatStrip
+  items={[
+   { label: "Total users", value: userStats.total },
+   { label: "Active SEs", value: userStats.seCount },
+   { label: "Managers", value: userStats.managerCount },
+   { label: "Admins", value: userStats.adminCount },
+  ]}
+ />
+
  <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
- <div>
- <h2 className="text-lg font-bold text-sp-navy">People & hierarchy</h2>
- <p className="text-sm text-sp-navy-muted">Create accounts, assign managers, and set SE roles.</p>
- </div>
+ <div />
  <Button onClick={startCreate}>
  <Plus className="h-4 w-4" />
- New user
+ Invite user
  </Button>
  </div>
 

@@ -223,6 +223,7 @@ export const competencies: Competency[] = [
 export const plans: UserPlan[] = [
   {
     id: "plan-alex",
+    planTemplateId: "template-alex",
     userId: "alex",
     mentorId: "sam",
     name: "Basic SE 90-Day Identity Security Ramp",
@@ -271,6 +272,7 @@ export const plans: UserPlan[] = [
   },
   {
     id: "plan-jordan",
+    planTemplateId: "template-jordan",
     userId: "jordan",
     mentorId: "sam",
     name: "Senior SE Advisory Readiness",
@@ -299,6 +301,7 @@ export const plans: UserPlan[] = [
   },
   {
     id: "plan-casey",
+    planTemplateId: "template-casey",
     userId: "casey",
     mentorId: "jordan",
     name: "Foundational Demo Readiness",

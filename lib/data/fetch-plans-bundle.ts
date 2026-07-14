@@ -16,7 +16,7 @@ export async function fetchPlansBundle(
 ): Promise<UserPlan[]> {
   let query = supabase.from("plan_assignments").select("user_id");
   if (tenantId) {
-    query = query.eq("tenant_id", tenantId);
+    query = query.or(`tenant_id.eq.${tenantId},tenant_id.is.null`);
   }
   const { data: assignments } = await query;
   const userIds = [...new Set((assignments ?? []).map((row) => row.user_id))];
@@ -34,7 +34,8 @@ export async function fetchPlansForUsers(
 
   let assignmentsQuery = supabase.from("plan_assignments").select("*").in("user_id", userIds);
   if (tenantId) {
-    assignmentsQuery = assignmentsQuery.eq("tenant_id", tenantId);
+    // Include legacy rows missing tenant_id for users already scoped to this tenant.
+    assignmentsQuery = assignmentsQuery.or(`tenant_id.eq.${tenantId},tenant_id.is.null`);
   }
   const { data: assignmentsRaw } = await assignmentsQuery;
 
@@ -119,6 +120,7 @@ export async function fetchPlansForUsers(
 
     return {
       id: assignment.id,
+      planTemplateId: assignment.plan_id,
       userId: assignment.user_id,
       mentorId: assignment.mentor_id,
       name: template?.name ?? "Onboarding plan",

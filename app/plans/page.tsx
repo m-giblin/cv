@@ -4,7 +4,7 @@ import { AppShell } from "@/components/app-shell";
 import { DataSourceBanner } from "@/components/data-source-banner";
 import { ManagerPageLayout } from "@/components/manager/manager-page-layout";
 import { AssignPlansWorkspace } from "@/components/plans/assign-plans-workspace";
-import { getAccessTier } from "@/lib/auth/rbac";
+import { getAccessTier, managerTeamDataTier } from "@/lib/auth/rbac";
 import { requireAppAccess } from "@/lib/auth/require-access";
 
 const PlanManagementPanel = dynamic(
@@ -24,8 +24,10 @@ const ReleaseLaunchAnalytics = dynamic(
 export default async function PlansPage() {
   const { data, source, tier, role } = await requireAppAccess("/plans");
 
+  const teamTier = managerTeamDataTier(tier);
+
   const assignees =
-    tier === "admin"
+    teamTier === "admin"
       ? data.profiles.filter((profile) => getAccessTier(profile.role) === "se")
       : data.myOrg;
 
@@ -36,9 +38,9 @@ export default async function PlansPage() {
   );
 
   const visiblePlans =
-    tier === "admin" ? data.plans : data.plans.filter((plan) => data.myOrg.some((p) => p.id === plan.userId));
+    teamTier === "admin" ? data.plans : data.plans.filter((plan) => data.myOrg.some((p) => p.id === plan.userId));
 
-  const isManagerView = tier === "manager" || tier === "admin";
+  const isManagerView = teamTier === "manager" || tier === "admin";
 
   return (
     <AppShell contentWidth="wide" currentUser={data.currentUser} notifications={data.notifications}>

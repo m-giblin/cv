@@ -1,16 +1,19 @@
 import { NextResponse } from "next/server";
 import { requireManagerSession } from "@/lib/auth/require-manager";
 import { buildManagerCoachingQuality } from "@/lib/coaching/manager-quality";
+import { uniqueIds } from "@/lib/utils";
 
 export async function GET(request: Request) {
   const session = await requireManagerSession();
   if (session instanceof NextResponse) return session;
 
   const params = new URL(request.url).searchParams;
-  const orgIds = (params.get("orgIds") ?? "")
-    .split(",")
-    .map((id) => id.trim())
-    .filter(Boolean);
+  const orgIds = uniqueIds(
+    (params.get("orgIds") ?? "")
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean),
+  );
 
   let managerIds: string[] = [];
   if (params.get("managerId")) {
