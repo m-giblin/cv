@@ -10,9 +10,8 @@ import { ManagerActionInbox } from "@/components/manager/manager-action-inbox";
 import { ManagerCoachingCadencePanel } from "@/components/manager/manager-coaching-cadence-panel";
 import { ManagerCommandCenter } from "@/components/manager/manager-command-center";
 import { ManagerAssignPlansSection } from "@/components/manager/manager-assign-plans-section";
-import { ManagerPlanAssignPanel } from "@/components/manager/manager-plan-assign-panel";
 import { ManagerProgramTrackerPanel } from "@/components/manager/manager-program-tracker-panel";
-import { ManagerReadinessPanel } from "@/components/manager/manager-readiness-panel";
+import { ReadinessMap } from "@/components/manager/readiness-map";
 import {
  ManagerSeDetailPanel,
  type SeManagerSnapshot,
@@ -366,7 +365,7 @@ export function ManagerPageShell({
  break;
  case "roster":
  content = (
- <div className="animate-[fadeUp_0.2s_ease-out] space-y-4">
+ <div className="animate-[fadeUp_0.2s_ease-out]">
  <ManagerTeamRoster
  coachingByUser={coachingByUser}
  onSelectProfile={openProfile}
@@ -374,16 +373,13 @@ export function ManagerPageShell({
  plans={plans}
  selectedProfileId={selectedProfileId}
  />
- <div className="border border-[#E2DFD9] bg-white p-4 ">
- <ManagerPlanAssignPanel assignees={assignees} mentors={mentors} plans={plans} />
- </div>
  </div>
  );
  break;
  case "readiness":
  content = (
  <div className="animate-[fadeUp_0.2s_ease-out]">
- <ManagerReadinessPanel />
+ <ReadinessMap onOpenProfile={openProfile} />
  </div>
  );
  break;
@@ -404,13 +400,7 @@ export function ManagerPageShell({
  case "cadence":
  content = (
  <div className="animate-[fadeUp_0.2s_ease-out]">
- <ManagerCoachingCadencePanel
- coachingByUser={coachingByUser}
- onSelectSe={openProfile}
- org={org}
- plans={plans}
- rows={cadenceRows}
- />
+ <ManagerCoachingCadencePanel org={org} />
  </div>
  );
  break;
@@ -420,7 +410,16 @@ export function ManagerPageShell({
  case "program":
  content = (
  <div className="animate-[fadeUp_0.2s_ease-out]">
- <ManagerProgramTrackerPanel org={org} plans={plans} />
+ <ManagerProgramTrackerPanel
+ org={org}
+ plans={plans}
+ coachingByUser={coachingByUser}
+ approvedCertCountByUser={approvedCertCountByUser}
+ developmentPlans={developmentPlans}
+ activity={activity}
+ planSteps={planSteps}
+ certReviewItems={certReviewItems}
+ />
  </div>
  );
  break;
@@ -443,17 +442,19 @@ export function ManagerPageShell({
  content = (
  <ManagerCommandCenter
  approvedCertCountByUser={approvedCertCountByUser}
+ activity={activity}
  averageProgress={averageProgress}
  cadenceRows={cadenceRows}
  certReviewItems={certReviewItems}
  challengeTotalByUser={challengeTotalByUser}
  coachingByUser={coachingByUser}
  developmentPlans={developmentPlans}
- managerFirstName={managerFirstName}
+ leaderboardEntries={leaderboardEntries}
  onSelectProfile={openProfile}
  pendingCertCount={pendingCertCount}
  planStepCount={planSteps.length}
  plans={plans}
+ profiles={profiles}
  readinessRows={readinessRows}
  reviewCount={reviewCount}
  reviewedChallengeCountByUser={reviewedChallengeCountByUser}
@@ -470,8 +471,11 @@ export function ManagerPageShell({
  return (
  <>
  <ManagerPageLayout
+ bleed={header.bleed}
+ compact={header.compact}
  eyebrow={header.eyebrow}
  eyebrowColor={header.eyebrowColor}
+ headerRight={undefined}
  subtitle={header.subtitle}
  title={header.title}
  >

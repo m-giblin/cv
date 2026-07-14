@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html,body{height:100%;font-family:'DM Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased;background:#DEDAD4;}
+    ::-webkit-scrollbar{width:3px;height:3px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:rgba(0,0,0,.1);}
+    .ms::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);}
+    .qrow{cursor:pointer;transition:background 80ms,border-color 80ms;}
+    .qrow:hover{background:#F0EFEB!important;}
+    .qrow.sel{background:#F0F7FF!important;border-left-color:#0071CE!important;}
+    .btn{display:inline-flex;align-items:center;gap:5px;border:none;font-size:11px;font-weight:600;cursor:pointer;line-height:1;font-family:'DM Sans',sans-serif;letter-spacing:.01em;transition:background 100ms;}
+    .bn{background:#00143A;color:white;padding:8px 14px;}
+    .bb{background:#0071CE;color:white;padding:8px 14px;}
+    .bo{background:transparent;color:#3D3C38;border:1px solid #D4D1CB;padding:7px 12px;}
+    .bsm{font-size:10px!important;padding:5px 10px!important;}
+    .bxs{font-size:9px!important;padding:3px 8px!important;}
+    .ni{display:flex;align-items:center;gap:8px;padding:5px 14px 5px 16px;font-size:11.5px;font-weight:500;border-left:2px solid transparent;cursor:pointer;user-select:none;transition:background 80ms,color 80ms;}
+    .na{background:rgba(255,255,255,.06);color:#fff!important;border-left-color:#0071CE;}
+    .no{color:rgba(255,255,255,.62);}.no:hover{background:rgba(255,255,255,.05);color:rgba(255,255,255,.9);}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}.ai{animation:fadeUp .22s ease-out;}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.15}}.lp{animation:pulse 2.4s ease-in-out infinite;}
+    @keyframes alertPulse{0%,100%{opacity:1}50%{opacity:.6}}.ap{animation:alertPulse 2.8s ease-in-out infinite;}
+    @keyframes barGrow{from{width:0}to{}}.bg-anim{animation:barGrow .6s ease-out;}
+  </style>
+</helmet>
+
+<div id="co" style="width:100%;overflow:hidden;">
+<div id="cr" style="width:1360px;transform-origin:top left;padding:24px 28px 40px;">
+
+  <div style="margin-bottom:14px;">
+    <p style="font-family:'DM Mono',monospace;font-size:9.5px;color:#7A7772;letter-spacing:.1em;text-transform:uppercase;">Coaching Cadence · Manager view · Command center</p>
+  </div>
+
+  <div style="border:1px solid rgba(0,0,0,.15);overflow:hidden;display:flex;height:940px;background:#F5F4F0;box-shadow:0 24px 70px rgba(0,0,0,.2);">
+
+    <!-- ── SIDEBAR ── -->
+    <aside style="width:214px;flex-shrink:0;background:#00143A;display:flex;flex-direction:column;overflow:hidden;position:relative;">
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#0071CE,#CC27B0);z-index:2;"></div>
+      <div style="position:relative;z-index:1;display:flex;flex-direction:column;height:100%;padding-top:2px;">
+        <div style="padding:16px 16px 13px;border-bottom:1px solid rgba(255,255,255,.06);">
+          <div style="display:flex;align-items:center;gap:9px;">
+            <svg width="17" height="17" viewBox="0 0 20 20" fill="none"><path d="M10.5 2C10.5 2 16.5 6 16.5 13H10.5V2Z" fill="white"/><path d="M10.5 5C10.5 5 4.5 8 4.5 13H10.5V5Z" fill="rgba(255,255,255,0.32)"/><path d="M3 14.5H17" stroke="white" stroke-width="1.5" stroke-linecap="square"/></svg>
+            <div>
+              <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#fff;">SailPoint</div>
+              <div style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(255,255,255,.2);letter-spacing:.14em;">MANAGER</div>
+            </div>
+          </div>
+        </div>
+        <div style="flex:1;overflow-y:auto;padding:10px 0;" class="ms">
+          <div style="padding:8px 16px 3px;"><span style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(255,255,255,.38);letter-spacing:.16em;">COMMAND</span></div>
+          <div class="no ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" style="flex-shrink:0;opacity:.65;"><rect x="1.5" y="1.5" width="5.5" height="5.5" rx=".5"/><rect x="9" y="1.5" width="5.5" height="5.5" rx=".5"/><rect x="1.5" y="9" width="5.5" height="5.5" rx=".5"/><rect x="9" y="9" width="5.5" height="5.5" rx=".5"/></svg><span>Command Center</span></div>
+          <div class="no ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" style="flex-shrink:0;opacity:.65;"><path d="M2.5 3.5h11v8H9.5L7 14V11.5h-4.5z"/></svg><span>Action Inbox</span></div>
+          <div style="height:1px;background:rgba(255,255,255,.05);margin:8px 0;"></div>
+          <div style="padding:3px 16px;"><span style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(255,255,255,.38);letter-spacing:.16em;">PROGRAM</span></div>
+          <div class="no ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" style="flex-shrink:0;opacity:.65;"><rect x="2" y="2" width="12" height="12" rx="1"/><path d="M5 6h6M5 9h4"/><line x1="5" y1="2" x2="5" y2="14"/></svg><span>Program Tracker</span></div>
+          <div class="no ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" style="flex-shrink:0;opacity:.65;"><rect x="2" y="2" width="12" height="12" rx="1"/><path d="M5 8l2 2.5L11 5.5"/></svg><span>Assign Plans</span></div>
+          <div class="no ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" style="flex-shrink:0;opacity:.65;"><rect x="2" y="3" width="12" height="10" rx="1"/><path d="M5 3V2M11 3V2M2 7h12"/></svg><span>Plan Calendar</span></div>
+          <div style="height:1px;background:rgba(255,255,255,.05);margin:8px 0;"></div>
+          <div style="padding:3px 16px;"><span style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(255,255,255,.38);letter-spacing:.16em;">COACHING</span></div>
+          <div class="na ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" style="flex-shrink:0;opacity:.65;"><circle cx="8" cy="6" r="3"/><path d="M2 14c0-3.5 2.7-5 6-5s6 1.5 6 5"/></svg><span>Coaching Cadence</span></div>
+          <div class="no ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" style="flex-shrink:0;opacity:.65;"><path d="M2.5 3.5h11v8H9.5L7 14V11.5h-4.5z"/></svg><span>My Mentees</span></div>
+          <div class="no ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" style="flex-shrink:0;opacity:.65;"><polyline points="2,13 5.5,8 8.5,10.5 14,3.5"/></svg><span>Review History</span></div>
+        </div>
+        <div style="padding:10px 14px 12px;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:9px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#0033a1,#0071CE);display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:600;color:white;flex-shrink:0;font-family:'DM Mono',monospace;">DM</div>
+          <div><div style="font-size:11.5px;font-weight:500;color:rgba(255,255,255,.82);">Demo Manager</div><div style="font-family:'DM Mono',monospace;font-size:8px;color:rgba(255,255,255,.25);">Manager</div></div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ── MAIN ── -->
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;">
+
+      <!-- Topbar -->
+      <header style="height:44px;background:#fff;border-bottom:1px solid #E2DFD9;padding:0 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:0;">
+          <span style="font-family:'DM Mono',monospace;font-size:10.5px;color:#A09D98;">Coaching</span>
+          <span style="color:#C4C1BB;font-size:11px;margin:0 2px;">›</span>
+          <span style="font-family:'DM Mono',monospace;font-size:10.5px;color:#3D3C38;font-weight:500;">Coaching Cadence</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="display:flex;align-items:center;gap:6px;background:#FEF0EE;border:1px solid rgba(184,49,40,.2);padding:4px 10px;">
+            <div style="width:6px;height:6px;border-radius:50%;background:#B83128;" class="ap"></div>
+            <span style="font-size:10.5px;color:#B83128;font-weight:500;">2 SEs need coaching now</span>
+          </div>
+          <div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#0033a1,#0071CE);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:9.5px;color:white;">DM</div>
+        </div>
+      </header>
+
+      <!-- Page header + summary stats -->
+      <div style="background:#fff;border-bottom:1px solid #E2DFD9;padding:14px 20px;flex-shrink:0;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-family:'DM Mono',monospace;font-size:8.5px;color:#A09D98;letter-spacing:.14em;text-transform:uppercase;margin-bottom:3px;">West Region · Q3 FY2026 · 4 SEs</div>
+            <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#0D0E12;letter-spacing:-.025em;line-height:1;">Coaching Cadence</div>
+          </div>
+          <!-- Summary stat row -->
+          <div style="display:flex;align-items:stretch;gap:0;border:1px solid #E2DFD9;overflow:hidden;">
+            <div style="padding:8px 16px;text-align:center;border-right:1px solid #E2DFD9;">
+              <div style="font-family:'DM Mono',monospace;font-size:7.5px;color:#A09D98;letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px;">Coach now</div>
+              <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:#B83128;line-height:1;">2</div>
+            </div>
+            <div style="padding:8px 16px;text-align:center;border-right:1px solid #E2DFD9;">
+              <div style="font-family:'DM Mono',monospace;font-size:7.5px;color:#A09D98;letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px;">Never had 1:1</div>
+              <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:#D4810A;line-height:1;">2</div>
+            </div>
+            <div style="padding:8px 16px;text-align:center;border-right:1px solid #E2DFD9;">
+              <div style="font-family:'DM Mono',monospace;font-size:7.5px;color:#A09D98;letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px;">Team sim avg</div>
+              <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:#0071CE;line-height:1;">69</div>
+            </div>
+            <div style="padding:8px 16px;text-align:center;">
+              <div style="font-family:'DM Mono',monospace;font-size:7.5px;color:#A09D98;letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px;">Avg ramp</div>
+              <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:#0D0E12;line-height:1;">43%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── TWO-PANEL BODY ── -->
+      <div style="flex:1;display:flex;overflow:hidden;">
+
+        <!-- ── LEFT: PRIORITY QUEUE ── -->
+        <div style="width:310px;flex-shrink:0;border-right:1px solid #E2DFD9;display:flex;flex-direction:column;background:#fff;overflow:hidden;">
+          <div style="padding:10px 14px 8px;border-bottom:1px solid #E2DFD9;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+            <span style="font-family:'DM Mono',monospace;font-size:8px;color:#3D3C38;letter-spacing:.12em;text-transform:uppercase;font-weight:500;">Coaching queue</span>
+            <span style="font-family:'DM Mono',monospace;font-size:8px;color:#A09D98;">Sorted by urgency</span>
+          </div>
+          <div style="flex:1;overflow-y:auto;">
+            <sc-for list="{{ queue }}" as="q">
+            <div class="qrow {{ q.selClass }}" onClick="{{ q.select }}" style="padding:12px 14px;border-left:3px solid {{ q.borderColor }};border-bottom:1px solid #F0EFEB;background:{{ q.bgColor }};">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;">
+                <div style="display:flex;align-items:center;gap:9px;">
+                  <div style="width:34px;height:34px;border-radius:50%;background:{{ q.avatarBg }};display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:11px;color:white;font-weight:500;flex-shrink:0;">{{ q.initials }}</div>
+                  <div>
+                    <div style="font-size:12.5px;font-weight:600;color:#0D0E12;">{{ q.name }}</div>
+                    <div style="font-family:'DM Mono',monospace;font-size:8px;color:#A09D98;margin-top:1px;">{{ q.level }} · Day {{ q.day }}</div>
+                  </div>
+                </div>
+                <span style="font-family:'DM Mono',monospace;font-size:7.5px;font-weight:500;color:{{ q.badgeColor }};background:{{ q.badgeBg }};padding:2px 7px;letter-spacing:.06em;white-space:nowrap;">{{ q.badge }}</span>
+              </div>
+              <!-- Signal line -->
+              <div style="font-size:10.5px;color:#6B6860;line-height:1.4;margin-bottom:7px;padding-left:43px;">{{ q.signal }}</div>
+              <!-- Mini metrics row -->
+              <div style="display:flex;align-items:center;gap:10px;padding-left:43px;">
+                <div style="display:flex;align-items:center;gap:4px;">
+                  <span style="font-family:'DM Mono',monospace;font-size:8px;color:#A09D98;">1:1</span>
+                  <span style="font-family:'DM Mono',monospace;font-size:8px;font-weight:500;color:{{ q.lastColor }};">{{ q.lastLabel }}</span>
+                </div>
+                <div style="width:1px;height:10px;background:#E2DFD9;"></div>
+                <div style="display:flex;align-items:center;gap:4px;">
+                  <span style="font-family:'DM Mono',monospace;font-size:8px;color:#A09D98;">Sim</span>
+                  <span style="font-family:'DM Mono',monospace;font-size:8px;font-weight:500;color:{{ q.simColor }};">{{ q.simLabel }}</span>
+                </div>
+                <div style="width:1px;height:10px;background:#E2DFD9;"></div>
+                <div style="display:flex;align-items:center;gap:4px;">
+                  <span style="font-family:'DM Mono',monospace;font-size:8px;color:#A09D98;">Ramp</span>
+                  <span style="font-family:'DM Mono',monospace;font-size:8px;font-weight:500;color:{{ q.rampColor }};">{{ q.ramp }}</span>
+                </div>
+              </div>
+            </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <!-- ── RIGHT: SE COACHING PROFILE ── -->
+        <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;" class="ai">
+
+          <!-- SE Header (dark) -->
+          <div style="background:#00143A;padding:16px 20px;flex-shrink:0;position:relative;">
+            <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#0071CE,#CC27B0);"></div>
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-top:2px;">
+              <div style="display:flex;align-items:center;gap:14px;">
+                <div style="width:48px;height:48px;border-radius:50%;background:{{ se.avatarBg }};display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:15px;color:white;font-weight:500;flex-shrink:0;border:2px solid rgba(255,255,255,.15);">{{ se.initials }}</div>
+                <div>
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:#fff;line-height:1;">{{ se.name }}</div>
+                    <span style="font-family:'DM Mono',monospace;font-size:8px;color:{{ se.healthColor }};background:{{ se.healthBg }};padding:3px 10px;letter-spacing:.08em;">{{ se.healthLabel }}</span>
+                  </div>
+                  <div style="font-family:'DM Mono',monospace;font-size:8.5px;color:rgba(255,255,255,.4);letter-spacing:.1em;margin-top:3px;">{{ se.level }} · Day {{ se.day }} of ramp</div>
+                </div>
+              </div>
+              <!-- Quick actions -->
+              <div style="display:flex;gap:6px;align-items:center;">
+                <button onClick="{{ copyBriefFn }}" class="btn bxs" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.7);font-size:9.5px;padding:6px 12px;">Copy brief</button>
+                <button onClick="{{ downloadBriefFn }}" class="btn bxs" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.7);font-size:9.5px;padding:6px 12px;">Download PDF</button>
+                <button onClick="{{ scheduleOneOnOneFn }}" class="btn bsm bb" style="font-size:10px;padding:7px 14px;">Schedule 1:1 →</button>
+              </div>
+            </div>
+            <!-- 4 quick stats -->
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:rgba(255,255,255,.07);margin-top:14px;border:1px solid rgba(255,255,255,.07);">
+              <div style="background:rgba(0,0,0,.2);padding:8px 12px;">
+                <div style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(255,255,255,.4);letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px;">Last 1:1</div>
+                <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:{{ se.lastColor }};">{{ se.lastLabel }}</div>
+              </div>
+              <div style="background:rgba(0,0,0,.2);padding:8px 12px;">
+                <div style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(255,255,255,.4);letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px;">Sim avg (last 5)</div>
+                <div style="display:flex;align-items:baseline;gap:5px;">
+                  <span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:{{ se.simColor }};">{{ se.simAvg }}</span>
+                  <span style="font-family:'DM Mono',monospace;font-size:9px;color:{{ se.trendColor }};">{{ se.trendLabel }}</span>
+                </div>
+              </div>
+              <div style="background:rgba(0,0,0,.2);padding:8px 12px;">
+                <div style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(255,255,255,.4);letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px;">Ramp completion</div>
+                <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:{{ se.rampColor }};">{{ se.ramp }}</div>
+              </div>
+              <div style="background:rgba(0,0,0,.2);padding:8px 12px;">
+                <div style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(255,255,255,.4);letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px;">Overdue items</div>
+                <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:{{ se.overdueColor }};">{{ se.overdue }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Scrollable detail body -->
+          <div style="flex:1;overflow-y:auto;background:#F5F4F0;padding:18px 20px;display:flex;flex-direction:column;gap:14px;">
+
+            <!-- Row 1: Sim trend + Competency gaps -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+
+              <!-- Sim trend sparkline -->
+              <div style="background:#fff;border:1px solid #E2DFD9;padding:14px 16px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                  <div style="font-family:'DM Mono',monospace;font-size:8px;color:#3D3C38;letter-spacing:.12em;text-transform:uppercase;font-weight:500;">Sim score trend</div>
+                  <span style="font-size:9.5px;color:#A09D98;">Last {{ se.simScores.length }} sessions</span>
+                </div>
+                <!-- SVG sparkline -->
+                <div style="position:relative;margin-bottom:8px;">
+                  <svg width="100%" height="56" viewBox="0 0 260 56" preserveAspectRatio="none" style="display:block;">
+                    <!-- Grid lines -->
+                    <line x1="0" y1="14" x2="260" y2="14" stroke="#F0EFEB" stroke-width="1"/>
+                    <line x1="0" y1="28" x2="260" y2="28" stroke="#F0EFEB" stroke-width="1"/>
+                    <line x1="0" y1="42" x2="260" y2="42" stroke="#F0EFEB" stroke-width="1"/>
+                    <!-- Threshold line at score 70 -->
+                    <line x1="0" y1="{{ se.thresholdY }}" x2="260" y2="{{ se.thresholdY }}" stroke="#E2DFD9" stroke-width="1" stroke-dasharray="4,3"/>
+                    <!-- Area fill -->
+                    <path d="{{ se.sparkArea }}" fill="{{ se.sparkFill }}" opacity=".12"/>
+                    <!-- Line -->
+                    <polyline points="{{ se.sparkPts }}" fill="none" stroke="{{ se.sparkColor }}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+                    <!-- Dots -->
+                    <sc-for list="{{ se.sparkDots }}" as="dot">
+                      <circle cx="{{ dot.x }}" cy="{{ dot.y }}" r="3.5" fill="{{ se.sparkColor }}" stroke="#fff" stroke-width="1.5"/>
+                    </sc-for>
+                  </svg>
+                </div>
+                <!-- X-axis labels -->
+                <div style="display:flex;justify-content:space-between;padding:0 2px;">
+                  <sc-for list="{{ se.simScores }}" as="score">
+                  <div style="text-align:center;flex:1;">
+                    <div style="font-family:'DM Mono',monospace;font-size:9px;font-weight:500;color:{{ se.sparkColor }};">{{ score }}</div>
+                    <div style="font-family:'DM Mono',monospace;font-size:7.5px;color:#A09D98;">S{{ $index }}</div>
+                  </div>
+                  </sc-for>
+                </div>
+                <!-- Trend summary -->
+                <div style="margin-top:10px;padding-top:10px;border-top:1px solid #F0EFEB;display:flex;align-items:center;gap:8px;">
+                  <span style="font-family:'DM Mono',monospace;font-size:8px;color:{{ se.trendColor }};background:{{ se.trendBg }};padding:2px 8px;letter-spacing:.06em;">{{ se.trendLabel }}</span>
+                  <span style="font-size:10px;color:#6B6860;">{{ se.trendDesc }}</span>
+                </div>
+              </div>
+
+              <!-- Competency gaps -->
+              <div style="background:#fff;border:1px solid #E2DFD9;padding:14px 16px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                  <div style="font-family:'DM Mono',monospace;font-size:8px;color:#3D3C38;letter-spacing:.12em;text-transform:uppercase;font-weight:500;">Competency profile</div>
+                  <span style="font-size:9px;color:#A09D98;">threshold: 70</span>
+                </div>
+                <sc-for list="{{ se.skills }}" as="sk">
+                <div style="margin-bottom:10px;">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+                    <span style="font-size:10.5px;color:#3D3C38;">{{ sk.name }}</span>
+                    <div style="display:flex;align-items:center;gap:6px;">
+                      <span style="font-family:'DM Mono',monospace;font-size:9px;font-weight:500;color:{{ sk.color }};">{{ sk.score }}</span>
+                      <span style="font-family:'DM Mono',monospace;font-size:7.5px;color:{{ sk.tagColor }};background:{{ sk.tagBg }};padding:1px 5px;letter-spacing:.04em;">{{ sk.tag }}</span>
+                    </div>
+                  </div>
+                  <div style="height:5px;background:#ECEAE6;overflow:hidden;">
+                    <div class="bg-anim" style="height:5px;width:{{ sk.width }};background:{{ sk.color }};transition:width .5s ease;"></div>
+                  </div>
+                </div>
+                </sc-for>
+              </div>
+            </div>
+
+            <!-- AI 1:1 Brief -->
+            <div style="background:#fff;border:1px solid #E2DFD9;">
+              <div style="padding:11px 16px;border-bottom:1px solid #E2DFD9;background:#F9F8F6;display:flex;align-items:center;justify-content:space-between;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <div style="width:20px;height:20px;background:linear-gradient(135deg,#0071CE,#CC27B0);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <svg width="10" height="10" viewBox="0 0 12 12" fill="white"><path d="M6 1L7.5 4.5H11L8.25 6.75L9.25 10.5L6 8.25L2.75 10.5L3.75 6.75L1 4.5H4.5Z"/></svg>
+                  </div>
+                  <span style="font-family:'DM Mono',monospace;font-size:8px;color:#3D3C38;letter-spacing:.12em;text-transform:uppercase;font-weight:500;">AI 1:1 brief</span>
+                  <span style="font-size:9.5px;color:#A09D98;">· Generated from sim data, ramp velocity, overdue items</span>
+                </div>
+                <span style="font-family:'DM Mono',monospace;font-size:7.5px;color:#A09D98;">{{ se.briefDate }}</span>
+              </div>
+              <sc-for list="{{ se.brief }}" as="pt">
+              <div style="display:flex;gap:12px;padding:11px 16px;border-bottom:1px solid #F9F8F6;">
+                <div style="width:20px;height:20px;border-radius:2px;background:{{ pt.iconBg }};display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;font-size:11px;">{{ pt.icon }}</div>
+                <div style="flex:1;">
+                  <div style="font-size:12px;color:#0D0E12;line-height:1.5;margin-bottom:3px;">{{ pt.text }}</div>
+                  <sc-if value="{{ pt.hasAction }}" hint-placeholder-val="{{ false }}">
+                  <button onClick="{{ pt.actionFn }}" class="btn bxs" style="background:{{ pt.actionBg }};color:{{ pt.actionColor }};border:1px solid {{ pt.actionBorder }};margin-top:2px;">{{ pt.action }}</button>
+                  </sc-if>
+                </div>
+                <span style="font-family:'DM Mono',monospace;font-size:8px;color:{{ pt.tagColor }};background:{{ pt.tagBg }};padding:2px 7px;letter-spacing:.05em;height:fit-content;white-space:nowrap;align-self:flex-start;margin-top:1px;">{{ pt.tag }}</span>
+              </div>
+              </sc-for>
+            </div>
+
+            <!-- Coaching history -->
+            <div style="background:#fff;border:1px solid #E2DFD9;">
+              <div style="padding:11px 16px;border-bottom:1px solid #E2DFD9;background:#F9F8F6;">
+                <span style="font-family:'DM Mono',monospace;font-size:8px;color:#3D3C38;letter-spacing:.12em;text-transform:uppercase;font-weight:500;">Coaching history</span>
+              </div>
+              <sc-if value="{{ se.hasHistory }}" hint-placeholder-val="{{ true }}">
+              <sc-for list="{{ se.history }}" as="h">
+              <div style="display:flex;align-items:flex-start;gap:14px;padding:11px 16px;border-bottom:1px solid #F9F8F6;">
+                <div style="flex-shrink:0;text-align:center;width:38px;">
+                  <div style="font-family:'DM Mono',monospace;font-size:9px;color:#6B6860;font-weight:500;">{{ h.date }}</div>
+                  <div style="font-family:'DM Mono',monospace;font-size:7px;color:#A09D98;margin-top:1px;">{{ h.dow }}</div>
+                </div>
+                <div style="width:1px;height:36px;background:#E2DFD9;flex-shrink:0;"></div>
+                <div style="flex:1;">
+                  <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">
+                    <span style="font-size:11.5px;font-weight:500;color:#0D0E12;">{{ h.focus }}</span>
+                    <span style="font-family:'DM Mono',monospace;font-size:7.5px;color:{{ h.outcomeColor }};background:{{ h.outcomeBg }};padding:1px 6px;letter-spacing:.04em;">{{ h.outcomeLabel }}</span>
+                  </div>
+                  <div style="font-size:10.5px;color:#7A7772;line-height:1.45;">{{ h.note }}</div>
+                </div>
+                <div style="flex-shrink:0;text-align:right;">
+                  <div style="font-family:'DM Mono',monospace;font-size:8.5px;color:{{ h.deltaColor }};font-weight:500;">{{ h.delta }}</div>
+                  <div style="font-family:'DM Mono',monospace;font-size:7px;color:#A09D98;margin-top:1px;">sim change</div>
+                </div>
+              </div>
+              </sc-for>
+              </sc-if>
+              <sc-if value="{{ se.noHistory }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:20px 16px;display:flex;align-items:center;gap:10px;">
+                <div style="width:32px;height:32px;background:#FEF0EE;display:flex;align-items:center;justify-content:center;font-size:16px;">⚠️</div>
+                <div>
+                  <div style="font-size:12px;font-weight:500;color:#B83128;margin-bottom:2px;">No coaching sessions logged</div>
+                  <div style="font-size:10.5px;color:#7A7772;">{{ se.name }} is on Day {{ se.day }} with zero 1:1s recorded. Every day without coaching at this ramp stage compounds the gap.</div>
+                </div>
+              </div>
+              </sc-if>
+            </div>
+
+          </div>
+
+          <!-- ── BOTTOM ACTION BAR ── -->
+          <div style="background:#fff;border-top:1px solid #E2DFD9;padding:10px 20px;display:flex;align-items:center;gap:8px;flex-shrink:0;">
+            <span style="font-family:'DM Mono',monospace;font-size:8px;color:#A09D98;letter-spacing:.1em;text-transform:uppercase;margin-right:4px;">Quick actions</span>
+            <sc-for list="{{ se.actions }}" as="act">
+            <button onClick="{{ act.fn }}" class="btn bxs" style="background:{{ act.bg }};color:{{ act.color }};border:{{ act.border }};font-size:9.5px;padding:6px 12px;">{{ act.label }}</button>
+            </sc-for>
+          </div>
+
+        </div><!-- /right panel -->
+      </div><!-- /two-panel body -->
+    </div><!-- /main -->
+  </div><!-- /shell -->
+
+  <!-- TOAST -->
+  <sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:{{ toast.color }};color:white;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;padding:10px 20px;z-index:1000;box-shadow:0 8px 24px rgba(0,0,0,.25);pointer-events:none;white-space:nowrap;">{{ toast.msg }}</div>
+  </sc-if>
+
+  <!-- NOTE MODAL -->
+  <sc-if value="{{ noteModal }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;display:flex;align-items:center;justify-content:center;">
+    <div style="background:#fff;width:480px;box-shadow:0 24px 60px rgba(0,0,0,.3);">
+      <div style="background:#00143A;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-family:'DM Mono',monospace;font-size:9px;color:rgba(255,255,255,.7);letter-spacing:.12em;text-transform:uppercase;">Log coaching note — {{ se.name }}</span>
+        <button onClick="{{ closeModalFn }}" style="background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;font-size:18px;line-height:1;padding:0 2px;">×</button>
+      </div>
+      <div style="padding:18px;">
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:#A09D98;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;">Session notes</div>
+        <textarea id="cc-note-ta" placeholder="What did you cover? What did you observe? What's the follow-up?" style="width:100%;height:120px;border:1px solid #D4D1CB;padding:10px 12px;font-family:'DM Sans',sans-serif;font-size:12px;color:#0D0E12;resize:none;outline:none;line-height:1.5;display:block;"></textarea>
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;">
+          <button onClick="{{ closeModalFn }}" class="btn bo bsm">Cancel</button>
+          <button onClick="{{ saveNoteFn }}" class="btn bb bsm">Save note</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+</div></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 1360, &quot;height&quot;: 980}}">
+class Component extends DCLogic {
+  state = { selectedKey: 'DS', toast: null, noteModal: false, noteText: '', notes: {} };
+
+  showToast(msg, color) {
+    this.setState({ toast: { msg, color } });
+    clearTimeout(this._toastT);
+    this._toastT = setTimeout(() => this.setState({ toast: null }), 3000);
+  }
+
+  copyBrief(se) {
+    const lines = se.brief.map(pt => '• ' + pt.text).join('\n\n');
+    const full = `1:1 Brief — ${se.name} (${se.level}, Day ${se.day})\n\n${lines}`;
+    navigator.clipboard.writeText(full).then(() => this.showToast('Brief copied to clipboard', '#0071CE'));
+  }
+
+  signOffGate(seName) {
+    this.showToast(`Gate 1 approved for ${seName} — they can now advance to Phase 2`, '#0A6E45');
+  }
+
+  assignSim(label) {
+    this.showToast(`Sim assigned: "${label}" — ${this.state.selectedKey} will be notified`, '#0071CE');
+  }
+
+  pairWith(target) {
+    this.showToast(`Peer buddy request sent to ${target}`, '#0071CE');
+  }
+
+  nominateCoach(name) {
+    this.showToast(`Peer coach nomination submitted for ${name}`, '#0A6E45');
+  }
+
+  scheduleGate4(name) {
+    this.showToast(`Gate 4 sim scheduled for ${name}`, '#0071CE');
+  }
+
+  scheduleOneOnOne(se) {
+    const now = new Date();
+    const start = new Date(now);
+    start.setDate(start.getDate() + (start.getDay() === 5 ? 3 : start.getDay() === 6 ? 2 : 1));
+    start.setHours(10, 0, 0, 0);
+    const end = new Date(start.getTime() + 30 * 60000);
+    const fmt = d => d.toISOString().replace(/[-:]/g,'').split('.')[0] + 'Z';
+    const briefLines = se.brief.map(pt => pt.text).join('\\n\\n');
+    const desc = 'Coaching 1:1 — ' + se.name + '\\n\\nStatus: ' + se.healthLabel + ' | Day ' + se.day + ' of ramp | Sim avg: ' + se.simAvg + '\\n\\nAI BRIEF:\\n' + briefLines + '\\n\\nActions:\\n' + se.actions.map(a => '* ' + a.label).join('\\n');
+    const ics = [
+      'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//SailPoint Coaching//EN',
+      'BEGIN:VEVENT',
+      'DTSTART:' + fmt(start),
+      'DTEND:' + fmt(end),
+      'SUMMARY:1:1 Coaching — ' + se.name + ' (' + se.level + ')',
+      'DESCRIPTION:' + desc,
+      'LOCATION:Microsoft Teams',
+      'STATUS:TENTATIVE',
+      'END:VEVENT','END:VCALENDAR'
+    ].join('\r\n');
+    const blob = new Blob([ics], { type: 'text/calendar' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = '1on1-' + se.name.replace(/\s+/g,'-') + '.ics';
+    a.click();
+    this.showToast('Calendar invite downloaded for ' + se.name, '#0A6E45');
+  }
+
+  downloadBrief(se) {
+    const skillBars = se.skills.map(sk =>
+      '<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:11px">' + sk.name + '</span><span style="font-size:11px;font-weight:600;color:' + sk.color + '">' + sk.score + ' — ' + sk.tag + '</span></div><div style="height:5px;background:#eee"><div style="height:5px;width:' + sk.width + ';background:' + sk.color + '"></div></div></div>'
+    ).join('');
+    const briefItems = se.brief.map(pt =>
+      '<div style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid #f0efeb"><div style="font-size:18px;flex-shrink:0">' + pt.icon + '</div><div style="flex:1"><div style="font-size:12px;line-height:1.6;color:#1a1a1a">' + pt.text + '</div>' + (pt.action ? '<div style="margin-top:6px;font-size:10px;font-weight:600;color:#0071CE">→ ' + pt.action + '</div>' : '') + '</div><div style="flex-shrink:0;font-size:9px;font-weight:700;color:' + pt.tagColor + ';margin-left:auto;padding-left:12px">' + pt.tag + '</div></div>'
+    ).join('');
+    const histItems = (se.history && se.history.length) ? se.history.map(h =>
+      '<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #f0efeb"><div style="width:40px;flex-shrink:0;font-size:10px;color:#888;font-weight:600">' + h.date + '</div><div style="flex:1"><div style="font-size:11px;font-weight:600">' + h.focus + '</div><div style="font-size:10.5px;color:#555;margin-top:2px">' + h.note + '</div></div><div style="font-size:11px;font-weight:600;color:' + h.deltaColor + '">' + h.delta + '</div></div>'
+    ).join('') : '<p style="font-size:11px;color:#888;padding:10px 0">No coaching sessions logged yet.</p>';
+    const stats = '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#eee;margin-bottom:20px;border:1px solid #eee">' +
+      '<div style="background:white;padding:10px 14px"><div style="font-size:8px;text-transform:uppercase;letter-spacing:.1em;color:#aaa;margin-bottom:3px">Last 1:1</div><div style="font-size:15px;font-weight:700;color:' + se.lastColor + '">' + se.lastLabel + '</div></div>' +
+      '<div style="background:white;padding:10px 14px"><div style="font-size:8px;text-transform:uppercase;letter-spacing:.1em;color:#aaa;margin-bottom:3px">Sim avg</div><div style="font-size:15px;font-weight:700;color:' + se.simColor + '">' + se.simAvg + ' <span style="font-size:10px;color:' + se.trendColor + '">' + se.trendLabel + '</span></div></div>' +
+      '<div style="background:white;padding:10px 14px"><div style="font-size:8px;text-transform:uppercase;letter-spacing:.1em;color:#aaa;margin-bottom:3px">Ramp</div><div style="font-size:15px;font-weight:700;color:' + se.rampColor + '">' + se.ramp + '</div></div>' +
+      '<div style="background:white;padding:10px 14px"><div style="font-size:8px;text-transform:uppercase;letter-spacing:.1em;color:#aaa;margin-bottom:3px">Overdue</div><div style="font-size:15px;font-weight:700;color:' + se.overdueColor + '">' + se.overdue + '</div></div></div>';
+    const dateStr = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+    const css = '*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}body{font-family:"Segoe UI",system-ui,sans-serif;padding:0.6in 0.7in;color:#1a1a1a;font-size:12px}@page{size:letter;margin:0}h2{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#888;font-weight:500;margin-top:22px;margin-bottom:8px;border-bottom:1px solid #eee;padding-bottom:5px}';
+    const header = '<div style="background:#00143A;color:white;padding:16px 20px;margin:-0.6in -0.7in 24px;position:relative"><div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#0071CE,#CC27B0)"></div><div style="font-size:9px;letter-spacing:.14em;opacity:.5;text-transform:uppercase;margin-bottom:4px">SailPoint · 1:1 Coaching Brief</div><div style="font-size:20px;font-weight:800;letter-spacing:-.02em;color:white">' + se.name + ' <span style="font-size:9px;font-weight:700;padding:2px 8px;background:' + se.healthBg + ';color:' + se.healthColor + ';letter-spacing:.06em">' + se.healthLabel + '</span></div><div style="font-size:10px;opacity:.55;margin-top:4px;letter-spacing:.06em">' + se.level + ' · Day ' + se.day + ' of ramp · Generated ' + se.briefDate + '</div></div>';
+    const footer = '<div style="margin-top:24px;padding-top:12px;border-top:1px solid #eee;font-size:9px;color:#bbb">Generated by SailPoint Coaching Command Center · ' + dateStr + '</div>';
+    const printScript = 'addEventListener("load",function(){setTimeout(function(){window.print();},600);});';
+    const html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>1:1 Brief — ' + se.name + '</title><style>' + css + '</style></head><body>' + header + stats + '<h2>Competency Profile</h2>' + skillBars + '<h2>AI 1:1 Brief</h2>' + briefItems + '<h2>Coaching History</h2>' + histItems + footer + '<' + 'script>' + printScript + '<' + '/script></body></html>';
+    const w = window.open('', '_blank');
+    if (w) { w.document.write(html); w.document.close(); }
+    this.showToast('Brief PDF opening…', '#0071CE');
+  }
+
+  openNoteModal() {
+    this.setState({ noteModal: true, noteText: '' });
+    setTimeout(() => { const t = document.getElementById('cc-note-ta'); if (t) { t.value = ''; t.focus(); } }, 50);
+  }
+  closeNoteModal() { this.setState({ noteModal: false }); }
+
+  saveNote(se) {
+    const ta = document.getElementById('cc-note-ta');
+    const noteText = ta ? ta.value : '';
+    const { notes } = this.state;
+    if (!noteText.trim()) return;
+    const key = se.key || this.state.selectedKey;
+    const existing = notes[key] || [];
+    const today = new Date();
+    const dateStr = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const dow = today.toLocaleDateString('en-US', { weekday: 'short' });
+    const newNote = { date: dateStr, dow, focus: 'Coaching note', note: noteText.trim(), outcomeLabel: 'LOGGED', outcomeColor: '#0071CE', outcomeBg: 'rgba(0,113,206,.08)', delta: '—', deltaColor: '#A09D98' };
+    const updated = { ...notes, [key]: [newNote, ...existing] };
+    // Persist
+    try { localStorage.setItem('cc_notes', JSON.stringify(updated)); } catch(e) {}
+    // Build mailto to SE with note summary
+    const subject = encodeURIComponent('Coaching session notes — ' + new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'}));
+    const body = encodeURIComponent('Hi ' + (se.name || 'there') + ',\n\nHere are notes from our coaching session today:\n\n' + noteText.trim() + '\n\nLet me know if you have any questions.\n\nThanks');
+    const mailtoHref = 'mailto:?subject=' + subject + '&body=' + body;
+    this.setState({ notes: updated, noteModal: false, noteText: '', lastMailto: mailtoHref });
+    this.showToast('Note saved — sending summary to ' + (se.name || 'SE'), '#0A6E45');
+    setTimeout(() => { window.location.href = mailtoHref; }, 800);
+  }
+
+  // ── Data ──────────────────────────────────────────────────
+
+  getProfiles() {
+    const spark = (scores) => {
+      const W = 260, H = 56, pad = 4;
+      const min = Math.min(...scores) - 8;
+      const max = Math.max(...scores) + 8;
+      const range = max - min;
+      const pts = scores.map((s, i) => {
+        const x = pad + (i / (scores.length - 1)) * (W - pad * 2);
+        const y = H - pad - ((s - min) / range) * (H - pad * 2);
+        return { x: +x.toFixed(1), y: +y.toFixed(1) };
+      });
+      const ptStr = pts.map(p => `${p.x},${p.y}`).join(' ');
+      const areaPath = `M${pts[0].x},${H} ` + pts.map(p => `L${p.x},${p.y}`).join(' ') + ` L${pts[pts.length-1].x},${H} Z`;
+      const threshY = H - pad - ((70 - min) / range) * (H - pad * 2);
+      return { pts: ptStr, area: areaPath, dots: pts, threshY: +threshY.toFixed(1) };
+    };
+
+    const skill = (name, score) => {
+      const color = score >= 75 ? '#0A6E45' : score >= 60 ? '#0071CE' : score >= 45 ? '#D4810A' : '#B83128';
+      const tag   = score >= 75 ? 'STRONG' : score >= 60 ? 'OK' : score >= 45 ? 'GAP' : 'CRITICAL';
+      const tagBg = score >= 75 ? 'rgba(10,110,69,.08)' : score >= 60 ? 'rgba(0,113,206,.08)' : score >= 45 ? 'rgba(212,129,10,.08)' : 'rgba(184,49,40,.08)';
+      const tagColor = color;
+      return { name, score, color, tag, tagBg, tagColor, width: score + '%' };
+    };
+
+    const brief = (icon, iconBg, text, tag, tagColor, tagBg, action, actionBg, actionColor, actionBorder) => ({
+      icon, iconBg, text, tag, tagColor, tagBg,
+      hasAction: !!action, action: action || '', actionBg: actionBg || '', actionColor: actionColor || '', actionBorder: actionBorder || '',
+    });
+
+    const hist = (date, dow, focus, note, outcomeLabel, outcomeColor, outcomeBg, delta, deltaColor) =>
+      ({ date, dow, focus, note, outcomeLabel, outcomeColor, outcomeBg, delta, deltaColor });
+
+    const action = (label, bg, color, border, fn) => ({ label, bg, color, border, fn });
+
+    const DS_spark = spark([78, 72, 66, 61, 55]);
+    const FG_spark = spark([65, 58, 62, 55, 49]);
+    const GH_spark = spark([72, 74, 77, 79, 82]);
+    const HI_spark = spark([80, 83, 87, 89, 91]);
+
+    return {
+      DS: {
+        name: 'Demo SE', initials: 'DS', level: 'Basic SE', day: 22,
+        avatarBg: 'linear-gradient(135deg,#5a2d82,#9b44c8)',
+        healthLabel: 'CRITICAL', healthColor: '#B83128', healthBg: 'rgba(184,49,40,.2)',
+        lastLabel: 'Never', lastColor: '#B83128',
+        simAvg: '66', simColor: '#B83128', simScores: [78, 72, 66, 61, 55],
+        trendLabel: '↓23 pts',  trendColor: '#B83128', trendBg: 'rgba(184,49,40,.08)',
+        trendDesc: 'Declining across all 5 sessions — requires intervention',
+        ramp: '12%', rampColor: '#B83128',
+        overdue: '4 items', overdueColor: '#B83128',
+        sparkPts: DS_spark.pts, sparkArea: DS_spark.area, sparkDots: DS_spark.dots,
+        sparkColor: '#B83128', sparkFill: '#B83128', thresholdY: DS_spark.threshY,
+        briefDate: 'Generated Jul 13',
+        skills: [
+          skill('Discovery', 45), skill('Demo Execution', 68),
+          skill('Objection Handling', 52), skill('Competitive Positioning', 38), skill('Technical Depth', 71),
+        ],
+        brief: [
+          brief('🚨', '#FEF0EE', 'Gate 1 sign-off has been blocked for 13 days — Demo SE cannot advance to Phase 2 until you approve. Complete this BEFORE the 1:1 so the session can focus on forward momentum.', 'MANAGER ACTION', '#B83128', 'rgba(184,49,40,.08)', 'Sign off Gate 1 →', '#B83128', 'white', 'none'),
+          brief('📉', '#FEF0EE', 'Sim avg dropped 23 pts across 5 sessions (78→55). Competitive Positioning is the lowest score on the team at 38 — an Entra ID trap appeared in 3 of 5 recent sessions. Walk through the trap-handling script together in this session.', 'DECLINING', '#B83128', 'rgba(184,49,40,.08)', null, '', '', ''),
+          brief('🎯', '#FFF7ED', 'Discovery score: 45 — has not attempted a multi-stakeholder scenario. Assign the \'Enterprise Discovery: IT + Security + HR stakeholders\' sim before end of this week. Run it before the next 1:1 so you have a fresh data point.', 'ASSIGN SIM', '#D4810A', 'rgba(212,129,10,.08)', 'Assign sim now', '#F0F7FF', '#0071CE', '1px solid rgba(0,113,206,.2)'),
+          brief('⚠️', '#FFF7ED', 'Day 22 with zero 1:1s logged. Every day without a coaching touchpoint at this ramp stage compounds the gap. Establish a weekly cadence starting this session.', 'OVERDUE', '#D4810A', 'rgba(212,129,10,.08)', null, '', '', ''),
+        ],
+        hasHistory: false, noHistory: true, history: [],
+        actions: [
+          action('Sign off Gate 1', '#B83128', 'white', 'none', () => {}),
+          action('Schedule 1:1', '#0071CE', 'white', 'none', () => {}),
+          action('Assign Entra ID sim', '#F0F7FF', '#0071CE', '1px solid rgba(0,113,206,.2)', () => {}),
+          action('Log coaching note', 'transparent', '#3D3C38', '1px solid #D4D1CB', () => {}),
+        ],
+      },
+      FG: {
+        name: 'Finn Grant', initials: 'FG', level: 'Basic SE', day: 22,
+        avatarBg: 'linear-gradient(135deg,#B83128,#7c1d1d)',
+        healthLabel: 'BEHIND', healthColor: '#D4810A', healthBg: 'rgba(212,129,10,.2)',
+        lastLabel: 'Never', lastColor: '#B83128',
+        simAvg: '58', simColor: '#D4810A', simScores: [65, 58, 62, 55, 49],
+        trendLabel: '↓16 pts', trendColor: '#B83128', trendBg: 'rgba(184,49,40,.08)',
+        trendDesc: 'Volatile and declining — session 3 spike didn\'t hold',
+        ramp: '18%', rampColor: '#D4810A',
+        overdue: '4 items', overdueColor: '#B83128',
+        sparkPts: FG_spark.pts, sparkArea: FG_spark.area, sparkDots: FG_spark.dots,
+        sparkColor: '#D4810A', sparkFill: '#D4810A', thresholdY: FG_spark.threshY,
+        briefDate: 'Generated Jul 13',
+        skills: [
+          skill('Discovery', 55), skill('Demo Execution', 49),
+          skill('Objection Handling', 60), skill('Competitive Positioning', 52), skill('Technical Depth', 58),
+        ],
+        brief: [
+          brief('📉', '#FEF0EE', 'Demo Execution: 49 — below the 60 threshold. 3 of 5 sims ended under 15 min, suggesting Finn is rushing through discovery. Pull up the last recording together and timestamp where the session breaks down.', 'CRITICAL GAP', '#B83128', 'rgba(184,49,40,.08)', null, '', '', ''),
+          brief('🎯', '#FFF7ED', 'Recurring evaluator flag across 4 of 5 sessions: "Presentation deck not referenced." Assign the DemoHub submission challenge as a practice artifact — Finn needs a structured output to anchor the demo flow.', 'RECURRING GAP', '#D4810A', 'rgba(212,129,10,.08)', 'Assign DemoHub challenge', '#F0F7FF', '#0071CE', '1px solid rgba(0,113,206,.2)'),
+          brief('🚀', '#F0FDF7', 'Career path: at current velocity, Finn misses Gate 2 by 14 days. Discuss peer buddy pairing with Harper Ivan — shadowing a higher performer at the same ramp stage has a measurable impact on sim scores within 2 weeks.', 'GROWTH', '#0A6E45', 'rgba(10,110,69,.08)', 'Pair with Harper Ivan', '#EDFAF3', '#0A6E45', '1px solid rgba(10,110,69,.2)'),
+        ],
+        hasHistory: false, noHistory: true, history: [],
+        actions: [
+          action('Schedule 1:1', '#0071CE', 'white', 'none', () => {}),
+          action('Pair with Harper Ivan', '#EDFAF3', '#0A6E45', '1px solid rgba(10,110,69,.2)', () => {}),
+          action('Assign DemoHub challenge', '#F0F7FF', '#0071CE', '1px solid rgba(0,113,206,.2)', () => {}),
+          action('Log coaching note', 'transparent', '#3D3C38', '1px solid #D4D1CB', () => {}),
+        ],
+      },
+      GH: {
+        name: 'Gray Hayes', initials: 'GH', level: 'Senior SE', day: 45,
+        avatarBg: 'linear-gradient(135deg,#1a5c8a,#0071CE)',
+        healthLabel: 'ON PACE', healthColor: '#0A6E45', healthBg: 'rgba(10,110,69,.2)',
+        lastLabel: 'Jul 5', lastColor: '#0A6E45',
+        simAvg: '78', simColor: '#0071CE', simScores: [72, 74, 77, 79, 82],
+        trendLabel: '↑10 pts', trendColor: '#0A6E45', trendBg: 'rgba(10,110,69,.08)',
+        trendDesc: 'Consistent improvement — ready for harder scenarios',
+        ramp: '62%', rampColor: '#0071CE',
+        overdue: '0', overdueColor: '#0A6E45',
+        sparkPts: GH_spark.pts, sparkArea: GH_spark.area, sparkDots: GH_spark.dots,
+        sparkColor: '#0071CE', sparkFill: '#0071CE', thresholdY: GH_spark.threshY,
+        briefDate: 'Generated Jul 13',
+        skills: [
+          skill('Discovery', 74), skill('Demo Execution', 79),
+          skill('Objection Handling', 68), skill('Competitive Positioning', 52), skill('Technical Depth', 82),
+        ],
+        brief: [
+          brief('🚀', '#F0FDF7', 'Sim trend is positive +10 pts across 5 sessions — Gray is ready for harder scenarios. Escalate from standard to competitive format: assign the \'SailPoint vs. Saviynt Competitive Bakeoff\' sim this week.', 'PROMOTE', '#0A6E45', 'rgba(10,110,69,.08)', 'Assign competitive sim', '#EDFAF3', '#0A6E45', '1px solid rgba(10,110,69,.2)'),
+          brief('🎯', '#F0F7FF', 'Competitive Positioning (52) is the single gap in an otherwise strong profile. The SLED specialization cert is the direct unlock. Review the SLED competitive cheat sheet together and set a cert target date.', 'FOCUS AREA', '#0071CE', 'rgba(0,113,206,.08)', null, '', '', ''),
+          brief('📈', '#F0FDF7', 'Career: Gray is 28% toward Advisory Solutions Consultant. Identify 2 concrete Q3 stretch goals this session — a customer reference call and an enterprise deal assist are the fastest credentialing paths at this level.', 'CAREER', '#0A6E45', 'rgba(10,110,69,.08)', null, '', '', ''),
+        ],
+        hasHistory: true, noHistory: false,
+        history: [
+          hist('Jul 5', 'Sat', 'Technical depth — ISC architecture deep dive', 'Ran through ISC connector architecture. Gray struggled with complex attribute mapping but recovered well. Assigned lab to reinforce.', 'IMPROVED', '#0A6E45', 'rgba(10,110,69,.08)', '+4 pts', '#0A6E45'),
+          hist('Jun 28', 'Sat', 'Discovery practice — multi-stakeholder scenario', 'First multi-stakeholder sim. Strong on IT track, weak on HR persona — doesn\'t know the identity lifecycle pain points for HR. Assigned reading.', 'PARTIAL', '#D4810A', 'rgba(212,129,10,.08)', '+2 pts', '#D4810A'),
+        ],
+        actions: [
+          action('Schedule 1:1', '#0071CE', 'white', 'none', () => {}),
+          action('Assign competitive sim', '#EDFAF3', '#0A6E45', '1px solid rgba(10,110,69,.2)', () => {}),
+          action('Plan career path', '#F0F7FF', '#0071CE', '1px solid rgba(0,113,206,.2)', () => {}),
+          action('Log coaching note', 'transparent', '#3D3C38', '1px solid #D4D1CB', () => {}),
+        ],
+      },
+      HI: {
+        name: 'Harper Ivan', initials: 'HI', level: 'Advisory SE', day: 68,
+        avatarBg: 'linear-gradient(135deg,#0A6E45,#14a065)',
+        healthLabel: 'AHEAD', healthColor: '#0071CE', healthBg: 'rgba(0,113,206,.2)',
+        lastLabel: 'Jul 7', lastColor: '#0A6E45',
+        simAvg: '86', simColor: '#0A6E45', simScores: [80, 83, 87, 89, 91],
+        trendLabel: '↑11 pts', trendColor: '#0A6E45', trendBg: 'rgba(10,110,69,.08)',
+        trendDesc: 'Top performer on the team — all signals positive',
+        ramp: '78%', rampColor: '#0A6E45',
+        overdue: '0', overdueColor: '#0A6E45',
+        sparkPts: HI_spark.pts, sparkArea: HI_spark.area, sparkDots: HI_spark.dots,
+        sparkColor: '#0A6E45', sparkFill: '#0A6E45', thresholdY: HI_spark.threshY,
+        briefDate: 'Generated Jul 13',
+        skills: [
+          skill('Discovery', 88), skill('Demo Execution', 85),
+          skill('Objection Handling', 80), skill('Competitive Positioning', 75), skill('Technical Depth', 90),
+        ],
+        brief: [
+          brief('🏆', '#F0FDF7', 'All signals strong — sim avg 91 (top of team), ramp 12 days ahead of pace. Use this 1:1 for career planning, not remediation. Harper is ready for the next level conversation.', 'TOP PERFORMER', '#0A6E45', 'rgba(10,110,69,.08)', null, '', '', ''),
+          brief('🚀', '#F0FDF7', 'Nominate Harper for the Q4 peer coach role. Mentoring a junior SE accelerates Harper\'s own ASC promotion trajectory — it\'s the highest-signal demonstration of leadership readiness SailPoint looks for at this level.', 'CAREER LEVER', '#0A6E45', 'rgba(10,110,69,.08)', 'Submit peer coach nomination', '#EDFAF3', '#0A6E45', '1px solid rgba(10,110,69,.2)'),
+          brief('🎯', '#F0F7FF', 'Gate 4 prep: the solo discovery sim is the last major cert blocker before Advisory certification is complete. Harper\'s momentum is high — scheduling it this week vs. next week is the difference between Q3 and Q4 completion.', 'CERT GATE', '#0071CE', 'rgba(0,113,206,.08)', 'Schedule Gate 4 sim', '#F0F7FF', '#0071CE', '1px solid rgba(0,113,206,.2)'),
+        ],
+        hasHistory: true, noHistory: false,
+        history: [
+          hist('Jul 7', 'Mon', 'Competitive positioning — Saviynt bakeoff prep', 'Strong performance in bakeoff sim. Weak spot: TCO modeling for mid-market. Assigned the SailPoint vs Saviynt TCO calculator exercise.', 'IMPROVED', '#0A6E45', 'rgba(10,110,69,.08)', '+7 pts', '#0A6E45'),
+          hist('Jun 30', 'Mon', 'Executive presence — C-suite discovery simulation', 'First executive sim — CIO/CISO dual-track. Harper adapted well to executive pace but over-featured. One focus: business outcome framing over technical capability.', 'IMPROVED', '#0A6E45', 'rgba(10,110,69,.08)', '+5 pts', '#0A6E45'),
+        ],
+        actions: [
+          action('Schedule 1:1', '#0071CE', 'white', 'none', () => {}),
+          action('Submit peer coach nomination', '#EDFAF3', '#0A6E45', '1px solid rgba(10,110,69,.2)', () => {}),
+          action('Schedule Gate 4 sim', '#F0F7FF', '#0071CE', '1px solid rgba(0,113,206,.2)', () => {}),
+          action('Log coaching note', 'transparent', '#3D3C38', '1px solid #D4D1CB', () => {}),
+        ],
+      },
+    };
+  }
+
+  // ── Queue ────────────────────────────────────────────────
+
+  getQueue(profiles, selectedKey) {
+    const urgency = { DS: 98, FG: 84, GH: 42, HI: 18 };
+    return ['DS', 'FG', 'GH', 'HI']
+      .sort((a, b) => urgency[b] - urgency[a])
+      .map(key => {
+        const p = profiles[key];
+        const sel = key === selectedKey;
+        const signals = {
+          DS: '4 blocked milestones · Sim dropping 23 pts · Day 22, never coached',
+          FG: '4 overdue items · Demo score below threshold · No 1:1 history',
+          GH: 'On track · Sim improving · Competitive gap is the only blocker',
+          HI: 'Ahead of pace · Top sim on team · Ready for career conversation',
+        };
+        const badges = {
+          DS: { text: 'COACH NOW', color: '#B83128', bg: 'rgba(184,49,40,.15)', border: '#B83128' },
+          FG: { text: 'BEHIND',    color: '#D4810A', bg: 'rgba(212,129,10,.12)', border: '#D4810A' },
+          GH: { text: 'ON PACE',   color: '#0A6E45', bg: 'rgba(10,110,69,.1)',  border: '#E2DFD9' },
+          HI: { text: 'AHEAD',     color: '#0071CE', bg: 'rgba(0,113,206,.1)',  border: '#E2DFD9' },
+        };
+        const b = badges[key];
+        const simTrends = { DS: '66 ↓', FG: '58 ↓', GH: '82 ↑', HI: '91 ↑' };
+        const simColors  = { DS: '#B83128', FG: '#D4810A', GH: '#0A6E45', HI: '#0A6E45' };
+        const rampColors = { DS: '#B83128', FG: '#D4810A', GH: '#0071CE', HI: '#0A6E45' };
+        const lastColors = { DS: '#B83128', FG: '#B83128', GH: '#0A6E45', HI: '#0A6E45' };
+        return {
+          key, name: p.name, initials: p.initials, level: p.level, day: p.day, avatarBg: p.avatarBg,
+          badge: b.text, badgeColor: b.color, badgeBg: b.bg, borderColor: sel ? '#0071CE' : b.border,
+          bgColor: sel ? '#F0F7FF' : '#fff',
+          selClass: sel ? 'sel' : '',
+          signal: signals[key],
+          lastLabel: p.lastLabel, lastColor: lastColors[key],
+          simLabel: simTrends[key], simColor: simColors[key],
+          ramp: p.ramp, rampColor: rampColors[key],
+          select: () => this.setState({ selectedKey: key }),
+        };
+      });
+  }
+
+  componentDidMount() {
+    try {
+      const saved = localStorage.getItem('cc_notes');
+      if (saved) this.setState({ notes: JSON.parse(saved) });
+    } catch(e) {}
+
+    const scale = () => {
+      const root = document.getElementById('cr');
+      const outer = document.getElementById('co');
+      if (!root || !outer) return;
+      const r = outer.clientWidth / 1360;
+      root.style.transform = 'scale(' + r + ')';
+      outer.style.height = (940 * r + 64) + 'px';
+    };
+    scale();
+    window.addEventListener('resize', scale);
+  }
+
+  renderVals() {
+    const { selectedKey, toast, noteModal, noteText, notes } = this.state;
+    const profiles = this.getProfiles();
+    const se = profiles[selectedKey];
+
+    // Merge saved notes into history
+    const savedNotes = notes[selectedKey] || [];
+    const mergedHistory = [...savedNotes, ...(se.history || [])];
+    const seWithNotes = { ...se, history: mergedHistory, hasHistory: mergedHistory.length > 0, noHistory: mergedHistory.length === 0 };
+
+    // Wire brief action buttons
+    const briefWired = se.brief.map(pt => {
+      let fn = null;
+      if (pt.action === 'Sign off Gate 1 →') fn = () => this.signOffGate(se.name);
+      else if (pt.action === 'Assign sim now') fn = () => this.assignSim('Enterprise Discovery: IT + Security + HR');
+      else if (pt.action === 'Assign DemoHub challenge') fn = () => this.assignSim('DemoHub submission challenge');
+      else if (pt.action === 'Pair with Harper Ivan') fn = () => this.pairWith('Harper Ivan');
+      else if (pt.action === 'Assign competitive sim') fn = () => this.assignSim('SailPoint vs. Saviynt Competitive Bakeoff');
+      else if (pt.action === 'Submit peer coach nomination') fn = () => this.nominateCoach(se.name);
+      else if (pt.action === 'Schedule Gate 4 sim') fn = () => this.scheduleGate4(se.name);
+      return { ...pt, actionFn: fn || (() => {}) };
+    });
+
+    // Wire bottom action bar
+    const actionsWired = se.actions.map(a => {
+      let fn = a.fn;
+      if (a.label === 'Log coaching note') fn = () => this.openNoteModal();
+      else if (a.label === 'Sign off Gate 1') fn = () => this.signOffGate(se.name);
+      else if (a.label.startsWith('Assign')) fn = () => this.assignSim(a.label.replace('Assign ', ''));
+      else if (a.label.startsWith('Pair')) fn = () => this.pairWith('Harper Ivan');
+      else if (a.label.startsWith('Submit')) fn = () => this.nominateCoach(se.name);
+      else if (a.label.startsWith('Schedule Gate')) fn = () => this.scheduleGate4(se.name);
+      else if (a.label === 'Schedule 1:1') fn = () => this.scheduleOneOnOne(seWithNotes);
+      else if (a.label === 'Plan career path') fn = () => this.showToast('Career path planning coming soon', '#0071CE');
+      return { ...a, fn };
+    });
+
+    const queue = this.getQueue(profiles, selectedKey);
+    const copyBriefFn = () => this.copyBrief(seWithNotes);
+    const closeModalFn = () => this.closeNoteModal();
+    const saveNoteFn = () => this.saveNote(seWithNotes);
+    const downloadBriefFn = () => this.downloadBrief(seWithNotes);
+    const scheduleOneOnOneFn = () => this.scheduleOneOnOne(seWithNotes);
+
+    return {
+      se: { ...seWithNotes, brief: briefWired, actions: actionsWired },
+      queue,
+      toast, noteModal,
+      copyBriefFn, closeModalFn, saveNoteFn, downloadBriefFn, scheduleOneOnOneFn,
+    };
+  }
+}
+
+</script>
+</body>
+</html>
