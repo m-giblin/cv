@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html,body{height:100%;font-family:'DM Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased;background:#DEDAD4;}
+    ::-webkit-scrollbar{width:4px;height:4px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:rgba(0,0,0,.12);}
+    .ms::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}.ai{animation:fadeUp .2s ease-out;}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.15}}.lp{animation:pulse 2.4s ease-in-out infinite;}
+    .btn{display:inline-flex;align-items:center;gap:5px;border:none;font-size:11px;font-weight:600;cursor:pointer;line-height:1;font-family:'DM Sans',sans-serif;letter-spacing:.01em;transition:background 100ms,border-color 100ms,color 100ms;}
+    .bn{background:#00143A;color:white;padding:8px 14px;}.bn:hover{background:#001d50;}
+    .bb{background:#0071CE;color:white;padding:8px 14px;}.bb:hover{background:#005aab;}
+    .bo{background:transparent;color:#3D3C38;border:1px solid #D4D1CB;padding:7px 12px;}.bo:hover{border-color:#0071CE;color:#0071CE;}
+    .bsm{font-size:10px!important;padding:5px 10px!important;}
+    .bxs{font-size:9px!important;padding:3px 8px!important;}
+    .ni{display:flex;align-items:center;gap:8px;padding:5px 14px 5px 16px;font-size:11.5px;font-weight:500;border-left:2px solid transparent;cursor:pointer;user-select:none;transition:background 80ms,color 80ms;}
+    .na{background:rgba(255,255,255,.06);color:#fff!important;border-left-color:#0071CE;}
+    .no{color:rgba(255,255,255,.62);}.no:hover{background:rgba(255,255,255,.05);color:rgba(255,255,255,.9);}
+    .gantt-bar{position:absolute;cursor:grab;user-select:none;overflow:hidden;}
+    .gantt-bar:hover{filter:brightness(1.06);}
+    .gantt-bar.dragging{opacity:.6;cursor:grabbing;z-index:50;}
+    .gantt-row{display:flex;border-bottom:1px solid #E2DFD9;}
+    .gantt-row:hover .se-info-col{background:#F0F7FF!important;}
+    .se-info-col{width:200px;flex-shrink:0;position:sticky;left:0;z-index:10;border-right:1px solid #E2DFD9;padding:10px 14px;background:#fff;transition:background 80ms;cursor:pointer;}
+    .role-btn{padding:5px 12px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.07em;cursor:pointer;border:1px solid #D4D1CB;transition:background 100ms,color 100ms,border-color 100ms;}
+    .role-active{background:#00143A;color:#fff;border-color:#00143A;}
+    .role-inactive{background:#fff;color:#7A7772;}
+    .alert-card{flex:1;padding:10px 14px;border-right:1px solid rgba(255,255,255,.08);position:relative;}
+    .alert-card:last-child{border-right:none;}
+    .today-line{position:absolute;top:0;bottom:0;width:2px;background:#0071CE;z-index:9;pointer-events:none;}
+    .today-line::before{content:'TODAY';position:absolute;top:2px;left:3px;font-family:'DM Mono',monospace;font-size:7px;color:#0071CE;letter-spacing:.08em;white-space:nowrap;}
+    .pbar{height:3px;background:#ECEAE6;overflow:hidden;}
+    .pbar-fill{height:100%;}
+    @keyframes alertPulse{0%,100%{opacity:1}50%{opacity:.6}}.ap{animation:alertPulse 3s ease-in-out infinite;}
+  </style>
+</helmet>
+
+<div id="co" style="width:100%;overflow:hidden;">
+<div id="cr" style="width:1360px;transform-origin:top left;padding:24px 28px 40px;">
+  <div style="margin-bottom:14px;">
+    <p style="font-family:'DM Mono',monospace;font-size:9.5px;color:#7A7772;letter-spacing:.1em;text-transform:uppercase;">Plan Calendar v2 · Drag bars to shift · AI conflict detection · Manager / SE / Mentor views</p>
+  </div>
+  <div style="border:1px solid rgba(0,0,0,.15);overflow:hidden;display:flex;height:900px;background:#F5F4F0;box-shadow:0 24px 70px rgba(0,0,0,.2);">
+    <aside style="width:214px;flex-shrink:0;background:#00143A;display:flex;flex-direction:column;overflow:hidden;position:relative;">
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#0071CE,#CC27B0);z-index:2;"></div>
+      <div style="position:relative;z-index:1;display:flex;flex-direction:column;height:100%;padding-top:2px;">
+        <div style="padding:16px 16px 13px;border-bottom:1px solid rgba(255,255,255,.06);">
+          <div style="display:flex;align-items:center;gap:9px;">
+            <svg width="17" height="17" viewBox="0 0 20 20" fill="none"><path d="M10.5 2C10.5 2 16.5 6 16.5 13H10.5V2Z" fill="white"/><path d="M10.5 5C10.5 5 4.5 8 4.5 13H10.5V5Z" fill="rgba(255,255,255,0.32)"/><path d="M3 14.5H17" stroke="white" stroke-width="1.5" stroke-linecap="square"/></svg>
+            <div><div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#fff;">SailPoint</div><div style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(255,255,255,.2);letter-spacing:.14em;">{{ roleLabel }}</div></div>
+          </div>
+        </div>
+        <div style="flex:1;overflow-y:auto;padding:10px 0;" class="ms">
+          <div style="padding:8px 16px 3px;"><span style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(255,255,255,.38);letter-spacing:.16em;">PROGRAM</span></div>
+          <div class="no ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" style="opacity:.65;flex-shrink:0;"><rect x="2" y="2" width="12" height="12" rx="1"/><path d="M5 8l2 2.5L11 5.5"/></svg><span>Assign Plans</span></div>
+          <div class="na ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" style="opacity:.65;flex-shrink:0;"><rect x="2" y="3" width="12" height="10" rx="1"/><path d="M5 3V2M11 3V2M2 7h12"/></svg><span>Plan Calendar</span></div>
+          <div class="no ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" style="opacity:.65;flex-shrink:0;"><path d="M2 4h12M2 8h8M2 12h5"/></svg><span>Program Tracker</span></div>
+          <div class="no ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" style="opacity:.65;flex-shrink:0;"><circle cx="8" cy="8" r="5.5"/><path d="M8 5v3.5l2.5 1.5"/></svg><span>Certifications</span></div>
+          <div style="height:1px;background:rgba(255,255,255,.05);margin:8px 0;"></div>
+          <div style="padding:3px 16px;"><span style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(255,255,255,.38);letter-spacing:.16em;">TEAM</span></div>
+          <div class="no ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" style="opacity:.65;flex-shrink:0;"><circle cx="6" cy="5" r="2.5"/><path d="M1 13c0-3 2-4.5 5-4.5s5 1.5 5 4.5"/><circle cx="12.5" cy="5.5" r="2"/><path d="M11 13c0-1.5.8-2.8 2-3.5"/></svg><span>Team Roster</span></div>
+          <div class="no ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" style="opacity:.65;flex-shrink:0;"><polyline points="2,13 5.5,8 8.5,10.5 14,3.5"/></svg><span>Readiness Map</span></div>
+          <div style="height:1px;background:rgba(255,255,255,.05);margin:8px 0;"></div>
+          <div style="padding:3px 16px;"><span style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(255,255,255,.38);letter-spacing:.16em;">COACHING</span></div>
+          <div class="no ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" style="opacity:.65;flex-shrink:0;"><circle cx="8" cy="6" r="3"/><path d="M2 14c0-3.5 2.7-5 6-5s6 1.5 6 5"/></svg><span>Coaching Cadence</span></div>
+          <div class="no ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" style="opacity:.65;flex-shrink:0;"><path d="M2.5 3.5h11v8H9.5L7 14V11.5h-4.5z"/></svg><span>My Mentees</span></div>
+        </div>
+        <div style="padding:10px 14px 12px;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:9px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#0033a1,#0071CE);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:9.5px;color:white;flex-shrink:0;">{{ userInitials }}</div>
+          <div><div style="font-size:11.5px;font-weight:500;color:rgba(255,255,255,.82);">{{ userName }}</div><div style="font-family:'DM Mono',monospace;font-size:8px;color:rgba(255,255,255,.25);">{{ userRole }}</div></div>
+        </div>
+      </div>
+    </aside>
+
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;">
+      <header style="height:44px;background:#fff;border-bottom:1px solid #E2DFD9;padding:0 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:0;">
+          <span style="font-family:'DM Mono',monospace;font-size:10.5px;color:#A09D98;">Program</span>
+          <span style="color:#C4C1BB;font-size:11px;margin:0 2px;">›</span>
+          <span style="font-family:'DM Mono',monospace;font-size:10.5px;color:#3D3C38;font-weight:500;">Plan Calendar</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="display:flex;border:1px solid #D4D1CB;overflow:hidden;">
+            <div onClick="{{ setRoleManager }}" class="{{ roleManagerCls }} role-btn">MANAGER</div>
+            <div onClick="{{ setRoleSE }}" class="{{ roleSECls }} role-btn" style="border-left:1px solid #D4D1CB;border-right:1px solid #D4D1CB;">SE VIEW</div>
+            <div onClick="{{ setRoleMentor }}" class="{{ roleMentorCls }} role-btn">MENTOR</div>
+          </div>
+          <button onClick="{{ addHoliday }}" class="btn bo bsm">+ Block / Holiday</button>
+          <button onClick="{{ saveChanges }}" class="btn bb bsm">Save changes</button>
+          <div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#0033a1,#0071CE);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:9.5px;color:white;">{{ userInitials }}</div>
+        </div>
+      </header>
+
+      <!-- AI INTEL STRIP -->
+      <div style="background:#00143A;flex-shrink:0;overflow:hidden;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 20px 0;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:6px;height:6px;border-radius:50%;background:#B83128;" class="ap"></div>
+            <span style="font-family:'DM Mono',monospace;font-size:8px;color:rgba(255,255,255,.5);letter-spacing:.12em;text-transform:uppercase;">AI Scheduling Intelligence · {{ alertCount }} issues detected</span>
+          </div>
+          <button onClick="{{ dismissAllAlerts }}" style="background:none;border:none;cursor:pointer;font-family:'DM Mono',monospace;font-size:8px;color:rgba(255,255,255,.3);">Dismiss all</button>
+        </div>
+        <div style="display:flex;padding:6px 20px 10px;">
+          <sc-for list="{{ activeAlerts }}" as="al">
+          <div class="alert-card">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:4px;">
+              <div style="display:flex;align-items:center;gap:7px;">
+                <div style="width:20px;height:20px;border-radius:2px;background:{{ al.iconBg }};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="{{ al.iconPath }}" stroke="{{ al.iconColor }}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <div>
+                  <div style="font-size:11px;font-weight:600;color:#fff;line-height:1.2;">{{ al.title }}</div>
+                  <div style="font-family:'DM Mono',monospace;font-size:8px;color:{{ al.severityColor }};letter-spacing:.06em;margin-top:1px;">{{ al.severityLabel }} · {{ al.seName }}</div>
+                </div>
+              </div>
+              <button onClick="{{ al.dismiss }}" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,.25);padding:2px;font-size:13px;line-height:1;">×</button>
+            </div>
+            <div style="font-size:10.5px;color:rgba(255,255,255,.55);line-height:1.45;margin-bottom:6px;">{{ al.msg }}</div>
+            <button onClick="{{ al.cta }}" style="display:inline-flex;align-items:center;gap:4px;background:{{ al.ctaBg }};border:none;padding:3px 8px;font-family:'DM Mono',monospace;font-size:8.5px;color:{{ al.ctaColor }};cursor:pointer;">{{ al.ctaLabel }} →</button>
+          </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <!-- VIEW CONTROLS -->
+      <div style="height:38px;background:#fff;border-bottom:1px solid #E2DFD9;padding:0 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+        <div style="display:flex;height:100%;">
+          <div onClick="{{ setViewTimeline }}" data-view-tab="timeline" style="display:flex;align-items:center;padding:0 14px;font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.07em;cursor:pointer;color:#0071CE;border-bottom:2px solid #0071CE;">TIMELINE</div>
+          <div onClick="{{ setViewMonth }}" data-view-tab="month" style="display:flex;align-items:center;padding:0 14px;font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.07em;cursor:pointer;color:#A09D98;border-bottom:2px solid transparent;">MONTH</div>
+          <div onClick="{{ setViewTeam }}" data-view-tab="team" style="display:flex;align-items:center;padding:0 14px;font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.07em;cursor:pointer;color:#A09D98;border-bottom:2px solid transparent;">TEAM</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="display:flex;align-items:center;gap:4px;"><div style="width:10px;height:10px;background:#0071CE;"></div><span style="font-size:9.5px;color:#7A7772;">Content</span></div>
+          <div style="display:flex;align-items:center;gap:4px;"><div style="width:10px;height:10px;background:#D4810A;"></div><span style="font-size:9.5px;color:#7A7772;">Challenge</span></div>
+          <div style="display:flex;align-items:center;gap:4px;"><div style="width:10px;height:10px;background:#CC27B0;"></div><span style="font-size:9.5px;color:#7A7772;">Simulation</span></div>
+          <div style="display:flex;align-items:center;gap:4px;"><div style="width:10px;height:10px;background:#0A6E45;"></div><span style="font-size:9.5px;color:#7A7772;">Mentor</span></div>
+          <div style="display:flex;align-items:center;gap:4px;"><div style="width:10px;height:10px;background:#00143A;transform:rotate(45deg);"></div><span style="font-size:9.5px;color:#7A7772;">Gate</span></div>
+          <div style="width:1px;height:16px;background:#E2DFD9;"></div>
+          <span style="font-family:'DM Mono',monospace;font-size:8px;color:#B83128;">● Conflict</span>
+          <div style="width:1px;height:16px;background:#E2DFD9;"></div>
+          <span style="font-size:9.5px;color:#A09D98;">{{ dragHint }}</span>
+        </div>
+      </div>
+
+      <!-- MONTH VIEW -->
+      <div id="view-month" style="flex:1;overflow-y:auto;padding:16px 20px;display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <button onClick="{{ prevMonth }}" class="btn bo bxs">← Prev</button>
+            <span style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:#0D0E12;">{{ monthViewLabel }}</span>
+            <button onClick="{{ nextMonth }}" class="btn bo bxs">Next →</button>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:#E2DFD9;border:1px solid #E2DFD9;margin-bottom:1px;">
+          <sc-for list="{{ dowLabels }}" as="dow">
+          <div style="background:#F9F8F6;padding:6px 8px;text-align:center;font-family:'DM Mono',monospace;font-size:8px;color:#A09D98;letter-spacing:.08em;">{{ dow }}</div>
+          </sc-for>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:#E2DFD9;border:1px solid #E2DFD9;">
+          <sc-for list="{{ monthCells }}" as="cell">
+          <div style="background:{{ cell.bg }};min-height:90px;padding:6px;">
+            <div style="font-family:'DM Mono',monospace;font-size:11px;color:{{ cell.dayColor }};margin-bottom:4px;width:20px;height:20px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:{{ cell.todayBg }};font-weight:{{ cell.todayBold }};">{{ cell.dayNum }}</div>
+            <sc-for list="{{ cell.events }}" as="ev">
+            <div style="padding:2px 5px;margin-bottom:2px;background:{{ ev.color }};border-radius:2px;font-size:9px;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="{{ ev.label }}">{{ ev.shortLabel }}</div>
+            </sc-for>
+          </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <!-- TEAM VIEW -->
+      <div id="view-team" style="flex:1;overflow-y:auto;padding:16px 20px;display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div>
+            <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:#0D0E12;">Team Summary</div>
+            <div style="font-size:11px;color:#7A7772;margin-top:2px;">All ramp plans · Week of Jul 13, 2026</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="background:#F9F8F6;border:1px solid #E2DFD9;padding:6px 14px;text-align:center;"><div style="font-family:'DM Mono',monospace;font-size:18px;color:#0D0E12;">{{ teamAvgRamp }}</div><div style="font-family:'DM Mono',monospace;font-size:7.5px;color:#A09D98;margin-top:2px;">AVG RAMP</div></div>
+            <div style="background:#F9F8F6;border:1px solid #E2DFD9;padding:6px 14px;text-align:center;"><div style="font-family:'DM Mono',monospace;font-size:18px;color:#B83128;">{{ teamAtRiskCount }}</div><div style="font-family:'DM Mono',monospace;font-size:7.5px;color:#A09D98;margin-top:2px;">AT RISK</div></div>
+            <div style="background:#F9F8F6;border:1px solid #E2DFD9;padding:6px 14px;text-align:center;"><div style="font-family:'DM Mono',monospace;font-size:18px;color:#D4810A;">{{ teamConflictCount }}</div><div style="font-family:'DM Mono',monospace;font-size:7.5px;color:#A09D98;margin-top:2px;">CONFLICTS</div></div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;">
+          <sc-for list="{{ teamCards }}" as="tc">
+          <div style="background:#fff;border:1px solid {{ tc.borderColor }};padding:16px;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:36px;height:36px;border-radius:50%;background:{{ tc.avatarBg }};display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:12px;color:white;font-weight:500;">{{ tc.initials }}</div>
+                <div><div style="font-size:13px;font-weight:600;color:#0D0E12;">{{ tc.name }}</div><div style="font-family:'DM Mono',monospace;font-size:8.5px;color:#A09D98;">{{ tc.level }} · Day {{ tc.dayInRamp }}</div></div>
+              </div>
+              <span style="font-family:'DM Mono',monospace;font-size:8px;color:{{ tc.healthColor }};background:{{ tc.healthBg }};padding:3px 8px;letter-spacing:.06em;">{{ tc.healthLabel }}</span>
+            </div>
+            <div style="margin-bottom:10px;">
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="font-size:10.5px;color:#6B6860;">Ramp progress</span><span style="font-family:'DM Mono',monospace;font-size:11px;font-weight:500;color:{{ tc.rampColor }};">{{ tc.rampPct }}%</span></div>
+              <div style="height:4px;background:#ECEAE6;overflow:hidden;border-radius:2px;"><div style="height:4px;background:{{ tc.rampColor }};width:{{ tc.rampPct }}%;"></div></div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#E2DFD9;border:1px solid #E2DFD9;margin-bottom:10px;">
+              <div style="background:#F9F8F6;padding:7px 8px;text-align:center;"><div style="font-family:'DM Mono',monospace;font-size:14px;color:#0D0E12;">{{ tc.simScore }}</div><div style="font-family:'DM Mono',monospace;font-size:7px;color:#A09D98;margin-top:2px;">SIM AVG</div></div>
+              <div style="background:#F9F8F6;padding:7px 8px;text-align:center;"><div style="font-family:'DM Mono',monospace;font-size:14px;color:#0D0E12;">{{ tc.certs }}</div><div style="font-family:'DM Mono',monospace;font-size:7px;color:#A09D98;margin-top:2px;">CERTS</div></div>
+              <div style="background:#F9F8F6;padding:7px 8px;text-align:center;"><div style="font-family:'DM Mono',monospace;font-size:14px;color:#0D0E12;">{{ tc.gatesCleared }}</div><div style="font-family:'DM Mono',monospace;font-size:7px;color:#A09D98;margin-top:2px;">GATES</div></div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;background:{{ tc.nextMilestoneBg }};border:1px solid {{ tc.nextMilestoneBorder }};">
+              <div style="display:flex;align-items:center;gap:7px;"><div style="width:6px;height:6px;background:{{ tc.nextMilestoneColor }};transform:rotate(45deg);flex-shrink:0;"></div><span style="font-size:10.5px;color:#3D3C38;">{{ tc.nextMilestone }}</span></div>
+              <span style="font-family:'DM Mono',monospace;font-size:9px;color:{{ tc.nextMilestoneColor }};">{{ tc.nextMilestoneDays }}</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
+              <span style="font-size:10px;color:#A09D98;">Mentor: <span style="color:{{ tc.mentorColor }};">{{ tc.mentorName }}</span></span>
+              <button class="btn bo bxs">Open plan →</button>
+            </div>
+          </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <!-- GANTT / TIMELINE VIEW -->
+      <div id="view-timeline" style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
+        <div id="gantt-scroll" style="flex:1;overflow-x:auto;overflow-y:auto;">
+          <div style="min-width:{{ ganttTotalWidth }};display:flex;flex-direction:column;">
+            <div style="display:flex;position:sticky;top:0;z-index:20;background:#F9F8F6;border-bottom:2px solid #E2DFD9;">
+              <div style="width:200px;flex-shrink:0;position:sticky;left:0;z-index:21;background:#F9F8F6;border-right:1px solid #E2DFD9;padding:0 14px;display:flex;flex-direction:column;justify-content:flex-end;padding-bottom:6px;">
+                <div style="font-family:'DM Mono',monospace;font-size:7.5px;color:#A09D98;letter-spacing:.12em;text-transform:uppercase;">MY TEAM · {{ seCount }} SEs</div>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;position:relative;overflow:hidden;">
+                <div style="height:22px;display:flex;position:relative;border-bottom:1px solid #E2DFD9;">
+                  <sc-for list="{{ headerMonths }}" as="mon">
+                  <div style="{{ mon.style }}"><span style="font-family:'DM Mono',monospace;font-size:8px;font-weight:500;color:#3D3C38;letter-spacing:.06em;white-space:nowrap;">{{ mon.label }}</span></div>
+                  </sc-for>
+                </div>
+                <div style="height:26px;display:flex;align-items:center;">
+                  <sc-for list="{{ headerDays }}" as="hd">
+                  <div style="width:26px;flex-shrink:0;height:26px;display:flex;align-items:center;justify-content:center;background:{{ hd.bg }};border-right:1px solid #F0EFEB;">
+                    <span style="font-family:'DM Mono',monospace;font-size:8px;color:{{ hd.color }};font-weight:{{ hd.isTodayBold }};">{{ hd.dayNum }}</span>
+                  </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+            <div id="gantt-rows">
+              <sc-for list="{{ ganttRows }}" as="se">
+              <div class="gantt-row" style="min-height:80px;">
+                <div class="se-info-col" onClick="{{ se.openPanel }}">
+                  <div style="display:flex;align-items:center;gap:9px;margin-bottom:7px;">
+                    <div style="width:30px;height:30px;border-radius:50%;background:{{ se.avatarBg }};display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:10px;font-weight:500;color:white;flex-shrink:0;">{{ se.initials }}</div>
+                    <div style="flex:1;min-width:0;">
+                      <div style="font-size:12px;font-weight:600;color:#0D0E12;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ se.name }}</div>
+                      <div style="font-family:'DM Mono',monospace;font-size:8px;color:#A09D98;">Day {{ se.dayInRamp }} · {{ se.planName }}</div>
+                    </div>
+                  </div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+                    <span style="font-family:'DM Mono',monospace;font-size:7.5px;color:{{ se.healthColor }};background:{{ se.healthBg }};padding:2px 6px;letter-spacing:.06em;">{{ se.healthLabel }}</span>
+                    <span style="font-family:'DM Mono',monospace;font-size:9px;color:#3D3C38;font-weight:500;">{{ se.rampPct }}%</span>
+                  </div>
+                  <div class="pbar"><div class="pbar-fill" style="width:{{ se.rampPctStr }};background:{{ se.rampColor }};"></div></div>
+                </div>
+                <div style="flex:1;position:relative;background:{{ se.rowBg }};min-height:80px;">
+                  <div style="position:absolute;inset:0;background:{{ se.weekendBg }};pointer-events:none;z-index:1;"></div>
+                  <div class="today-line" style="{{ se.todayLineStyle }}"></div>
+                  <sc-for list="{{ se.barItems }}" as="bar">
+                    <sc-if value="{{ bar.isGate }}" hint-placeholder-val="{{ false }}">
+                    <div title="{{ bar.label }}" style="{{ bar.gateWrapStyle }}"><div style="width:14px;height:14px;background:{{ bar.gateColor }};transform:rotate(45deg);"></div></div>
+                    <div style="{{ bar.gateLabelStyle }}">{{ bar.label }}</div>
+                    <sc-if value="{{ bar.gateConflict }}" hint-placeholder-val="{{ false }}">
+                    <div style="{{ bar.gateDotStyle }}"></div>
+                    </sc-if>
+                    </sc-if>
+                    <sc-if value="{{ bar.notGate }}" hint-placeholder-val="{{ true }}">
+                    <div data-bar-id="{{ bar.id }}" data-se-id="{{ se.id }}" style="{{ bar.barStyle }}" title="{{ bar.label }}">
+                      <div style="{{ bar.progressStyle }}"></div>
+                      <div style="position:absolute;inset:0;padding:0 6px;display:flex;align-items:center;overflow:hidden;">
+                        <span style="font-family:'DM Mono',monospace;font-size:8.5px;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 2px rgba(0,0,0,.25);">{{ bar.shortLabel }}</span>
+                      </div>
+                      <sc-if value="{{ bar.hasConflict }}" hint-placeholder-val="{{ false }}">
+                      <div style="position:absolute;top:-3px;right:-3px;width:8px;height:8px;border-radius:50%;background:#B83128;border:1.5px solid white;z-index:20;pointer-events:none;"></div>
+                      </sc-if>
+                    </div>
+                    </sc-if>
+                  </sc-for>
+                </div>
+              </div>
+              </sc-for>
+              <div style="height:28px;display:flex;border-top:2px solid #E2DFD9;background:#F9F8F6;">
+                <div style="width:200px;flex-shrink:0;position:sticky;left:0;z-index:10;background:#F9F8F6;border-right:1px solid #E2DFD9;display:flex;align-items:center;padding:0 14px;">
+                  <span style="font-family:'DM Mono',monospace;font-size:7px;color:#A09D98;letter-spacing:.1em;text-transform:uppercase;">Segments</span>
+                </div>
+                <div style="flex:1;position:relative;">
+                  <sc-for list="{{ segmentBands }}" as="sb">
+                  <div style="{{ sb.style }}"><span style="font-family:'DM Mono',monospace;font-size:7.5px;color:{{ sb.color }};letter-spacing:.07em;white-space:nowrap;">{{ sb.label }}</span></div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STATUS BAR -->
+      <div style="height:30px;background:#fff;border-top:1px solid #E2DFD9;padding:0 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:16px;">
+          <span style="font-family:'DM Mono',monospace;font-size:9px;color:#A09D98;">{{ changesLabel }}</span>
+          <span style="font-family:'DM Mono',monospace;font-size:9px;color:#B83128;">{{ conflictSummary }}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="width:6px;height:6px;border-radius:50%;background:#0A6E45;"></div>
+          <span style="font-family:'DM Mono',monospace;font-size:9px;color:#6B6860;">Jun 1 – Sep 28, 2026 · 120 days</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 1360, &quot;height&quot;: 968}}">
+class Component extends DCLogic {
+  state = {
+    role: 'manager',
+    view: 'timeline',
+    dismissedAlerts: [],
+    pendingChanges: 0,
+    planData: null,
+    selectedSE: null,
+    monthOffset: 1, // start at July
+  };
+
+  DAY_PX = 26;
+  TODAY_DAY = 42;
+  TOTAL_DAYS = 120;
+
+  BAR_COLORS = {
+    content:   '#0071CE',
+    challenge: '#D4810A',
+    sim:       '#CC27B0',
+    mentor:    '#0A6E45',
+    gate:      '#00143A',
+  };
+
+  SE_DATA = [
+    {
+      id: 'finn', name: 'Finn Grant', initials: 'FG',
+      avatarBg: 'linear-gradient(135deg,#B83128,#7c1d1d)',
+      health: 'behind', healthLabel: 'BEHIND', healthColor: '#D4810A', healthBg: 'rgba(212,129,10,.1)',
+      rampPct: 18, dayInRamp: 22, mentor: 'Demo Manager', planName: '90-Day Ramp',
+      bars: [
+        { id: 'finn-c1', type: 'content',   label: 'Week 1–2: Boots on ground', startDay: 0,  days: 14, pct: 100 },
+        { id: 'finn-ch1',type: 'challenge', label: 'Wk2: First challenge',       startDay: 7,  days: 5,  pct: 100 },
+        { id: 'finn-g1', type: 'gate',      label: 'Gate 1',                     startDay: 13 },
+        { id: 'finn-c2', type: 'content',   label: 'Week 3–4: Building basics',  startDay: 14, days: 14, pct: 40 },
+        { id: 'finn-m1', type: 'mentor',    label: '1:1 Mentor',                 startDay: 10, days: 1 },
+        { id: 'finn-m2', type: 'mentor',    label: '1:1 Mentor',                 startDay: 21, days: 1 },
+        { id: 'finn-s1', type: 'sim',       label: 'Sim: Discovery call',        startDay: 29, days: 2 },
+        { id: 'finn-g2', type: 'gate',      label: 'Gate 2',                     startDay: 28 },
+      ]
+    },
+    {
+      id: 'gray', name: 'Gray Hayes', initials: 'GH',
+      avatarBg: 'linear-gradient(135deg,#1a5c8a,#0071CE)',
+      health: 'on-pace', healthLabel: 'ON PACE', healthColor: '#0A6E45', healthBg: 'rgba(10,110,69,.1)',
+      rampPct: 62, dayInRamp: 45, mentor: 'Demo Manager', planName: '90-Day Ramp',
+      bars: [
+        { id: 'gray-c1', type: 'content',   label: 'Week 1–4: Foundation',   startDay: 0,  days: 28, pct: 100 },
+        { id: 'gray-g1', type: 'gate',      label: 'Gate 1',                 startDay: 14 },
+        { id: 'gray-ch1',type: 'challenge', label: 'Challenge pack 1',       startDay: 21, days: 7,  pct: 100 },
+        { id: 'gray-c2', type: 'content',   label: 'Week 5–7: Advanced',     startDay: 28, days: 21, pct: 55 },
+        { id: 'gray-s1', type: 'sim',       label: 'Sim: CISO discovery',    startDay: 35, days: 2 },
+        { id: 'gray-s2', type: 'sim',       label: 'Sim: SLED vertical',     startDay: 42, days: 2 },
+        { id: 'gray-ch2',type: 'challenge', label: 'Challenge pack 2',       startDay: 42, days: 5 },
+        { id: 'gray-g2', type: 'gate',      label: 'Gate 2',                 startDay: 49 },
+        { id: 'gray-m1', type: 'mentor',    label: '1:1 Mentor',             startDay: 38, days: 1 },
+      ]
+    },
+    {
+      id: 'harper', name: 'Harper Ivan', initials: 'HI',
+      avatarBg: 'linear-gradient(135deg,#0A6E45,#14a065)',
+      health: 'ahead', healthLabel: 'AHEAD', healthColor: '#0071CE', healthBg: 'rgba(0,113,206,.1)',
+      rampPct: 78, dayInRamp: 68, mentor: 'Demo Manager', planName: '90-Day Ramp',
+      bars: [
+        { id: 'harper-c1',type: 'content',  label: 'Weeks 1–6: Foundation + Advanced', startDay: 0,  days: 42, pct: 100 },
+        { id: 'harper-g1',type: 'gate',     label: 'Gate 1',                           startDay: 14 },
+        { id: 'harper-g2',type: 'gate',     label: 'Gate 2',                           startDay: 35 },
+        { id: 'harper-c2',type: 'content',  label: 'Week 7–10: Expert track',          startDay: 42, days: 28, pct: 75 },
+        { id: 'harper-g3',type: 'gate',     label: 'Gate 3',                           startDay: 63 },
+        { id: 'harper-s1',type: 'sim',      label: 'Sim: Executive demo',              startDay: 55, days: 2 },
+        { id: 'harper-m1',type: 'mentor',   label: '1:1 Mentor',                       startDay: 61, days: 1 },
+      ]
+    },
+    {
+      id: 'demo', name: 'Demo SE', initials: 'DS',
+      avatarBg: 'linear-gradient(135deg,#5a2d82,#9b44c8)',
+      health: 'critical', healthLabel: 'CRITICAL', healthColor: '#B83128', healthBg: 'rgba(184,49,40,.12)',
+      rampPct: 12, dayInRamp: 22, mentor: null, planName: '90-Day Ramp',
+      bars: [
+        { id: 'demo-c1', type: 'content',  label: 'Week 1–2: Boots on ground', startDay: 0,  days: 14, pct: 12 },
+        { id: 'demo-g1', type: 'gate',     label: 'Gate 1',                    startDay: 14 },
+      ]
+    },
+  ];
+
+  detectConflicts(planData) {
+    const conflicts = [];
+    const isWeekend = d => (d % 7 === 5 || d % 7 === 6);
+    planData.forEach(se => {
+      se.bars.filter(b => b.type === 'gate').forEach(bar => {
+        if (isWeekend(bar.startDay)) {
+          conflicts.push({ id: 'wknd-' + bar.id, severity: 'warning', seId: se.id, barId: bar.id,
+            seName: se.name, title: bar.label + ' falls on weekend',
+            msg: se.name + "'s " + bar.label + ' is on a weekend. Shift to nearest weekday.',
+            ctaLabel: 'Shift to Mon', ctaAction: () => this.shiftGateToNextMonday(se.id, bar.id) });
+        }
+      });
+      const weekMap = {};
+      se.bars.filter(b => b.type !== 'content' && b.type !== 'gate').forEach(bar => {
+        const wk = Math.floor(bar.startDay / 7);
+        if (!weekMap[wk]) weekMap[wk] = [];
+        weekMap[wk].push(bar);
+      });
+      Object.keys(weekMap).forEach(wk => {
+        if (weekMap[wk].length >= 2) {
+          conflicts.push({ id: 'overload-' + se.id + '-' + wk, severity: 'warning', seId: se.id,
+            seName: se.name, title: 'Week ' + (parseInt(wk)+1) + ' overloaded',
+            msg: weekMap[wk].length + ' deliverables same week. Consider spacing out.',
+            ctaLabel: 'Rebalance', ctaAction: () => {} });
+        }
+      });
+      if (!se.mentor) {
+        conflicts.push({ id: 'no-mentor-' + se.id, severity: 'info', seId: se.id,
+          seName: se.name, title: 'No mentor assigned',
+          msg: se.name + ' has no mentor. 1:1 sessions unscheduled.',
+          ctaLabel: 'Assign mentor', ctaAction: () => {} });
+      }
+      if (se.health === 'critical') {
+        const exp = Math.round(se.dayInRamp * 1.6);
+        conflicts.push({ id: 'pace-' + se.id, severity: 'critical', seId: se.id,
+          seName: se.name, title: se.name + ' critically behind',
+          msg: se.rampPct + '% at day ' + se.dayInRamp + '. Expected ~' + exp + '%. Gate 1 at risk.',
+          ctaLabel: 'Review plan', ctaAction: () => this.setState({ selectedSE: se.id }) });
+      }
+    });
+    return conflicts;
+  }
+
+  shiftGateToNextMonday(seId, barId) {
+    const pd = this.state.planData || this.SE_DATA;
+    const updated = pd.map(se => {
+      if (se.id !== seId) return se;
+      return { ...se, bars: se.bars.map(bar => {
+        if (bar.id !== barId) return bar;
+        let d = bar.startDay;
+        while (d % 7 === 5 || d % 7 === 6) d++;
+        return { ...bar, startDay: d };
+      })};
+    });
+    this.setState({ planData: updated, pendingChanges: (this.state.pendingChanges||0)+1 });
+  }
+
+  updateBarDay(seId, barId, newDay) {
+    const pd = this.state.planData || this.SE_DATA;
+    const updated = pd.map(se => {
+      if (se.id !== seId) return se;
+      return { ...se, bars: se.bars.map(bar => {
+        if (bar.id !== barId) return bar;
+        return { ...bar, startDay: Math.max(0, newDay) };
+      })};
+    });
+    this.setState({ planData: updated, pendingChanges: (this.state.pendingChanges||0)+1 });
+  }
+
+  componentDidMount() {
+    const scale = () => {
+      const root = document.getElementById('cr');
+      const outer = document.getElementById('co');
+      if (!root || !outer) return;
+      const r = outer.clientWidth / 1360;
+      root.style.transform = 'scale(' + r + ')';
+      outer.style.height = (900 * r + 64) + 'px';
+    };
+    scale();
+    window.addEventListener('resize', scale);
+
+    // View switching
+    const switchView = (v) => {
+      const tl = document.getElementById('view-timeline');
+      const mo = document.getElementById('view-month');
+      const tm = document.getElementById('view-team');
+      if (tl) { tl.style.display = v === 'timeline' ? 'flex' : 'none'; }
+      if (mo) { mo.style.display = v === 'month'    ? 'block' : 'none'; }
+      if (tm) { tm.style.display = v === 'team'     ? 'block' : 'none'; }
+      document.querySelectorAll('[data-view-tab]').forEach(tab => {
+        const active = tab.dataset.viewTab === v;
+        tab.style.color = active ? '#0071CE' : '#A09D98';
+        tab.style.borderBottom = active ? '2px solid #0071CE' : '2px solid transparent';
+      });
+    };
+    document.body.addEventListener('click', (e) => {
+      const tab = e.target.closest('[data-view-tab]');
+      if (tab) { this.setState({ view: tab.dataset.viewTab }); switchView(tab.dataset.viewTab); }
+    }, true);
+    setTimeout(() => switchView('timeline'), 80);
+
+    // Drag-and-drop
+    const DAY_PX = this.DAY_PX;
+    let activeDrag = null;
+    const gantt = document.getElementById('gantt-rows');
+    if (!gantt) return;
+    gantt.addEventListener('mousedown', (e) => {
+      if (this.state.role !== 'manager') return;
+      const bar = e.target.closest('[data-bar-id]');
+      if (!bar) return;
+      e.preventDefault();
+      const origLeft = parseInt(bar.style.left) || 0;
+      activeDrag = { bar, barId: bar.dataset.barId, seId: bar.dataset.seId, startX: e.clientX, origLeft, currentLeft: origLeft };
+      bar.style.opacity = '0.6';
+      bar.style.cursor = 'grabbing';
+    });
+    document.addEventListener('mousemove', (e) => {
+      if (!activeDrag) return;
+      const delta = e.clientX - activeDrag.startX;
+      const newLeft = Math.max(0, activeDrag.origLeft + delta);
+      activeDrag.bar.style.left = newLeft + 'px';
+      activeDrag.currentLeft = newLeft;
+    });
+    document.addEventListener('mouseup', () => {
+      if (!activeDrag) return;
+      const snappedDay = Math.round(activeDrag.currentLeft / DAY_PX);
+      activeDrag.bar.style.left = (snappedDay * DAY_PX) + 'px';
+      activeDrag.bar.style.opacity = '';
+      activeDrag.bar.style.cursor = '';
+      this.updateBarDay(activeDrag.seId, activeDrag.barId, snappedDay);
+      activeDrag = null;
+    });
+  }
+
+  renderVals() {
+    const { role, view, dismissedAlerts, pendingChanges } = this.state;
+    const planData = this.state.planData || this.SE_DATA;
+    const DAY_PX = this.DAY_PX;
+    const TODAY_DAY = this.TODAY_DAY;
+    const isManager = role === 'manager';
+
+    // Role
+    const roleLabel = role === 'manager' ? 'MANAGER' : role === 'se' ? 'SE VIEW' : 'MENTOR';
+    const userName = 'Demo Manager';
+    const userInitials = 'DM';
+    const userRole = role === 'manager' ? 'Manager' : role === 'se' ? 'SE' : 'Mentor';
+    const dragHint = isManager ? 'Drag bars to shift dates' : 'Read-only view';
+    const roleManagerCls = role === 'manager' ? 'role-active' : 'role-inactive';
+    const roleSECls      = role === 'se'      ? 'role-active' : 'role-inactive';
+    const roleMentorCls  = role === 'mentor'  ? 'role-active' : 'role-inactive';
+
+    // Conflicts
+    const conflicts = this.detectConflicts(planData);
+    const activeConflicts = conflicts.filter(c => !dismissedAlerts.includes(c.id));
+    const alertCount = activeConflicts.length;
+    const sevStyles = {
+      critical: { iconBg: 'rgba(184,49,40,.25)', iconColor: '#FF8080', iconPath: 'M6 2L1 11h10L6 2zM6 5v3M6 9.5v.5', severityColor: '#FF6B6B', severityLabel: 'CRITICAL', ctaBg: 'rgba(184,49,40,.25)', ctaColor: '#FF8080' },
+      warning:  { iconBg: 'rgba(212,129,10,.25)', iconColor: '#FFB347', iconPath: 'M6 2v6M6 10.5v.5', severityColor: '#FFB347', severityLabel: 'WARNING', ctaBg: 'rgba(212,129,10,.2)', ctaColor: '#FFB347' },
+      info:     { iconBg: 'rgba(0,113,206,.2)', iconColor: '#5BB3FF', iconPath: 'M6 2v1M6 5v5', severityColor: '#5BB3FF', severityLabel: 'INFO', ctaBg: 'rgba(0,113,206,.15)', ctaColor: '#5BB3FF' },
+    };
+    const activeAlerts = activeConflicts.slice(0,3).map(c => ({
+      ...c, ...(sevStyles[c.severity]||sevStyles.info),
+      dismiss: () => this.setState(st => ({ dismissedAlerts: [...st.dismissedAlerts, c.id] })),
+      cta: c.ctaAction || (() => {}),
+    }));
+
+    // Calendar header
+    const months = [
+      { name: 'June 2026',      monthIdx: 5, year: 2026, days: 30 },
+      { name: 'July 2026',      monthIdx: 6, year: 2026, days: 31 },
+      { name: 'August 2026',    monthIdx: 7, year: 2026, days: 31 },
+      { name: 'September 2026', monthIdx: 8, year: 2026, days: 28 },
+    ];
+    const headerDays = [], headerMonths = [];
+    let dayOffset = 0;
+    months.forEach(m => {
+      headerMonths.push({ label: m.name, style: 'position:absolute;left:' + (dayOffset*DAY_PX) + 'px;top:0;height:22px;display:flex;align-items:center;padding:0 8px;border-right:1px solid #D4D1CB;width:' + (m.days*DAY_PX) + 'px;' });
+      for (let d = 1; d <= m.days; d++) {
+        const dow = new Date(m.year, m.monthIdx, d).getDay();
+        const isWeekend = dow===0||dow===6;
+        const isToday = dayOffset === TODAY_DAY;
+        headerDays.push({ dayNum: d, bg: isToday?'#EFF6FF':isWeekend?'#F5F4F0':'transparent', color: isToday?'#0071CE':isWeekend?'#C4C1BB':'#7A7772', isTodayBold: isToday?'600':'400' });
+        dayOffset++;
+      }
+    });
+    const ganttTotalWidth = (200 + this.TOTAL_DAYS * DAY_PX) + 'px';
+    const todayLeftPx = TODAY_DAY * DAY_PX;
+    const segmentBands = [
+      { label: 'SEG 1 · Days 1–30',  color: '#0057a8', style: 'position:absolute;left:0px;width:' + (30*DAY_PX) + 'px;top:0;bottom:0;border-right:1px dashed rgba(0,0,0,.1);display:flex;align-items:center;padding-left:8px;' },
+      { label: 'SEG 2 · Days 31–60', color: '#A51E8E', style: 'position:absolute;left:' + (30*DAY_PX) + 'px;width:' + (30*DAY_PX) + 'px;top:0;bottom:0;border-right:1px dashed rgba(0,0,0,.1);display:flex;align-items:center;padding-left:8px;' },
+      { label: 'SEG 3 · Days 61–90', color: '#0A6E45', style: 'position:absolute;left:' + (60*DAY_PX) + 'px;width:' + (30*DAY_PX) + 'px;top:0;bottom:0;border-right:1px dashed rgba(0,0,0,.1);display:flex;align-items:center;padding-left:8px;' },
+    ];
+
+    // Filter by role
+    const visibleSEs = role==='se' ? planData.filter(s=>s.id==='demo') : role==='mentor' ? planData.filter(s=>s.mentor==='Demo Manager') : planData;
+    const conflictBarIds = new Set(activeConflicts.filter(c=>c.barId).map(c=>c.barId));
+    const conflictSEIds  = new Set(activeConflicts.map(c=>c.seId));
+    const RGBA = { '#0071CE':['rgba(0,113,206,.88)','rgba(0,113,206,.28)'], '#D4810A':['rgba(212,129,10,.88)','rgba(212,129,10,.28)'], '#CC27B0':['rgba(204,39,176,.88)','rgba(204,39,176,.28)'], '#0A6E45':['rgba(10,110,69,.88)','rgba(10,110,69,.28)'] };
+
+    const ganttRows = visibleSEs.map(se => {
+      const rampColor = se.health==='critical'?'#B83128':se.health==='behind'?'#D4810A':se.health==='ahead'?'#0071CE':'#0A6E45';
+      const barItems = se.bars.map(bar => {
+        const isGate = bar.type==='gate';
+        const color = this.BAR_COLORS[bar.type]||'#888';
+        const leftPx = bar.startDay * DAY_PX;
+        const widthPx = isGate ? 0 : Math.max((bar.days||1)*DAY_PX, 30);
+        const isTrackA = bar.type==='content';
+        const topPx = isGate?0:isTrackA?8:34;
+        const heightPx = isGate?0:isTrackA?22:16;
+        const pct = bar.pct!==undefined ? bar.pct : 100;
+        const rgbaSet = RGBA[color]||['rgba(128,128,128,.88)','rgba(128,128,128,.28)'];
+        const bgColor = pct===100 ? rgbaSet[0] : rgbaSet[1];
+        const progressWidth = Math.round(pct*widthPx/100)+'px';
+        const hasConflict = conflictBarIds.has(bar.id);
+        const gateConflict = isGate && hasConflict;
+        const gateColor = gateConflict ? '#B83128' : '#00143A';
+        const shortLabel = bar.label.length>24 ? bar.label.slice(0,22)+'…' : bar.label;
+        const barCursor = isManager?'grab':'default';
+        const barStyle = 'position:absolute;left:'+leftPx+'px;width:'+widthPx+'px;top:'+topPx+'px;height:'+heightPx+'px;background:'+bgColor+';z-index:'+(isTrackA?3:5)+';cursor:'+barCursor+';user-select:none;overflow:hidden;transition:filter 80ms;';
+        return {
+          id: bar.id, seId: se.id, type: bar.type, label: bar.label, shortLabel,
+          barStyle,
+          gateWrapStyle: 'position:absolute;left:'+(leftPx-7)+'px;top:30px;z-index:8;pointer-events:none;',
+          gateLabelStyle: 'position:absolute;left:'+(leftPx-10)+'px;top:48px;font-family:DM Mono,monospace;font-size:7.5px;color:'+gateColor+';white-space:nowrap;z-index:8;pointer-events:none;',
+          gateDotStyle: 'position:absolute;left:'+(leftPx-4)+'px;top:26px;width:8px;height:8px;border-radius:50%;background:#B83128;border:1.5px solid white;z-index:20;pointer-events:none;',
+          progressStyle: 'position:absolute;top:0;left:0;width:'+progressWidth+';bottom:0;background:'+color+';',
+          bgColor, isGate, notGate: !isGate, hasConflict, gateConflict, gateColor,
+        };
+      });
+      const weekendBg = 'repeating-linear-gradient(90deg,transparent 0px,transparent '+(5*DAY_PX)+'px,rgba(0,0,0,.025) '+(5*DAY_PX)+'px,rgba(0,0,0,.025) '+(7*DAY_PX)+'px)';
+      return {
+        ...se, barItems, rampColor, rampPctStr: se.rampPct+'%',
+        rowBg: conflictSEIds.has(se.id)?'rgba(184,49,40,.02)':'transparent',
+        weekendBg,
+        todayLineStyle: 'position:absolute;top:0;bottom:0;left:'+todayLeftPx+'px;width:2px;background:#0071CE;z-index:9;pointer-events:none;',
+        openPanel: () => this.setState({ selectedSE: se.id }),
+      };
+    });
+
+    // Month view
+    const monthOffset = this.state.monthOffset || 1;
+    const displayMonth = 5 + monthOffset; // 5=June base, +1=July default
+    const displayYear = 2026;
+    const monthFull = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const daysInMonth = new Date(displayYear, displayMonth+1, 0).getDate();
+    const firstDow = new Date(displayYear, displayMonth, 1).getDay();
+    const monthViewLabel = monthFull[displayMonth] + ' ' + displayYear;
+    const dowLabels = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+    const monthCells = [];
+    for (let i=0; i<firstDow; i++) {
+      const d = new Date(displayYear, displayMonth, -firstDow+i+1);
+      monthCells.push({ dayNum: d.getDate(), bg:'#F5F4F0', dayColor:'#C4C1BB', todayBold:'400', todayBg:'transparent', events:[] });
+    }
+    for (let d=1; d<=daysInMonth; d++) {
+      const date = new Date(displayYear, displayMonth, d);
+      const isToday = date.getFullYear()===2026&&date.getMonth()===6&&date.getDate()===13;
+      const isWeekend = date.getDay()===0||date.getDay()===6;
+      const dayOff = Math.round((date - new Date(2026,5,1))/86400000);
+      const events = [];
+      planData.forEach(se => {
+        se.bars.forEach(bar => {
+          if (bar.startDay===dayOff) {
+            events.push({ color: this.BAR_COLORS[bar.type]||'#888', label: se.name+' — '+bar.label, shortLabel: (se.initials+': '+bar.label).slice(0,20) });
+          }
+        });
+      });
+      monthCells.push({ dayNum: d, bg: isToday?'#EFF6FF':isWeekend?'#F9F8F6':'#fff', dayColor: isToday?'white':isWeekend?'#A09D98':'#0D0E12', todayBold: isToday?'700':'400', todayBg: isToday?'#0071CE':'transparent', events: events.slice(0,4) });
+    }
+    const rem = 7 - (monthCells.length % 7);
+    if (rem<7) for (let i=1;i<=rem;i++) monthCells.push({ dayNum:i, bg:'#F5F4F0', dayColor:'#C4C1BB', todayBold:'400', todayBg:'transparent', events:[] });
+
+    // Team view
+    const teamAvgRamp = Math.round(planData.reduce((s,se)=>s+se.rampPct,0)/planData.length)+'%';
+    const teamAtRiskCount = planData.filter(se=>se.health==='critical'||se.health==='behind').length;
+    const teamConflictCount = this.detectConflicts(planData).length;
+    const SIM_SCORES = { finn:52, gray:0, harper:78, demo:78 };
+    const teamCards = visibleSEs.map(se => {
+      const upcoming = se.bars.filter(b=>b.startDay>=TODAY_DAY).sort((a,b)=>a.startDay-b.startDay)[0];
+      const daysAway = upcoming ? upcoming.startDay-TODAY_DAY : 999;
+      const nmColor = daysAway<=7?'#B83128':daysAway<=14?'#D4810A':'#0A6E45';
+      const nmBg = daysAway<=7?'#FFF5F5':daysAway<=14?'#FFFBF0':'#F0FDF7';
+      const rampColor = se.health==='critical'?'#B83128':se.health==='behind'?'#D4810A':se.health==='ahead'?'#0071CE':'#0A6E45';
+      return { ...se, level:'Basic SE', rampColor,
+        borderColor: se.health==='critical'?'rgba(184,49,40,.3)':'#E2DFD9',
+        simScore: SIM_SCORES[se.id]||'—', certs:'0/8',
+        gatesCleared: se.bars.filter(b=>b.type==='gate'&&b.startDay<TODAY_DAY).length+'/5',
+        nextMilestone: upcoming?upcoming.label:'Plan complete',
+        nextMilestoneDays: upcoming?'in '+daysAway+'d':'—',
+        nextMilestoneColor: nmColor, nextMilestoneBg: nmBg,
+        nextMilestoneBorder: daysAway<=7?'rgba(184,49,40,.15)':daysAway<=14?'rgba(212,129,10,.15)':'rgba(10,110,69,.15)',
+        mentorName: se.mentor||'Unassigned', mentorColor: se.mentor?'#0D0E12':'#B83128',
+      };
+    });
+
+    const changesLabel = pendingChanges>0 ? pendingChanges+' unsaved change'+(pendingChanges>1?'s':'') : 'No unsaved changes';
+    const conflictSummary = alertCount>0 ? alertCount+' conflict'+(alertCount>1?'s':'')+' need attention' : '';
+
+    return {
+      roleLabel, userName, userInitials, userRole, dragHint,
+      roleManagerCls, roleSECls, roleMentorCls,
+      setRoleManager: () => this.setState({ role:'manager' }),
+      setRoleSE:      () => this.setState({ role:'se' }),
+      setRoleMentor:  () => this.setState({ role:'mentor' }),
+      setViewTimeline: () => this.setState({ view:'timeline' }),
+      setViewMonth:    () => this.setState({ view:'month' }),
+      setViewTeam:     () => this.setState({ view:'team' }),
+      activeAlerts, alertCount,
+      dismissAllAlerts: () => this.setState({ dismissedAlerts: conflicts.map(c=>c.id) }),
+      ganttRows, headerDays, headerMonths, segmentBands, ganttTotalWidth, seCount: visibleSEs.length,
+      monthViewLabel, monthCells, dowLabels,
+      prevMonth: () => this.setState(s=>({ monthOffset:(s.monthOffset||1)-1 })),
+      nextMonth: () => this.setState(s=>({ monthOffset:(s.monthOffset||1)+1 })),
+      teamAvgRamp, teamAtRiskCount, teamConflictCount, teamCards,
+      changesLabel, conflictSummary,
+      addHoliday: () => {},
+      saveChanges: () => this.setState({ pendingChanges:0 }),
+    };
+  }
+}
+</script>
+</body>
+</html>

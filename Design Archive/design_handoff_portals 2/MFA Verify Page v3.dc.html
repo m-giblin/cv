@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html,body{height:100%;font-family:'DM Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+    .fu{animation:fadeUp .3s ease-out both;}
+    .d1{animation-delay:.06s}.d2{animation-delay:.12s}.d3{animation-delay:.18s}.d4{animation-delay:.24s}.d5{animation-delay:.3s}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}.lp{animation:pulse 2.4s ease-in-out infinite;}
+    /* OTP digit boxes */
+    .otp{width:44px;height:52px;background:#fff;border:1.5px solid #D4D1CB;font-family:'DM Mono',monospace;font-size:22px;font-weight:500;color:#0D0E12;text-align:center;outline:none;transition:border-color .12s;}
+    .otp:focus{border-color:#0071CE;}
+    .otp.filled{border-color:#0071CE;background:#F8FBFF;}
+  </style>
+</helmet>
+
+<div style="display:flex;min-height:100vh;background:#00143A;">
+
+  <!-- LEFT PANEL — slightly different copy for MFA step -->
+  <div style="width:52%;background:#00143A;display:flex;flex-direction:column;position:relative;overflow:hidden;flex-shrink:0;border-right:1px solid rgba(255,255,255,.06);">
+
+    <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#0071CE,#CC27B0);z-index:2;"></div>
+
+    <!-- Shield motif — abstract security graphic -->
+    <div style="position:absolute;inset:0;pointer-events:none;z-index:0;opacity:.12;">
+      <svg width="100%" height="100%" viewBox="0 0 560 900" preserveAspectRatio="xMidYMid slice">
+        <!-- Concentric diamonds -->
+        <rect x="230" y="370" width="100" height="100" fill="none" stroke="white" stroke-width=".8" transform="rotate(45 280 420)"/>
+        <rect x="190" y="330" width="180" height="180" fill="none" stroke="white" stroke-width=".6" transform="rotate(45 280 420)"/>
+        <rect x="150" y="290" width="260" height="260" fill="none" stroke="white" stroke-width=".5" transform="rotate(45 280 420)"/>
+        <rect x="100" y="240" width="360" height="360" fill="none" stroke="white" stroke-width=".4" transform="rotate(45 280 420)"/>
+        <!-- Center fill -->
+        <rect x="267" y="407" width="26" height="26" fill="white" opacity=".4" transform="rotate(45 280 420)"/>
+        <!-- Shield icon center -->
+        <path d="M280 380 L310 395 L310 420 Q310 440 280 450 Q250 440 250 420 L250 395 Z" fill="none" stroke="rgba(0,113,206,.8)" stroke-width="1.5"/>
+        <path d="M270 415 l8 8 14-16" stroke="rgba(0,113,206,.8)" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        <!-- Cross hatching lines -->
+        <line x1="0" y1="0" x2="560" y2="900" stroke="white" stroke-width=".3" opacity=".3"/>
+        <line x1="560" y1="0" x2="0" y2="900" stroke="white" stroke-width=".3" opacity=".3"/>
+        <line x1="0" y1="450" x2="560" y2="450" stroke="white" stroke-width=".3" opacity=".2"/>
+        <line x1="280" y1="0" x2="280" y2="900" stroke="white" stroke-width=".3" opacity=".2"/>
+      </svg>
+    </div>
+
+    <!-- Grid texture -->
+    <div style="position:absolute;inset:0;pointer-events:none;opacity:.03;background-image:linear-gradient(rgba(255,255,255,.8) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.8) 1px,transparent 1px);background-size:40px 40px;"></div>
+
+    <div style="flex:1;display:flex;flex-direction:column;padding:48px 52px;position:relative;z-index:1;">
+
+      <!-- Wordmark -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:auto;">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path d="M10.5 2C10.5 2 16.5 6 16.5 13H10.5V2Z" fill="white"/>
+          <path d="M10.5 5C10.5 5 4.5 8 4.5 13H10.5V5Z" fill="rgba(255,255,255,0.32)"/>
+          <path d="M3 14.5H17" stroke="white" stroke-width="1.5" stroke-linecap="square"/>
+        </svg>
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#fff;letter-spacing:-.01em;line-height:1;">Enablement</div>
+          <div style="font-family:'DM Mono',monospace;font-size:8px;color:rgba(255,255,255,.3);letter-spacing:.14em;margin-top:2px;">PLATFORM</div>
+        </div>
+      </div>
+
+      <!-- MFA step copy -->
+      <div style="margin-top:auto;margin-bottom:auto;padding:40px 0 32px;">
+        <div style="display:inline-flex;align-items:center;gap:7px;margin-bottom:24px;">
+          <span class="lp" style="width:5px;height:5px;border-radius:50%;background:#0071CE;display:inline-block;"></span>
+          <span style="font-family:'DM Mono',monospace;font-size:9.5px;color:rgba(255,255,255,.4);letter-spacing:.12em;text-transform:uppercase;">Step 2 of 2 · Identity verification</span>
+        </div>
+
+        <h1 style="font-family:'Syne',sans-serif;font-size:44px;font-weight:800;color:#fff;letter-spacing:-.04em;line-height:1;margin-bottom:20px;">
+          One more<br>step to<br>
+          <span style="color:#0071CE;">get in.</span>
+        </h1>
+
+        <p style="font-size:13.5px;color:rgba(255,255,255,.45);line-height:1.7;max-width:340px;margin-bottom:36px;">
+          Multi-factor authentication protects your coaching data, sim scores, and team readiness metrics.
+        </p>
+
+        <!-- Step instructions -->
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div style="display:flex;gap:12px;align-items:flex-start;">
+            <div style="width:20px;height:20px;flex-shrink:0;background:#0071CE;display:flex;align-items:center;justify-content:center;margin-top:1px;">
+              <span style="font-family:'DM Mono',monospace;font-size:9px;color:white;font-weight:500;">1</span>
+            </div>
+            <div>
+              <div style="font-size:12.5px;font-weight:600;color:rgba(255,255,255,.75);margin-bottom:2px;">Open your authenticator app</div>
+              <div style="font-family:'DM Mono',monospace;font-size:9px;color:rgba(255,255,255,.3);">Google Authenticator, Authy, or 1Password</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-start;">
+            <div style="width:20px;height:20px;flex-shrink:0;background:rgba(0,113,206,.3);display:flex;align-items:center;justify-content:center;margin-top:1px;border:1px solid rgba(0,113,206,.5);">
+              <span style="font-family:'DM Mono',monospace;font-size:9px;color:rgba(255,255,255,.6);font-weight:500;">2</span>
+            </div>
+            <div>
+              <div style="font-size:12.5px;font-weight:600;color:rgba(255,255,255,.45);margin-bottom:2px;">Enter the 6-digit code</div>
+              <div style="font-family:'DM Mono',monospace;font-size:9px;color:rgba(255,255,255,.25);">Refreshes every 30 seconds</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:8px;padding-top:24px;border-top:1px solid rgba(255,255,255,.06);">
+        <span style="font-family:'DM Mono',monospace;font-size:8.5px;color:rgba(255,255,255,.2);letter-spacing:.1em;">TENANT</span>
+        <span style="font-family:'DM Mono',monospace;font-size:9px;color:rgba(255,255,255,.3);">acme.sailpoint.io</span>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:5px;">
+          <div class="lp" style="width:5px;height:5px;border-radius:50%;background:#0A6E45;display:inline-block;"></div>
+          <span style="font-family:'DM Mono',monospace;font-size:8.5px;color:rgba(255,255,255,.25);">Online</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL — OTP form -->
+  <div style="flex:1;background:#F5F4F0;display:flex;align-items:center;justify-content:center;padding:48px 40px;">
+    <div style="width:100%;max-width:360px;">
+
+      <!-- Step indicator -->
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:32px;" class="fu d1">
+        <div style="width:20px;height:20px;background:#E2DFD9;display:flex;align-items:center;justify-content:center;">
+          <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#0A6E45" stroke-width="1.8" stroke-linecap="round"><path d="M2 6l3 3 5-5"/></svg>
+        </div>
+        <span style="font-family:'DM Mono',monospace;font-size:10px;color:#A09D98;text-decoration:line-through;">Sign in</span>
+        <div style="height:1px;flex:1;background:#0071CE;margin:0 6px;"></div>
+        <div style="width:20px;height:20px;background:#00143A;display:flex;align-items:center;justify-content:center;">
+          <span style="font-family:'DM Mono',monospace;font-size:8px;color:white;font-weight:500;">2</span>
+        </div>
+        <span style="font-family:'DM Mono',monospace;font-size:10px;color:#0D0E12;font-weight:500;">Verify</span>
+      </div>
+
+      <!-- Back link -->
+      <a href="#" style="display:inline-flex;align-items:center;gap:6px;margin-bottom:28px;text-decoration:none;" class="fu d1">
+        <svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="#A09D98" stroke-width="1.6" stroke-linecap="round"><path d="M9 2L4 7l5 5"/></svg>
+        <span style="font-family:'DM Mono',monospace;font-size:9.5px;color:#A09D98;">Back to sign in</span>
+      </a>
+
+      <!-- Heading -->
+      <div style="margin-bottom:28px;" class="fu d2">
+        <h2 style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:#0D0E12;letter-spacing:-.025em;line-height:1;margin-bottom:6px;">Confirm it's you.</h2>
+        <p style="font-size:12.5px;color:#6B6860;">Enter the 6-digit code from your authenticator app</p>
+      </div>
+
+      <!-- OTP input row -->
+      <div style="margin-bottom:20px;" class="fu d3">
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:#6B6860;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;">Authenticator code</div>
+        <div style="display:flex;gap:7px;">
+          <input class="otp filled" type="text" maxlength="1" value="4">
+          <input class="otp filled" type="text" maxlength="1" value="8">
+          <input class="otp filled" type="text" maxlength="1" value="2">
+          <input class="otp" type="text" maxlength="1" placeholder="—">
+          <input class="otp" type="text" maxlength="1" placeholder="—">
+          <input class="otp" type="text" maxlength="1" placeholder="—">
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:7px;">
+          <span style="font-family:'DM Mono',monospace;font-size:9px;color:#B0ADA8;">Code refreshes every 30 seconds</span>
+          <a href="#" style="font-family:'DM Mono',monospace;font-size:9px;color:#0071CE;text-decoration:none;">Resend</a>
+        </div>
+      </div>
+
+      <!-- Timer indicator -->
+      <div style="margin-bottom:20px;background:#fff;border:1px solid #E2DFD9;padding:9px 12px;display:flex;align-items:center;gap:10px;" class="fu d3">
+        <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="#B0ADA8" stroke-width="1.3" stroke-linecap="round"><circle cx="7" cy="7" r="5.5"/><polyline points="7,4 7,7 9.5,8.5"/></svg>
+        <span style="font-family:'DM Mono',monospace;font-size:9.5px;color:#6B6860;">Code expires in <strong style="color:#0D0E12;font-weight:500;">00:18</strong></span>
+      </div>
+
+      <!-- Submit -->
+      <button style="width:100%;background:#00143A;color:white;border:none;padding:12px 14px;font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;letter-spacing:.01em;transition:background .12s;opacity:.5;" class="fu d4">
+        <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="6.5" width="8" height="6" rx=".5"/><path d="M5 6.5V4.5a2 2 0 014 0v2"/></svg>
+        Verify and continue
+      </button>
+
+      <p style="font-family:'DM Mono',monospace;font-size:9px;color:#B0ADA8;text-align:center;margin-top:14px;" class="fu d5">
+        Having trouble? Contact your tenant admin.
+      </p>
+
+    </div>
+  </div>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 1280, &quot;height&quot;: 800}}"></script>
+</body>
+</html>

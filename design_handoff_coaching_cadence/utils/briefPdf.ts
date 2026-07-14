@@ -1,0 +1,84 @@
+// ============================================================
+// utils/briefPdf.ts — Open a print-ready PDF brief in new tab
+// ============================================================
+// This approach (open new window, write HTML, auto-print) is
+// production-ready for the common case. If you need to attach a
+// real PDF file to an email without user interaction, swap this
+// out for @react-pdf/renderer or a Puppeteer server-side route.
+// The HTML structure below maps directly to react-pdf primitives.
+// ============================================================
+import type { SEProfile } from '../types';
+
+export function openBriefPdf(se: SEProfile): void {
+  const skillBars = se.skills.map(sk =>
+    `<div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+        <span>${sk.name}</span>
+        <span style="font-weight:600;color:${sk.color}">${sk.score} — ${sk.tag}</span>
+      </div>
+      <div style="height:5px;background:#eee">
+        <div style="height:5px;width:${sk.width};background:${sk.color}"></div>
+      </div>
+    </div>`
+  ).join('');
+
+  const briefItems = se.brief.map(pt =>
+    `<div style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid #f0efeb">
+      <div style="font-size:18px;flex-shrink:0">${pt.icon}</div>
+      <div style="flex:1">
+        <div style="font-size:12px;line-height:1.6">${pt.text}</div>
+        ${pt.action ? `<div style="margin-top:6px;font-size:10px;font-weight:600;color:#0071CE">→ ${pt.action}</div>` : ''}
+      </div>
+      <div style="flex-shrink:0;font-size:9px;font-weight:700;color:${pt.tagColor};margin-left:auto;padding-left:12px">${pt.tag}</div>
+    </div>`
+  ).join('');
+
+  const histItems = se.history.length
+    ? se.history.map(h =>
+        `<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #f0efeb">
+          <div style="width:40px;flex-shrink:0;font-size:10px;color:#888;font-weight:600">${h.date}</div>
+          <div style="flex:1">
+            <div style="font-size:11px;font-weight:600">${h.focus}</div>
+            <div style="font-size:10.5px;color:#555;margin-top:2px">${h.note}</div>
+          </div>
+          <div style="font-size:11px;font-weight:600;color:${h.deltaColor}">${h.delta}</div>
+        </div>`
+      ).join('')
+    : '<p style="font-size:11px;color:#888;padding:10px 0">No coaching sessions logged yet.</p>';
+
+  const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+  const html = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>1:1 Brief — ${se.name}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{font-family:"Segoe UI",system-ui,sans-serif;padding:0.6in 0.7in;color:#1a1a1a;font-size:12px}
+  @page{size:letter;margin:0}
+  h2{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#888;font-weight:500;margin-top:22px;margin-bottom:8px;border-bottom:1px solid #eee;padding-bottom:5px}
+  @media print{*,*::before,*::after{animation-delay:-99s!important;animation-duration:.001s!important}}
+</style>
+</head><body>
+<div style="background:#00143A;color:white;padding:16px 20px;margin:-0.6in -0.7in 24px;position:relative">
+  <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#0071CE,#CC27B0)"></div>
+  <div style="font-size:9px;letter-spacing:.14em;opacity:.5;text-transform:uppercase;margin-bottom:4px">SailPoint · 1:1 Coaching Brief</div>
+  <div style="font-size:20px;font-weight:800;letter-spacing:-.02em">${se.name} <span style="font-size:9px;font-weight:700;padding:2px 8px;background:${se.healthBg};color:${se.healthColor};letter-spacing:.06em">${se.healthLabel}</span></div>
+  <div style="font-size:10px;opacity:.55;margin-top:4px">${se.level} · Day ${se.day} of ramp · ${se.briefDate}</div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#eee;margin-bottom:20px;border:1px solid #eee">
+  <div style="background:white;padding:10px 14px"><div style="font-size:8px;text-transform:uppercase;letter-spacing:.1em;color:#aaa;margin-bottom:3px">Last 1:1</div><div style="font-size:15px;font-weight:700;color:${se.lastColor}">${se.lastLabel}</div></div>
+  <div style="background:white;padding:10px 14px"><div style="font-size:8px;text-transform:uppercase;letter-spacing:.1em;color:#aaa;margin-bottom:3px">Sim avg</div><div style="font-size:15px;font-weight:700;color:${se.simColor}">${se.simAvg} <span style="font-size:10px;color:${se.trendColor}">${se.trendLabel}</span></div></div>
+  <div style="background:white;padding:10px 14px"><div style="font-size:8px;text-transform:uppercase;letter-spacing:.1em;color:#aaa;margin-bottom:3px">Ramp</div><div style="font-size:15px;font-weight:700;color:${se.rampColor}">${se.ramp}</div></div>
+  <div style="background:white;padding:10px 14px"><div style="font-size:8px;text-transform:uppercase;letter-spacing:.1em;color:#aaa;margin-bottom:3px">Overdue</div><div style="font-size:15px;font-weight:700;color:${se.overdueColor}">${se.overdue}</div></div>
+</div>
+<h2>Competency Profile</h2>${skillBars}
+<h2>AI 1:1 Brief</h2>${briefItems}
+<h2>Coaching History</h2>${histItems}
+<div style="margin-top:24px;padding-top:12px;border-top:1px solid #eee;font-size:9px;color:#bbb">
+  Generated by SailPoint Coaching Command Center · ${dateStr}
+</div>
+<script>addEventListener("load",function(){setTimeout(function(){window.print();},600);});<\/script>
+</body></html>`;
+
+  const w = window.open('', '_blank');
+  if (w) { w.document.write(html); w.document.close(); }
+}

@@ -1,0 +1,481 @@
+@import "tailwindcss";
+
+@theme {
+ --color-sp-navy-deep: #00143a;
+ --color-sp-navy-body: #0D0E12;
+ --color-sp-navy-muted: #3d3c38;
+ --color-sp-blue-deep: #0033a1;
+ --color-sp-blue: #0071ce;
+ --color-sp-blue-soft: #eef4ff;
+ --color-sp-magenta: #cc27b0;
+ --color-sp-magenta-soft: #fdf0fa;
+ --color-sp-green: #0a6e45;
+ --color-sp-amber: #d4810a;
+ --color-sp-red: #b83128;
+ --color-sp-border: #e2dfd9;
+ --color-sp-border-alt: #eceae6;
+ --color-sp-bg: #f5f4f0;
+ --color-sp-surface: #f5f4f0;
+ --color-sp-surface-alt: #f9f8f6;
+ --color-sp-surface-warm: #dedad4;
+ --color-sp-text-primary: #0d0e12;
+ --color-sp-text-body: #3d3c38;
+ --color-sp-text-muted: #6b6860;
+ --color-sp-text-subtle: #a09d98;
+ --color-sp-text-ghost: #b0ada8;
+ --color-sp-surface-elevated: #ffffff;
+ --font-display: var(--font-syne), ui-sans-serif, system-ui, sans-serif;
+ --font-body: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+ --font-mono: var(--font-dm-mono), ui-monospace, monospace;
+}
+
+:root {
+ color-scheme: light;
+ --background: #f5f4f0;
+ --foreground: #0d0e12;
+ --gradient-brand: linear-gradient(135deg, #0033a1 0%, #0071ce 45%, #cc27b0 100%);
+ --gradient-accent-line: linear-gradient(90deg, #0033a1, #0071ce, #cc27b0);
+}
+
+* {
+ box-sizing: border-box;
+}
+
+html {
+ scroll-behavior: smooth;
+}
+
+body {
+ min-height: 100vh;
+ margin: 0;
+ background: var(--background);
+ color: var(--foreground);
+ font-family: var(--font-body);
+}
+
+a {
+ text-decoration: none;
+}
+
+::selection {
+ background: #d4e8f9;
+ color: #0033a1;
+}
+
+.font-display {
+ font-family: var(--font-display);
+}
+
+.font-mono {
+ font-family: var(--font-mono);
+}
+
+.handoff-dot {
+ width: 7px;
+ height: 7px;
+ border-radius: 50%;
+ flex-shrink: 0;
+}
+
+.handoff-dot-green {
+ background: #0a6e45;
+}
+
+.handoff-dot-amber {
+ background: #d4810a;
+}
+
+.handoff-dot-blue {
+ background: #0071ce;
+}
+
+.sp-gradient-text {
+ background: var(--gradient-brand);
+ -webkit-background-clip: text;
+ background-clip: text;
+ color: transparent;
+}
+
+/* ── Sidebar navigation (design handoff) ── */
+.sp-sidebar-scroll {
+ scrollbar-width: thin;
+ scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+.sp-sidebar-scroll::-webkit-scrollbar {
+ width: 4px;
+}
+
+.sp-sidebar-scroll::-webkit-scrollbar-track {
+ background: transparent;
+}
+
+.sp-sidebar-scroll::-webkit-scrollbar-thumb {
+ background: rgba(255, 255, 255, 0.15);
+}
+
+.sp-sidebar-nav-item {
+ display: flex;
+ align-items: center;
+ gap: 9px;
+ padding: 7px 16px 7px 14px;
+ font-size: 11.5px;
+ font-weight: 500;
+ line-height: 1.25;
+ border-left: 2px solid transparent;
+ transition:
+ background 150ms ease,
+ color 150ms ease,
+ border-color 150ms ease;
+}
+
+.sp-sidebar-nav-inactive {
+ /* Product override: white inactive labels (design handoff uses rgba white .62) */
+ color: #ffffff;
+}
+
+.sp-sidebar-nav-inactive:hover {
+ background: rgba(255, 255, 255, 0.05);
+ color: #ffffff;
+}
+
+.sp-sidebar-nav-active {
+ /* Product override: magenta active state (design handoff uses blue #0071CE) */
+ background: rgba(204, 39, 176, 0.12);
+ color: #cc27b0;
+ border-left-color: #cc27b0;
+}
+
+.sp-sidebar-nav-badge {
+ background: var(--tenant-primary, #0071ce);
+ color: #ffffff;
+ font-family: var(--font-mono);
+ font-size: 8px;
+ font-weight: 500;
+ padding: 1px 5px;
+ min-width: 16px;
+ text-align: center;
+ line-height: 1.3;
+}
+
+.sp-sidebar-group-label {
+ font-family: var(--font-mono);
+ font-size: 8px;
+ font-weight: 500;
+ letter-spacing: 0.12em;
+ text-transform: uppercase;
+ color: rgba(255, 255, 255, 0.55);
+ padding: 0 16px;
+ margin-bottom: 4px;
+}
+
+/* ── Role pills (header) ── */
+.sp-role-pill {
+ font-family: var(--font-mono);
+ font-size: 8px;
+ font-weight: 500;
+ letter-spacing: 0.08em;
+ text-transform: uppercase;
+ padding: 2px 8px;
+ line-height: 1.4;
+}
+
+.sp-role-pill-se {
+ background: rgba(0, 113, 206, 0.1);
+ color: #0057a8;
+}
+
+.sp-role-pill-manager {
+ background: rgba(204, 39, 176, 0.1);
+ color: #a51e8e;
+}
+
+.sp-role-pill-admin {
+ background: rgba(0, 20, 58, 0.07);
+ color: #3D3C38;
+}
+
+/* ── Page hero ── */
+.sp-page-eyebrow {
+ font-family: var(--font-mono);
+ font-size: 9px;
+ font-weight: 500;
+ letter-spacing: 0.1em;
+ text-transform: uppercase;
+ color: #0071ce;
+}
+
+.sp-page-title {
+ font-family: var(--font-display);
+ font-size: 22px;
+ font-weight: 800;
+ color: #00143a;
+ letter-spacing: -0.02em;
+ line-height: 1.2;
+}
+
+.sp-page-description {
+ font-size: 13px;
+ line-height: 1.6;
+ color: #6b6860;
+}
+
+/* Design handoff animations */
+@keyframes handoff-page-enter {
+ from {
+ opacity: 0;
+ transform: translateY(6px);
+ }
+ to {
+ opacity: 1;
+ transform: translateY(0);
+ }
+}
+
+@keyframes fadeIn {
+ from {
+ opacity: 0;
+ transform: translateY(8px);
+ }
+ to {
+ opacity: 1;
+ transform: translateY(0);
+ }
+}
+
+@keyframes slideIn {
+ from {
+ transform: translateX(40px);
+ opacity: 0;
+ }
+ to {
+ transform: none;
+ opacity: 1;
+ }
+}
+
+@keyframes alertPulse {
+ 0%,
+ 100% {
+ opacity: 1;
+ }
+ 50% {
+ opacity: 0.6;
+ }
+}
+
+@keyframes pf {
+ from {
+ width: 0;
+ }
+}
+
+@keyframes pulse-dot {
+ 0%,
+ 100% {
+ opacity: 1;
+ }
+ 50% {
+ opacity: 0.4;
+ }
+}
+
+.handoff-page-enter {
+ animation: handoff-page-enter 0.2s ease-out both;
+}
+
+.anim-in {
+ animation: fadeIn 0.2s ease-out both;
+}
+
+.fade-in {
+ animation: fadeIn 0.4s ease-out both;
+}
+
+.animate-pulse-dot {
+ animation: pulse-dot 2.2s ease-in-out infinite;
+}
+
+.pulse-dot {
+ animation: pulse-dot 2.2s ease-in-out infinite;
+}
+
+.ai-dot {
+ animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes fadeUp {
+ from {
+ transform: translateY(8px);
+ opacity: 0;
+ }
+ to {
+ transform: translateY(0);
+ opacity: 1;
+ }
+}
+
+.prog-fill {
+ animation: pf 1.1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.ring-fill {
+ animation: ringFill 1s ease-out forwards;
+}
+
+@keyframes ringFill {
+ from {
+ stroke-dashoffset: var(--ring-full, 251.3);
+ }
+}
+
+@media (prefers-reduced-motion: reduce) {
+ .handoff-page-enter,
+ .anim-in,
+ .fade-in {
+ animation: none;
+ }
+ .prog-fill,
+ .ring-fill {
+ animation: none;
+ }
+ .animate-pulse-dot,
+ .pulse-dot {
+ animation: none;
+ }
+ * {
+ animation-duration: 0.01ms !important;
+ transition-duration: 0.01ms !important;
+ }
+}
+
+/* ── Sharp buttons (handoff) ── */
+.sp-btn-navy {
+ display: inline-flex;
+ align-items: center;
+ gap: 5px;
+ background: #00143a;
+ color: #ffffff;
+ font-size: 12.5px;
+ font-weight: 600;
+ padding: 9px 18px;
+ transition: background 150ms ease;
+}
+
+.sp-btn-navy:hover {
+ background: #001d50;
+}
+
+.sp-btn-blue {
+ display: inline-flex;
+ align-items: center;
+ gap: 5px;
+ background: #0071ce;
+ color: #ffffff;
+ font-size: 12.5px;
+ font-weight: 600;
+ padding: 9px 18px;
+ transition: background 150ms ease;
+}
+
+.sp-btn-blue:hover {
+ background: #005aab;
+}
+
+.sp-btn-outline {
+ display: inline-flex;
+ align-items: center;
+ gap: 5px;
+ background: #ffffff;
+ color: #3d3c38;
+ border: 1px solid #e2dfd9;
+ font-size: 12.5px;
+ font-weight: 600;
+ padding: 8px 14px;
+ transition:
+ border-color 150ms ease,
+ color 150ms ease;
+}
+
+.sp-btn-outline:hover {
+ border-color: #0071ce;
+ color: #0071ce;
+}
+
+.sp-btn-magenta {
+ display: inline-flex;
+ align-items: center;
+ gap: 5px;
+ background: #cc27b0;
+ color: #ffffff;
+ font-size: 12.5px;
+ font-weight: 600;
+ padding: 9px 18px;
+ transition: background 150ms ease;
+}
+
+.sp-btn-magenta:hover {
+ background: #a51e8e;
+}
+
+/* Bento card */
+.sp-card {
+ background: #ffffff;
+ border: 1px solid #e2dfd9;
+}
+
+/* Northstar — sharp geometry, warm surface */
+.design-northstar {
+ --ns-cream: #f5f4f0;
+ --ns-white: #ffffff;
+ --ns-primary: #0033a1;
+ --ns-primary-soft: #eef4ff;
+ --ns-border: #e2dfd9;
+ background: var(--ns-cream);
+ color: #0d0e12;
+}
+
+.design-northstar .ns-nav-active {
+ background: var(--ns-primary-soft);
+ color: var(--ns-primary);
+}
+
+.design-northstar .ns-card {
+ background: var(--ns-white);
+ border: 1px solid var(--ns-border);
+}
+
+.design-northstar .ns-card-blue {
+ border-color: rgba(0, 51, 161, 0.2);
+}
+
+.design-northstar .ns-card-peach {
+ border-color: rgba(212, 129, 10, 0.22);
+}
+
+.design-northstar .ns-card-lavender {
+ border-color: rgba(124, 58, 237, 0.22);
+}
+
+.design-northstar .ns-card-sage {
+ border-color: rgba(10, 110, 69, 0.2);
+}
+
+.design-northstar .ns-card-primary {
+ border: 1px solid rgba(0, 51, 161, 0.28);
+ background: linear-gradient(145deg, #ffffff 0%, var(--ns-primary-soft) 100%);
+}
+
+/* Login panel stagger */
+.lp-1 {
+ animation: fadeIn 0.5s ease-out 0.1s both;
+}
+.lp-2 {
+ animation: fadeIn 0.5s ease-out 0.2s both;
+}
+.lp-3 {
+ animation: fadeIn 0.5s ease-out 0.3s both;
+}
+.lp-4 {
+ animation: fadeIn 0.5s ease-out 0.4s both;
+}

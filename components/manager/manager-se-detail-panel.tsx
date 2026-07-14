@@ -1,0 +1,871 @@
+"use client";
+
+import { format, formatDistanceToNow } from "date-fns";
+import {
+ CheckCircle2,
+ ClipboardList,
+ Clock,
+ RotateCcw,
+ Target,
+ Trophy,
+ Users,
+ X,
+} from "lucide-react";
+import Link from "next/link";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
+import { ActivityFeed } from "@/components/activity-feed";
+import { StatusBadge } from "@/components/status-badge";
+import { Badge } from "@/components/ui/badge";
+import { ManagerAddAdHocTask } from "@/components/manager/manager-add-ad-hoc-task";
+import { ManagerCoachingNotes } from "@/components/manager/manager-coaching-notes";
+import { ManagerReassignMentor } from "@/components/manager/manager-reassign-mentor";
+import { MentorNotesForManager } from "@/components/manager/mentor-notes-for-manager";
+import { ManagerOutlineBtn, healthBadgeStyle } from "@/components/manager/manager-ui-primitives";
+import { ManagerPlanAssignPanel } from "@/components/manager/manager-plan-assign-panel";
+import { SimulationAssignForm } from "@/components/manager/simulation-assign-form";
+import { SimTrendChart } from "@/components/manager/sim-trend-chart";
+import type { SeCoachingSummary } from "@/lib/manager/se-coaching-summary";
+import type {
+ CertSummary,
+ CohortBenchmark,
+ QuarterlyAlert,
+ SimTrend,
+} from "@/lib/manager/growth-insights";
+import type {
+ ActivityLog,
+ Challenge,
+ ChallengeSubmission,
+ CoachingCard,
+ DevelopmentPlan,
+ PlanStep,
+ Profile,
+ SimulationAssignment,
+ UserPlan,
+} from "@/lib/types";
+import { currentQuarter } from "@/lib/development/plan-utils";
+import { avatarGradientForId } from "@/lib/se/avatar-gradients";
+import { formatPercent, initials } from "@/lib/utils";
+
+export type SeManagerSnapshot = {
+ profile: Profile;
+ plan?: UserPlan;
+ developmentPlan?: DevelopmentPlan | null;
+ mentor?: Profile;
+ submissions: ChallengeSubmission[];
+ coachingCards: CoachingCard[];
+ simulations: SimulationAssignment[];
+ activity: ActivityLog[];
+ openReviewCount: number;
+ coaching: SeCoachingSummary;
+ simTrend: SimTrend;
+ cohortBenchmark: CohortBenchmark | null;
+ quarterlyAlert: QuarterlyAlert | null;
+ certSummary: CertSummary;
+ managerNotes: string;
+ mentorNotes?: { mentorName: string; notes: string; updatedAt: string } | null;
+};
+
+function stepStatusTone(step: PlanStep) {
+ if (step.status === "reviewed" || step.status === "completed") return "green";
+ if (step.status === "submitted" || step.status === "under_review") return "amber";
+ if (step.status === "in_progress") return "blue";
+ return "slate";
+}
+
+function stepStatusLabel(step: PlanStep) {
+ if (step.status === "reviewed") return "Validated";
+ if (step.status === "under_review") return "Mentor endorsed — your sign-off";
+ if (step.status === "submitted") return "Awaiting your sign-off";
+ if (step.status === "in_progress") return "In progress";
+ if (step.status === "not_started") return "Not started";
+ return step.status.replaceAll("_", " ");
+}
+
+function certBadgeStyle(status: string) {
+ if (status === "approved") return { bg: "#dcfce7", color: "#15803d", label: "Approved" };
+ if (status === "submitted") return { bg: "#fef3c7", color: "#b45309", label: "Submitted" };
+ if (status === "locked") return { bg: "#ECEAE6", color: "#A09D98", label: "Locked" };
+ return { bg: "#ECEAE6", color: "#6B6860", label: "Not started" };
+}
+
+const SIM_QUICK_PICKS = ["CISO discovery", "SLED vertical", "Executive demo", "Bakeoff scenario"] as const;
+
+type DetailSection = {
+ id: string;
+ label: string;
+ badge?: number;
+};
+
+function buildDetailSections(input: {
+ openReviewCount: number;
+ quarterlyAlert: QuarterlyAlert | null;
+ cohortBenchmark: CohortBenchmark | null;
+ topGapsCount: number;
+ sentBackCount: number;
+ hasPlanSteps: boolean;
+ hasAccomplishments: boolean;
+}): DetailSection[] {
+ const sections: DetailSection[] = [
+ { id: "coaching", label: "Coaching" },
+ { id: "assign-sim", label: "Assign sim" },
+ { id: "notes", label: "Notes" },
+ { id: "trend", label: "Sim trend" },
+ { id: "certs", label: "Certs" },
+ { id: "development", label: "Dev goals" },
+ ];
+
+ if (input.quarterlyAlert && input.quarterlyAlert.pendingGoals > 0) {
+ sections.push({ id: "quarterly", label: "Quarterly" });
+ }
+ if (input.cohortBenchmark) {
+ sections.push({ id: "cohort", label: "Cohort" });
+ }
+ if (input.topGapsCount > 0) {
+ sections.push({ id: "gaps", label: "Gaps" });
+ }
+ if (input.openReviewCount > 0) {
+ sections.push({ id: "review", label: "Review", badge: input.openReviewCount });
+ }
+ if (input.sentBackCount > 0) {
+ sections.push({ id: "sent-back", label: "Sent back" });
+ }
+ if (input.hasPlanSteps) {
+ sections.push({ id: "plan", label: "Ramp plan" });
+ }
+ if (input.hasAccomplishments) {
+ sections.push({ id: "accomplishments", label: "Wins" });
+ }
+ sections.push({ id: "activity", label: "Activity" });
+
+ return sections;
+}
+
+function scrollToDetailSection(sectionId: string, scrollRoot: HTMLElement | null) {
+ const target = document.getElementById(`se-detail-${sectionId}`);
+ if (!target) return;
+
+ if (scrollRoot) {
+ const rootTop = scrollRoot.getBoundingClientRect().top;
+ const targetTop = target.getBoundingClientRect().top;
+ scrollRoot.scrollTo({
+ top: scrollRoot.scrollTop + targetTop - rootTop - 12,
+ behavior: "smooth",
+ });
+ return;
+ }
+
+ target.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+export function ManagerSeDetailPanel({
+ snapshot,
+ challenges,
+ profiles,
+ plans,
+ mentors,
+ onClose,
+}: {
+ snapshot: SeManagerSnapshot;
+ challenges: Challenge[];
+ profiles: Profile[];
+ plans: UserPlan[];
+ mentors: Profile[];
+ onClose: () => void;
+}) {
+ const {
+ profile,
+ plan,
+ developmentPlan,
+ submissions,
+ coachingCards,
+ simulations,
+ activity,
+ openReviewCount,
+ coaching,
+ simTrend,
+ cohortBenchmark,
+ quarterlyAlert,
+ certSummary,
+ managerNotes,
+ mentorNotes,
+ mentor,
+ } = snapshot;
+
+ const [selectedQuickPick, setSelectedQuickPick] = useState<string | null>(SIM_QUICK_PICKS[0]);
+ const [activeSection, setActiveSection] = useState("coaching");
+ const assignFormRef = useRef<HTMLDivElement>(null);
+ const scrollRef = useRef<HTMLDivElement>(null);
+
+ useEffect(() => {
+ function onKeyDown(event: KeyboardEvent) {
+ if (event.key === "Escape") onClose();
+ }
+ document.addEventListener("keydown", onKeyDown);
+ document.body.style.overflow = "hidden";
+ return () => {
+ document.removeEventListener("keydown", onKeyDown);
+ document.body.style.overflow = "";
+ };
+ }, [onClose]);
+
+ const validatedSteps = plan?.steps.filter((s) => s.status === "reviewed") ?? [];
+ const awaitingReviewSteps = plan?.steps.filter((s) => s.status === "submitted") ?? [];
+
+ const pendingSubmissions = submissions.filter((s) => s.status === "submitted");
+ const pendingCoaching = coachingCards.filter((c) => c.managerReviewStatus === "pending");
+
+ const sentBackCards = coachingCards.filter((c) => c.managerReviewStatus === "needs_revision");
+ const sentBackSubmissions = submissions.filter(
+ (s) => s.status === "in_progress" && s.managerFeedback,
+ );
+
+ const approvedCards = coachingCards.filter((c) => c.managerReviewStatus === "reviewed");
+ const approvedSubmissions = submissions.filter((s) => s.status === "reviewed");
+
+ const activeSimulation = simulations.find(
+ (sim) => sim.status === "in_progress" || sim.status === "submitted",
+ );
+
+ const health = healthBadgeStyle(coaching.health);
+ const rampPct = plan?.progress ?? coaching.onboardingProgress;
+
+ const stats = [
+ { val: `${coaching.onboardingProgress}%`, label: "Onboarding" },
+ {
+ val: coaching.devGoalsTotal > 0 ? `${coaching.devGoalsOnTrack}/${coaching.devGoalsTotal}` : "—",
+ label: "Dev goals",
+ },
+ { val: String(coaching.latestSimScore ?? coaching.avgSimScore ?? "—"), label: "Sim avg" },
+ { val: coaching.certsLabel, label: "Certs" },
+ ];
+
+ const hasAccomplishments =
+ approvedCards.length > 0 || approvedSubmissions.length > 0 || validatedSteps.length > 0;
+
+ const detailSections = useMemo(
+ () =>
+ buildDetailSections({
+ openReviewCount,
+ quarterlyAlert,
+ cohortBenchmark,
+ topGapsCount: coaching.topGaps.length,
+ sentBackCount: sentBackCards.length + sentBackSubmissions.length,
+ hasPlanSteps: Boolean(plan && plan.steps.length > 0),
+ hasAccomplishments,
+ }),
+ [
+ openReviewCount,
+ quarterlyAlert,
+ cohortBenchmark,
+ coaching.topGaps.length,
+ sentBackCards.length,
+ sentBackSubmissions.length,
+ plan,
+ hasAccomplishments,
+ ],
+ );
+
+ useEffect(() => {
+ setActiveSection(detailSections[0]?.id ?? "coaching");
+ }, [profile.id, detailSections]);
+
+ useEffect(() => {
+ const root = scrollRef.current;
+ if (!root) return;
+
+ const sectionElements = detailSections
+ .map((section) => document.getElementById(`se-detail-${section.id}`))
+ .filter((element): element is HTMLElement => element !== null);
+
+ if (sectionElements.length === 0) return;
+
+ const observer = new IntersectionObserver(
+ (entries) => {
+ const visible = entries
+ .filter((entry) => entry.isIntersecting)
+ .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+ const top = visible[0];
+ if (top?.target.id.startsWith("se-detail-")) {
+ setActiveSection(top.target.id.replace("se-detail-", ""));
+ }
+ },
+ { root, rootMargin: "-20% 0px -55% 0px", threshold: [0.1, 0.35, 0.6] },
+ );
+
+ for (const element of sectionElements) {
+ observer.observe(element);
+ }
+
+ return () => observer.disconnect();
+ }, [detailSections, profile.id]);
+
+ return (
+ <>
+ <div
+ aria-hidden
+ className="fixed inset-0 z-40 backdrop-blur-[2px]"
+ onClick={onClose}
+ style={{ background: "rgba(0,20,58,0.45)" }}
+ />
+
+ <div
+ className="fixed inset-y-0 right-0 z-50 flex w-[min(780px,94vw)] flex-col overflow-hidden bg-white"
+ style={{ }}
+ >
+ <div
+ className="shrink-0 border-b border-[#E2DFD9] p-[18px_22px_14px]"
+ style={{ background: "linear-gradient(135deg,#f0f7ff,#fdf0fa)" }}
+ >
+ <div className="flex items-start justify-between gap-[12px]">
+ <div className="flex items-center gap-[12px]">
+ <div
+ className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-full text-[14px] font-bold text-white"
+ style={{ background: avatarGradientForId(profile.id) }}
+ >
+ {initials(profile.fullName)}
+ </div>
+ <div>
+ <div className="mb-[2px] flex items-center gap-[8px]">
+ <span className="font-display text-[16px] font-extrabold text-[#0D0E12]">{profile.fullName}</span>
+ <span
+ className="font-mono text-[8px] uppercase tracking-[0.08em] px-[8px] py-[2px] text-[9px] font-bold"
+ style={{ background: health.bg, color: health.color }}
+ >
+ {health.label}
+ </span>
+ </div>
+ <p className="text-[11px] text-[#6B6860]">
+ {profile.level} · {profile.email}
+ </p>
+ </div>
+ </div>
+ <button className="p-[4px] text-[#6B6860] hover:bg-[#ECEAE6]" onClick={onClose} type="button">
+ <X className="h-[18px] w-[18px]" strokeWidth={1.8} />
+ </button>
+ </div>
+
+ {plan ? (
+ <div className="mt-[12px]">
+ <div className="mb-[4px] flex justify-between">
+ <span className="text-[11px] font-semibold text-[#3D3C38]">{plan.name}</span>
+ <span className="text-[11px] font-bold text-[#0071ce]">{formatPercent(rampPct)}</span>
+ </div>
+ <div className="h-[6px] overflow-hidden rounded-full bg-[#e8f2fc]">
+ <div className="prog-fill h-full rounded-full bg-[#0071ce]" style={{ width: `${rampPct}%` }} />
+ </div>
+ {mentor ? (
+ <p className="mt-[6px] text-[10px] text-[#6B6860]">
+ Mentor: <span className="font-semibold text-[#3D3C38]">{mentor.fullName}</span>
+ </p>
+ ) : null}
+ </div>
+ ) : (
+ <div className="mt-[12px] space-y-3">
+ <p className="text-[11px] text-[#6B6860]">No onboarding plan assigned yet.</p>
+ <ManagerPlanAssignPanel
+ assignees={[profile]}
+ compact
+ defaultUserId={profile.id}
+ mentors={mentors}
+ onAssigned={onClose}
+ plans={plans}
+ />
+ </div>
+ )}
+ </div>
+
+ <div className="grid shrink-0 grid-cols-4 border-b border-[#E2DFD9]">
+ {stats.map((stat) => (
+ <div className="border-r border-[#E2DFD9] p-[10px_12px] text-center last:border-r-0" key={stat.label}>
+ <p className="font-display text-[18px] font-extrabold leading-none text-[#0D0E12]">{stat.val}</p>
+ <p className="mt-[3px] text-[9px] font-bold uppercase tracking-[0.07em] text-[#A09D98]">{stat.label}</p>
+ </div>
+ ))}
+ </div>
+
+ <nav
+ aria-label="SE detail sections"
+ className="shrink-0 border-b border-[#E2DFD9] bg-white px-[18px] py-[10px]"
+ >
+ <div className="flex gap-[6px] overflow-x-auto pb-[2px] [scrollbar-width:thin]">
+ {detailSections.map((section) => {
+ const isActive = activeSection === section.id;
+ return (
+ <button
+ className="inline-flex shrink-0 items-center gap-[6px] font-mono text-[8px] uppercase tracking-[0.08em] px-[12px] py-[6px] text-[11px] font-semibold transition"
+ key={section.id}
+ onClick={() => {
+ setActiveSection(section.id);
+ scrollToDetailSection(section.id, scrollRef.current);
+ }}
+ style={
+ isActive
+ ? { background: "#0071ce", color: "white" }
+ : { background: "#F9F8F6", color: "#3D3C38", border: "1px solid #E2DFD9" }
+ }
+ type="button"
+ >
+ {section.label}
+ {section.badge ? (
+ <span
+ className="font-mono text-[8px] uppercase tracking-[0.08em] px-[6px] py-[1px] text-[9px] font-bold"
+ style={
+ isActive
+ ? { background: "rgba(255,255,255,0.25)", color: "white" }
+ : { background: "#fef3c7", color: "#b45309" }
+ }
+ >
+ {section.badge}
+ </span>
+ ) : null}
+ </button>
+ );
+ })}
+ </div>
+ </nav>
+
+ <div className="flex-1 space-y-[14px] overflow-y-auto p-[18px_22px]" ref={scrollRef}>
+ <div
+ className="mb-[14px] scroll-mt-3 p-[14px]"
+ id="se-detail-coaching"
+ style={{ background: "#f0f7ff", border: "1px solid rgba(0,113,206,0.15)" }}
+ >
+ <p className="mb-[8px] flex items-center gap-[6px] text-[11.5px] font-bold text-[#0D0E12]">
+ <svg fill="none" height="13" stroke="#0071ce" strokeWidth="1.6" viewBox="0 0 16 16" width="13">
+ <path d="M2 3h12v8H2z" />
+ <path d="M2 6h12" />
+ </svg>
+ Coaching snapshot
+ </p>
+ <p className="text-[11.5px] leading-[1.6] text-[#374151]">{coaching.storyLine}</p>
+ <p className="mt-1 text-[10.5px] text-[#A09D98]">{coaching.lastActiveLabel}</p>
+ {coaching.currentFocus ? (
+ <p className="mt-2 text-[11px] font-semibold text-[#374151]">Current focus: {coaching.currentFocus}</p>
+ ) : null}
+ <div className="mt-[10px]">
+ <p className="mb-[6px] text-[10px] font-bold uppercase tracking-[0.07em] text-[#6B6860]">1:1 talking points</p>
+ {coaching.talkingPoints.slice(0, 4).map((point) => (
+ <div className="mb-[4px] flex gap-[7px]" key={point}>
+ <span className="shrink-0 text-[#0071ce]">•</span>
+ <span className="text-[11px] leading-[1.5] text-[#374151]">{point}</span>
+ </div>
+ ))}
+ </div>
+ <ManagerOutlineBtn
+ className="mt-[10px]"
+ onClick={() => {
+ void navigator.clipboard.writeText(coaching.talkingPoints.join("\n"));
+ toast.success("Talking points copied to clipboard");
+ }}
+ >
+ Copy for 1:1
+ </ManagerOutlineBtn>
+ </div>
+
+ <div className="mb-[14px] scroll-mt-3 border-[1.5px] border-[#E2DFD9] p-[14px]" id="se-detail-assign-sim">
+ <p className="mb-[4px] text-[11.5px] font-bold text-[#0D0E12]">Assign simulation</p>
+ <p className="mb-[10px] text-[11px] text-[#6B6860]">Push practice to {profile.fullName.split(" ")[0]}</p>
+ <div className="mb-[10px] flex flex-wrap gap-[8px]">
+ {SIM_QUICK_PICKS.map((sim) => (
+ <button
+ className="inline-flex items-center px-[13px] py-[6px] text-[11.5px] font-semibold"
+ key={sim}
+ onClick={() => {
+ setSelectedQuickPick(sim);
+ assignFormRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+ }}
+ style={
+ selectedQuickPick === sim
+ ? { background: "#0071ce", color: "white" }
+ : { background: "white", color: "#3D3C38", border: "1.5px solid #E2DFD9" }
+ }
+ type="button"
+ >
+ {sim}
+ </button>
+ ))}
+ </div>
+ <div ref={assignFormRef}>
+ <SimulationAssignForm
+ assignees={[profile]}
+ personaQuickPick={selectedQuickPick}
+ />
+ </div>
+ </div>
+
+ <div className="scroll-mt-3" id="se-detail-notes">
+ {plan ? (
+ <div className="mb-[14px]">
+ <ManagerReassignMentor
+ assignmentId={plan.id}
+ currentMentorId={plan.mentorId}
+ mentors={mentors}
+ seName={profile.fullName}
+ />
+ </div>
+ ) : null}
+ {mentorNotes ? (
+ <div className="mb-[14px]">
+ <MentorNotesForManager
+ mentorName={mentorNotes.mentorName}
+ notes={mentorNotes.notes}
+ updatedAt={mentorNotes.updatedAt}
+ />
+ </div>
+ ) : null}
+ <ManagerCoachingNotes initialNotes={managerNotes} seUserId={profile.id} />
+ </div>
+
+ {quarterlyAlert && quarterlyAlert.pendingGoals > 0 ? (
+ <section
+ className={`scroll-mt-3 border p-[14px] ${quarterlyAlert.overdue ? "border-red-200 bg-red-50/60" : "border-amber-200 bg-amber-50/50"}`}
+ id="se-detail-quarterly"
+ >
+ <h3 className="flex items-center gap-2 text-[11.5px] font-bold text-[#0D0E12]">
+ <Clock className="h-4 w-4" />
+ Quarterly development review
+ </h3>
+ <p className="mt-2 text-[11px] text-[#374151]">{quarterlyAlert.label}</p>
+ <Link
+ className="mt-2 inline-block text-[11px] font-semibold text-[#0071ce] hover:underline"
+ href={`/development?profile=${profile.id}`}
+ >
+ Run quarterly attestation →
+ </Link>
+ </section>
+ ) : null}
+
+ <section className="scroll-mt-3 border border-[#E2DFD9] bg-white p-[14px]" id="se-detail-trend">
+ <h3 className="text-[11.5px] font-bold text-[#0D0E12]">Simulation trend</h3>
+ <p className="mt-1 text-[11px] text-[#6B6860]">Latest vs history — are they getting better?</p>
+ <div className="mt-3">
+ <SimTrendChart trend={simTrend} />
+ </div>
+ </section>
+
+ {cohortBenchmark ? (
+ <section className="scroll-mt-3 border border-[#E2DFD9] bg-[#F9F8F6] p-[14px]" id="se-detail-cohort">
+ <h3 className="flex items-center gap-2 text-[11.5px] font-bold text-[#0D0E12]">
+ <Users className="h-4 w-4 text-[#0071ce]" />
+ Cohort comparison · {cohortBenchmark.cohortLabel} ({cohortBenchmark.cohortSize} SEs)
+ </h3>
+ <p className="mt-2 text-[11px] text-[#374151]">{cohortBenchmark.simComparisonLabel}</p>
+ <p className="mt-1 text-[11px] text-[#6B6860]">{cohortBenchmark.onboardingComparisonLabel}</p>
+ </section>
+ ) : null}
+
+ <div
+ className="mb-[14px] scroll-mt-3 border-[1.5px] bg-[#f0fdf4] p-[14px]"
+ id="se-detail-certs"
+ style={{ borderColor: "rgba(16,185,129,0.2)" }}
+ >
+ <p className="mb-[8px] flex items-center gap-[6px] text-[11.5px] font-bold text-[#0D0E12]">
+ <Trophy className="h-4 w-4 text-[#16a34a]" />
+ Certification gates
+ </p>
+ {certSummary.items.map((cert) => {
+ const style = certBadgeStyle(cert.status);
+ return (
+ <div className="flex items-center justify-between border-b border-[#d1fae5] py-[7px] last:border-b-0" key={cert.type}>
+ <span className="text-[11.5px] text-[#3D3C38]">{cert.label}</span>
+ <span
+ className="font-mono text-[8px] uppercase tracking-[0.08em] px-[8px] py-[2px] text-[9.5px] font-bold"
+ style={{ background: style.bg, color: style.color }}
+ >
+ {style.label}
+ </span>
+ </div>
+ );
+ })}
+ {coaching.careerReadiness !== null ? (
+ <p className="mt-3 text-[10.5px] text-[#6B6860]">
+ Career readiness: <strong className="text-[#0D0E12]">{coaching.careerReadiness}%</strong> toward next level
+ </p>
+ ) : null}
+ </div>
+
+ {coaching.topGaps.length > 0 ? (
+ <div
+ className="scroll-mt-3 border-[1.5px] bg-[#fdf0fa] p-[14px]"
+ id="se-detail-gaps"
+ style={{ borderColor: "rgba(204,39,176,0.15)" }}
+ >
+ <p className="mb-[8px] text-[11.5px] font-bold text-[#0D0E12]">Competency focus areas</p>
+ <div className="flex flex-wrap gap-[6px]">
+ {coaching.topGaps.map((gap) => (
+ <span
+ className="rounded-full bg-[#fdf0fa] px-[10px] py-[4px] text-[11px] font-semibold text-[#a51e8e]"
+ key={gap}
+ style={{ border: "1px solid rgba(204,39,176,0.2)" }}
+ >
+ {gap}
+ </span>
+ ))}
+ </div>
+ </div>
+ ) : null}
+
+ {developmentPlan && developmentPlan.goals.length > 0 ? (
+ <section className="scroll-mt-3" id="se-detail-development">
+ <div className="mb-3 flex items-center justify-between gap-2">
+ <h3 className="flex items-center gap-2 text-[11.5px] font-bold text-[#0D0E12]">
+ <Target className="h-4 w-4 text-[#cc27b0]" />
+ Annual development goals
+ </h3>
+ <Link
+ className="text-[11px] font-semibold text-[#0071ce] hover:underline"
+ href={`/development?profile=${profile.id}`}
+ >
+ Open full plan →
+ </Link>
+ </div>
+ <div className="space-y-2">
+ {developmentPlan.goals.map((goal) => {
+ const quarter = currentQuarter();
+ const review = goal.quarterlyReviews.find(
+ (item) => item.quarter === quarter && item.year === developmentPlan.year,
+ );
+
+ return (
+ <div className="border border-[#E2DFD9] bg-[#F9F8F6] px-3 py-2" key={goal.id}>
+ <div className="flex items-center justify-between gap-2">
+ <p className="text-[11.5px] font-semibold text-[#3D3C38]">{goal.title}</p>
+ <Badge tone={goal.overallStatus === "on_track" || goal.overallStatus === "achieved" ? "green" : "amber"}>
+ {goal.overallStatus.replaceAll("_", " ")}
+ </Badge>
+ </div>
+ {review ? (
+ <p className="mt-1 text-[10.5px] text-[#6B6860]">
+ {quarter} {developmentPlan.year}: {review.status.replaceAll("_", " ")}
+ {review.dueDate ? ` · due ${format(new Date(review.dueDate), "MMM d")}` : null}
+ </p>
+ ) : null}
+ </div>
+ );
+ })}
+ </div>
+ </section>
+ ) : (
+ <section className="scroll-mt-3 border border-dashed border-[#E2DFD9] px-4 py-3" id="se-detail-development">
+ <p className="text-[11.5px] font-semibold text-[#0D0E12]">No annual development plan</p>
+ <Link
+ className="mt-1 inline-block text-[11px] font-semibold text-[#0071ce] hover:underline"
+ href={`/development?profile=${profile.id}`}
+ >
+ Co-create goals on Development →
+ </Link>
+ </section>
+ )}
+
+ {openReviewCount > 0 ? (
+ <section className="scroll-mt-3" id="se-detail-review">
+ <h3 className="flex items-center gap-2 text-[11.5px] font-bold text-[#0D0E12]">
+ <Clock className="h-4 w-4 text-amber-600" />
+ Needs your review ({openReviewCount})
+ </h3>
+ <div className="mt-3 space-y-2">
+ {pendingSubmissions.map((submission) => {
+ const challenge = challenges.find((c) => c.id === submission.challengeId);
+ return (
+ <div className="border border-amber-200 bg-amber-50/60 p-3" key={submission.id}>
+ <div className="flex items-center justify-between gap-2">
+ <Badge tone="amber">Challenge</Badge>
+ <StatusBadge status={submission.status} />
+ </div>
+ <p className="mt-1 text-[11.5px] font-semibold text-[#3D3C38]">
+ {challenge?.title ?? "Challenge submission"}
+ </p>
+ {submission.submittedAt ? (
+ <p className="mt-1 text-[10.5px] text-[#6B6860]">
+ Submitted {formatDistanceToNow(new Date(submission.submittedAt), { addSuffix: true })}
+ </p>
+ ) : null}
+ </div>
+ );
+ })}
+ {pendingCoaching.map((card) => (
+ <div className="border border-amber-200 bg-amber-50/60 p-3" key={card.id}>
+ <div className="flex items-center justify-between gap-2">
+ <Badge tone="magenta">Simulation</Badge>
+ <span className="text-[11px] font-bold text-[#0D0E12]">Score {card.score}</span>
+ </div>
+ <p className="mt-1 text-[11.5px] font-semibold text-[#3D3C38]">
+ {card.simulationContext?.persona ?? "Simulation coaching card"}
+ </p>
+ </div>
+ ))}
+ {awaitingReviewSteps.map((step) => (
+ <div className="border border-amber-200 bg-amber-50/60 p-3" key={step.id}>
+ <div className="flex items-center justify-between gap-2">
+ <Badge tone="amber">Plan step</Badge>
+ <StatusBadge status={step.status} />
+ </div>
+ <p className="mt-1 text-[11.5px] font-semibold text-[#3D3C38]">{step.title}</p>
+ </div>
+ ))}
+ </div>
+ <Link className="mt-2 inline-block text-[11px] font-semibold text-[#0071ce] hover:underline" href="/manager">
+ Open Action inbox to review →
+ </Link>
+ </section>
+ ) : null}
+
+ {sentBackCards.length > 0 || sentBackSubmissions.length > 0 ? (
+ <section className="scroll-mt-3" id="se-detail-sent-back">
+ <h3 className="flex items-center gap-2 text-[11.5px] font-bold text-[#0D0E12]">
+ <RotateCcw className="h-4 w-4 text-amber-700" />
+ Sent back for revision
+ </h3>
+ <div className="mt-3 space-y-2">
+ {sentBackCards.map((card) => (
+ <div className="border border-amber-200/80 bg-white p-3" key={card.id}>
+ <div className="flex items-center justify-between gap-2">
+ <Badge tone="amber">Simulation</Badge>
+ <span className="text-[10.5px] text-[#6B6860]">
+ {card.reviewedAt
+ ? formatDistanceToNow(new Date(card.reviewedAt), { addSuffix: true })
+ : null}
+ </span>
+ </div>
+ <p className="mt-1 text-[11.5px] font-semibold text-[#3D3C38]">
+ {card.simulationContext?.persona ?? "Simulation"} — score {card.score}
+ </p>
+ {card.managerComments ? (
+ <p className="mt-2 bg-amber-50 p-2 text-[11px] leading-5 text-amber-950">
+ {card.managerComments}
+ </p>
+ ) : null}
+ {activeSimulation ? (
+ <p className="mt-2 text-[10.5px] font-medium text-[#0071ce]">
+ SE has an open assignment — waiting for redo
+ </p>
+ ) : null}
+ </div>
+ ))}
+ {sentBackSubmissions.map((submission) => {
+ const challenge = challenges.find((c) => c.id === submission.challengeId);
+ return (
+ <div className="border border-amber-200/80 bg-white p-3" key={submission.id}>
+ <Badge tone="amber">Challenge</Badge>
+ <p className="mt-1 text-[11.5px] font-semibold text-[#3D3C38]">
+ {challenge?.title ?? "Challenge"}
+ </p>
+ {submission.managerFeedback ? (
+ <p className="mt-2 bg-amber-50 p-2 text-[11px] leading-5 text-amber-950">
+ {submission.managerFeedback}
+ </p>
+ ) : null}
+ </div>
+ );
+ })}
+ </div>
+ </section>
+ ) : null}
+
+ {plan && plan.steps.length > 0 ? (
+ <section className="scroll-mt-3" id="se-detail-plan">
+ <h3 className="flex items-center gap-2 text-[11.5px] font-bold text-[#0D0E12]">
+ <ClipboardList className="h-4 w-4 text-[#0071ce]" />
+ Onboarding plan
+ </h3>
+ <div className="mt-3 space-y-1">
+ {[...plan.steps]
+ .sort((a, b) => a.order - b.order)
+ .map((step, index) => (
+ <div
+ className={`flex items-start gap-3 px-3 py-2.5 ${
+ step.status === "submitted"
+ ? "bg-amber-50/80"
+ : step.status === "reviewed"
+ ? "bg-green-50/50"
+ : "bg-[#F9F8F6]"
+ }`}
+ key={step.id}
+ >
+ <span
+ className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+ step.status === "reviewed"
+ ? "bg-green-100 text-green-800"
+ : step.status === "submitted"
+ ? "bg-amber-100 text-amber-900"
+ : "bg-white text-[#6B6860]"
+ }`}
+ >
+ {step.status === "reviewed" ? (
+ <CheckCircle2 className="h-3.5 w-3.5" />
+ ) : (
+ index + 1
+ )}
+ </span>
+ <div className="min-w-0 flex-1">
+ <p className="text-[11.5px] font-semibold text-[#3D3C38]">{step.title}</p>
+ <p className="text-[10.5px] capitalize text-[#6B6860]">{step.type.replaceAll("_", " ")}</p>
+ </div>
+ <Badge tone={stepStatusTone(step)}>{stepStatusLabel(step)}</Badge>
+ </div>
+ ))}
+ </div>
+ <div className="mt-4">
+ <ManagerAddAdHocTask assignmentId={plan.id} personName={profile.fullName} />
+ </div>
+ </section>
+ ) : null}
+
+ {hasAccomplishments ? (
+ <section className="scroll-mt-3" id="se-detail-accomplishments">
+ <h3 className="flex items-center gap-2 text-[11.5px] font-bold text-[#0D0E12]">
+ <CheckCircle2 className="h-4 w-4 text-green-600" />
+ Accomplishments
+ </h3>
+ <div className="mt-3 space-y-2">
+ {validatedSteps.map((step) => (
+ <div className="border border-green-100 bg-green-50/40 px-3 py-2" key={step.id}>
+ <p className="text-[11.5px] font-medium text-[#3D3C38]">{step.title}</p>
+ <p className="text-[10.5px] text-green-800">Plan step validated</p>
+ </div>
+ ))}
+ {approvedSubmissions.map((submission) => {
+ const challenge = challenges.find((c) => c.id === submission.challengeId);
+ return (
+ <div className="border border-green-100 bg-green-50/40 px-3 py-2" key={submission.id}>
+ <p className="text-[11.5px] font-medium text-[#3D3C38]">{challenge?.title ?? "Challenge"}</p>
+ <p className="text-[10.5px] text-green-800">
+ Approved
+ {submission.managerGrade ? ` • Grade ${submission.managerGrade}/5` : ""}
+ </p>
+ </div>
+ );
+ })}
+ {approvedCards.map((card) => (
+ <div className="border border-green-100 bg-green-50/40 px-3 py-2" key={card.id}>
+ <p className="text-[11.5px] font-medium text-[#3D3C38]">
+ {card.simulationContext?.persona ?? "Simulation"} — score {card.score}
+ </p>
+ <p className="text-[10.5px] text-green-800">
+ Simulation approved
+ {card.managerGrade ? ` • Grade ${card.managerGrade}/5` : ""}
+ </p>
+ </div>
+ ))}
+ </div>
+ </section>
+ ) : null}
+
+ {activity.length > 0 ? (
+ <section className="scroll-mt-3" id="se-detail-activity">
+ <h3 className="text-[11.5px] font-bold text-[#0D0E12]">Activity timeline</h3>
+ <div className="mt-3">
+ <ActivityFeed activity={activity.slice(0, 12)} profiles={profiles} />
+ </div>
+ </section>
+ ) : (
+ <p className="scroll-mt-3 text-[11px] text-[#6B6860]" id="se-detail-activity">
+ No activity recorded yet for this SE.
+ </p>
+ )}
+ </div>
+ </div>
+ </>
+ );
+}

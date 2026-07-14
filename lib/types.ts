@@ -1,0 +1,241 @@
+export type ProfileRole =
+  | "basic_se"
+  | "senior_se"
+  | "advisory_solutions_consultant"
+  | "mentor"
+  | "manager"
+  | "director"
+  | "admin"
+  | "super_admin";
+
+export type SeLevel = "Basic" | "Senior" | "Advisory";
+
+export type PlanStepType =
+  | "content_review"
+  | "challenge"
+  | "simulation"
+  | "shadow_meeting_log"
+  | "mentor_review"
+  | "deal_prep"
+  | "custom";
+
+export type AssignmentStatus =
+  | "not_started"
+  | "in_progress"
+  | "submitted"
+  | "under_review"
+  | "reviewed"
+  | "completed";
+
+export type Profile = {
+  id: string;
+  email: string;
+  fullName: string;
+  role: ProfileRole;
+  level: SeLevel;
+  managerId: string | null;
+  tenantId: string | null;
+  avatarUrl?: string | null;
+  createdAt: string;
+};
+
+export type Competency = {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+};
+
+export type PlanStep = {
+  id: string;
+  assignmentStepId?: string;
+  title: string;
+  description: string;
+  type: PlanStepType;
+  order: number;
+  status: AssignmentStatus;
+  dueDate?: string;
+  resourceUrl?: string;
+  contentAssetId?: string;
+  challengeId?: string;
+  simulationTemplateId?: string;
+  segmentIndex?: number | null;
+  isSegmentGate?: boolean;
+  locked?: boolean;
+};
+
+export type UserPlan = {
+  id: string;
+  planTemplateId: string;
+  userId: string;
+  mentorId: string | null;
+  name: string;
+  startDate: string;
+  targetCompletion: string;
+  status: AssignmentStatus;
+  progress: number;
+  unlockedSegmentMax?: number;
+  steps: PlanStep[];
+};
+
+export type Challenge = {
+  id: string;
+  title: string;
+  description: string;
+  steps: string[];
+  difficulty: "foundational" | "intermediate" | "advanced";
+  estimatedMinutes: number;
+  linkedSolutions: string[];
+  linkedResources: string[];
+  successCriteria: string[];
+  targetLevel?: SeLevel | null;
+  isAiGenerated: boolean;
+  createdBy: string;
+  competencyNames?: string[];
+};
+
+export type ChallengeSubmission = {
+  id: string;
+  userId: string;
+  challengeId: string;
+  status: AssignmentStatus;
+  reflectionText: string;
+  managerGrade: number | null;
+  managerFeedback: string | null;
+  aiSuggestedScore: number | null;
+  submittedAt: string | null;
+  reviewedAt: string | null;
+};
+
+export type SimulationAssignment = {
+  id: string;
+  assignedTo: string;
+  assignedBy: string;
+  persona: string;
+  vertical: string;
+  solutionFocus: string;
+  difficulty: "foundational" | "intermediate" | "advanced";
+  status: AssignmentStatus;
+  transcript: Array<{ speaker: "se" | "persona" | "coach"; message: string }>;
+  templateId?: string | null;
+  promptSnapshot?: string;
+  aiRoleplay?: boolean;
+  startMessage?: string;
+  practiceRoundsRequired?: number;
+  practiceRoundsCompleted?: number;
+};
+
+export type CoachingCard = {
+  id: string;
+  simulationAssignmentId: string;
+  userId: string;
+  strengths: string[];
+  gaps: string[];
+  recommendedImprovements: string[];
+  score: number;
+  linkedCompetencies: string[];
+  managerSummary: string;
+  transcript?: string;
+  simulationContext?: {
+    persona: string;
+    vertical: string;
+    solutionFocus: string;
+    difficulty: string;
+  };
+  seReflection: string | null;
+  managerReviewStatus: "pending" | "reviewed" | "needs_revision";
+  isPractice: boolean;
+  managerComments: string | null;
+  managerGrade: number | null;
+  sentToManagerAt: string;
+  reviewedAt: string | null;
+};
+
+export type ActivityLog = {
+  id: string;
+  userId: string;
+  eventType:
+    | "plan_step_completed"
+    | "challenge_submitted"
+    | "simulation_completed"
+    | "coaching_card_reviewed"
+    | "manager_feedback_received"
+    | "plan_assigned"
+    | "deal_prep_completed"
+    | "pitch_submitted"
+    | "flight_check_completed";
+  title: string;
+  metadata: Record<string, string | number | boolean | null>;
+  createdAt: string;
+};
+
+export type Notification = {
+  id: string;
+  userId: string;
+  title: string;
+  body: string;
+  actionUrl?: string | null;
+  readAt: string | null;
+  createdAt: string;
+};
+
+export type GoalStatus = "not_started" | "on_track" | "at_risk" | "achieved";
+export type GoalQuarter = "Q1" | "Q2" | "Q3" | "Q4";
+export type EvidenceType =
+  | "demo_recording"
+  | "customer_reference"
+  | "certification"
+  | "deal_support"
+  | "shadow_notes"
+  | "other";
+
+export type GoalQuarterlyReview = {
+  id: string;
+  goalId: string;
+  quarter: GoalQuarter;
+  year: number;
+  dueDate: string;
+  status: GoalStatus;
+  seEvidence: string | null;
+  seEvidenceUrl: string | null;
+  managerComments: string | null;
+  reviewedAt: string | null;
+  reviewedBy: string | null;
+};
+
+export type DevelopmentGoal = {
+  id: string;
+  planId: string;
+  competencyId: string | null;
+  title: string;
+  description: string | null;
+  evidenceType: EvidenceType;
+  sortOrder: number;
+  overallStatus: GoalStatus;
+  quarterlyReviews: GoalQuarterlyReview[];
+};
+
+export type DevelopmentPlan = {
+  id: string;
+  userId: string;
+  managerId: string | null;
+  year: number;
+  status: "active" | "archived";
+  goals: DevelopmentGoal[];
+  createdAt: string;
+};
+
+export type DashboardData = {
+  currentUser: Profile;
+  myOrg: Profile[];
+  profiles: Profile[];
+  plans: UserPlan[];
+  challenges: Challenge[];
+  submissions: ChallengeSubmission[];
+  simulations: SimulationAssignment[];
+  coachingCards: CoachingCard[];
+  activity: ActivityLog[];
+  competencies: Competency[];
+  notifications: Notification[];
+  developmentPlans?: DevelopmentPlan[];
+};

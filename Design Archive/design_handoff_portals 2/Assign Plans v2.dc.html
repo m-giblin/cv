@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html,body{height:100%;font-family:'DM Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased;background:#DEDAD4;}
+    ::-webkit-scrollbar{width:3px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:rgba(0,0,0,.1);}
+    .ms::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}.ai{animation:fadeUp .18s ease-out;}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}.lp{animation:pulse 2.4s ease-in-out infinite;}
+    @keyframes dropIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:none}}.di{animation:dropIn .15s ease-out;}
+    @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}.shake{animation:shake .2s ease-out;}
+
+    .btn{display:inline-flex;align-items:center;gap:5px;border:none;font-size:11px;font-weight:600;cursor:pointer;line-height:1;font-family:'DM Sans',sans-serif;letter-spacing:.01em;transition:background 100ms,border-color 100ms;}
+    .bn{background:#00143A;color:white;padding:8px 14px;}.bn:hover{background:#001d50;}
+    .bb{background:#0071CE;color:white;padding:8px 14px;}.bb:hover{background:#005aab;}
+    .bo{background:transparent;color:#3D3C38;border:1px solid #D4D1CB;padding:7px 12px;}.bo:hover{border-color:#0071CE;color:#0071CE;}
+    .bsm{font-size:10px!important;padding:5px 10px!important;}
+    .bxs{font-size:9.5px!important;padding:4px 9px!important;}
+    .tag{display:inline-block;font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.09em;text-transform:uppercase;padding:2px 6px;}
+    .inp{width:100%;background:#fff;border:1.5px solid #D4D1CB;padding:7px 10px;font-size:11.5px;font-family:'DM Sans',sans-serif;color:#0D0E12;outline:none;transition:border-color .12s;}
+    .inp:focus{border-color:#0071CE;}
+    select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='9' height='6' viewBox='0 0 9 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l3.5 4L8 1' stroke='%23B0ADA8' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:26px;}
+
+    /* Plan card */
+    .plan-card{background:#fff;border:1px solid #E2DFD9;cursor:grab;user-select:none;transition:border-color 120ms,box-shadow 120ms;position:relative;}
+    .plan-card:hover{box-shadow:0 3px 12px rgba(0,0,0,.1);}
+    .plan-card:active{cursor:grabbing;}
+    .plan-card.dragging{opacity:.35;border:1.5px dashed #0071CE!important;box-shadow:none;}
+    .plan-card.selected{border-color:#CC27B0;box-shadow:0 0 0 2px rgba(204,39,176,.15);}
+
+    /* Step row */
+    .step-row{display:flex;align-items:stretch;border:1px solid #E2DFD9;background:#fff;margin-bottom:4px;transition:border-color 80ms;}
+    .step-row.drag-above::before{content:'';position:absolute;top:-1px;left:0;right:0;height:2px;background:#0071CE;z-index:10;}
+    .step-row.drag-below::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:2px;background:#0071CE;z-index:10;}
+    .step-row{position:relative;}
+
+    /* Employee card */
+    .emp-card{background:#fff;border:1px solid #E2DFD9;transition:border-color 120ms,background 120ms;}
+    .emp-card.drop-ready{border:1.5px dashed #0071CE!important;background:#F0F7FF!important;}
+    .emp-card.drop-assigned{border-color:#0A6E45;background:#EDFAF3;}
+
+    /* Nav */
+    .ni{display:flex;align-items:center;gap:8px;padding:5px 14px 5px 16px;font-size:11.5px;font-weight:500;border-left:2px solid transparent;cursor:pointer;user-select:none;transition:background 80ms,color 80ms;}
+    .na{background:rgba(255,255,255,.06);color:#fff!important;border-left-color:#0071CE;}
+    .no{color:rgba(255,255,255,.62);}.no:hover{background:rgba(255,255,255,.05);color:rgba(255,255,255,.9);}
+  </style>
+</helmet>
+
+<div id="co" style="width:100%;overflow:hidden;">
+<div id="cr" style="width:1360px;transform-origin:top left;padding:24px 28px 40px;">
+
+  <div style="margin-bottom:14px;">
+    <p style="font-family:'DM Mono',monospace;font-size:9.5px;color:#7A7772;letter-spacing:.1em;text-transform:uppercase;">Manager Experience · Assign Plans v2 · Drag plan → employee · Lock rules enforced</p>
+  </div>
+
+  <div style="border:1px solid rgba(0,0,0,.15);overflow:hidden;display:flex;height:900px;background:#F5F4F0;box-shadow:0 24px 70px rgba(0,0,0,.2);">
+
+    <!-- SIDEBAR -->
+    <aside style="width:214px;flex-shrink:0;background:#00143A;display:flex;flex-direction:column;overflow:hidden;">
+      <div style="position:absolute;top:0;left:0;width:214px;height:2px;background:linear-gradient(90deg,#0071CE,#7c3aed);z-index:2;"></div>
+      <div style="display:flex;flex-direction:column;height:100%;padding-top:2px;">
+        <div style="padding:16px 16px 12px;border-bottom:1px solid rgba(255,255,255,.06);">
+          <div style="display:flex;align-items:center;gap:9px;">
+            <svg width="17" height="17" viewBox="0 0 20 20" fill="none"><path d="M10.5 2C10.5 2 16.5 6 16.5 13H10.5V2Z" fill="white"/><path d="M10.5 5C10.5 5 4.5 8 4.5 13H10.5V5Z" fill="rgba(255,255,255,0.32)"/><path d="M3 14.5H17" stroke="white" stroke-width="1.5" stroke-linecap="square"/></svg>
+            <div><div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#fff;">Enablement</div><div style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(255,255,255,.2);letter-spacing:.14em;">MANAGER</div></div>
+          </div>
+        </div>
+        <div style="flex:1;overflow-y:auto;padding:10px 0;" class="ms">
+          <div style="padding:8px 16px 3px;"><span style="font-family:'DM Mono',monospace;font-size:7.5px;color:rgba(255,255,255,.38);letter-spacing:.16em;">MANAGE</span></div>
+          <div class="no ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" style="flex-shrink:0;opacity:.65;"><rect x="1.5" y="1.5" width="5.5" height="5.5" rx=".5"/><rect x="9" y="1.5" width="5.5" height="5.5" rx=".5"/><rect x="1.5" y="9" width="5.5" height="5.5" rx=".5"/><rect x="9" y="9" width="5.5" height="5.5" rx=".5"/></svg><span>Command Center</span></div>
+          <div class="no ni" style="justify-content:space-between;"><div style="display:flex;align-items:center;gap:8px;"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" style="flex-shrink:0;opacity:.65;"><path d="M2.5 3.5h11v8H9.5L7 14V11.5h-4.5z"/></svg><span>Action Inbox</span></div><span style="font-family:'DM Mono',monospace;font-size:8.5px;background:rgba(212,129,10,.25);color:rgba(212,129,10,.9);padding:1px 6px;">7</span></div>
+          <div class="no ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" style="flex-shrink:0;opacity:.65;"><circle cx="6" cy="5" r="2.5"/><path d="M1 13c0-3 2-4.5 5-4.5s5 1.5 5 4.5"/><circle cx="12.5" cy="5.5" r="2"/><path d="M11 13c0-1.5.8-2.8 2-3.5"/></svg><span>Team Roster</span></div>
+          <div class="na ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" style="flex-shrink:0;opacity:.65;"><rect x="2" y="2" width="12" height="12" rx="1"/><path d="M5 8l2 2.5L11 5.5"/></svg><span>Assign Plans</span></div>
+          <div class="no ni"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" style="flex-shrink:0;opacity:.65;"><path d="M2 4h12M2 8h8M2 12h5"/></svg><span>Program Tracker</span></div>
+        </div>
+        <div style="padding:10px 14px 12px;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:9px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#0033a1,#0071CE);display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:600;color:white;flex-shrink:0;font-family:'DM Mono',monospace;">AR</div>
+          <div><div style="font-size:11.5px;font-weight:500;color:rgba(255,255,255,.82);">Alex Rivera</div><div style="font-family:'DM Mono',monospace;font-size:8px;color:rgba(255,255,255,.25);">Manager</div></div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;">
+
+      <!-- Topbar -->
+      <header style="height:44px;background:#fff;border-bottom:1px solid #E2DFD9;padding:0 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:0;">
+          <span style="font-family:'DM Mono',monospace;font-size:10.5px;color:#A09D98;">Manage</span>
+          <span style="color:#C4C1BB;font-size:11px;margin:0 2px;">›</span>
+          <span style="font-family:'DM Mono',monospace;font-size:10.5px;color:#3D3C38;font-weight:500;">Assign Plans</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:7px;">
+          <button onClick="{{ onNewPlan }}" class="btn bo bsm">
+            <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 1v10M1 6h10"/></svg>
+            New custom plan
+          </button>
+          <div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#0033a1,#0071CE);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:9.5px;color:white;">AR</div>
+        </div>
+      </header>
+
+      <!-- Instruction strip -->
+      <div style="background:#00143A;padding:8px 20px;display:flex;align-items:center;gap:14px;flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="width:20px;height:20px;background:#0071CE;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-family:'DM Mono',monospace;font-size:9px;color:white;font-weight:600;">1</span></div>
+          <span style="font-size:11.5px;color:rgba(255,255,255,.65);">Drag a plan from the left</span>
+        </div>
+        <svg width="16" height="8" viewBox="0 0 18 8" fill="none"><path d="M1 4h14M11 1l4 3-4 3" stroke="rgba(255,255,255,.25)" stroke-width="1.3" stroke-linecap="round"/></svg>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="width:20px;height:20px;background:#CC27B0;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-family:'DM Mono',monospace;font-size:9px;color:white;font-weight:600;">2</span></div>
+          <span style="font-size:11.5px;color:rgba(255,255,255,.65);">Drop it on an employee</span>
+        </div>
+        <svg width="16" height="8" viewBox="0 0 18 8" fill="none"><path d="M1 4h14M11 1l4 3-4 3" stroke="rgba(255,255,255,.25)" stroke-width="1.3" stroke-linecap="round"/></svg>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="width:20px;height:20px;background:#0A6E45;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-family:'DM Mono',monospace;font-size:9px;color:white;font-weight:600;">3</span></div>
+          <span style="font-size:11.5px;color:rgba(255,255,255,.65);">Confirm start date &amp; mentor, then assign</span>
+        </div>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:6px;">
+          <svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1.3" stroke-linecap="round"><rect x="3" y="6" width="8" height="6" rx=".5"/><path d="M5 6V4.5a2 2 0 014 0V6"/></svg>
+          <span style="font-family:'DM Mono',monospace;font-size:9px;color:rgba(255,255,255,.3);letter-spacing:.06em;">Locked plans (30/60/90/120d) — step delete requires Admin</span>
+        </div>
+      </div>
+
+      <!-- 3-col workspace -->
+      <div style="flex:1;display:grid;grid-template-columns:280px 1fr 300px;overflow:hidden;">
+
+        <!-- ── COL 1: PLAN LIBRARY ── -->
+        <div style="border-right:1px solid #E2DFD9;display:flex;flex-direction:column;overflow:hidden;background:#F9F8F6;">
+          <div style="padding:12px 14px;border-bottom:1px solid #E2DFD9;flex-shrink:0;">
+            <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#0D0E12;margin-bottom:2px;">Plan library</div>
+            <div style="font-size:11px;color:#6B6860;">Drag a plan onto an employee →</div>
+          </div>
+
+          <!-- Filter tabs -->
+          <div style="display:flex;border-bottom:1px solid #E2DFD9;flex-shrink:0;">
+            <div onClick="{{ showAllPlans }}" style="flex:1;padding:7px 0;text-align:center;font-family:'DM Mono',monospace;font-size:8.5px;cursor:pointer;letter-spacing:.06em;border-bottom:2px solid {{ planTab==='all' ? '#0071CE' : 'transparent' }};color:{{ planTab==='all' ? '#0071CE' : '#A09D98' }};transition:color 100ms;">ALL</div>
+            <div onClick="{{ showLocked }}" style="flex:1;padding:7px 0;text-align:center;font-family:'DM Mono',monospace;font-size:8.5px;cursor:pointer;letter-spacing:.06em;border-bottom:2px solid {{ planTab==='locked' ? '#0071CE' : 'transparent' }};color:{{ planTab==='locked' ? '#0071CE' : '#A09D98' }};transition:color 100ms;">LOCKED</div>
+            <div onClick="{{ showCustom }}" style="flex:1;padding:7px 0;text-align:center;font-family:'DM Mono',monospace;font-size:8.5px;cursor:pointer;letter-spacing:.06em;border-bottom:2px solid {{ planTab==='custom' ? '#0071CE' : 'transparent' }};color:{{ planTab==='custom' ? '#0071CE' : '#A09D98' }};transition:color 100ms;">CUSTOM</div>
+          </div>
+
+          <!-- Plan cards list -->
+          <div style="flex:1;overflow-y:auto;padding:8px;">
+            <sc-for list="{{ visiblePlans }}" as="plan">
+            <div class="{{ plan.cardClass }}"
+              draggable="true"
+              onDragStart="{{ plan.onDragStart }}"
+              onDragEnd="{{ plan.onDragEnd }}"
+              onClick="{{ plan.onSelect }}"
+              style="margin-bottom:7px;overflow:hidden;">
+              <!-- Top accent bar -->
+              <div style="height:3px;background:{{ plan.accentGrad }};"></div>
+              <div style="padding:11px 13px;">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:6px;">
+                  <div style="flex:1;min-width:0;">
+                    <div style="font-size:12.5px;font-weight:700;color:#0D0E12;line-height:1.2;margin-bottom:3px;">{{ plan.name }}</div>
+                    <div style="font-size:11px;color:#6B6860;line-height:1.4;">{{ plan.desc }}</div>
+                  </div>
+                  <!-- Lock badge -->
+                  <sc-if value="{{ plan.locked }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;align-items:center;gap:3px;background:#FEF3C7;border:1px solid rgba(180,83,9,.15);padding:3px 6px;flex-shrink:0;">
+                    <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="#b45309" stroke-width="1.4" stroke-linecap="round"><rect x="2.5" y="5" width="7" height="5.5" rx=".5"/><path d="M4 5V3.5a2 2 0 014 0V5"/></svg>
+                    <span style="font-family:'DM Mono',monospace;font-size:7.5px;color:#b45309;letter-spacing:.06em;">LOCKED</span>
+                  </div>
+                  </sc-if>
+                  <sc-if value="{{ !plan.locked }}" hint-placeholder-val="{{ false }}">
+                  <span class="tag" style="background:#EDFAF3;color:#0A6E45;flex-shrink:0;">CUSTOM</span>
+                  </sc-if>
+                </div>
+                <!-- Step type pills -->
+                <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;">
+                  <sc-for list="{{ plan.typePills }}" as="tp">
+                  <span style="font-family:'DM Mono',monospace;font-size:7.5px;background:{{ tp.bg }};color:{{ tp.color }};padding:1px 5px;letter-spacing:.06em;">{{ tp.label }}</span>
+                  </sc-for>
+                </div>
+                <!-- Meta row -->
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-family:'DM Mono',monospace;font-size:9px;color:#A09D98;">{{ plan.stepCount }} steps</span>
+                  <span style="font-family:'DM Mono',monospace;font-size:9px;color:#B0ADA8;">·</span>
+                  <span style="font-family:'DM Mono',monospace;font-size:9px;color:#A09D98;">{{ plan.duration }}</span>
+                  <span style="font-family:'DM Mono',monospace;font-size:9px;color:#B0ADA8;">·</span>
+                  <span style="font-family:'DM Mono',monospace;font-size:9px;color:{{ plan.usedColor }};">{{ plan.usedLabel }}</span>
+                </div>
+              </div>
+              <!-- Drag hint -->
+              <div style="padding:5px 13px 7px;display:flex;align-items:center;gap:5px;border-top:1px solid #F2F0EC;">
+                <svg width="12" height="8" viewBox="0 0 12 8" fill="none"><circle cx="2" cy="2" r="1.5" fill="#C4C1BB"/><circle cx="6" cy="2" r="1.5" fill="#C4C1BB"/><circle cx="10" cy="2" r="1.5" fill="#C4C1BB"/><circle cx="2" cy="6" r="1.5" fill="#C4C1BB"/><circle cx="6" cy="6" r="1.5" fill="#C4C1BB"/><circle cx="10" cy="6" r="1.5" fill="#C4C1BB"/></svg>
+                <span style="font-family:'DM Mono',monospace;font-size:8px;color:#C4C1BB;letter-spacing:.06em;">DRAG TO ASSIGN</span>
+                <div style="margin-left:auto;">
+                  <button onClick="{{ plan.onPreview }}" style="font-family:'DM Mono',monospace;font-size:8px;color:#0071CE;background:none;border:none;cursor:pointer;letter-spacing:.06em;">VIEW STEPS</button>
+                </div>
+              </div>
+            </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <!-- ── COL 2: EMPLOYEE ROSTER ── -->
+        <div style="display:flex;flex-direction:column;overflow:hidden;background:#F5F4F0;">
+          <div style="padding:12px 18px 10px;border-bottom:1px solid #E2DFD9;background:#fff;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;">
+            <div>
+              <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#0D0E12;margin-bottom:1px;">My team</div>
+              <div style="font-size:11px;color:#6B6860;">Drop a plan onto any employee to assign it</div>
+            </div>
+            <!-- Filter chips -->
+            <div style="display:flex;gap:5px;">
+              <sc-for list="{{ empFilters }}" as="ef">
+              <div onClick="{{ ef.onClick }}" style="padding:4px 10px;font-size:10px;font-weight:600;cursor:pointer;border:1px solid {{ ef.active ? '#00143A' : '#E2DFD9' }};background:{{ ef.active ? '#00143A' : '#fff' }};color:{{ ef.active ? 'white' : '#6B6860' }};transition:background 100ms,border-color 100ms;font-family:'DM Sans',sans-serif;">{{ ef.label }}</div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="flex:1;overflow-y:auto;padding:12px 18px;">
+
+            <!-- New hires section -->
+            <sc-if value="{{ showNewHiresSection }}" hint-placeholder-val="{{ true }}">
+            <div style="margin-bottom:14px;">
+              <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px;">
+                <span style="font-family:'DM Mono',monospace;font-size:8px;color:#B0ADA8;letter-spacing:.12em;text-transform:uppercase;">New hires</span>
+                <div style="flex:1;height:1px;background:#E2DFD9;"></div>
+                <div class="dot lp" style="width:5px;height:5px;border-radius:50%;background:#0A6E45;display:inline-block;"></div>
+                <span style="font-family:'DM Mono',monospace;font-size:8px;color:#0A6E45;">Needs plan</span>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <sc-for list="{{ newHireEmps }}" as="emp">
+                <div class="{{ emp.dropClass }}"
+                  onDragOver="{{ emp.onDragOver }}"
+                  onDragLeave="{{ emp.onDragLeave }}"
+                  onDrop="{{ emp.onDrop }}">
+                  <div style="padding:12px 13px;">
+                    <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px;">
+                      <div style="width:32px;height:32px;border-radius:50%;background:{{ emp.avatarBg }};display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:11px;color:white;flex-shrink:0;">{{ emp.initials }}</div>
+                      <div style="flex:1;min-width:0;">
+                        <div style="font-size:12.5px;font-weight:600;color:#0D0E12;">{{ emp.name }}</div>
+                        <div style="display:flex;align-items:center;gap:5px;margin-top:1px;">
+                          <span class="tag" style="background:{{ emp.roleBg }};color:{{ emp.roleColor }};">{{ emp.role }}</span>
+                          <span style="font-family:'DM Mono',monospace;font-size:8.5px;color:#A09D98;">{{ emp.meta }}</span>
+                        </div>
+                      </div>
+                      <!-- Assigned indicator or drop hint -->
+                      <sc-if value="{{ emp.assignedPlan }}" hint-placeholder-val="{{ false }}">
+                      <div style="display:flex;align-items:center;gap:4px;background:#EDFAF3;border:1px solid rgba(10,110,69,.15);padding:3px 7px;">
+                        <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="#0A6E45" stroke-width="1.8" stroke-linecap="round"><path d="M2 6l3 3 5-5"/></svg>
+                        <span style="font-family:'DM Mono',monospace;font-size:8px;color:#0A6E45;letter-spacing:.06em;">ASSIGNED</span>
+                      </div>
+                      </sc-if>
+                    </div>
+                    <!-- Drop zone message OR assigned plan info -->
+                    <sc-if value="{{ emp.assignedPlan }}" hint-placeholder-val="{{ false }}">
+                    <div style="border-left:3px solid #0A6E45;background:#F0FDF7;padding:7px 10px;margin-bottom:6px;">
+                      <div style="font-size:11.5px;font-weight:600;color:#0A6E45;margin-bottom:1px;">{{ emp.assignedPlan }}</div>
+                      <div style="font-family:'DM Mono',monospace;font-size:8.5px;color:#A09D98;">Start {{ emp.startDate }} · {{ emp.stepCount }} steps</div>
+                    </div>
+                    </sc-if>
+                    <sc-if value="{{ !emp.assignedPlan }}" hint-placeholder-val="{{ false }}">
+                    <div style="border:1.5px dashed {{ emp.dropBorderColor }};padding:8px 10px;background:{{ emp.dropBg }};transition:border-color 150ms,background 150ms;display:flex;align-items:center;gap:7px;">
+                      <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="{{ emp.dropIconColor }}" stroke-width="1.3" stroke-linecap="round"><path d="M7 2v7M4 6l3 4 3-4"/><path d="M2 11h10"/></svg>
+                      <span style="font-family:'DM Mono',monospace;font-size:9px;color:{{ emp.dropTextColor }};letter-spacing:.04em;">{{ emp.dropLabel }}</span>
+                    </div>
+                    </sc-if>
+                    <!-- Start date (only after assigned) -->
+                    <sc-if value="{{ emp.assignedPlan }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;gap:6px;margin-top:6px;">
+                      <button onClick="{{ emp.onEdit }}" class="btn bo bxs" style="flex:1;justify-content:center;">Edit dates</button>
+                      <button onClick="{{ emp.onUnassign }}" class="btn bxs" style="background:#FEF0EE;color:#B83128;border:1px solid rgba(184,49,40,.15);flex-shrink:0;">Remove</button>
+                    </div>
+                    </sc-if>
+                  </div>
+                </div>
+                </sc-for>
+              </div>
+            </div>
+            </sc-if>
+
+            <!-- Existing team section -->
+            <sc-if value="{{ showExistingSection }}" hint-placeholder-val="{{ true }}">
+            <div>
+              <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px;">
+                <span style="font-family:'DM Mono',monospace;font-size:8px;color:#B0ADA8;letter-spacing:.12em;text-transform:uppercase;">Existing team</span>
+                <div style="flex:1;height:1px;background:#E2DFD9;"></div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <sc-for list="{{ existingEmps }}" as="emp">
+                <div class="{{ emp.dropClass }}"
+                  onDragOver="{{ emp.onDragOver }}"
+                  onDragLeave="{{ emp.onDragLeave }}"
+                  onDrop="{{ emp.onDrop }}">
+                  <div style="padding:12px 13px;">
+                    <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px;">
+                      <div style="width:32px;height:32px;border-radius:50%;background:{{ emp.avatarBg }};display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:11px;color:white;flex-shrink:0;">{{ emp.initials }}</div>
+                      <div style="flex:1;min-width:0;">
+                        <div style="font-size:12.5px;font-weight:600;color:#0D0E12;">{{ emp.name }}</div>
+                        <div style="display:flex;align-items:center;gap:5px;margin-top:1px;">
+                          <span class="tag" style="background:{{ emp.roleBg }};color:{{ emp.roleColor }};">{{ emp.role }}</span>
+                          <span style="font-family:'DM Mono',monospace;font-size:8.5px;color:#A09D98;">{{ emp.meta }}</span>
+                        </div>
+                      </div>
+                      <sc-if value="{{ emp.assignedPlan }}" hint-placeholder-val="{{ false }}">
+                      <div style="display:flex;align-items:center;gap:4px;background:#EDFAF3;border:1px solid rgba(10,110,69,.15);padding:3px 7px;">
+                        <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="#0A6E45" stroke-width="1.8" stroke-linecap="round"><path d="M2 6l3 3 5-5"/></svg>
+                        <span style="font-family:'DM Mono',monospace;font-size:8px;color:#0A6E45;letter-spacing:.06em;">ASSIGNED</span>
+                      </div>
+                      </sc-if>
+                    </div>
+                    <sc-if value="{{ emp.assignedPlan }}" hint-placeholder-val="{{ false }}">
+                    <div style="border-left:3px solid #0A6E45;background:#F0FDF7;padding:7px 10px;margin-bottom:6px;">
+                      <div style="font-size:11.5px;font-weight:600;color:#0A6E45;margin-bottom:1px;">{{ emp.assignedPlan }}</div>
+                      <div style="font-family:'DM Mono',monospace;font-size:8.5px;color:#A09D98;">Start {{ emp.startDate }} · {{ emp.stepCount }} steps</div>
+                    </div>
+                    </sc-if>
+                    <sc-if value="{{ !emp.assignedPlan }}" hint-placeholder-val="{{ false }}">
+                    <div style="border:1.5px dashed {{ emp.dropBorderColor }};padding:8px 10px;background:{{ emp.dropBg }};transition:border-color 150ms,background 150ms;display:flex;align-items:center;gap:7px;">
+                      <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="{{ emp.dropIconColor }}" stroke-width="1.3" stroke-linecap="round"><path d="M7 2v7M4 6l3 4 3-4"/><path d="M2 11h10"/></svg>
+                      <span style="font-family:'DM Mono',monospace;font-size:9px;color:{{ emp.dropTextColor }};letter-spacing:.04em;">{{ emp.dropLabel }}</span>
+                    </div>
+                    </sc-if>
+                    <sc-if value="{{ emp.assignedPlan }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;gap:6px;margin-top:6px;">
+                      <button onClick="{{ emp.onEdit }}" class="btn bo bxs" style="flex:1;justify-content:center;">Edit dates</button>
+                      <button onClick="{{ emp.onUnassign }}" class="btn bxs" style="background:#FEF0EE;color:#B83128;border:1px solid rgba(184,49,40,.15);flex-shrink:0;">Remove</button>
+                    </div>
+                    </sc-if>
+                  </div>
+                </div>
+                </sc-for>
+              </div>
+            </div>
+            </sc-if>
+          </div>
+        </div>
+
+        <!-- ── COL 3: PLAN PREVIEW / STEP EDITOR ── -->
+        <div style="border-left:1px solid #E2DFD9;display:flex;flex-direction:column;overflow:hidden;background:#F9F8F6;">
+
+          <!-- Header -->
+          <div style="padding:12px 14px 10px;border-bottom:1px solid #E2DFD9;flex-shrink:0;">
+            <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#0D0E12;margin-bottom:1px;">{{ previewTitle }}</div>
+            <div style="font-size:11px;color:#6B6860;">{{ previewSubtitle }}</div>
+          </div>
+
+          <!-- Lock notice (locked plans) -->
+          <sc-if value="{{ selectedPlanLocked }}" hint-placeholder-val="{{ false }}">
+          <div style="margin:8px;border-left:3px solid #b45309;background:#FFFBF0;border:1px solid rgba(180,83,9,.12);border-left-width:3px;padding:8px 11px;flex-shrink:0;">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+              <svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="#b45309" stroke-width="1.4" stroke-linecap="round"><rect x="3" y="6.5" width="8" height="6" rx=".5"/><path d="M5 6.5V4.5a2 2 0 014 0v2"/></svg>
+              <span style="font-family:'DM Mono',monospace;font-size:9px;color:#b45309;font-weight:600;letter-spacing:.06em;">MANAGER-LOCKED PLAN</span>
+            </div>
+            <span style="font-size:11px;color:#5C4200;line-height:1.5;">You can reorder steps but cannot add or delete them. Contact an Admin to modify this plan's structure.</span>
+          </div>
+          </sc-if>
+
+          <!-- Steps list -->
+          <div style="flex:1;overflow-y:auto;padding:8px;" id="previewStepsList">
+            <sc-for list="{{ previewSteps }}" as="ps">
+            <div class="step-row ai"
+              draggable="{{ ps.canDrag }}"
+              onDragStart="{{ ps.onDragStart }}"
+              onDragOver="{{ ps.onDragOver }}"
+              onDragLeave="{{ ps.onDragLeave }}"
+              onDrop="{{ ps.onDrop }}"
+              onDragEnd="{{ ps.onDragEnd }}">
+
+              <!-- Drag handle — greyed if locked but still reorderable -->
+              <div style="width:24px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#F9F8F6;border-right:1px solid #ECEAE6;cursor:{{ ps.canDrag ? 'grab' : 'default' }};">
+                <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style="opacity:{{ ps.canDrag ? '1' : '0.25' }};"><circle cx="2" cy="2" r="1.2" fill="#C4C1BB"/><circle cx="6" cy="2" r="1.2" fill="#C4C1BB"/><circle cx="2" cy="6" r="1.2" fill="#C4C1BB"/><circle cx="6" cy="6" r="1.2" fill="#C4C1BB"/><circle cx="2" cy="10" r="1.2" fill="#C4C1BB"/><circle cx="6" cy="10" r="1.2" fill="#C4C1BB"/></svg>
+              </div>
+
+              <!-- Step number + gate indicator -->
+              <div style="width:26px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;border-right:1px solid #ECEAE6;gap:3px;">
+                <span style="font-family:'DM Mono',monospace;font-size:10px;font-weight:500;color:#A09D98;">{{ ps.num }}</span>
+                <sc-if value="{{ ps.isGate }}" hint-placeholder-val="{{ false }}">
+                <svg width="8" height="8" viewBox="0 0 10 10" fill="#CC27B0"><polygon points="5,0 10,5 5,10 0,5"/></svg>
+                </sc-if>
+              </div>
+
+              <!-- Icon -->
+              <div style="width:30px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-right:1px solid #ECEAE6;background:{{ ps.iconBg }};font-size:12px;">{{ ps.icon }}</div>
+
+              <!-- Content -->
+              <div style="flex:1;padding:7px 10px;min-width:0;">
+                <div style="font-size:11.5px;font-weight:600;color:#0D0E12;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;">{{ ps.title }}</div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <span style="font-family:'DM Mono',monospace;font-size:8.5px;color:#B0ADA8;">+{{ ps.dueOffset }}d</span>
+                  <sc-if value="{{ ps.segment }}" hint-placeholder-val="{{ false }}">
+                  <span class="tag" style="background:#F0F7FF;color:#0057a8;font-size:7px;">{{ ps.segment }}</span>
+                  </sc-if>
+                </div>
+              </div>
+
+              <!-- Delete (disabled if locked) -->
+              <div style="padding:0 8px;flex-shrink:0;display:flex;align-items:center;">
+                <sc-if value="{{ ps.canDelete }}" hint-placeholder-val="{{ false }}">
+                <button onClick="{{ ps.onDelete }}" style="padding:3px;border:none;background:transparent;cursor:pointer;color:#D4D1CB;display:flex;align-items:center;transition:color 100ms;" style-hover="color:#B83128">
+                  <svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2.5 4h9M5 4V2.5h4V4M6 6.5v4M8 6.5v4M3.5 4l.75 7.5h5.5L10.5 4"/></svg>
+                </button>
+                </sc-if>
+                <sc-if value="{{ !ps.canDelete }}" hint-placeholder-val="{{ false }}">
+                <div style="padding:3px;display:flex;align-items:center;" title="Admin only">
+                  <svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="#D4D1CB" stroke-width="1.3" stroke-linecap="round"><rect x="3" y="6" width="8" height="6" rx=".5"/><path d="M5 6V4.5a2 2 0 014 0V6"/></svg>
+                </div>
+                </sc-if>
+              </div>
+            </div>
+            </sc-for>
+
+            <!-- Add step (custom plans only) -->
+            <sc-if value="{{ canAddStep }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ addPreviewStep }}" class="btn bo bsm" style="width:100%;justify-content:center;margin-top:4px;">
+              <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 1v10M1 6h10"/></svg>
+              Add step
+            </button>
+            </sc-if>
+          </div>
+
+          <!-- Assign CTA -->
+          <div style="padding:10px 10px 12px;border-top:1px solid #E2DFD9;background:#fff;flex-shrink:0;">
+            <sc-if value="{{ pendingAssignment }}" hint-placeholder-val="{{ false }}">
+            <div class="di" style="margin-bottom:8px;border-left:3px solid #0071CE;background:#F0F7FF;padding:8px 10px;">
+              <div style="font-family:'DM Mono',monospace;font-size:8px;color:#0071CE;letter-spacing:.06em;margin-bottom:4px;">CONFIRM ASSIGNMENT</div>
+              <div style="font-size:11.5px;color:#0D0E12;font-weight:600;margin-bottom:2px;">{{ pendingAssignment.plan }} → {{ pendingAssignment.person }}</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:7px;">
+                <div>
+                  <div style="font-family:'DM Mono',monospace;font-size:7.5px;color:#A09D98;margin-bottom:2px;">Start date</div>
+                  <input class="inp" type="date" style="font-size:10.5px;padding:5px 7px;" value="2026-07-14">
+                </div>
+                <div>
+                  <div style="font-family:'DM Mono',monospace;font-size:7.5px;color:#A09D98;margin-bottom:2px;">Mentor</div>
+                  <select class="inp" style="font-size:10.5px;padding:5px 7px;">
+                    <option>No mentor</option>
+                    <option>Alex Rivera (you)</option>
+                    <option>Raj Patel</option>
+                  </select>
+                </div>
+              </div>
+              <div style="display:flex;gap:5px;margin-top:7px;">
+                <button onClick="{{ confirmAssign }}" class="btn bn bsm" style="flex:1;justify-content:center;">Confirm &amp; assign →</button>
+                <button onClick="{{ cancelAssign }}" class="btn bo bsm">Cancel</button>
+              </div>
+            </div>
+            </sc-if>
+            <sc-if value="{{ !pendingAssignment }}" hint-placeholder-val="{{ false }}">
+            <div style="font-family:'DM Mono',monospace;font-size:9px;color:#B0ADA8;text-align:center;padding:6px 0;">Drop a plan onto an employee to assign it</div>
+            </sc-if>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 1400, &quot;height&quot;: 964}}">
+class Component extends DCLogic {
+  state = {
+    planTab: 'all',
+    empFilter: 'all',
+    selectedPlanId: 'se90',
+    dragPlanId: null,
+    employees: [],
+    previewSteps: [],
+    stepDragSrc: null,
+    pendingAssignment: null,
+  };
+
+  componentDidMount() {
+    this.setState({
+      employees: this.defaultEmployees(),
+      previewSteps: this.stepsFor('se90'),
+    });
+    const scale = () => {
+      const root = document.getElementById('cr');
+      const outer = document.getElementById('co');
+      if (!root || !outer) return;
+      const r = Math.min(1, outer.clientWidth / 1360);
+      root.style.transform = `scale(${r})`;
+      outer.style.height = (900 * r + 64) + 'px';
+    };
+    scale();
+    window.addEventListener('resize', scale);
+  }
+
+  plans() {
+    return [
+      { id:'se30',   name:'SE-I Onboarding — 30 days',   desc:'Core platform + discovery basics',              locked:true,  duration:'30 days', stepCount:5,  usedBy:3, accentGrad:'linear-gradient(90deg,#0033a1,#0071ce)', typePills:[{label:'Content',bg:'#EEF4FF',color:'#1D4ED8'},{label:'Sim',bg:'#FDF0FA',color:'#A51E8E'},{label:'Review',bg:'#EDFAF3',color:'#0A6E45'}] },
+      { id:'se60',   name:'SE-I Onboarding — 60 days',   desc:'Discovery, deal prep & competitive intel',       locked:true,  duration:'60 days', stepCount:8,  usedBy:5, accentGrad:'linear-gradient(90deg,#0033a1,#0071ce)', typePills:[{label:'Content',bg:'#EEF4FF',color:'#1D4ED8'},{label:'Challenge',bg:'#EDE9FE',color:'#5b21b6'},{label:'Sim',bg:'#FDF0FA',color:'#A51E8E'}] },
+      { id:'se90',   name:'SE-I Onboarding — 90 days',   desc:'Full ramp: discovery → exec demo → cert gate',  locked:true,  duration:'90 days', stepCount:10, usedBy:8, accentGrad:'linear-gradient(90deg,#0033a1,#0071ce)', typePills:[{label:'Content',bg:'#EEF4FF',color:'#1D4ED8'},{label:'Challenge',bg:'#EDE9FE',color:'#5b21b6'},{label:'Sim',bg:'#FDF0FA',color:'#A51E8E'},{label:'Review',bg:'#EDFAF3',color:'#0A6E45'}] },
+      { id:'se120',  name:'SE-I Onboarding — 120 days',  desc:'Extended ramp with ISC Lab & cert gates',        locked:true,  duration:'120 days',stepCount:14, usedBy:2, accentGrad:'linear-gradient(90deg,#0033a1,#0071ce)', typePills:[{label:'Content',bg:'#EEF4FF',color:'#1D4ED8'},{label:'Challenge',bg:'#EDE9FE',color:'#5b21b6'},{label:'Sim',bg:'#FDF0FA',color:'#A51E8E'},{label:'Deal Prep',bg:'#FEF3C7',color:'#b45309'}] },
+      { id:'ae60',   name:'AE Onboarding — 60 days',     desc:'AE-specific: pitch, market pulse, deal brief',   locked:true,  duration:'60 days', stepCount:7,  usedBy:3, accentGrad:'linear-gradient(90deg,#9d174d,#be185d)', typePills:[{label:'Content',bg:'#EEF4FF',color:'#1D4ED8'},{label:'Pitch',bg:'#FDF0FA',color:'#A51E8E'},{label:'Deal Prep',bg:'#FEF3C7',color:'#b45309'}] },
+      { id:'custom1',name:'SLED Specialist track',        desc:'Custom: SLED verticalization + competitive',     locked:false, duration:'45 days', stepCount:6,  usedBy:1, accentGrad:'linear-gradient(90deg,#065f46,#059669)', typePills:[{label:'Content',bg:'#EEF4FF',color:'#1D4ED8'},{label:'Sim',bg:'#FDF0FA',color:'#A51E8E'},{label:'Custom',bg:'#F5F4F0',color:'#6B6860'}] },
+      { id:'custom2',name:'Lateral hire fast-track',      desc:'For experienced hires: 30-day essentials only',  locked:false, duration:'30 days', stepCount:4,  usedBy:0, accentGrad:'linear-gradient(90deg,#92400e,#b45309)', typePills:[{label:'Content',bg:'#EEF4FF',color:'#1D4ED8'},{label:'Shadow',bg:'#F5F4F0',color:'#6B6860'}] },
+    ];
+  }
+
+  stepsFor(planId) {
+    const base = [
+      { id:'s1', title:'Platform orientation & setup',         type:'content_review', dueOffset:3,  segment:'Seg 1', isGate:false },
+      { id:'s2', title:'IGA fundamentals — identity lifecycle', type:'content_review', dueOffset:7,  segment:'Seg 1', isGate:false },
+      { id:'s3', title:'Discovery challenge — CISO persona',   type:'challenge',      dueOffset:14, segment:'Seg 1', isGate:true  },
+      { id:'s4', title:'Executive discovery sim #1',           type:'simulation',     dueOffset:21, segment:'Seg 1', isGate:false },
+      { id:'s5', title:'Seg 1 sign-off',                       type:'mentor_review',  dueOffset:30, segment:'Seg 1', isGate:true  },
+      { id:'s6', title:'Deal prep — competitive deal',         type:'deal_prep',      dueOffset:45, segment:'Seg 2', isGate:false },
+      { id:'s7', title:'Shadow enterprise discovery call',     type:'shadow',         dueOffset:50, segment:'Seg 2', isGate:false },
+      { id:'s8', title:'Technical deep-dive — access certs',   type:'content_review', dueOffset:60, segment:'Seg 2', isGate:false },
+      { id:'s9', title:'Exec demo simulation — scored',        type:'simulation',     dueOffset:75, segment:'Seg 3', isGate:false },
+      { id:'s10',title:'Final certification sign-off',         type:'mentor_review',  dueOffset:90, segment:'Seg 3', isGate:true  },
+    ];
+    const plan = this.plans().find(p => p.id === planId);
+    if (!plan) return base.slice(0, 4);
+    return base.slice(0, plan.stepCount).map(s => ({ ...s, id: s.id + '-' + planId }));
+  }
+
+  typeInfo(type) {
+    const m = {
+      content_review:{ icon:'📄', iconBg:'#F0F7FF' },
+      challenge:     { icon:'🎯', iconBg:'#F5F0FF' },
+      simulation:    { icon:'🎭', iconBg:'#FDF0FA' },
+      deal_prep:     { icon:'📊', iconBg:'#FFFBF0' },
+      mentor_review: { icon:'✅', iconBg:'#EDFAF3' },
+      shadow:        { icon:'👁',  iconBg:'#F5F4F0' },
+      custom:        { icon:'⚙️', iconBg:'#F9F8F6' },
+    };
+    return m[type] || m.custom;
+  }
+
+  defaultEmployees() {
+    const grads = ['linear-gradient(135deg,#0033a1,#0071ce)','linear-gradient(135deg,#5b21b6,#7c3aed)','linear-gradient(135deg,#0369a1,#0891b2)','linear-gradient(135deg,#9d174d,#be185d)','linear-gradient(135deg,#065f46,#059669)','linear-gradient(135deg,#92400e,#b45309)'];
+    return [
+      { id:'e1', name:'Jordan Lee',  role:'SE-I',      isNew:true,  roleBg:'#EEF4FF', roleColor:'#0057a8', meta:'Start Jul 14', avatarBg:grads[0], assignedPlan:null, startDate:null, stepCount:null, isDragOver:false },
+      { id:'e2', name:'Maya Chen',   role:'SE-I',      isNew:true,  roleBg:'#EEF4FF', roleColor:'#0057a8', meta:'Start Jul 14', avatarBg:grads[1], assignedPlan:null, startDate:null, stepCount:null, isDragOver:false },
+      { id:'e3', name:'Erin Walsh',  role:'SE-I',      isNew:true,  roleBg:'#EEF4FF', roleColor:'#0057a8', meta:'Start Aug 1',  avatarBg:grads[2], assignedPlan:null, startDate:null, stepCount:null, isDragOver:false },
+      { id:'e4', name:'Marcus Webb', role:'AE',         isNew:true,  roleBg:'#FDF0FA', roleColor:'#A51E8E', meta:'Start Jul 21', avatarBg:grads[3], assignedPlan:null, startDate:null, stepCount:null, isDragOver:false },
+      { id:'e5', name:'Raj Patel',   role:'Senior SE', isNew:false, roleBg:'#EDE9FE', roleColor:'#5b21b6', meta:'SE-II · 2y',   avatarBg:grads[4], assignedPlan:'SLED Specialist track', startDate:'Jul 1', stepCount:6, isDragOver:false },
+      { id:'e6', name:'Sara Kim',    role:'Senior SE', isNew:false, roleBg:'#EDE9FE', roleColor:'#5b21b6', meta:'SE-II · 3y',   avatarBg:grads[5], assignedPlan:null, startDate:null, stepCount:null, isDragOver:false },
+    ];
+  }
+
+  getInitials(name) { return name.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2); }
+
+  setEmpDragOver(empId, val) {
+    this.setState(s => ({ employees: s.employees.map(e => e.id === empId ? {...e, isDragOver:val} : e) }));
+  }
+
+  renderVals() {
+    const { planTab, empFilter, selectedPlanId, employees, previewSteps, pendingAssignment } = this.state;
+    const allPlans = this.plans();
+    const selectedPlan = allPlans.find(p => p.id === selectedPlanId) || allPlans[2];
+
+    // Filtered plans
+    const visiblePlans = allPlans
+      .filter(p => planTab === 'all' ? true : planTab === 'locked' ? p.locked : !p.locked)
+      .map(p => ({
+        ...p,
+        cardClass: 'plan-card' + (p.id === selectedPlanId ? ' selected' : ''),
+        usedLabel: p.usedBy > 0 ? `Used by ${p.usedBy}` : 'Unused',
+        usedColor: p.usedBy > 0 ? '#0A6E45' : '#B0ADA8',
+        onSelect: () => {
+          this.setState({ selectedPlanId: p.id, previewSteps: this.stepsFor(p.id) });
+        },
+        onPreview: (e) => {
+          e.stopPropagation();
+          this.setState({ selectedPlanId: p.id, previewSteps: this.stepsFor(p.id) });
+        },
+        onDragStart: (e) => {
+          this.setState({ dragPlanId: p.id, selectedPlanId: p.id, previewSteps: this.stepsFor(p.id) });
+          e.dataTransfer.effectAllowed = 'copy';
+          e.currentTarget.classList.add('dragging');
+        },
+        onDragEnd: (e) => {
+          e.currentTarget.classList.remove('dragging');
+          this.setState({ dragPlanId: null });
+        },
+      }));
+
+    // Employees
+    const makeEmp = (emp) => ({
+      ...emp,
+      initials: this.getInitials(emp.name),
+      dropClass: 'emp-card' + (emp.assignedPlan ? ' drop-assigned' : ''),
+      dropLabel: emp.isDragOver ? 'Release to assign' : 'Drop plan here',
+      dropBorderColor: emp.isDragOver ? '#0071CE' : '#D4D1CB',
+      dropBg: emp.isDragOver ? '#F0F7FF' : 'transparent',
+      dropIconColor: emp.isDragOver ? '#0071CE' : '#C4C1BB',
+      dropTextColor: emp.isDragOver ? '#0071CE' : '#B0ADA8',
+      onDragOver: (e) => {
+        if (this.state.dragPlanId) { e.preventDefault(); this.setEmpDragOver(emp.id, true); }
+      },
+      onDragLeave: () => this.setEmpDragOver(emp.id, false),
+      onDrop: (e) => {
+        e.preventDefault();
+        this.setEmpDragOver(emp.id, false);
+        const planId = this.state.dragPlanId;
+        if (!planId) return;
+        const plan = allPlans.find(p => p.id === planId);
+        this.setState({ pendingAssignment: { plan: plan.name, person: emp.name, empId: emp.id, planId } });
+      },
+      onEdit: () => alert(`Edit dates for ${emp.name}'s plan`),
+      onUnassign: () => {
+        this.setState(s => ({
+          employees: s.employees.map(e => e.id === emp.id ? {...e, assignedPlan:null, startDate:null, stepCount:null} : e)
+        }));
+      },
+    });
+
+    const newHireEmps = employees.filter(e => e.isNew).map(makeEmp);
+    const existingEmps = employees.filter(e => !e.isNew).map(makeEmp);
+
+    // Preview steps
+    const previewStepsRv = previewSteps.map((step, i) => {
+      const info = this.typeInfo(step.type);
+      return {
+        ...step,
+        num: i + 1,
+        icon: info.icon,
+        iconBg: info.iconBg,
+        canDrag: true, // always reorderable
+        canDelete: !selectedPlan.locked,
+        onDelete: () => {
+          if (selectedPlan.locked) return;
+          this.setState(s => ({ previewSteps: s.previewSteps.filter((_,j) => j !== i) }));
+        },
+        onDragStart: (e) => {
+          this.setState({ stepDragSrc: i });
+          e.dataTransfer.effectAllowed = 'move';
+        },
+        onDragOver: (e) => {
+          e.preventDefault();
+          if (this.state.stepDragSrc === null) return;
+          const rows = document.querySelectorAll('#previewStepsList .step-row');
+          rows.forEach((r,j) => r.classList.remove('drag-above','drag-below'));
+          if (i !== this.state.stepDragSrc) {
+            const el = rows[i];
+            if (el) el.classList.add(i < this.state.stepDragSrc ? 'drag-above' : 'drag-below');
+          }
+        },
+        onDragLeave: (e) => {
+          const rows = document.querySelectorAll('#previewStepsList .step-row');
+          rows.forEach(r => r.classList.remove('drag-above','drag-below'));
+        },
+        onDrop: (e) => {
+          e.preventDefault();
+          const rows = document.querySelectorAll('#previewStepsList .step-row');
+          rows.forEach(r => r.classList.remove('drag-above','drag-below'));
+          const src = this.state.stepDragSrc;
+          if (src === null || src === i) return;
+          this.setState(s => {
+            const arr = [...s.previewSteps];
+            const [moved] = arr.splice(src, 1);
+            arr.splice(i, 0, moved);
+            return { previewSteps: arr, stepDragSrc: null };
+          });
+        },
+        onDragEnd: () => {
+          const rows = document.querySelectorAll('#previewStepsList .step-row');
+          rows.forEach(r => r.classList.remove('drag-above','drag-below'));
+          this.setState({ stepDragSrc: null });
+        },
+      };
+    });
+
+    // Emp filters
+    const empFilters = [
+      { label:'All',      active: empFilter==='all',      onClick: ()=>this.setState({empFilter:'all'}) },
+      { label:'New hires',active: empFilter==='new',      onClick: ()=>this.setState({empFilter:'new'}) },
+      { label:'Existing', active: empFilter==='existing', onClick: ()=>this.setState({empFilter:'existing'}) },
+      { label:'Unassigned',active:empFilter==='unassigned',onClick:()=>this.setState({empFilter:'unassigned'}) },
+    ];
+
+    return {
+      planTab,
+      showAllPlans: ()=>this.setState({planTab:'all'}),
+      showLocked: ()=>this.setState({planTab:'locked'}),
+      showCustom: ()=>this.setState({planTab:'custom'}),
+
+      visiblePlans,
+
+      empFilters,
+      showNewHiresSection: empFilter==='all' || empFilter==='new',
+      showExistingSection: empFilter==='all' || empFilter==='existing',
+      newHireEmps,
+      existingEmps,
+
+      selectedPlanLocked: selectedPlan.locked,
+      previewTitle: selectedPlan ? selectedPlan.name : 'Select a plan',
+      previewSubtitle: selectedPlan ? `${previewSteps.length} steps · ${selectedPlan.duration}${selectedPlan.locked ? ' · Locked — reorder only' : ' · Custom — full edit'}` : 'Click or drag a plan from the left',
+      previewSteps: previewStepsRv,
+      canAddStep: !selectedPlan.locked,
+      addPreviewStep: () => {
+        this.setState(s => ({
+          previewSteps: [...s.previewSteps, { id:'new-'+Date.now(), title:'Custom step', type:'custom', dueOffset: s.previewSteps.length * 7 + 7, segment:'', isGate:false }]
+        }));
+      },
+
+      pendingAssignment,
+      confirmAssign: () => {
+        if (!pendingAssignment) return;
+        const plan = allPlans.find(p => p.id === pendingAssignment.planId);
+        this.setState(s => ({
+          employees: s.employees.map(e => e.id === pendingAssignment.empId
+            ? {...e, assignedPlan: pendingAssignment.plan, startDate:'Jul 14', stepCount: plan?.stepCount || 0}
+            : e),
+          pendingAssignment: null,
+        }));
+      },
+      cancelAssign: () => this.setState({ pendingAssignment: null }),
+      onNewPlan: () => this.setState({ selectedPlanId: 'custom1', planTab:'custom', previewSteps: this.stepsFor('custom1') }),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html,body{height:100%;font-family:'DM Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+    .fu{animation:fadeUp .3s ease-out both;}
+    .d1{animation-delay:.06s}.d2{animation-delay:.12s}.d3{animation-delay:.18s}.d4{animation-delay:.24s}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}
+    .lp{animation:pulse 2.4s ease-in-out infinite;}
+    /* Form inputs — sharp, precise */
+    .inp{width:100%;background:#fff;border:1.5px solid #D4D1CB;padding:10px 12px 10px 38px;font-size:13px;font-family:'DM Sans',sans-serif;color:#0D0E12;outline:none;transition:border-color .12s;}
+    .inp:focus{border-color:#0071CE;}
+    .inp::placeholder{color:#B0ADA8;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.04em;}
+    /* Node graph lines */
+    .node{position:absolute;width:6px;height:6px;background:rgba(255,255,255,.18);transform:rotate(45deg);}
+  </style>
+</helmet>
+
+<div style="display:flex;min-height:100vh;background:#00143A;">
+
+  <!-- LEFT PANEL — editorial dark -->
+  <div style="width:52%;background:#00143A;display:flex;flex-direction:column;position:relative;overflow:hidden;flex-shrink:0;border-right:1px solid rgba(255,255,255,.06);">
+
+    <!-- Top accent line -->
+    <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#0071CE,#CC27B0);z-index:2;"></div>
+
+    <!-- Abstract identity graph — SVG lines connecting nodes -->
+    <div style="position:absolute;inset:0;pointer-events:none;z-index:0;opacity:.18;">
+      <svg width="100%" height="100%" viewBox="0 0 560 900" preserveAspectRatio="xMidYMid slice">
+        <!-- Connection lines -->
+        <line x1="280" y1="440" x2="120" y2="260" stroke="white" stroke-width=".8" stroke-dasharray="4 6"/>
+        <line x1="280" y1="440" x2="420" y2="300" stroke="white" stroke-width=".8" stroke-dasharray="4 6"/>
+        <line x1="280" y1="440" x2="180" y2="580" stroke="white" stroke-width=".8" stroke-dasharray="4 6"/>
+        <line x1="280" y1="440" x2="400" y2="560" stroke="white" stroke-width=".8" stroke-dasharray="4 6"/>
+        <line x1="280" y1="440" x2="80"  y2="460" stroke="white" stroke-width=".8" stroke-dasharray="4 6"/>
+        <line x1="280" y1="440" x2="460" y2="420" stroke="white" stroke-width=".8" stroke-dasharray="4 6"/>
+        <line x1="280" y1="440" x2="300" y2="200" stroke="white" stroke-width=".8" stroke-dasharray="4 6"/>
+        <line x1="280" y1="440" x2="260" y2="680" stroke="white" stroke-width=".8" stroke-dasharray="4 6"/>
+        <line x1="120" y1="260" x2="300" y2="200" stroke="white" stroke-width=".5" stroke-dasharray="2 8"/>
+        <line x1="420" y1="300" x2="460" y2="420" stroke="white" stroke-width=".5" stroke-dasharray="2 8"/>
+        <line x1="180" y1="580" x2="260" y2="680" stroke="white" stroke-width=".5" stroke-dasharray="2 8"/>
+        <!-- Outer nodes -->
+        <rect x="117" y="257" width="7" height="7" fill="rgba(0,113,206,.8)" transform="rotate(45 120 260)"/>
+        <rect x="417" y="297" width="7" height="7" fill="rgba(204,39,176,.8)" transform="rotate(45 420 300)"/>
+        <rect x="177" y="577" width="7" height="7" fill="rgba(0,113,206,.6)" transform="rotate(45 180 580)"/>
+        <rect x="397" y="557" width="7" height="7" fill="rgba(255,255,255,.5)" transform="rotate(45 400 560)"/>
+        <rect x="77"  y="457" width="7" height="7" fill="rgba(204,39,176,.5)" transform="rotate(45 80 460)"/>
+        <rect x="457" y="417" width="7" height="7" fill="rgba(0,113,206,.5)" transform="rotate(45 460 420)"/>
+        <rect x="297" y="197" width="7" height="7" fill="rgba(255,255,255,.5)" transform="rotate(45 300 200)"/>
+        <rect x="257" y="677" width="7" height="7" fill="rgba(0,113,206,.4)" transform="rotate(45 260 680)"/>
+        <!-- Center node — large -->
+        <rect x="272" y="432" width="16" height="16" fill="white" transform="rotate(45 280 440)"/>
+        <circle cx="280" cy="440" r="5" fill="#0071CE"/>
+      </svg>
+    </div>
+
+    <!-- Grid texture -->
+    <div style="position:absolute;inset:0;pointer-events:none;opacity:.03;background-image:linear-gradient(rgba(255,255,255,.8) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.8) 1px,transparent 1px);background-size:40px 40px;"></div>
+
+    <!-- Content -->
+    <div style="flex:1;display:flex;flex-direction:column;padding:48px 52px;position:relative;z-index:1;">
+
+      <!-- Wordmark -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:auto;">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path d="M10.5 2C10.5 2 16.5 6 16.5 13H10.5V2Z" fill="white"/>
+          <path d="M10.5 5C10.5 5 4.5 8 4.5 13H10.5V5Z" fill="rgba(255,255,255,0.32)"/>
+          <path d="M3 14.5H17" stroke="white" stroke-width="1.5" stroke-linecap="square"/>
+        </svg>
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#fff;letter-spacing:-.01em;line-height:1;">Enablement</div>
+          <div style="font-family:'DM Mono',monospace;font-size:8px;color:rgba(255,255,255,.3);letter-spacing:.14em;margin-top:2px;">PLATFORM</div>
+        </div>
+      </div>
+
+      <!-- Editorial headline block -->
+      <div style="margin-top:auto;margin-bottom:auto;padding:40px 0 32px;">
+        <!-- Live indicator -->
+        <div style="display:inline-flex;align-items:center;gap:7px;margin-bottom:24px;">
+          <span class="lp" style="width:5px;height:5px;border-radius:50%;background:#0071CE;display:inline-block;"></span>
+          <span style="font-family:'DM Mono',monospace;font-size:9.5px;color:rgba(255,255,255,.4);letter-spacing:.12em;text-transform:uppercase;">Secure access · MFA required</span>
+        </div>
+
+        <h1 style="font-family:'Syne',sans-serif;font-size:48px;font-weight:800;color:#fff;letter-spacing:-.04em;line-height:1;margin-bottom:20px;">
+          Built for<br>
+          the people<br>
+          <span style="color:#0071CE;">who close.</span>
+        </h1>
+
+        <p style="font-size:13.5px;color:rgba(255,255,255,.45);line-height:1.7;max-width:340px;margin-bottom:40px;">
+          Simulations, deal prep, coaching, cert gates, and competitive intel — one platform, every rep.
+        </p>
+
+        <!-- Feature list — sharp, minimal -->
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:14px;height:1px;background:#0071CE;flex-shrink:0;"></div>
+            <span style="font-size:12.5px;color:rgba(255,255,255,.55);">AI roleplay simulations with scored feedback</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:14px;height:1px;background:#CC27B0;flex-shrink:0;"></div>
+            <span style="font-size:12.5px;color:rgba(255,255,255,.55);">Manager coaching cadence and readiness maps</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:14px;height:1px;background:#0071CE;flex-shrink:0;"></div>
+            <span style="font-size:12.5px;color:rgba(255,255,255,.55);">Deal prep briefs and competitive battlecards</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:14px;height:1px;background:rgba(255,255,255,.2);flex-shrink:0;"></div>
+            <span style="font-size:12.5px;color:rgba(255,255,255,.35);">Certification gates and career ladder tracking</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom — tenant note -->
+      <div style="display:flex;align-items:center;gap:8px;padding-top:24px;border-top:1px solid rgba(255,255,255,.06);">
+        <span style="font-family:'DM Mono',monospace;font-size:8.5px;color:rgba(255,255,255,.2);letter-spacing:.1em;">TENANT</span>
+        <span style="font-family:'DM Mono',monospace;font-size:9px;color:rgba(255,255,255,.3);">acme.sailpoint.io</span>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:5px;">
+          <div class="lp" style="width:5px;height:5px;border-radius:50%;background:#0A6E45;display:inline-block;"></div>
+          <span style="font-family:'DM Mono',monospace;font-size:8.5px;color:rgba(255,255,255,.25);">Online</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL — sign in form -->
+  <div style="flex:1;background:#F5F4F0;display:flex;align-items:center;justify-content:center;padding:48px 40px;">
+    <div style="width:100%;max-width:360px;" class="fu d1">
+
+      <!-- Step indicator -->
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:32px;">
+        <div style="width:20px;height:20px;background:#00143A;display:flex;align-items:center;justify-content:center;">
+          <span style="font-family:'DM Mono',monospace;font-size:8px;color:white;font-weight:500;">1</span>
+        </div>
+        <span style="font-family:'DM Mono',monospace;font-size:10px;color:#0D0E12;font-weight:500;">Sign in</span>
+        <div style="height:1px;flex:1;background:#D4D1CB;margin:0 6px;"></div>
+        <div style="width:20px;height:20px;background:#E2DFD9;display:flex;align-items:center;justify-content:center;">
+          <span style="font-family:'DM Mono',monospace;font-size:8px;color:#B0ADA8;">2</span>
+        </div>
+        <span style="font-family:'DM Mono',monospace;font-size:10px;color:#B0ADA8;">Verify</span>
+      </div>
+
+      <!-- Heading -->
+      <div style="margin-bottom:28px;" class="fu d2">
+        <h2 style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:#0D0E12;letter-spacing:-.025em;line-height:1;margin-bottom:6px;">Welcome back.</h2>
+        <p style="font-size:12.5px;color:#6B6860;">Sign in to your enablement workspace</p>
+      </div>
+
+      <!-- SSO option -->
+      <div class="fu d2" style="margin-bottom:20px;">
+        <button style="width:100%;background:#fff;border:1.5px solid #D4D1CB;padding:11px 14px;font-size:12.5px;font-weight:600;font-family:'DM Sans',sans-serif;color:#0D0E12;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:border-color .12s;">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><path d="M8 2c-2 2-2.5 3.5-2.5 6s.5 4 2.5 6"/><path d="M8 2c2 2 2.5 3.5 2.5 6s-.5 4-2.5 6"/><path d="M2.5 7h11"/><path d="M2.5 10h11"/></svg>
+          Continue with SSO
+        </button>
+      </div>
+
+      <!-- Divider -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;" class="fu d2">
+        <div style="flex:1;height:1px;background:#D4D1CB;"></div>
+        <span style="font-family:'DM Mono',monospace;font-size:9px;color:#B0ADA8;letter-spacing:.1em;">OR</span>
+        <div style="flex:1;height:1px;background:#D4D1CB;"></div>
+      </div>
+
+      <!-- Email field -->
+      <div style="margin-bottom:12px;position:relative;" class="fu d3">
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:#6B6860;letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px;">Email</div>
+        <div style="position:relative;">
+          <svg class="inp-icon" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#B0ADA8" stroke-width="1.3" stroke-linecap="round" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);"><rect x="2" y="4" width="12" height="8" rx="1.5"/><path d="M2 5l6 4.5L14 5"/></svg>
+          <input class="inp" type="email" placeholder="you@company.com" value="jordan.lee@acme.com">
+        </div>
+      </div>
+
+      <!-- Password field -->
+      <div style="margin-bottom:20px;position:relative;" class="fu d3">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:5px;">
+          <div style="font-family:'DM Mono',monospace;font-size:8px;color:#6B6860;letter-spacing:.1em;text-transform:uppercase;">Password</div>
+          <a href="#" style="font-family:'DM Mono',monospace;font-size:9px;color:#0071CE;text-decoration:none;">Forgot?</a>
+        </div>
+        <div style="position:relative;">
+          <svg class="inp-icon" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#B0ADA8" stroke-width="1.3" stroke-linecap="round" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);"><rect x="4" y="7" width="8" height="7" rx="1"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg>
+          <input class="inp" type="password" placeholder="••••••••••••" value="password">
+        </div>
+      </div>
+
+      <!-- Submit -->
+      <button style="width:100%;background:#00143A;color:white;border:none;padding:12px 14px;font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;letter-spacing:.01em;transition:background .12s;" class="fu d4">
+        Sign in
+        <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><path d="M2 7h10M7 2l5 5-5 5"/></svg>
+      </button>
+
+      <!-- Footer -->
+      <div style="margin-top:28px;padding-top:20px;border-top:1px solid #D4D1CB;" class="fu d4">
+        <p style="font-family:'DM Mono',monospace;font-size:9px;color:#B0ADA8;text-align:center;line-height:1.6;">
+          Access is restricted to authorized users.<br>
+          Contact your admin if you need an account.
+        </p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 1280, &quot;height&quot;: 800}}"></script>
+</body>
+</html>
