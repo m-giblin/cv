@@ -1014,6 +1014,30 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["manager_coaching_notes"]["Insert"]>;
         Relationships: [];
       };
+      manager_coaching_session_notes: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          manager_id: string;
+          se_user_id: string;
+          session_focus: string;
+          note: string;
+          outcome_label: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          tenant_id: string;
+          manager_id: string;
+          se_user_id: string;
+          session_focus?: string;
+          note: string;
+          outcome_label?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["manager_coaching_session_notes"]["Insert"]>;
+        Relationships: [];
+      };
       manager_coaching_signoffs: {
         Row: {
           id: string;
@@ -1141,8 +1165,11 @@ export type Database = {
           questions: Json;
           source?: string;
           created_at?: string;
+          tenant_id: string;
         };
-        Update: Partial<Database["public"]["Tables"]["market_pulse_weeks"]["Insert"]>;
+        Update: Partial<Database["public"]["Tables"]["market_pulse_weeks"]["Insert"]> & {
+          tenant_id?: string;
+        };
         Relationships: [];
       };
       market_pulse_results: {

@@ -96,7 +96,7 @@ export function CoachingCadence({
   const [selectedKey, setSelectedKey] = useState(resolvedInitial);
   const [toast, setToast] = useState<{ msg: string; color: string } | null>(null);
   const [noteModal, setNoteModal] = useState(false);
-  const { notes, addNote } = useCoachingNotes();
+  const { notes, addNote } = useCoachingNotes(selectedKey);
 
   const showToast = useCallback((msg: string, color: string) => {
     setToast({ msg, color });
@@ -139,16 +139,49 @@ export function CoachingCadence({
   );
 
   const handleSignOffGate = useCallback(
-    (se: SEProfile) => {
-      // TODO: PATCH /api/gates/{gateId} { status: 'approved', approvedBy: managerId }
-      showToast(`Gate 1 approved for ${se.name} — they can now advance to Phase 2`, "#0A6E45");
+    async (se: SEProfile) => {
+      if (!se.gateStepId) {
+        showToast(`No gate step linked for ${se.name} — assign a plan gate first`, "#D4810A");
+        return;
+      }
+
+      const response = await fetch(`/api/gates/${encodeURIComponent(se.gateStepId)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "approved" }),
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        showToast(payload?.error ?? "Could not approve gate", "#B83128");
+        return;
+      }
+
+      showToast(`Gate approved for ${se.name} — they can now advance to Phase 2`, "#0A6E45");
     },
     [showToast],
   );
 
   const handleAssignSim = useCallback(
-    (se: SEProfile, simName: string) => {
-      // TODO: POST /api/sim-assignments { seId: se.id, simName, assignedBy: managerId }
+    async (se: SEProfile, simName: string) => {
+      const isUuid = /^[0-9a-f-]{36}$/i.test(se.id);
+      if (!isUuid) {
+        showToast(`Sim queued for demo profile "${simName}" (preview data)`, "#0071CE");
+        return;
+      }
+
+      const response = await fetch("/api/sim-assignments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ seId: se.id, simName }),
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        showToast(payload?.error ?? "Could not assign simulation", "#B83128");
+        return;
+      }
+
       showToast(`Sim assigned: "${simName}" — ${se.name} will be notified`, "#0071CE");
     },
     [showToast],
@@ -176,7 +209,7 @@ export function CoachingCadence({
   );
 
   const handleSaveNote = useCallback(
-    (se: SEProfile, noteText: string) => {
+    async (se: SEProfile, noteText: string) => {
       if (!noteText.trim()) return;
 
       const today = new Date();
@@ -193,7 +226,7 @@ export function CoachingCadence({
         deltaColor: "#A09D98",
       };
 
-      addNote(se.id, newNote);
+      await addNote(se.id, newNote);
       setNoteModal(false);
       showToast(`Note saved — sending summary to ${se.name}`, "#0A6E45");
       window.setTimeout(() => {
@@ -268,6 +301,11 @@ export function CoachingCadence({
             </span>
           </div>
         ) : null}
+      </div>
+
+      <div className="border-b border-[rgba(0,113,206,.15)] bg-[rgba(0,113,206,.04)] px-5 py-2 text-[11px] text-[#0071CE]">
+        Preview roster — coaching notes, sim assignments, and gate sign-offs persist when you select a real org SE (UUID).
+        Demo profile keys still use local preview behavior.
       </div>
 
       {/* Page header + summary stats */}

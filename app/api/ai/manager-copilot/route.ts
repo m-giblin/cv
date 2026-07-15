@@ -2,7 +2,7 @@ import { generateText } from "ai";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { enforceAiRateLimit } from "@/lib/ai/enforce-rate-limit";
-import { resolveAiProvider } from "@/lib/ai/provider";
+import { resolveAiProviderForUser } from "@/lib/ai/resolve-provider-for-user";
 import { requireAuthenticatedSession } from "@/lib/auth/require-authenticated";
 import { getAccessTier } from "@/lib/auth/rbac";
 import type { ProfileRole } from "@/lib/types";
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
  if (rateLimited) return rateLimited;
 
  const { strengths, gaps, transcript, context, managerSummary, recommendedImprovements } = parsed.data;
- const { model } = await resolveAiProvider();
+ const { model } = await resolveAiProviderForUser(session.supabase, session.user.id);
 
  if (!model) {
  return NextResponse.json({

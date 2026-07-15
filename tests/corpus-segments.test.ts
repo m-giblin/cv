@@ -75,6 +75,7 @@ describe("buildSegmentProgress", () => {
   it("summarizes validated steps per segment", () => {
     const plan: UserPlan = {
       id: "a1",
+      planTemplateId: "tpl-1",
       userId: "u1",
       mentorId: null,
       name: "120-day",

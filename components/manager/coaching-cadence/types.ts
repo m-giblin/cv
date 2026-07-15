@@ -76,6 +76,7 @@ export interface SEProfile {
   hasHistory: boolean;
   noHistory: boolean;
   actions: ActionButton[];
+  gateStepId?: string;
 }
 
 export interface ActionButton {

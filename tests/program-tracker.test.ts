@@ -15,6 +15,7 @@ const person: Profile = {
 
 const plan: UserPlan = {
   id: "assign-1",
+  planTemplateId: "tpl-1",
   userId: "user-1",
   mentorId: null,
   name: "Week 1–2 — Boots on the ground",

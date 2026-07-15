@@ -1,7 +1,7 @@
 import { generateText } from "ai";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { resolveAiProvider } from "@/lib/ai/provider";
+import { resolveAiProviderForUser } from "@/lib/ai/resolve-provider-for-user";
 import { enforceAiRateLimit } from "@/lib/ai/enforce-rate-limit";
 import { logAiUsage } from "@/lib/ai/log-usage";
 import { SIMULATION_START_MESSAGE, roleplayEnded } from "@/lib/simulations/prompt-template";
@@ -81,7 +81,7 @@ export async function POST(request: Request) {
 
  let promptSnapshot = parsed.data.promptSnapshot;
 
- const { model, provider, modelName } = await resolveAiProvider();
+ const { model, provider, modelName } = await resolveAiProviderForUser(supabase, user.id);
 
  if (parsed.data.assignmentId) {
  const { data: assignment, error: assignmentError } = await supabase

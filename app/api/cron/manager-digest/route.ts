@@ -96,7 +96,18 @@ export async function GET(request: Request) {
  tenantId: row.tenant_id ?? null,
  createdAt: row.created_at,
  })),
- plans: [],
+ plans: (plans ?? []).map((row) => ({
+ id: row.id,
+ planTemplateId: row.plan_id,
+ userId: row.user_id,
+ mentorId: row.mentor_id ?? null,
+ name: "",
+ startDate: row.start_date,
+ targetCompletion: row.target_completion ?? "",
+ status: row.status,
+ progress: row.progress_percent ?? 0,
+ steps: [],
+ })),
  challenges: [],
  submissions: (submissions ?? []).map((row) => ({
  id: row.id,
@@ -140,8 +151,6 @@ export async function GET(request: Request) {
  competencies: [],
  notifications: [],
  };
-
- void plans;
 
  const developmentPlans = await fetchDevelopmentPlans(reportIds, admin);
  const metrics = buildAccountabilityMetrics(stubData, developmentPlans, orgProfiles);

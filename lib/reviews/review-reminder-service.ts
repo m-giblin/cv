@@ -32,8 +32,8 @@ export type ReminderEligibility = {
   reason?: string;
 };
 
-export function pendingDaysSince(submittedAt: string) {
-  return Math.max(0, differenceInCalendarDays(new Date(), new Date(submittedAt)));
+export function pendingDaysSince(submittedAt: string, now = new Date()) {
+  return Math.max(0, differenceInCalendarDays(now, new Date(submittedAt)));
 }
 
 export function computeReminderEligibility(
@@ -41,7 +41,7 @@ export function computeReminderEligibility(
   lastReminderAt: string | null,
   now = new Date(),
 ): ReminderEligibility {
-  const pendingDays = pendingDaysSince(submittedAt);
+  const pendingDays = pendingDaysSince(submittedAt, now);
 
   if (pendingDays < REVIEW_REMINDER_MIN_PENDING_DAYS) {
     const eligibleAt = new Date(submittedAt);

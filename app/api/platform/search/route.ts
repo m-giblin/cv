@@ -48,11 +48,17 @@ export async function GET(request: Request) {
  }
 
  if (admin) {
- const { data: profiles } = await admin
+ // Strip PostgREST filter metacharacters so `q` can't break out of the ilike
+ // value and alter the OR expression (comma = separator, parens = grouping,
+ // %/* = wildcards, backslash = escape).
+ const safeQ = q.replace(/[,()%*\\]/g, "");
+ const { data: profiles } = safeQ
+ ? await admin
  .from("profiles")
  .select("id, full_name, email, tenant_id")
- .or(`email.ilike.%${q}%,full_name.ilike.%${q}%`)
- .limit(10);
+ .or(`email.ilike.%${safeQ}%,full_name.ilike.%${safeQ}%`)
+ .limit(10)
+ : { data: [] };
 
  for (const profile of profiles ?? []) {
  results.push({

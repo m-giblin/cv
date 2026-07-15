@@ -5,10 +5,22 @@ import { createClient } from "@/lib/supabase/server";
 import { validateProfileTenantEmail } from "@/lib/auth/tenant-email";
 import type { ProfileRole } from "@/lib/types";
 
+/**
+ * Only allow same-origin relative redirect targets. Rejects absolute URLs and
+ * protocol-relative/backslash forms (e.g. `//evil.com`, `/\evil.com`, `@evil.com`)
+ * that browsers would resolve to an external host — prevents open-redirect phishing.
+ */
+function safeNextPath(next: string | null): string {
+ if (!next || !next.startsWith("/") || next.startsWith("//") || next.startsWith("/\\")) {
+ return "/dashboard";
+ }
+ return next;
+}
+
 export async function GET(request: Request) {
  const { searchParams, origin } = new URL(request.url);
  const code = searchParams.get("code");
- const next = searchParams.get("next") ?? "/dashboard";
+ const next = safeNextPath(searchParams.get("next"));
 
  if (code) {
  const supabase = await createClient();

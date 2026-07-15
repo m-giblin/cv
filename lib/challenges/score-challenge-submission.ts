@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { enforceAiRateLimit } from "@/lib/ai/enforce-rate-limit";
 import { logAiUsage } from "@/lib/ai/log-usage";
-import { resolveAiProvider } from "@/lib/ai/provider";
+import { resolveAiProviderForUser } from "@/lib/ai/resolve-provider-for-user";
 
 export type ChallengeAiReview = {
   score: number;
@@ -83,7 +83,7 @@ export async function scoreChallengeSubmission(
   const rateLimited = await enforceAiRateLimit(supabase, params.reviewerUserId);
   if (rateLimited) return fallback;
 
-  const { model, provider, modelName } = await resolveAiProvider();
+  const { model, provider, modelName } = await resolveAiProviderForUser(supabase, params.reviewerUserId);
   if (!model) return fallback;
 
   const evidenceSummary = params.evidenceFiles

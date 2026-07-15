@@ -21,7 +21,13 @@ export async function checkAiRateLimit(
     .gte("created_at", startOfDay.toISOString());
 
   if (error) {
-    return { allowed: true, remainingRequests: DAILY_REQUEST_LIMIT };
+    // Fail closed: this limiter guards a shared, paid provider key, so a DB/RLS
+    // hiccup must not silently disable the daily cap (financial-DoS lever).
+    return {
+      allowed: false,
+      reason: "Usage checks are temporarily unavailable. Please try again shortly.",
+      retryAfterHours: 1,
+    };
   }
 
   const rows = data ?? [];

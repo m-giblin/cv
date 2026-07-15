@@ -6,6 +6,7 @@ describe("computeSeReadinessScore", () => {
   it("scores field-ready SEs highly", () => {
     const plan: UserPlan = {
       id: "a1",
+      planTemplateId: "tpl-1",
       userId: "u1",
       mentorId: null,
       name: "Ramp",
