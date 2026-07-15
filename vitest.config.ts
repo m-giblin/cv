@@ -9,6 +9,10 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "."),
+      // `server-only` throws when imported outside a React Server Component.
+      // Tests import server route/lib modules directly, so no-op it here — the
+      // real guard still runs at `next build`.
+      "server-only": path.resolve(__dirname, "tests/stubs/server-only.ts"),
     },
   },
 });

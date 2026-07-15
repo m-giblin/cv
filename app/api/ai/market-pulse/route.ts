@@ -2,11 +2,13 @@ import { generateObject } from "ai";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { enforceAiRateLimit } from "@/lib/ai/enforce-rate-limit";
-import { resolveAiProvider } from "@/lib/ai/provider";
+import { resolveAiProviderForTenant } from "@/lib/ai/resolve-provider-for-user";
 import { requireAuthenticatedSession } from "@/lib/auth/require-authenticated";
 import { getAccessTier } from "@/lib/auth/rbac";
 import { defaultMarketPulseQuestions } from "@/lib/market-pulse/seed-week";
 import { currentWeekId } from "@/lib/market-pulse/week";
+import { resolveProfileTenantId } from "@/lib/tenant/resolve-profile-tenant";
+import { DEFAULT_TENANT_ID } from "@/lib/tenant/types";
 import type { ProfileRole } from "@/lib/types";
 
 const questionSchema = z.object({
@@ -44,8 +46,9 @@ export async function POST(request: Request) {
 
  const body = (await request.json().catch(() => ({}))) as { weekId?: string };
  const weekId = body.weekId ?? currentWeekId();
+ const tenantId = (await resolveProfileTenantId(session.supabase, session.user.id)) ?? DEFAULT_TENANT_ID;
 
- const { model } = await resolveAiProvider();
+ const { model } = await resolveAiProviderForTenant(tenantId);
 
  let questions = defaultMarketPulseQuestions();
 
@@ -64,15 +67,16 @@ Use ids pulse-1 through pulse-5. Focus on 2026 agentic identity messaging.`,
  const { error } = await session.supabase.from("market_pulse_weeks").upsert(
  {
  week_id: weekId,
+ tenant_id: tenantId,
  questions,
  source: model ? "ai" : "seed",
  },
- { onConflict: "week_id" },
+ { onConflict: "tenant_id,week_id" },
  );
 
  if (error) {
  return NextResponse.json({ error: error.message }, { status: 500 });
  }
 
- return NextResponse.json({ weekId, questionCount: questions.length, source: model ? "ai" : "seed" });
+ return NextResponse.json({ weekId, tenantId, questionCount: questions.length, source: model ? "ai" : "seed" });
 }

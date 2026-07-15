@@ -10,24 +10,25 @@ import { DEFAULT_TENANT_ID } from "@/lib/tenant/types";
 
 export const LAST_ACTIVITY_COOKIE = "sp_last_activity";
 
-let cachedIdleMs = SESSION_IDLE_MS;
-let cacheLoadedAt = 0;
 const IDLE_MS_CACHE_TTL = 60_000;
+// Cache per tenant — a single global slot let one tenant's idle setting govern
+// another tenant's sessions for up to the TTL window.
+const idleMsCache = new Map<string, { value: number; loadedAt: number }>();
 
 async function resolveIdleMs(tenantId: string | null): Promise<number> {
+  const scopedTenantId = tenantId ?? DEFAULT_TENANT_ID;
   const now = Date.now();
-  if (now - cacheLoadedAt < IDLE_MS_CACHE_TTL) {
-    return cachedIdleMs;
+  const cached = idleMsCache.get(scopedTenantId);
+  if (cached && now - cached.loadedAt < IDLE_MS_CACHE_TTL) {
+    return cached.value;
   }
 
   const admin = createAdminClient();
   if (!admin) {
-    cachedIdleMs = SESSION_IDLE_MS;
-    cacheLoadedAt = now;
-    return cachedIdleMs;
+    idleMsCache.set(scopedTenantId, { value: SESSION_IDLE_MS, loadedAt: now });
+    return SESSION_IDLE_MS;
   }
 
-  const scopedTenantId = tenantId ?? DEFAULT_TENANT_ID;
   const { data } = await admin
     .from("platform_settings")
     .select("session_idle_minutes")
@@ -38,9 +39,9 @@ async function resolveIdleMs(tenantId: string | null): Promise<number> {
     (data as { session_idle_minutes?: number | null } | null)?.session_idle_minutes ??
     DEFAULT_SESSION_IDLE_MINUTES;
 
-  cachedIdleMs = sessionIdleMsFromMinutes(minutes);
-  cacheLoadedAt = now;
-  return cachedIdleMs;
+  const value = sessionIdleMsFromMinutes(minutes);
+  idleMsCache.set(scopedTenantId, { value, loadedAt: now });
+  return value;
 }
 
 function sessionIdleCookieOptions(maxAgeSeconds: number) {

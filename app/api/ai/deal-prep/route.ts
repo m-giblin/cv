@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { dealPrepPrompt } from "@/lib/ai/prompts";
 import { dealPrepSchema } from "@/lib/ai/schemas";
-import { resolveAiProvider } from "@/lib/ai/provider";
+import { resolveAiProviderForUser } from "@/lib/ai/resolve-provider-for-user";
 import { enforceAiRateLimit } from "@/lib/ai/enforce-rate-limit";
 import { logAiUsage } from "@/lib/ai/log-usage";
 import { requireAuthenticatedSession } from "@/lib/auth/require-authenticated";
@@ -80,7 +80,7 @@ export async function POST(request: Request) {
  return rateLimited;
  }
 
- const { model, provider, modelName } = await resolveAiProvider();
+ const { model, provider, modelName } = await resolveAiProviderForUser(session.supabase, session.user.id);
 
  if (!model) {
  return NextResponse.json({

@@ -94,7 +94,7 @@ export function LoginForm({ initialError }: { initialError?: string | null }) {
  return;
  }
 
- let destination = AUTH_ROUTES.mfaEnroll;
+ let destination: (typeof AUTH_ROUTES)[keyof typeof AUTH_ROUTES] = AUTH_ROUTES.mfaEnroll;
  if (aal?.currentLevel === "aal2") {
  destination = AUTH_ROUTES.dashboard;
  } else if (aal?.nextLevel === "aal2") {

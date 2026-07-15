@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { enforceAiRateLimit } from "@/lib/ai/enforce-rate-limit";
 import { logAiUsage } from "@/lib/ai/log-usage";
-import { resolveAiProvider } from "@/lib/ai/provider";
+import { resolveAiProviderForUser } from "@/lib/ai/resolve-provider-for-user";
 import { createNotification } from "@/lib/notifications/create-notification";
 import { buildIscLabSystemPrompt, retrieveIscLabContext } from "@/lib/isc-lab/retrieve-context";
 import { logIscLabInteraction } from "@/lib/isc-lab/session-log";
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
  accountName,
  });
 
- const { provider, model, modelName } = await resolveAiProvider();
+ const { provider, model, modelName } = await resolveAiProviderForUser(session.supabase, session.user.id);
  if (!model) {
  return NextResponse.json({ error: "AI provider not configured" }, { status: 503 });
  }

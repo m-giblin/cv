@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { enforceAiRateLimit } from "@/lib/ai/enforce-rate-limit";
 import { logAiUsage } from "@/lib/ai/log-usage";
-import { resolveAiProvider } from "@/lib/ai/provider";
+import { resolveAiProviderForUser } from "@/lib/ai/resolve-provider-for-user";
 import { requireAdminSession } from "@/lib/auth/require-admin";
 import { generateObject } from "ai";
 
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
  const rateLimited = await enforceAiRateLimit(session.supabase, session.user.id);
  if (rateLimited) return rateLimited;
 
- const { model, modelName } = await resolveAiProvider();
+ const { model, modelName } = await resolveAiProviderForUser(session.supabase, session.user.id);
  if (!model) {
  return NextResponse.json({
  assetType: "link" as const,
