@@ -22,6 +22,9 @@ alter table public.market_pulse_results
 alter table public.market_pulse_results
   drop constraint if exists market_pulse_results_week_id_fkey;
 
+alter table public.market_pulse_results
+  drop constraint if exists market_pulse_results_week_fkey;
+
 alter table public.market_pulse_weeks
   drop constraint if exists market_pulse_weeks_pkey;
 
@@ -36,6 +39,8 @@ alter table public.market_pulse_results
 
 drop policy if exists "market_pulse_weeks_admin_insert" on public.market_pulse_weeks;
 drop policy if exists "market_pulse_weeks_admin_upsert" on public.market_pulse_weeks;
+drop policy if exists "market_pulse_weeks_manager_write" on public.market_pulse_weeks;
+drop policy if exists "market_pulse_weeks_manager_update" on public.market_pulse_weeks;
 
 create policy "market_pulse_weeks_manager_write"
 on public.market_pulse_weeks for insert

@@ -17,6 +17,7 @@ create index if not exists manager_coaching_session_notes_manager_idx
 
 alter table public.manager_coaching_session_notes enable row level security;
 
+drop policy if exists "manager_coaching_session_notes_select" on public.manager_coaching_session_notes;
 create policy "manager_coaching_session_notes_select"
 on public.manager_coaching_session_notes for select to authenticated
 using (
@@ -24,6 +25,7 @@ using (
   or public.can_access_profile(se_user_id)
 );
 
+drop policy if exists "manager_coaching_session_notes_insert" on public.manager_coaching_session_notes;
 create policy "manager_coaching_session_notes_insert"
 on public.manager_coaching_session_notes for insert to authenticated
 with check (
