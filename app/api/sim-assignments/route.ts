@@ -42,7 +42,7 @@ export async function POST(request: Request) {
   let promptBody = defaultSledPromptSnapshot({ solutionFocus, vertical, difficulty });
   let templateName = parsed.data.simName ?? "Assigned simulation";
   let practiceRoundsRequired = 1;
-  let templateId = parsed.data.templateId ?? null;
+  const templateId = parsed.data.templateId ?? null;
 
   if (parsed.data.templateId) {
     const { data: template } = await session.supabase

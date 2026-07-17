@@ -1,7 +1,6 @@
 import {
   PLATFORM_FEATURE_FLAG_DEFS,
   isFlagEffectivelyEnabled,
-  mergeFeatureFlags,
   type PlatformFeatureFlags,
 } from "@/lib/platform/settings-shared";
 
