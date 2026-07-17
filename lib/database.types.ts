@@ -19,6 +19,7 @@ export type Database = {
           manager_id: string | null;
           tenant_id: string | null;
           avatar_url: string | null;
+          workspace_hats: string[] | null;
           created_at: string;
           updated_at: string;
         };
@@ -31,6 +32,7 @@ export type Database = {
           manager_id?: string | null;
           tenant_id?: string | null;
           avatar_url?: string | null;
+          workspace_hats?: string[] | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -1680,6 +1682,15 @@ export type Database = {
           operator_notes: string | null;
           maintenance_mode: boolean;
           maintenance_message: string | null;
+          billing_status: string;
+          billing_plan: string | null;
+          seat_quota: number | null;
+          custom_domain: string | null;
+          custom_domain_status: string;
+          export_requested_at: string | null;
+          export_completed_at: string | null;
+          export_status: string;
+          last_export_artifact_url: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -1695,6 +1706,15 @@ export type Database = {
           operator_notes?: string | null;
           maintenance_mode?: boolean;
           maintenance_message?: string | null;
+          billing_status?: string;
+          billing_plan?: string | null;
+          seat_quota?: number | null;
+          custom_domain?: string | null;
+          custom_domain_status?: string;
+          export_requested_at?: string | null;
+          export_completed_at?: string | null;
+          export_status?: string;
+          last_export_artifact_url?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -1779,6 +1799,10 @@ export type Database = {
           status: string;
           created_at: string;
           accepted_at: string | null;
+          revoked_at: string | null;
+          revoked_by: string | null;
+          last_sent_at: string | null;
+          expires_at: string | null;
         };
         Insert: {
           id?: string;
@@ -1789,8 +1813,74 @@ export type Database = {
           status?: string;
           created_at?: string;
           accepted_at?: string | null;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+          last_sent_at?: string | null;
+          expires_at?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["tenant_admin_invites"]["Insert"]>;
+        Relationships: [];
+      };
+      tenant_sso_configs: {
+        Row: {
+          tenant_id: string;
+          enabled: boolean;
+          provider: string;
+          sso_domain: string | null;
+          metadata: Json;
+          updated_at: string;
+        };
+        Insert: {
+          tenant_id: string;
+          enabled?: boolean;
+          provider?: string;
+          sso_domain?: string | null;
+          metadata?: Json;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["tenant_sso_configs"]["Insert"]>;
+        Relationships: [];
+      };
+      tenant_webhooks: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          url: string;
+          secret_ciphertext: string | null;
+          events: string[];
+          enabled: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          tenant_id: string;
+          url: string;
+          secret_ciphertext?: string | null;
+          events?: string[];
+          enabled?: boolean;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["tenant_webhooks"]["Insert"]>;
+        Relationships: [];
+      };
+      operator_notification_prefs: {
+        Row: {
+          user_id: string;
+          email_on_critical_support: boolean;
+          email_on_new_tenant: boolean;
+          email_digest_hours: number;
+          channels: Json;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          email_on_critical_support?: boolean;
+          email_on_new_tenant?: boolean;
+          email_digest_hours?: number;
+          channels?: Json;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["operator_notification_prefs"]["Insert"]>;
         Relationships: [];
       };
     };

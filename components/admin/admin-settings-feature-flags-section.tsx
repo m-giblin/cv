@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Toggle as AdminToggle } from "@/components/admin/admin-toggle";
 import {
  PLATFORM_FEATURE_FLAG_DEFS,
+ isFlagEffectivelyEnabled,
  type PlatformFeatureFlags,
 } from "@/lib/platform/settings-shared";
 import { featureFlagsDiffFromDefaults } from "@/lib/platform/flag-presets";
@@ -69,7 +70,7 @@ export function AdminSettingsFeatureFlagsSection() {
  <p className="text-[10.5px] leading-[1.5] text-[#A09D98]">{flag.description}</p>
  </div>
  <AdminToggle
- checked={featureFlags[flag.id] ?? flag.defaultEnabled}
+ checked={isFlagEffectivelyEnabled(featureFlags, flag.id)}
  className="mt-[2px] shrink-0 opacity-70"
  disabled
  onChange={() => undefined}

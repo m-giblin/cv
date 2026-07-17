@@ -14,22 +14,27 @@ export type PlatformFeatureFlagDef = {
   defaultEnabled: boolean;
   /** Route prefixes blocked when disabled (middleware + nav). */
   routePrefixes?: string[];
-  /** Manager portal section id when disabled. */
-  managerSection?: string;
+  /** Manager portal section ids gated by this flag. */
+  managerSections?: string[];
+  /** Parent flags that must be on for this flag to be effective. */
+  dependsOn?: string[];
+  /** product = sellable module; ops = kill-switch / integration. */
+  kind?: "product" | "ops";
 };
 
 /**
  * Entitlement catalog — super-admin toggles per tenant.
- * When disabled: nav hidden, middleware blocks matching routes.
+ * When disabled: nav hidden, middleware blocks matching routes (and parents gate children).
  */
 export const PLATFORM_FEATURE_FLAG_DEFS: PlatformFeatureFlagDef[] = [
-  // Workspace (SE core — usually always on)
+  // ── SE Workspace ─────────────────────────────────────────────
   {
     id: "workspace-dashboard",
     label: "My Workspace",
     description: "SE home dashboard and activity hub.",
     category: "workspace",
     defaultEnabled: true,
+    kind: "product",
     routePrefixes: ["/dashboard"],
   },
   {
@@ -38,6 +43,7 @@ export const PLATFORM_FEATURE_FLAG_DEFS: PlatformFeatureFlagDef[] = [
     description: "Onboarding ramp plans, plan steps, and my-plan views.",
     category: "workspace",
     defaultEnabled: true,
+    kind: "product",
     routePrefixes: ["/my-plan", "/plan-steps"],
   },
   {
@@ -46,59 +52,101 @@ export const PLATFORM_FEATURE_FLAG_DEFS: PlatformFeatureFlagDef[] = [
     description: "Career growth dashboard and personal feedback history.",
     category: "workspace",
     defaultEnabled: true,
+    kind: "product",
     routePrefixes: ["/growth", "/feedback"],
   },
-  // Manager portal
+
+  // ── Manager ──────────────────────────────────────────────────
   {
     id: "manager-portal",
-    label: "Manager portal",
-    description: "Command center, inbox, roster, and coaching tools.",
+    label: "Manager core",
+    description: "Command center, inbox, roster — base manager shell.",
     category: "manager",
     defaultEnabled: true,
+    kind: "product",
     routePrefixes: ["/manager"],
+    managerSections: ["command", "inbox", "roster"],
+  },
+  {
+    id: "coaching-cadence",
+    label: "Coaching cadence",
+    description: "1:1 cadence, mentees, and review history.",
+    category: "manager",
+    defaultEnabled: true,
+    kind: "product",
+    dependsOn: ["manager-portal"],
+    managerSections: ["cadence", "mentees", "history"],
+  },
+  {
+    id: "readiness-map",
+    label: "Readiness map",
+    description: "Team readiness heatmap and field readiness view.",
+    category: "manager",
+    defaultEnabled: true,
+    kind: "product",
+    dependsOn: ["manager-portal"],
+    managerSections: ["readiness"],
   },
   {
     id: "leaderboard",
     label: "Leaderboard",
-    description: "Team leaderboard on the manager command center.",
+    description: "Team leaderboard on the manager portal.",
     category: "manager",
     defaultEnabled: true,
-    routePrefixes: ["/manager"],
-    managerSection: "leaderboard",
+    kind: "product",
+    dependsOn: ["manager-portal"],
+    managerSections: ["leaderboard"],
   },
   {
     id: "program-tracker",
     label: "Program tracker",
-    description: "Manager Program Tracker section (program status and cohort view).",
+    description: "Cohort / program status tracking for managers.",
     category: "manager",
     defaultEnabled: true,
-    routePrefixes: ["/manager"],
-    managerSection: "program",
+    kind: "product",
+    dependsOn: ["manager-portal"],
+    managerSections: ["program"],
   },
   {
     id: "assign-plans",
     label: "Assign plans",
-    description: "Manager Assign Plans workflow for ramp plan assignments.",
+    description: "Assign ramp plans to SEs.",
     category: "manager",
     defaultEnabled: true,
-    routePrefixes: ["/manager", "/plans"],
-    managerSection: "assign",
+    kind: "product",
+    dependsOn: ["manager-portal"],
+    routePrefixes: ["/plans"],
+    managerSections: ["assign"],
   },
   {
     id: "plan-calendar",
     label: "Plan calendar",
-    description: "Visual ramp plan calendar with timeline, month, and week views.",
+    description: "Visual ramp plan calendar (timeline, month, team).",
     category: "manager",
     defaultEnabled: true,
+    kind: "product",
+    dependsOn: ["manager-portal"],
     routePrefixes: ["/plan-calendar"],
   },
-  // Readiness
+  {
+    id: "manager-dev",
+    label: "Team development",
+    description: "Manager view of SE development plans.",
+    category: "manager",
+    defaultEnabled: true,
+    kind: "product",
+    dependsOn: ["manager-portal", "development"],
+    managerSections: ["dev"],
+  },
+
+  // ── Readiness ────────────────────────────────────────────────
   {
     id: "learn",
     label: "Learn",
     description: "Structured learning modules and progress tracking.",
     category: "readiness",
     defaultEnabled: true,
+    kind: "product",
     routePrefixes: ["/learn"],
   },
   {
@@ -107,6 +155,7 @@ export const PLATFORM_FEATURE_FLAG_DEFS: PlatformFeatureFlagDef[] = [
     description: "ISC Lab scenarios and competency-linked assessments.",
     category: "readiness",
     defaultEnabled: true,
+    kind: "product",
     routePrefixes: ["/lab", "/api/ai/isc-lab", "/api/isc-lab"],
   },
   {
@@ -115,6 +164,7 @@ export const PLATFORM_FEATURE_FLAG_DEFS: PlatformFeatureFlagDef[] = [
     description: "Annual development goals and quarterly attestation.",
     category: "readiness",
     defaultEnabled: true,
+    kind: "product",
     routePrefixes: ["/development", "/growth-plan"],
   },
   {
@@ -123,6 +173,7 @@ export const PLATFORM_FEATURE_FLAG_DEFS: PlatformFeatureFlagDef[] = [
     description: "Readiness certification gates and career ladder.",
     category: "readiness",
     defaultEnabled: true,
+    kind: "product",
     routePrefixes: ["/certifications"],
   },
   {
@@ -131,6 +182,7 @@ export const PLATFORM_FEATURE_FLAG_DEFS: PlatformFeatureFlagDef[] = [
     description: "Content library and enablement resources.",
     category: "readiness",
     defaultEnabled: true,
+    kind: "product",
     routePrefixes: ["/resources"],
   },
   {
@@ -139,15 +191,18 @@ export const PLATFORM_FEATURE_FLAG_DEFS: PlatformFeatureFlagDef[] = [
     description: "Weekly market pulse submissions and team insights.",
     category: "readiness",
     defaultEnabled: true,
+    kind: "product",
     routePrefixes: ["/market-pulse"],
   },
-  // Practice
+
+  // ── Practice ─────────────────────────────────────────────────
   {
     id: "challenges",
     label: "Challenges",
     description: "Field scenario challenge library and submissions.",
     category: "practice",
     defaultEnabled: true,
+    kind: "product",
     routePrefixes: ["/challenges", "/api/challenges"],
   },
   {
@@ -156,6 +211,8 @@ export const PLATFORM_FEATURE_FLAG_DEFS: PlatformFeatureFlagDef[] = [
     description: "AI persona role-play and coaching cards.",
     category: "practice",
     defaultEnabled: true,
+    kind: "product",
+    dependsOn: ["ai-features"],
     routePrefixes: ["/simulations", "/api/simulations"],
   },
   {
@@ -164,6 +221,8 @@ export const PLATFORM_FEATURE_FLAG_DEFS: PlatformFeatureFlagDef[] = [
     description: "Video pitch capture, AI scoring, and peer library.",
     category: "practice",
     defaultEnabled: true,
+    kind: "product",
+    dependsOn: ["ai-features"],
     routePrefixes: ["/pitch", "/api/pitch"],
   },
   {
@@ -172,6 +231,7 @@ export const PLATFORM_FEATURE_FLAG_DEFS: PlatformFeatureFlagDef[] = [
     description: "Deal prep briefs and objection practice.",
     category: "practice",
     defaultEnabled: true,
+    kind: "product",
     routePrefixes: ["/prep", "/api/deal-prep"],
   },
   {
@@ -180,30 +240,38 @@ export const PLATFORM_FEATURE_FLAG_DEFS: PlatformFeatureFlagDef[] = [
     description: "Pre-call flight check assessments.",
     category: "practice",
     defaultEnabled: true,
+    kind: "product",
     routePrefixes: ["/flight-check", "/api/assessments/flight-check"],
   },
   {
     id: "agentic-ai-track",
     label: "Agentic AI track",
-    description: "Agentic AI onboarding track in plan templates and analytics.",
+    description: "Agentic AI onboarding curriculum modules in Learn (content-gated).",
     category: "practice",
     defaultEnabled: false,
+    kind: "product",
+    dependsOn: ["learn"],
   },
-  // Admin / platform
+
+  // ── Admin ────────────────────────────────────────────────────
   {
     id: "tenant-admin-console",
     label: "Tenant admin console",
-    description: "In-tenant admin: users, plans, corpus, analytics.",
+    description: "In-tenant admin: users, plans, corpus, analytics, settings.",
     category: "admin",
     defaultEnabled: true,
+    kind: "product",
     routePrefixes: ["/admin"],
   },
+
+  // ── Ops / integrations ───────────────────────────────────────
   {
     id: "ai-features",
     label: "AI features",
-    description: "AI coaching, deal prep generation, challenge AI, and sim turns.",
+    description: "Master kill switch for AI coaching, sim turns, and generation APIs.",
     category: "integrations",
     defaultEnabled: true,
+    kind: "ops",
     routePrefixes: ["/api/ai"],
   },
   {
@@ -212,6 +280,8 @@ export const PLATFORM_FEATURE_FLAG_DEFS: PlatformFeatureFlagDef[] = [
     description: "Gong OAuth and call intel in deal prep.",
     category: "integrations",
     defaultEnabled: false,
+    kind: "ops",
+    dependsOn: ["deal-prep"],
     routePrefixes: ["/api/integrations/gong"],
   },
   {
@@ -220,6 +290,7 @@ export const PLATFORM_FEATURE_FLAG_DEFS: PlatformFeatureFlagDef[] = [
     description: "Shareable buyer-facing content rooms.",
     category: "integrations",
     defaultEnabled: true,
+    kind: "ops",
     routePrefixes: ["/api/buyer-shares", "/share"],
   },
 ];
@@ -245,6 +316,51 @@ export function mergeFeatureFlags(stored: PlatformFeatureFlags | null | undefine
     return defaults;
   }
   return { ...defaults, ...stored };
+}
+
+/** Effective = stored on AND all dependsOn parents effective. */
+export function isFlagEffectivelyEnabled(
+  flags: PlatformFeatureFlags,
+  flagId: string,
+  visiting: Set<string> = new Set(),
+): boolean {
+  if (visiting.has(flagId)) return false;
+  visiting.add(flagId);
+
+  const merged = mergeFeatureFlags(flags);
+  if (!merged[flagId]) return false;
+
+  const def = PLATFORM_FEATURE_FLAG_DEFS.find((flag) => flag.id === flagId);
+  if (!def?.dependsOn?.length) return true;
+
+  return def.dependsOn.every((parentId) => isFlagEffectivelyEnabled(merged, parentId, visiting));
+}
+
+/**
+ * When turning a parent off, also turn off children that depend on it.
+ * When turning a child on, ensure parents are turned on.
+ */
+export function applyFlagToggle(
+  flags: PlatformFeatureFlags,
+  flagId: string,
+  enabled: boolean,
+): PlatformFeatureFlags {
+  const next = mergeFeatureFlags({ ...flags, [flagId]: enabled });
+
+  if (enabled) {
+    const def = PLATFORM_FEATURE_FLAG_DEFS.find((flag) => flag.id === flagId);
+    for (const parentId of def?.dependsOn ?? []) {
+      Object.assign(next, applyFlagToggle(next, parentId, true));
+    }
+    return next;
+  }
+
+  for (const child of PLATFORM_FEATURE_FLAG_DEFS) {
+    if (child.dependsOn?.includes(flagId) && next[child.id]) {
+      Object.assign(next, applyFlagToggle(next, child.id, false));
+    }
+  }
+  return next;
 }
 
 export function sessionIdleMsFromMinutes(minutes: number): number {

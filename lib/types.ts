@@ -36,6 +36,8 @@ export type Profile = {
   managerId: string | null;
   tenantId: string | null;
   avatarUrl?: string | null;
+  /** Explicit workspace hats; null/undefined = derive from role. */
+  workspaceHats?: string[] | null;
   createdAt: string;
 };
 

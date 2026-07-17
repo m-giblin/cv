@@ -3,7 +3,7 @@
 import { ExternalLink, FileText, Loader2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ManagerCopilotDraft } from "@/components/manager/manager-copilot-draft";
-import { isPdfEvidence } from "@/lib/evidence/resolve-evidence-file";
+import { isPdfEvidence } from "@/lib/evidence/evidence-file-shared";
 
 type ChallengeBrief = {
   title: string;

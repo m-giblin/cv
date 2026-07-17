@@ -1,49 +1,26 @@
+import "server-only";
+
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  evidenceKindFromName,
+  resolveEvidenceStoragePath,
+  type EvidenceKind,
+} from "@/lib/evidence/evidence-file-shared";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export type ResolvedEvidence = {
   label: string;
   href: string | null;
-  kind: "image" | "file" | "link";
+  kind: EvidenceKind;
   storagePath: string | null;
   unavailable: boolean;
 };
 
-export function evidenceKindFromName(fileName: string): ResolvedEvidence["kind"] {
-  const lower = fileName.toLowerCase();
-  if (/\.(png|jpe?g|webp|gif)$/.test(lower)) return "image";
-  if (lower.startsWith("http://") || lower.startsWith("https://")) return "link";
-  return "file";
-}
-
-/** Normalize legacy demo paths and storage: prefixes to a bucket object path. */
-export function resolveEvidenceStoragePath(entry: string, submitterUserId: string): string | null {
-  const trimmed = entry.trim();
-  if (!trimmed) return null;
-
-  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
-    return null;
-  }
-
-  if (trimmed.startsWith("storage:evidence/")) {
-    return trimmed.replace(/^storage:evidence\//, "");
-  }
-
-  if (trimmed.startsWith("evidence/")) {
-    return trimmed.replace(/^evidence\//, "");
-  }
-
-  if (trimmed.startsWith("demo-se/")) {
-    const fileName = trimmed.slice("demo-se/".length);
-    return `${submitterUserId}/${fileName}`;
-  }
-
-  if (trimmed.includes("/")) {
-    return trimmed;
-  }
-
-  return `${submitterUserId}/${trimmed}`;
-}
+export {
+  evidenceKindFromName,
+  resolveEvidenceStoragePath,
+  isPdfEvidence,
+} from "@/lib/evidence/evidence-file-shared";
 
 export async function signEvidenceStoragePath(
   supabase: SupabaseClient,
@@ -106,8 +83,4 @@ export async function resolveEvidenceEntry(
     storagePath,
     unavailable: !signedUrl,
   };
-}
-
-export function isPdfEvidence(item: Pick<ResolvedEvidence, "label" | "kind">) {
-  return item.kind === "file" && item.label.toLowerCase().endsWith(".pdf");
 }

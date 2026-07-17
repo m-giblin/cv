@@ -19,7 +19,9 @@ export async function requireSuperAdminPageAccess() {
 
   const { data: profileRow } = await supabase
     .from("profiles")
-    .select("id, email, full_name, role, level, manager_id, tenant_id, avatar_url, created_at")
+    .select(
+      "id, email, full_name, role, level, manager_id, tenant_id, avatar_url, workspace_hats, created_at",
+    )
     .eq("id", user.id)
     .maybeSingle();
 

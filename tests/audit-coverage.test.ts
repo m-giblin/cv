@@ -35,8 +35,16 @@ const MUTATION_ROUTES_REQUIRING_AUDIT = [
   "app/api/plans/steps/[id]/review/route.ts",
   "app/api/platform/shadow/route.ts",
   "app/api/platform/support/[id]/route.ts",
+  "app/api/platform/tenants/[id]/invites/[inviteId]/route.ts",
+  "app/api/platform/tenants/bulk/route.ts",
+  "app/api/workspace/switch/route.ts",
   "lib/tenant/tenants.ts",
   "lib/plans/segment-certificates.ts",
+  "lib/platform/tenant-invites.ts",
+  "lib/platform/tenant-sso.ts",
+  "lib/platform/tenant-webhooks.ts",
+  "lib/platform/tenant-export.ts",
+  "lib/platform/operator-prefs.ts",
 ];
 
 function hasMutationHandler(source: string): boolean {
@@ -44,7 +52,7 @@ function hasMutationHandler(source: string): boolean {
 }
 
 function hasAuditCall(source: string): boolean {
-  return /auditMutation\(|logAuditEvent\(/.test(source);
+  return /auditMutation\(|logAuditEvent\(|requireAuditEvent\(/.test(source);
 }
 
 describe("audit coverage (L5)", () => {

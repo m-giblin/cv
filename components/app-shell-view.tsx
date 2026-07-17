@@ -8,11 +8,12 @@ import { ShadowTenantBanner } from "@/components/platform/shadow-tenant-banner";
 import { TenantBrandMark, TenantBrandText } from "@/components/tenant/tenant-brand-mark";
 import { TenantBrandingProvider, useTenantBranding } from "@/components/tenant/tenant-branding-provider";
 import { SidebarUserFooter } from "@/components/sidebar-user-footer";
+import { WorkspaceSwitcher } from "@/components/workspace-switcher";
 import { MobilePracticeShell } from "@/components/practice/mobile-practice-shell";
 import { UatBugTracker } from "@/components/uat/uat-bug-tracker";
 import { NotificationFlyout } from "@/components/notifications/notification-flyout";
-import { getHomeRoute, type AccessTier } from "@/lib/auth/rbac";
-import { isForgeConfigured } from "@/lib/forge/config";
+import type { AccessTier } from "@/lib/auth/rbac";
+import { getWorkspaceHome, type WorkspaceHat } from "@/lib/auth/workspace";
 import type { TenantShellBranding } from "@/lib/tenant/shell-branding";
 import { Notification, Profile } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -35,7 +36,13 @@ function AdminTenantBadge() {
   );
 }
 
-function SidebarLogo({ homeHref, tier }: { homeHref: string; tier: AccessTier }) {
+function SidebarLogo({
+  homeHref,
+  workspace,
+}: {
+  homeHref: string;
+  workspace: WorkspaceHat;
+}) {
   return (
     <div className="shrink-0 border-b border-white/[0.07] px-4 pb-4 pt-5">
       <Link className="flex items-center gap-2.5" href={homeHref}>
@@ -45,7 +52,7 @@ function SidebarLogo({ homeHref, tier }: { homeHref: string; tier: AccessTier })
           titleClassName="font-display text-[14px] font-extrabold text-white"
         />
       </Link>
-      {tier === "admin" ? <AdminTenantBadge /> : null}
+      {workspace === "tenant_admin" ? <AdminTenantBadge /> : null}
     </div>
   );
 }
@@ -56,21 +63,27 @@ export function AppShellView({
   notifications,
   contentWidth = "default",
   tier,
+  workspace,
+  workspaceHats,
   shadowTenantName,
   shadowMode,
   branding,
+  forgeEnabled = false,
 }: {
   children: ReactNode;
   currentUser: Profile;
   notifications: Notification[];
   contentWidth?: "default" | "wide" | "full";
   tier: AccessTier;
+  workspace: WorkspaceHat;
+  workspaceHats: WorkspaceHat[];
   shadowTenantName: string | null;
-  shadowMode: "admin" | "se" | null;
+  shadowMode: "admin" | "manager" | "se" | null;
   branding: TenantShellBranding;
+  forgeEnabled?: boolean;
 }) {
   const myNotifications = notifications.filter((item) => item.userId === currentUser.id);
-  const homeHref = getHomeRoute(tier);
+  const homeHref = getWorkspaceHome(workspace);
   const shellStyle = {
     "--tenant-primary": branding.primaryColor,
   } as CSSProperties;
@@ -90,11 +103,20 @@ export function AppShellView({
           <div className="flex items-center justify-between gap-3">
             <Link className="flex items-center gap-2.5" href={homeHref}>
               <TenantBrandMark className="!h-8 !w-8" />
-              <TenantBrandText layout="inline" titleClassName="font-display text-sm font-bold text-white" />
+              <TenantBrandText
+                layout="inline"
+                titleClassName="font-display text-sm font-bold text-white"
+              />
             </Link>
-            <NotificationFlyout align="header" appearance="sidebar-dark" notifications={myNotifications} />
+            <NotificationFlyout
+              align="header"
+              appearance="sidebar-dark"
+              notifications={myNotifications}
+            />
           </div>
-          <NavMobile tier={tier} />
+          <Suspense fallback={null}>
+            <NavMobile workspace={workspace} />
+          </Suspense>
         </header>
 
         <aside className="fixed inset-y-0 left-0 z-20 hidden w-[220px] flex-col bg-[#00143a] lg:flex">
@@ -102,18 +124,26 @@ export function AppShellView({
             className="pointer-events-none absolute inset-x-0 top-0 z-10 h-[2px]"
             style={{ background: "linear-gradient(90deg,#0033a1,#0071ce,#cc27b0)" }}
           />
-          <SidebarLogo homeHref={homeHref} tier={tier} />
+          <SidebarLogo homeHref={homeHref} workspace={workspace} />
           <div className="sp-sidebar-scroll min-h-0 flex-1 overflow-y-auto py-3">
             <Suspense fallback={<div className="px-5 py-2 text-xs text-white/40">Loading…</div>}>
-              <NavSidebar notifications={myNotifications} tier={tier} />
+              <NavSidebar notifications={myNotifications} workspace={workspace} />
             </Suspense>
+          </div>
+          <div className="shrink-0 border-t border-white/[0.07] px-3 pb-2 pt-3">
+            <WorkspaceSwitcher activeHat={workspace} hats={workspaceHats} />
           </div>
           <SidebarUserFooter currentUser={currentUser} notifications={notifications} />
         </aside>
 
         <div className="lg:pl-[220px]">
           <div className="hidden lg:block">
-            <NavTopBar currentUser={currentUser} notifications={myNotifications} tier={tier} />
+            <NavTopBar
+              currentUser={currentUser}
+              notifications={myNotifications}
+              tier={tier}
+              workspace={workspace}
+            />
           </div>
           <main
             className={cn(
@@ -129,7 +159,7 @@ export function AppShellView({
           </main>
           <MobilePracticeShell />
           <UatBugTracker
-            enabled={isForgeConfigured()}
+            enabled={forgeEnabled}
             reporterEmail={currentUser.email}
             reporterName={currentUser.fullName}
           />

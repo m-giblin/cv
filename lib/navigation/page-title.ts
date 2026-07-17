@@ -81,3 +81,22 @@ export function getRolePillLabel(tier: AccessTier) {
       return "Operator";
   }
 }
+
+export function getWorkspacePillLabel(
+  workspace: "platform" | "tenant_admin" | "manager" | "se",
+) {
+  switch (workspace) {
+    case "platform":
+      return "Super Admin";
+    case "tenant_admin":
+      return "Tenant Admin";
+    case "manager":
+      return "Manager";
+    case "se":
+      return "User";
+    default: {
+      const _exhaustive: never = workspace;
+      return _exhaustive;
+    }
+  }
+}

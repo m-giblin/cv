@@ -20,7 +20,12 @@ type DbProfile = Database["public"]["Tables"]["profiles"]["Row"];
 type DbChallenge = Database["public"]["Tables"]["challenges"]["Row"];
 type DbCoachingCard = Database["public"]["Tables"]["coaching_cards"]["Row"];
 
-export function mapProfile(row: Pick<DbProfile, "id" | "email" | "full_name" | "role" | "level" | "manager_id" | "avatar_url" | "created_at"> & { tenant_id?: string | null }): Profile {
+export function mapProfile(
+  row: Pick<DbProfile, "id" | "email" | "full_name" | "role" | "level" | "manager_id" | "avatar_url" | "created_at"> & {
+    tenant_id?: string | null;
+    workspace_hats?: string[] | null;
+  },
+): Profile {
   return {
     id: row.id,
     email: row.email,
@@ -30,6 +35,7 @@ export function mapProfile(row: Pick<DbProfile, "id" | "email" | "full_name" | "
     managerId: row.manager_id,
     tenantId: row.tenant_id ?? null,
     avatarUrl: row.avatar_url,
+    workspaceHats: row.workspace_hats ?? null,
     createdAt: row.created_at,
   };
 }

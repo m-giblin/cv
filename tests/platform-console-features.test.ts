@@ -19,8 +19,15 @@ describe("feature flag presets", () => {
   it("applies se-only preset", () => {
     const flags = applyFeatureFlagPreset("se-only");
     expect(flags["manager-portal"]).toBe(false);
+    expect(flags["coaching-cadence"]).toBe(false);
     expect(flags["tenant-admin-console"]).toBe(false);
     expect(flags["isc-lab"]).toBe(defaultFeatureFlags()["isc-lab"]);
+  });
+
+  it("binds presets to commercial plan slugs", async () => {
+    const { billingPlanForPreset, matchFeatureFlagPreset } = await import("@/lib/platform/flag-presets");
+    expect(billingPlanForPreset("ae-pilot")).toBe("ae-pilot");
+    expect(matchFeatureFlagPreset(applyFeatureFlagPreset("manager-lite"))).toBe("manager-lite");
   });
 
   it("applies ae-pilot preset with lean modules", () => {
