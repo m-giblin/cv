@@ -27,8 +27,8 @@ export const ADMIN_PORTAL_NAV_GROUPS: AdminPortalNavGroup[] = [
     ],
   },
   {
-    id: "platform",
-    label: "PLATFORM",
+    id: "system",
+    label: "SYSTEM",
     items: [
       { id: "platform-ai", href: "/admin?tab=ai", label: "AI & Sims", tab: "ai" },
       { id: "corpus", href: "/admin?tab=corpus", label: "Corpus", tab: "corpus" },
@@ -68,15 +68,6 @@ export const ADMIN_PORTAL_NAV_GROUPS: AdminPortalNavGroup[] = [
         tab: "settings",
         settingsSection: "basic",
       },
-    ],
-  },
-  {
-    id: "my-role",
-    label: "MY ROLE",
-    items: [
-      { id: "manager-view", href: "/manager?section=command", label: "Manager view", tab: null },
-      { id: "my-practice", href: "/my-practice", label: "My practice", tab: null },
-      { id: "test-as-se", href: "/simulations?test=1", label: "Test as SE", tab: null },
     ],
   },
 ];

@@ -21,6 +21,9 @@ import { buildTeamReadiness, certLabel } from "@/lib/manager/team-readiness";
 import { buildTeamLeaderboard } from "@/lib/gamification/leaderboard";
 import { requireManagerPageAccess } from "@/lib/auth/require-access";
 import { fetchDevelopmentPlans } from "@/lib/data/get-development-data";
+import { isManagerSectionAllowed } from "@/lib/platform/feature-flags";
+import { loadPlatformSettings } from "@/lib/platform/settings";
+import { redirect } from "next/navigation";
 import {
  fetchMenteeAssignments,
  fetchMentorCoachingNotesForManager,
@@ -68,6 +71,10 @@ export default async function ManagerPage({ searchParams }: ManagerPageProps) {
  : "command";
 
  const { data, role } = await requireManagerPageAccess();
+ const settings = await loadPlatformSettings(data.currentUser.tenantId ?? undefined);
+ if (!isManagerSectionAllowed(section, settings.featureFlags)) {
+ redirect("/manager?section=command");
+ }
  const orgIds = new Set(data.myOrg.map((profile) => profile.id));
  const orgPlans = data.plans.filter((plan) => orgIds.has(plan.userId));
  const orgActivity = data.activity.filter((item) => orgIds.has(item.userId));

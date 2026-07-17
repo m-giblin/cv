@@ -189,15 +189,22 @@ function LearnCard({ card }: { card: LearnCardConfig }) {
  );
 }
 
-export function LearnPageNorthstar() {
+const AGENTIC_TRACK_CARD_IDS = new Set(["agentic", "ais", "discovery"]);
+
+export function LearnPageNorthstar({ agenticTrackEnabled = false }: { agenticTrackEnabled?: boolean }) {
+ const cards = agenticTrackEnabled
+ ? LEARN_CARDS
+ : LEARN_CARDS.filter((card) => !AGENTIC_TRACK_CARD_IDS.has(card.id));
+
  return (
  <div className="space-y-[14px]">
  <div className="grid grid-cols-1 gap-[14px] lg:grid-cols-2">
- {LEARN_CARDS.map((card) => (
+ {cards.map((card) => (
  <LearnCard card={card} key={card.id} />
  ))}
  </div>
 
+ {agenticTrackEnabled ? (
  <div
  className="flex flex-col items-start justify-between gap-5 p-[18px_22px] sm:flex-row sm:items-center"
  style={{ background: "linear-gradient(135deg,#1e1b4b,#312e81)" }}
@@ -231,6 +238,7 @@ export function LearnPageNorthstar() {
  </Link>
  </div>
  </div>
+ ) : null}
  </div>
  );
 }

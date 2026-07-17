@@ -2,18 +2,24 @@ import "server-only";
 
 import type { Database } from "@/lib/database.types";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { logAuditEvent } from "@/lib/audit/log-admin-action";
+import { requireAuditEvent } from "@/lib/audit/log-admin-action";
 import { loadPlatformSettings, savePlatformSettings } from "@/lib/platform/settings";
+import { billingPlanForPreset, matchFeatureFlagPreset } from "@/lib/platform/flag-presets";
+import { defaultFeatureFlags, type PlatformFeatureFlags } from "@/lib/platform/settings-shared";
 import {
   DEFAULT_TENANT_ID,
   type PlatformAuditEntry,
   type Tenant,
   type TenantAdminInvite,
+  type TenantBillingStatus,
   type TenantBranding,
+  type TenantCustomDomainStatus,
+  type TenantExportStatus,
   type TenantStatus,
 } from "@/lib/tenant/types";
-import type { PlatformFeatureFlags } from "@/lib/platform/settings-shared";
 import { normalizeTenantPrimaryColor } from "@/lib/tenant/shell-branding-shared";
+
+export const INVITE_TTL_DAYS = 14;
 
 type DbTenant = {
   id: string;
@@ -29,6 +35,15 @@ type DbTenant = {
   operator_notes?: string | null;
   maintenance_mode?: boolean;
   maintenance_message?: string | null;
+  billing_status?: TenantBillingStatus | null;
+  billing_plan?: string | null;
+  seat_quota?: number | null;
+  custom_domain?: string | null;
+  custom_domain_status?: TenantCustomDomainStatus | null;
+  export_requested_at?: string | null;
+  export_completed_at?: string | null;
+  export_status?: TenantExportStatus | null;
+  last_export_artifact_url?: string | null;
 };
 
 function mapBranding(row: DbTenant): TenantBranding {
@@ -51,6 +66,15 @@ function mapTenant(row: DbTenant): Tenant {
     operatorNotes: row.operator_notes ?? null,
     maintenanceMode: row.maintenance_mode ?? false,
     maintenanceMessage: row.maintenance_message ?? null,
+    billingStatus: row.billing_status ?? "trial",
+    billingPlan: row.billing_plan ?? null,
+    seatQuota: row.seat_quota ?? null,
+    customDomain: row.custom_domain ?? null,
+    customDomainStatus: row.custom_domain_status ?? "none",
+    exportRequestedAt: row.export_requested_at ?? null,
+    exportCompletedAt: row.export_completed_at ?? null,
+    exportStatus: row.export_status ?? "idle",
+    lastExportArtifactUrl: row.last_export_artifact_url ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -115,8 +139,13 @@ export async function createTenant(
     tenant_id: tenant.id,
     provider: "xai",
     model: "grok-3-mini",
-    feature_flags: {},
+    feature_flags: defaultFeatureFlags(),
   });
+
+  await admin
+    .from("tenants")
+    .update({ billing_plan: billingPlanForPreset("full") })
+    .eq("id", tenant.id);
 
   let inviteSent = false;
 
@@ -140,7 +169,7 @@ export async function createTenant(
   }
 
   if (actorId) {
-    await logAuditEvent(actorId, {
+    await requireAuditEvent(actorId, {
       action: "tenant.created",
       targetType: "tenant",
       targetId: tenant.id,
@@ -181,7 +210,7 @@ export async function updateTenantBranding(
 
   if (error || !data) throw new Error(error?.message ?? "Failed to update tenant branding");
 
-  await logAuditEvent(actorId, {
+  await requireAuditEvent(actorId, {
     action: "tenant.updated",
     targetType: "tenant",
     targetId: tenantId,
@@ -209,7 +238,7 @@ export async function updateTenantStatus(
 
   if (error || !data) throw new Error(error?.message ?? "Failed to update tenant status");
 
-  await logAuditEvent(actorId, {
+  await requireAuditEvent(actorId, {
     action: "tenant.status_updated",
     targetType: "tenant",
     targetId: tenantId,
@@ -237,7 +266,7 @@ export async function updateOperatorNotes(
 
   if (error || !data) throw new Error(error?.message ?? "Failed to update operator notes");
 
-  await logAuditEvent(actorId, {
+  await requireAuditEvent(actorId, {
     action: "tenant.updated",
     targetType: "tenant",
     targetId: tenantId,
@@ -269,12 +298,92 @@ export async function updateTenantMaintenance(
 
   if (error || !data) throw new Error(error?.message ?? "Failed to update maintenance mode");
 
-  await logAuditEvent(actorId, {
-    action: "tenant.updated",
+  await requireAuditEvent(actorId, {
+    action: "tenant.maintenance_updated",
     targetType: "tenant",
     targetId: tenantId,
     tenantId,
-    details: { maintenanceMode: input.maintenanceMode },
+    details: {
+      maintenanceMode: input.maintenanceMode,
+      maintenanceMessage: input.maintenanceMessage ?? null,
+    },
+  });
+
+  return mapTenant(data as DbTenant);
+}
+
+export type TenantCommercialInput = {
+  billingStatus?: TenantBillingStatus;
+  billingPlan?: string | null;
+  seatQuota?: number | null;
+  customDomain?: string | null;
+  customDomainStatus?: TenantCustomDomainStatus;
+};
+
+export async function updateTenantCommercial(
+  tenantId: string,
+  input: TenantCommercialInput,
+  actorId: string,
+): Promise<Tenant> {
+  const admin = createAdminClient();
+  if (!admin) throw new Error("Supabase admin client unavailable");
+
+  const payload: Database["public"]["Tables"]["tenants"]["Update"] = {
+    updated_at: new Date().toISOString(),
+  };
+
+  if (input.billingStatus !== undefined) payload.billing_status = input.billingStatus;
+  if (input.billingPlan !== undefined) payload.billing_plan = input.billingPlan;
+  if (input.seatQuota !== undefined) payload.seat_quota = input.seatQuota;
+  if (input.customDomain !== undefined) {
+    payload.custom_domain = input.customDomain ? input.customDomain.trim().toLowerCase() : null;
+  }
+  if (input.customDomainStatus !== undefined) payload.custom_domain_status = input.customDomainStatus;
+
+  const { data, error } = await admin
+    .from("tenants")
+    .update(payload)
+    .eq("id", tenantId)
+    .select("*")
+    .single();
+
+  if (error || !data) throw new Error(error?.message ?? "Failed to update tenant commercial settings");
+
+  await requireAuditEvent(actorId, {
+    action: "tenant.commercial_updated",
+    targetType: "tenant",
+    targetId: tenantId,
+    tenantId,
+    details: { fields: Object.keys(input) },
+  });
+
+  return mapTenant(data as DbTenant);
+}
+
+export async function softDeleteTenant(tenantId: string, actorId: string): Promise<Tenant> {
+  const admin = createAdminClient();
+  if (!admin) throw new Error("Supabase admin client unavailable");
+
+  const { data, error } = await admin
+    .from("tenants")
+    .update({
+      status: "suspended",
+      maintenance_mode: true,
+      maintenance_message: "This tenant has been deactivated by a platform operator.",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", tenantId)
+    .select("*")
+    .single();
+
+  if (error || !data) throw new Error(error?.message ?? "Failed to deactivate tenant");
+
+  await requireAuditEvent(actorId, {
+    action: "tenant.soft_deleted",
+    targetType: "tenant",
+    targetId: tenantId,
+    tenantId,
+    details: {},
   });
 
   return mapTenant(data as DbTenant);
@@ -331,7 +440,7 @@ export async function provisionTenantAdmin(input: {
     );
 
     if (input.invitedBy) {
-      await logAuditEvent(input.invitedBy, {
+      await requireAuditEvent(input.invitedBy, {
         action: "tenant.admin_invited",
         targetType: "profile",
         targetId: existingProfile.id,
@@ -372,6 +481,9 @@ export async function provisionTenantAdmin(input: {
     throw new Error(profileError.message);
   }
 
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + INVITE_TTL_DAYS * 24 * 60 * 60 * 1000);
+
   await admin.from("tenant_admin_invites").upsert(
     {
       tenant_id: input.tenantId,
@@ -379,6 +491,7 @@ export async function provisionTenantAdmin(input: {
       full_name: input.fullName,
       invited_by: input.invitedBy,
       status: "pending",
+      expires_at: expiresAt.toISOString(),
     },
     { onConflict: "tenant_id,email" },
   );
@@ -391,10 +504,18 @@ export async function provisionTenantAdmin(input: {
       redirectTo: `${siteUrl}/auth/reset-password`,
     });
     inviteSent = !inviteError;
+
+    if (inviteSent) {
+      await admin
+        .from("tenant_admin_invites")
+        .update({ last_sent_at: now.toISOString() })
+        .eq("tenant_id", input.tenantId)
+        .eq("email", email);
+    }
   }
 
   if (input.invitedBy) {
-    await logAuditEvent(input.invitedBy, {
+    await requireAuditEvent(input.invitedBy, {
       action: "tenant.admin_invited",
       targetType: "profile",
       targetId: userId,
@@ -424,6 +545,10 @@ export async function listTenantInvites(tenantId: string): Promise<TenantAdminIn
     status: row.status as TenantAdminInvite["status"],
     createdAt: row.created_at,
     acceptedAt: row.accepted_at,
+    lastSentAt: row.last_sent_at ?? null,
+    expiresAt: row.expires_at ?? null,
+    revokedAt: row.revoked_at ?? null,
+    revokedBy: row.revoked_by ?? null,
   }));
 }
 
@@ -441,12 +566,18 @@ export async function updateTenantFeatureFlags(
 
   const settings = await savePlatformSettings(admin, userId, { tenantId, featureFlags });
 
-  await logAuditEvent(userId, {
+  const packageId = matchFeatureFlagPreset(featureFlags);
+  await requireAuditEvent(userId, {
     action: "tenant.feature_flags.updated",
     targetType: "tenant",
     targetId: tenantId,
     tenantId,
-    details: { flags: Object.keys(featureFlags) },
+    details: {
+      packageId,
+      billingPlan: packageId === "custom" ? null : billingPlanForPreset(packageId),
+      flagCount: Object.keys(featureFlags).length,
+      flags: featureFlags,
+    },
   });
 
   return settings;
@@ -485,6 +616,9 @@ export async function getTenantUsageSummary(tenantId: string) {
 export async function listPlatformAuditLogs(options?: {
   tenantId?: string;
   limit?: number;
+  /** e.g. "tenant." or "operator." — matches action prefix */
+  actionPrefix?: string;
+  platformOpsOnly?: boolean;
 }): Promise<PlatformAuditEntry[]> {
   const admin = createAdminClient();
   if (!admin) return [];
@@ -499,12 +633,22 @@ export async function listPlatformAuditLogs(options?: {
   if (options?.tenantId) {
     query = query.eq("tenant_id", options.tenantId);
   }
+  if (options?.actionPrefix) {
+    query = query.like("action", `${options.actionPrefix}%`);
+  }
+  if (options?.platformOpsOnly) {
+    query = query.or(
+      "action.like.tenant.%,action.like.operator.%,action.like.workspace.%,action.like.support.%,action.like.audit.%",
+    );
+  }
 
   const { data: rows } = await query;
   if (!rows?.length) return [];
 
   const actorIds = [...new Set(rows.map((row) => row.actor_id).filter(Boolean))] as string[];
+  const tenantIds = [...new Set(rows.map((row) => row.tenant_id).filter(Boolean))] as string[];
   const actorNames = new Map<string, string>();
+  const tenantNames = new Map<string, string>();
 
   if (actorIds.length > 0) {
     const { data: actors } = await admin.from("profiles").select("id, full_name").in("id", actorIds);
@@ -512,10 +656,17 @@ export async function listPlatformAuditLogs(options?: {
       actorNames.set(actor.id, actor.full_name);
     }
   }
+  if (tenantIds.length > 0) {
+    const { data: tenants } = await admin.from("tenants").select("id, name, slug").in("id", tenantIds);
+    for (const tenant of tenants ?? []) {
+      tenantNames.set(tenant.id, tenant.name || tenant.slug);
+    }
+  }
 
   return rows.map((row) => ({
     id: row.id,
     tenantId: row.tenant_id ?? null,
+    tenantName: row.tenant_id ? (tenantNames.get(row.tenant_id) ?? null) : null,
     actorId: row.actor_id,
     actorName: row.actor_id ? (actorNames.get(row.actor_id) ?? null) : null,
     action: row.action,

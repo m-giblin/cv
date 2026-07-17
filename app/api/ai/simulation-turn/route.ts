@@ -4,6 +4,7 @@ import { z } from "zod";
 import { resolveAiProviderForUser } from "@/lib/ai/resolve-provider-for-user";
 import { enforceAiRateLimit } from "@/lib/ai/enforce-rate-limit";
 import { logAiUsage } from "@/lib/ai/log-usage";
+import { requireUserFeature } from "@/lib/platform/require-feature";
 import { SIMULATION_START_MESSAGE, roleplayEnded } from "@/lib/simulations/prompt-template";
 import { createClient } from "@/lib/supabase/server";
 
@@ -67,6 +68,11 @@ export async function POST(request: Request) {
  if (!user) {
  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
  }
+
+ const entitlement = await requireUserFeature(supabase, user.id, "simulations");
+ if (entitlement) return entitlement;
+ const aiEntitlement = await requireUserFeature(supabase, user.id, "ai-features");
+ if (aiEntitlement) return aiEntitlement;
 
  const parsed = requestSchema.safeParse(await request.json());
 

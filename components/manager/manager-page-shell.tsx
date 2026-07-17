@@ -284,6 +284,7 @@ export function ManagerPageShell({
  plans={plans}
  profiles={profiles}
  snapshot={selectedSnapshot}
+ teamAssignees={org}
  />
  ) : null}
  </>

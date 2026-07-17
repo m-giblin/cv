@@ -164,6 +164,7 @@ export function ManagerSeDetailPanel({
  profiles,
  plans,
  mentors,
+ teamAssignees,
  onClose,
 }: {
  snapshot: SeManagerSnapshot;
@@ -171,6 +172,8 @@ export function ManagerSeDetailPanel({
  profiles: Profile[];
  plans: UserPlan[];
  mentors: Profile[];
+ /** Full manager org — enables Assign to all SEs. */
+ teamAssignees?: Profile[];
  onClose: () => void;
 }) {
  const {
@@ -489,7 +492,9 @@ export function ManagerSeDetailPanel({
  <div ref={assignFormRef}>
  <SimulationAssignForm
  assignees={[profile]}
+ defaultAssigneeId={profile.id}
  personaQuickPick={selectedQuickPick}
+ teamAssignees={teamAssignees ?? profiles}
  />
  </div>
  </div>

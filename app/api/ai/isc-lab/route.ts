@@ -8,6 +8,7 @@ import { createNotification } from "@/lib/notifications/create-notification";
 import { buildIscLabSystemPrompt, retrieveIscLabContext } from "@/lib/isc-lab/retrieve-context";
 import { logIscLabInteraction, type IscLabMode } from "@/lib/isc-lab/session-log";
 import { requireAuthenticatedSession } from "@/lib/auth/require-authenticated";
+import { requireUserFeature } from "@/lib/platform/require-feature";
 
 const requestSchema = z.object({
  message: z.string().min(2).max(4000),
@@ -22,6 +23,11 @@ const requestSchema = z.object({
 export async function POST(request: Request) {
  const session = await requireAuthenticatedSession();
  if (session instanceof NextResponse) return session;
+
+ const entitlement = await requireUserFeature(session.supabase, session.user.id, "isc-lab");
+ if (entitlement) return entitlement;
+ const aiEntitlement = await requireUserFeature(session.supabase, session.user.id, "ai-features");
+ if (aiEntitlement) return aiEntitlement;
 
  const parsed = requestSchema.safeParse(await request.json());
  if (!parsed.success) {

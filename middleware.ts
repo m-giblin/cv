@@ -8,7 +8,6 @@ import { getMfaStatus, mfaRedirectPath } from "@/lib/auth/mfa";
 import {
   AccessTier,
   canAccessRoute,
-  getAccessTier,
   getHomeRoute,
   getAccessDeniedRedirect,
 } from "@/lib/auth/rbac";
@@ -17,8 +16,16 @@ import {
   SHADOW_TENANT_COOKIE,
   SHADOW_TENANT_NAME_COOKIE,
   SHADOW_MODE_COOKIE,
-  clearShadowCookiesOnResponse,
+  SHADOW_CEILING_COOKIE,
+  parseShadowMode,
 } from "@/lib/auth/shadow-tenant";
+import {
+  WORKSPACE_HAT_COOKIE,
+  getWorkspaceHome,
+  pathRequiresWorkspaceHat,
+  resolveActiveWorkspace,
+  resolveSessionWorkspaceHats,
+} from "@/lib/auth/workspace";
 import {
   enforceSessionIdle,
   sessionExpiredResponse,
@@ -35,16 +42,23 @@ import { ProfileRole } from "@/lib/types";
 async function getProfileContext(
   supabase: ReturnType<typeof createServerClient<Database>>,
   userId: string,
-): Promise<{ role: ProfileRole; tenantId: string | null }> {
+): Promise<{ role: ProfileRole; tenantId: string | null; workspaceHats: string[] | null }> {
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, tenant_id")
+    .select("role, tenant_id, workspace_hats")
     .eq("id", userId)
     .maybeSingle();
 
+  const row = profile as {
+    role: ProfileRole;
+    tenant_id: string | null;
+    workspace_hats: string[] | null;
+  } | null;
+
   return {
-    role: (profile as { role: ProfileRole; tenant_id: string | null } | null)?.role ?? "basic_se",
-    tenantId: (profile as { tenant_id: string | null } | null)?.tenant_id ?? null,
+    role: row?.role ?? "basic_se",
+    tenantId: row?.tenant_id ?? null,
+    workspaceHats: row?.workspace_hats ?? null,
   };
 }
 
@@ -71,16 +85,26 @@ function isMutationMethod(method: string) {
   return method === "POST" || method === "PATCH" || method === "PUT" || method === "DELETE";
 }
 
-function homeTierForAccess(access: ReturnType<typeof resolveEffectiveAccess>): AccessTier {
-  return access.actualTier === "super_admin" ? "super_admin" : access.tier;
-}
-
-function redirectSuperAdminHome(request: NextRequest, access: ReturnType<typeof resolveEffectiveAccess>) {
-  const response = NextResponse.redirect(new URL(getHomeRoute(homeTierForAccess(access)), request.url));
-  if (access.actualTier === "super_admin" && access.isShadowing) {
-    clearShadowCookiesOnResponse(response);
-  }
-  return response;
+function redirectWorkspaceHome(
+  request: NextRequest,
+  role: ProfileRole,
+  access: ReturnType<typeof resolveEffectiveAccess>,
+  workspaceHats: string[] | null,
+) {
+  const enterMode = access.isShadowing ? (access.shadowMode ?? "admin") : null;
+  const enterCeiling = access.isShadowing
+    ? parseShadowMode(request.cookies.get(SHADOW_CEILING_COOKIE)?.value ?? enterMode)
+    : null;
+  const hats = resolveSessionWorkspaceHats(role, workspaceHats, {
+    enteredTenant: access.isShadowing,
+    enterMode: enterCeiling,
+  });
+  const active = resolveActiveWorkspace({
+    hats,
+    cookieValue: request.cookies.get(WORKSPACE_HAT_COOKIE)?.value ?? null,
+    shadowMode: enterMode,
+  });
+  return NextResponse.redirect(new URL(getWorkspaceHome(active), request.url));
 }
 
 function copyResponseCookies(from: NextResponse, to: NextResponse) {
@@ -131,7 +155,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next({ request });
   }
 
-  let response = NextResponse.next({ request });
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-pathname", pathname);
+
+  let response = NextResponse.next({
+    request: { headers: requestHeaders },
+  });
 
   const supabase = createServerClient<Database>(url, anonKey, {
     cookies: {
@@ -140,7 +169,9 @@ export async function middleware(request: NextRequest) {
       },
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value));
-        response = NextResponse.next({ request });
+        response = NextResponse.next({
+          request: { headers: requestHeaders },
+        });
         cookiesToSet.forEach(({ name, value, options }) =>
           response.cookies.set(name, value, options),
         );
@@ -289,11 +320,11 @@ export async function middleware(request: NextRequest) {
       request.cookies.get(SHADOW_TENANT_NAME_COOKIE)?.value ?? null,
       request.cookies.get(SHADOW_MODE_COOKIE)?.value ?? null,
     );
-    return redirectSuperAdminHome(request, access);
+    return redirectWorkspaceHome(request, role, access, profileContext.workspaceHats);
   }
 
   if (isProtectedAppRoute(pathname) || pathname.startsWith("/account")) {
-    const { role, tenantId } = profileContext;
+    const { role, tenantId, workspaceHats } = profileContext;
     const access = resolveEffectiveAccess(
       role,
       tenantId,
@@ -305,8 +336,43 @@ export async function middleware(request: NextRequest) {
     const featureFlags =
       tier === "super_admin" ? undefined : await loadTenantFeatureFlags(access.tenantId);
 
-    if (!canAccessRoute(tier, pathname, featureFlags)) {
+    // Include query for /manager?section=… so module entitlements enforce beyond nav.
+    const pathForEntitlements =
+      pathname === "/manager" || pathname.startsWith("/manager/")
+        ? `${pathname}${request.nextUrl.search}`
+        : pathname;
+    if (!canAccessRoute(tier, pathForEntitlements, featureFlags)) {
       return NextResponse.redirect(new URL(getAccessDeniedRedirect(tier, pathname), request.url));
+    }
+
+    const shadowMode = access.isShadowing ? (access.shadowMode ?? "admin") : null;
+    const enterCeiling = access.isShadowing
+      ? parseShadowMode(request.cookies.get(SHADOW_CEILING_COOKIE)?.value ?? shadowMode)
+      : null;
+    const hats = resolveSessionWorkspaceHats(role, workspaceHats, {
+      enteredTenant: access.isShadowing,
+      enterMode: enterCeiling,
+    });
+    const requiredHat = pathRequiresWorkspaceHat(pathname);
+
+    // Platform-only Super Admins stay in Platform Console until they open a tenant.
+    if (
+      hats.length === 1 &&
+      hats[0] === "platform" &&
+      !access.isShadowing &&
+      !pathname.startsWith("/platform") &&
+      !pathname.startsWith("/account")
+    ) {
+      return NextResponse.redirect(new URL(getWorkspaceHome("platform"), request.url));
+    }
+
+    if (requiredHat && !hats.includes(requiredHat)) {
+      const active = resolveActiveWorkspace({
+        hats,
+        cookieValue: request.cookies.get(WORKSPACE_HAT_COOKIE)?.value ?? null,
+        shadowMode,
+      });
+      return NextResponse.redirect(new URL(getWorkspaceHome(active), request.url));
     }
   }
 
@@ -333,7 +399,12 @@ export async function middleware(request: NextRequest) {
       request.cookies.get(SHADOW_TENANT_NAME_COOKIE)?.value ?? null,
       request.cookies.get(SHADOW_MODE_COOKIE)?.value ?? null,
     );
-    return redirectSuperAdminHome(request, access);
+    return redirectWorkspaceHome(
+      request,
+      profileContext.role,
+      access,
+      profileContext.workspaceHats,
+    );
   }
 
   return response;

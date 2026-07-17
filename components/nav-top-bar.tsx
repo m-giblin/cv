@@ -8,16 +8,19 @@ import { UserAccountMenu } from "@/components/nav/user-account-menu";
 import { RoleSwitcher, type DemoRole } from "@/components/practice/role-switcher";
 import { useTenantBranding } from "@/components/tenant/tenant-branding-provider";
 import type { AccessTier } from "@/lib/auth/rbac";
+import type { WorkspaceHat } from "@/lib/auth/workspace";
 import { getPracticePageMeta } from "@/lib/navigation/practice-page-meta";
-import { getPageTitleFromPath, getRolePillLabel } from "@/lib/navigation/page-title";
+import { getPageTitleFromPath, getWorkspacePillLabel } from "@/lib/navigation/page-title";
 import type { Notification, Profile } from "@/lib/types";
 
 export function NavTopBar({
   tier,
+  workspace,
   currentUser,
   notifications,
 }: {
   tier: AccessTier;
+  workspace: WorkspaceHat;
   currentUser: Profile;
   notifications: Notification[];
 }) {
@@ -34,8 +37,8 @@ export function NavTopBar({
   });
 
   const searchPlaceholder =
-    tier === "manager" || tier === "super_admin" ? "Search team..." : "search...";
-  const showDemoRoleSwitcher = tier === "se" && practiceMeta !== null;
+    workspace === "manager" || workspace === "tenant_admin" ? "Search team..." : "Search...";
+  const showDemoRoleSwitcher = workspace === "se" && practiceMeta !== null;
 
   return (
     <header className="sticky top-0 z-10 flex h-[44px] shrink-0 items-center justify-between border-b border-[#E2DFD9] bg-white px-5">
@@ -65,7 +68,7 @@ export function NavTopBar({
               {pageTitle}
             </span>
             <span className="sp-role-pill sp-role-pill-admin ml-2" style={{ color: branding.primaryColor }}>
-              {getRolePillLabel(tier)}
+              {getWorkspacePillLabel(workspace)}
             </span>
           </>
         )}

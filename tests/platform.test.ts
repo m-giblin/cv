@@ -59,6 +59,27 @@ describe("RBAC", () => {
     expect(filterNavHref("/manager?section=assign", programOnly)).toBe(true);
   });
 
+  it("gates readiness map and coaching cadence separately", async () => {
+    const flags = mergeFeatureFlags({ "readiness-map": false, "coaching-cadence": false });
+    expect(filterNavHref("/manager?section=readiness", flags)).toBe(false);
+    expect(filterNavHref("/manager?section=cadence", flags)).toBe(false);
+    expect(filterNavHref("/manager?section=mentees", flags)).toBe(false);
+    expect(filterNavHref("/manager?section=command", flags)).toBe(true);
+  });
+
+  it("disables child manager modules when manager core is off", async () => {
+    const { isFlagEffectivelyEnabled } = await import("@/lib/platform/settings-shared");
+    const flags = mergeFeatureFlags({ "manager-portal": false, "program-tracker": true });
+    expect(isFlagEffectivelyEnabled(flags, "program-tracker")).toBe(false);
+    expect(filterNavHref("/manager?section=program", flags)).toBe(false);
+    expect(filterNavHref("/simulations", flags)).toBe(true);
+  });
+
+  it("requires ai-features for simulations entitlement", async () => {
+    const flags = mergeFeatureFlags({ "ai-features": false, simulations: true });
+    expect(filterNavHref("/simulations", flags)).toBe(false);
+  });
+
   it("orders SE practice tools together after readiness items", async () => {
     const { getNavItemsForTier } = await import("@/lib/auth/rbac");
     const labels = getNavItemsForTier("se").map((item) => item.href);
