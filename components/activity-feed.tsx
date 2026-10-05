@@ -32,11 +32,11 @@ export function ActivityFeed({
  const detail = activityDetail(item);
 
  return (
- <div className="relative border-l border-sp-blue/20 pl-4" key={item.id}>
- <span className="absolute -left-1.5 top-1 h-3 w-3 rounded-full bg-gradient-to-br from-sp-blue to-sp-magenta ring-4 ring-sp-blue-soft" />
- <p className="text-sm font-bold text-sp-navy">{item.title}</p>
- {detail ? <p className="mt-0.5 text-xs font-medium text-sp-magenta">{detail}</p> : null}
- <p className="mt-1 text-xs text-sp-navy-muted">
+ <div className="relative border-l border-line pl-4" key={item.id}>
+ <span className="absolute -left-1.5 top-1 h-3 w-3 rounded-full bg-blue ring-4 ring-blue-soft" />
+ <p className="text-sm font-bold text-ink">{item.title}</p>
+ {detail ? <p className="mt-0.5 text-xs font-medium text-blue">{detail}</p> : null}
+ <p className="mt-1 text-xs text-muted">
  {person?.fullName ?? "Unknown SE"} •{" "}
  {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}
  </p>

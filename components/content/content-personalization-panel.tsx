@@ -53,17 +53,17 @@ export function ContentPersonalizationPanel({
  <Card>
  <CardHeader>
  <CardTitle className="flex items-center gap-2 text-base">
- <FileText className="h-4 w-4 text-sp-magenta" />
+ <FileText className="h-4 w-4 text-blue" />
  LiveDoc-style personalization
  </CardTitle>
  <CardDescription>
  Account-specific proof points from your latest deal prep — swap persona and bullets before customer meetings.
  </CardDescription>
  </CardHeader>
- <div className="border border-sp-magenta/15 bg-sp-magenta-soft/10 p-4 text-sm">
- <p className="font-semibold text-sp-navy">{personalization.account}</p>
- <p className="text-xs text-sp-navy-muted">{personalization.persona}</p>
- <ul className="mt-3 list-disc space-y-1 pl-4 text-sp-navy-muted">
+ <div className="rounded-[10px] border border-line bg-surface-2 p-4 text-sm">
+ <p className="font-semibold text-ink">{personalization.account}</p>
+ <p className="text-xs text-muted">{personalization.persona}</p>
+ <ul className="mt-3 list-disc space-y-1 pl-4 text-ink-2">
  {personalization.bullets.length > 0 ? (
  personalization.bullets.map((bullet) => <li key={bullet}>{bullet}</li>)
  ) : (

@@ -1,6 +1,6 @@
 import { AppShell } from "@/components/app-shell";
 import { DataSourceBanner } from "@/components/data-source-banner";
-import { ManagerPageLayout } from "@/components/manager/manager-page-layout";
+import { PageHeader } from "@/components/ui/page-header";
 import { PlanCalendarWorkspace } from "@/components/plans/plan-calendar-workspace";
 import { redirect } from "next/navigation";
 import { getAccessTier } from "@/lib/auth/rbac";
@@ -34,13 +34,11 @@ export default async function PlanCalendarPage({
   return (
     <AppShell contentWidth="wide" currentUser={data.currentUser} notifications={data.notifications}>
       <DataSourceBanner source={source} />
-      <ManagerPageLayout
-        compact
-        eyebrow="Onboarding plans"
-        eyebrowColor="#0071ce"
-        subtitle="Team ramp Gantt — timeline, month, and team views with AI conflict detection."
-        title="Plan Calendar"
-      >
+      <PageHeader eyebrow="Onboarding plans" title="Plan calendar" />
+      <div className="px-[var(--gutter)] pb-10">
+        <p className="mb-4 max-w-[70ch] text-sm text-muted">
+          Team ramp Gantt: timeline, month, and team views with AI conflict detection.
+        </p>
         <PlanCalendarWorkspace
           currentUserId={data.currentUser.id}
           initialPreviewUserId={initialPreviewUserId}
@@ -49,7 +47,7 @@ export default async function PlanCalendarPage({
           profiles={data.profiles}
           tier={tier}
         />
-      </ManagerPageLayout>
+      </div>
     </AppShell>
   );
 }

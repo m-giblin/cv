@@ -147,7 +147,7 @@ export function PlanStepActions({
     }
 
     toast.success("Submitted for manager/mentor review.");
-    router.push("/dashboard");
+    router.push("/my-plan");
     router.refresh();
   }
 
@@ -239,7 +239,7 @@ export function PlanStepActions({
             return;
           }
           toast.success("Shadow log submitted for review.");
-          router.push("/dashboard");
+          router.push("/my-plan");
           router.refresh();
         }}
       >
@@ -322,7 +322,7 @@ export function PlanStepActions({
             return;
           }
           toast.success("Submitted for manager sign-off.");
-          router.push("/dashboard");
+          router.push("/my-plan");
           router.refresh();
         }}
       >
@@ -380,7 +380,7 @@ export function PlanStepActions({
             return;
           }
           toast.success("Submitted for mentor review.");
-          router.push("/dashboard");
+          router.push("/my-plan");
           router.refresh();
         }}
       >

@@ -6,14 +6,14 @@ import type { AISignal, DevGoal, QuarterSummary } from "./types";
 
 type Tone = "neutral" | "blue" | "success" | "warning" | "danger";
 
-/** Data colours arrive as legacy hex values; translate them into v2 tones + symbols (never colour alone). */
+/** Data colours arrive as v2 hex values; translate them into v2 tones + symbols (never colour alone). */
 function signalTone(color: string): { tone: Tone; symbol: string } {
   switch (color.trim().toUpperCase()) {
-    case "#B83128":
+    case "#B42318":
       return { tone: "danger", symbol: "▲" };
-    case "#D4810A":
+    case "#8A5300":
       return { tone: "warning", symbol: "•" };
-    case "#0A6E45":
+    case "#12703F":
       return { tone: "success", symbol: "✓" };
     default:
       return { tone: "blue", symbol: "●" };
@@ -48,7 +48,7 @@ function goalStatus(goal: DevGoal): { tone: Tone; label: string } {
 
 function quarterState(q: QuarterSummary): "action" | "current" | "default" {
   if (q.needsAction) return "action";
-  if (q.labelColor.trim().toUpperCase() === "#0071CE") return "current";
+  if (q.labelColor.trim().toUpperCase() === "#0033A1") return "current";
   return "default";
 }
 

@@ -8,6 +8,7 @@ import { createNotification } from "@/lib/notifications/create-notification";
 import { buildIscLabSystemPrompt, retrieveIscLabContext } from "@/lib/isc-lab/retrieve-context";
 import { logIscLabInteraction } from "@/lib/isc-lab/session-log";
 import { requireAuthenticatedSession } from "@/lib/auth/require-authenticated";
+import { SE_ROUTES } from "@/lib/se/se-routes";
 
 const schema = z.object({
  accountName: z.string().min(2),
@@ -98,7 +99,7 @@ export async function POST(request: Request) {
  userId: session.user.id,
  title: `Pre-call brief ready — ${accountName}`,
  body: "ISC Lab generated your meeting brief with cited sources.",
- actionUrl: "/lab",
+ actionUrl: SE_ROUTES.lab,
  });
 
  return NextResponse.json({

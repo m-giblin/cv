@@ -4,6 +4,7 @@ import { auditMutation } from "@/lib/audit/audit-mutation";
 import { canManageUserCertifications } from "@/lib/certifications/authorize";
 import { requireManagerSession } from "@/lib/auth/require-manager";
 import { createNotification } from "@/lib/notifications/create-notification";
+import { SE_ROUTES } from "@/lib/se/se-routes";
 
 import { processReviewSignoff } from "@/lib/coaching/process-review-signoff";
 
@@ -82,7 +83,7 @@ export async function PATCH(request: Request, context: RouteContext) {
  userId: data.user_id,
  title: parsed.data.status === "approved" ? "Certification approved" : "Certification needs more evidence",
  body: managerNotes,
- actionUrl: "/certifications",
+ actionUrl: SE_ROUTES.certification,
  });
 
  auditMutation(session.user.id, "certification.reviewed", "readiness_certification", id, {

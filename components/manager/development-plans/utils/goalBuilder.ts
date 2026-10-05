@@ -28,21 +28,21 @@ export function buildGoalCard(opts: {
 }
 
 export function goalProgressColor(progress: number): string {
-  return progress >= 70 ? "#0A6E45" : progress >= 40 ? "#0071CE" : "#D4810A";
+  return progress >= 70 ? "#12703F" : progress >= 40 ? "#0033A1" : "#8A5300";
 }
 
 export function goalTagStyle(tag: GoalTag): { bg: string; color: string } {
   switch (tag) {
     case "ON TRACK":
-      return { bg: "rgba(10,110,69,.08)", color: "#0A6E45" };
+      return { bg: "#E7F4EC", color: "#12703F" };
     case "IN PROGRESS":
-      return { bg: "rgba(0,113,206,.08)", color: "#0071CE" };
+      return { bg: "#E5ECFA", color: "#0033A1" };
     case "AT RISK":
-      return { bg: "rgba(212,129,10,.08)", color: "#D4810A" };
+      return { bg: "#FBF1DF", color: "#8A5300" };
     case "NOT STARTED":
-      return { bg: "#F5F4F0", color: "#A09D98" };
+      return { bg: "#E9EDF5", color: "#4A5878" };
     case "AI CHALLENGE":
-      return { bg: "rgba(204,39,176,.08)", color: "#CC27B0" };
+      return { bg: "#E5ECFA", color: "#0033A1" };
     default: {
       const _exhaustive: never = tag;
       return _exhaustive;
@@ -57,13 +57,13 @@ export function quarterStyle(state: QuarterSummary["state"]): {
 } {
   switch (state) {
     case "current":
-      return { bg: "#F0F7FF", border: "rgba(0,113,206,.2)", labelColor: "#0071CE" };
+      return { bg: "#E5ECFA", border: "#3A62C0", labelColor: "#0033A1" };
     case "done":
-      return { bg: "#F5FDF9", border: "rgba(10,110,69,.15)", labelColor: "#0A6E45" };
+      return { bg: "#E7F4EC", border: "#D6DCE8", labelColor: "#12703F" };
     case "action":
-      return { bg: "#fff", border: "#F0EFEB", labelColor: "#D4810A" };
+      return { bg: "#FFFFFF", border: "#D6DCE8", labelColor: "#8A5300" };
     case "upcoming":
-      return { bg: "#fff", border: "#F0EFEB", labelColor: "#A09D98" };
+      return { bg: "#FFFFFF", border: "#D6DCE8", labelColor: "#4A5878" };
     default: {
       const _exhaustive: never = state;
       return _exhaustive;

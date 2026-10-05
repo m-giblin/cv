@@ -1,45 +1,62 @@
 "use client";
 
 import { format } from "date-fns";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, type CSSProperties } from "react";
 import { addCalendarDays, buildDayHeaders } from "@/lib/plans/business-days";
 import {
   GANTT_DAY_PX,
   GANTT_LABEL_WIDTH,
   GANTT_TOTAL_DAYS,
+  HEALTH_TAG,
   layoutGanttRow,
   rampColor,
   type GanttBarLayout,
   type GanttSeRow,
 } from "@/lib/plans/plan-calendar-gantt";
-import { BAR_COLORS, BAR_RGBA } from "@/lib/plans/plan-calendar-colors";
+import { Tag } from "@/components/ui/tag";
+import { BAR_STYLES } from "@/lib/plans/plan-calendar-colors";
+import { AVATAR_CLASSNAME } from "@/lib/se/avatar-gradients";
+import { cn } from "@/lib/utils";
 
-function Avatar({
-  initials: label,
-  bg,
-  size = 30,
-  fontSize = 10,
-}: {
-  initials: string;
-  bg: string;
-  size?: number;
-  fontSize?: number;
-}) {
+function Avatar({ initials: label, size = 30 }: { initials: string; size?: number }) {
   return (
     <div
-      className="flex shrink-0 items-center justify-center rounded-full font-mono font-medium text-white"
-      style={{ width: size, height: size, background: bg, fontSize }}
+      className={cn(
+        "flex shrink-0 items-center justify-center rounded-full font-mono text-xs font-medium",
+        AVATAR_CLASSNAME,
+      )}
+      style={{ width: size, height: size }}
     >
       {label}
     </div>
   );
 }
 
-function RampBar({ pct, color, height = 3 }: { pct: number; color: string; height?: number }) {
+function RampBar({ pct, color, height = 4 }: { pct: number; color: string; height?: number }) {
   return (
-    <div className="overflow-hidden rounded-full bg-[#ECEAE6]" style={{ height }}>
-      <div className="transition-all duration-300" style={{ height, width: `${pct}%`, background: color }} />
+    <div className="overflow-hidden rounded-full bg-surface-2" style={{ height }}>
+      <div
+        className="rounded-full transition-all duration-300"
+        style={{ height, width: `${pct}%`, background: color }}
+      />
     </div>
+  );
+}
+
+/** Small "conflict" marker: a symbol in a danger circle so it never relies on colour alone. */
+function ConflictMarker({ className, style }: { className?: string; style?: CSSProperties }) {
+  return (
+    <span
+      aria-label="Conflict"
+      className={cn(
+        "flex h-3.5 w-3.5 items-center justify-center rounded-full border border-white bg-danger font-mono text-xs leading-none text-white",
+        className,
+      )}
+      role="img"
+      style={style}
+    >
+      !
+    </span>
   );
 }
 
@@ -158,7 +175,7 @@ export function PlanCalendarGanttView({
   }, [canEdit, onBarMove, rows]);
 
   const renderBar = (bar: GanttBarLayout, se: GanttSeRow) => {
-    const color = BAR_COLORS[bar.type];
+    const style = BAR_STYLES[bar.type];
     const leftPx = bar.startDay * GANTT_DAY_PX;
     const hasConflict = conflictBarIds.has(bar.id);
 
@@ -171,24 +188,20 @@ export function PlanCalendarGanttView({
             title={bar.label}
           >
             <div
-              className="h-3.5 w-3.5"
-              style={{
-                background: hasConflict ? "#B83128" : color,
-                transform: "rotate(45deg)",
-              }}
+              className={cn("h-3.5 w-3.5 rotate-45", hasConflict ? "bg-danger" : "bg-ink")}
             />
           </div>
           <div
-            className="pointer-events-none absolute z-[8] max-w-[72px] truncate whitespace-nowrap font-mono text-[7px]"
-            style={{ left: leftPx - 10, top: bar.topPx + 16, color: hasConflict ? "#B83128" : color }}
+            className={cn(
+              "pointer-events-none absolute z-[8] max-w-[96px] truncate whitespace-nowrap font-mono text-xs",
+              hasConflict ? "text-danger" : "text-ink",
+            )}
+            style={{ left: leftPx - 10, top: bar.topPx + 16 }}
           >
-            {bar.label}
+            ◆ {bar.label}
           </div>
           {hasConflict ? (
-            <div
-              className="pointer-events-none absolute z-20 h-2 w-2 rounded-full border-[1.5px] border-white bg-[#B83128]"
-              style={{ left: leftPx - 4, top: bar.topPx - 4 }}
-            />
+            <ConflictMarker className="pointer-events-none absolute z-20" style={{ left: leftPx - 3, top: bar.topPx - 8 }} />
           ) : null}
         </div>
       );
@@ -196,15 +209,13 @@ export function PlanCalendarGanttView({
 
     const widthPx = Math.max((bar.days ?? 1) * GANTT_DAY_PX, 24);
     const pct = bar.pct ?? 100;
-    const rgbaSet = BAR_RGBA[color] ?? ["rgba(128,128,128,.88)", "rgba(128,128,128,.28)"];
-    const bgColor = pct === 100 ? rgbaSet[0] : rgbaSet[1];
     const progressWidth = Math.round((pct * widthPx) / 100);
     const showLabel = widthPx >= 40;
     const shortLabel = bar.label.length > 20 ? `${bar.label.slice(0, 18)}…` : bar.label;
 
     return (
       <div
-        className="absolute overflow-hidden select-none"
+        className="absolute select-none overflow-hidden rounded-[6px] border-[1.5px]"
         data-bar-id={bar.id}
         data-se-id={se.id}
         key={bar.id}
@@ -213,23 +224,26 @@ export function PlanCalendarGanttView({
           width: widthPx,
           top: bar.topPx,
           height: bar.heightPx,
-          background: bgColor,
+          background: style.fill,
+          borderColor: style.border,
+          color: style.text,
           zIndex: bar.track === "content" ? 3 : 5,
           cursor: canEdit ? "grab" : "default",
         }}
-        title={bar.label}
+        title={`${bar.label} · ${pct}%`}
       >
-        <div className="absolute inset-y-0 left-0" style={{ width: progressWidth, background: color }} />
+        {pct < 100 ? (
+          <div
+            className="absolute bottom-0 left-0 h-[3px]"
+            style={{ width: progressWidth, background: style.progress }}
+          />
+        ) : null}
         {showLabel ? (
-          <div className="absolute inset-0 flex items-center overflow-hidden px-1">
-            <span className="truncate font-mono text-[7.5px] text-white [text-shadow:0_1px_2px_rgba(0,0,0,.25)]">
-              {shortLabel}
-            </span>
+          <div className="absolute inset-0 flex items-center overflow-hidden pl-1 pr-4">
+            <span className="truncate font-mono text-xs leading-none">{shortLabel}</span>
           </div>
         ) : null}
-        {hasConflict ? (
-          <div className="absolute -right-[3px] -top-[3px] z-20 h-2 w-2 rounded-full border-[1.5px] border-white bg-[#B83128]" />
-        ) : null}
+        {hasConflict ? <ConflictMarker className="absolute right-0.5 top-1/2 z-20 -translate-y-1/2" /> : null}
       </div>
     );
   };
@@ -238,24 +252,24 @@ export function PlanCalendarGanttView({
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <div className="min-h-0 flex-1 overflow-x-auto overflow-y-auto">
         <div className="flex min-w-full flex-col" style={{ minWidth: ganttTotalWidth }}>
-          <div className="sticky top-0 z-20 flex border-b-2 border-[#E2DFD9] bg-[#F9F8F6]">
+          <div className="sticky top-0 z-20 flex border-b border-line bg-surface-2">
             <div
-              className="sticky left-0 z-[21] flex shrink-0 items-end border-r border-[#E2DFD9] bg-[#F9F8F6] px-3.5 pb-1.5"
+              className="sticky left-0 z-[21] flex shrink-0 items-end border-r border-line bg-surface-2 px-3.5 pb-1.5"
               style={{ width: GANTT_LABEL_WIDTH }}
             >
-              <span className="font-mono text-[7.5px] uppercase tracking-[0.12em] text-[#A09D98]">
+              <span className="label-mono">
                 My team · {rows.length} SE{rows.length === 1 ? "" : "s"}
               </span>
             </div>
             <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
-              <div className="relative flex h-[22px] border-b border-[#E2DFD9]">
+              <div className="relative flex h-[24px] border-b border-line">
                 {headerMonths.map((month) => (
                   <div
-                    className="absolute top-0 flex h-[22px] items-center border-r border-[#D4D1CB] px-2"
+                    className="absolute top-0 flex h-[24px] items-center border-r border-line-strong px-2"
                     key={month.label}
                     style={{ left: month.leftPx, width: month.widthPx }}
                   >
-                    <span className="whitespace-nowrap font-mono text-[8px] font-medium tracking-wide text-[#3D3C38]">
+                    <span className="whitespace-nowrap font-mono text-xs font-medium text-ink-2">
                       {month.label}
                     </span>
                   </div>
@@ -264,15 +278,18 @@ export function PlanCalendarGanttView({
               <div className="flex h-[26px] items-center">
                 {headerDays.map((header) => (
                   <div
-                    className="flex h-[26px] shrink-0 items-center justify-center border-r border-[#F0EFEB]"
+                    className={cn(
+                      "flex h-[26px] shrink-0 items-center justify-center border-r border-divider",
+                      header.isToday ? "bg-signal" : header.isWeekend ? "bg-bg" : "bg-transparent",
+                    )}
                     key={header.iso}
-                    style={{
-                      width: GANTT_DAY_PX,
-                      background: header.isToday ? "#EFF6FF" : header.isWeekend ? "#F5F4F0" : "transparent",
-                    }}
+                    style={{ width: GANTT_DAY_PX }}
                   >
                     <span
-                      className={`font-mono text-[8px] ${header.isToday ? "font-semibold text-[#0071CE]" : header.isWeekend ? "text-[#C4C1BB]" : "text-[#7A7772]"}`}
+                      className={cn(
+                        "font-mono text-xs",
+                        header.isToday ? "font-bold text-ink" : header.isWeekend ? "text-muted" : "text-ink-2",
+                      )}
                     >
                       {header.day}
                     </span>
@@ -285,41 +302,40 @@ export function PlanCalendarGanttView({
           <div ref={ganttRowsRef}>
             {rows.length === 0 ? (
               <div className="px-5 py-12 text-center">
-                <p className="text-sm font-semibold text-[#0D0E12]">No ramp plans to display</p>
-                <p className="mt-1 text-[12px] text-[#6B6860]">
+                <p className="text-sm font-semibold text-ink">No ramp plans to display</p>
+                <p className="mt-1 text-[13px] text-muted">
                   Assign onboarding plans to see the team Gantt timeline.
                 </p>
               </div>
             ) : (
               rows.map((se) => {
                 const rowLayout = layoutGanttRow(se.bars);
+                const healthTag = HEALTH_TAG[se.health];
                 return (
                 <div
-                  className="flex border-b border-[#E2DFD9]"
+                  className="flex border-b border-divider"
                   key={se.id}
                   style={{ minHeight: rowLayout.rowHeightPx }}
                 >
                   <div
-                    className="sticky left-0 z-10 shrink-0 cursor-pointer border-r border-[#E2DFD9] bg-white px-3.5 py-2.5 hover:bg-[#F0F7FF]"
+                    className="sticky left-0 z-10 shrink-0 cursor-pointer border-r border-line bg-white px-3.5 py-2.5 hover:bg-blue-soft"
                     style={{ width: GANTT_LABEL_WIDTH, minHeight: rowLayout.rowHeightPx }}
                   >
                     <div className="mb-1.5 flex items-center gap-2">
-                      <Avatar bg={se.avatarBg} initials={se.initials} />
+                      <Avatar initials={se.initials} />
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-[12px] font-semibold text-[#0D0E12]">{se.name}</div>
-                        <div className="font-mono text-[8px] text-[#A09D98]">
+                        <div className="truncate text-[13px] font-semibold text-ink">{se.name}</div>
+                        <div className="truncate font-mono text-xs text-muted">
                           Day {se.dayInRamp} · {se.planName}
                         </div>
                       </div>
                     </div>
-                    <div className="mb-1 flex items-center justify-between">
-                      <span
-                        className="font-mono text-[7.5px] tracking-wide"
-                        style={{ color: se.healthColor, background: se.healthBg, padding: "2px 6px" }}
-                      >
+                    <div className="mb-1.5 flex items-center justify-between gap-2">
+                      <Tag tone={healthTag.tone}>
+                        <span aria-hidden="true">{healthTag.symbol}</span>
                         {se.healthLabel}
-                      </span>
-                      <span className="font-mono text-[9px] font-medium text-[#3D3C38]">{se.rampPct}%</span>
+                      </Tag>
+                      <span className="font-mono text-xs font-medium text-ink-2">{se.rampPct}%</span>
                     </div>
                     <RampBar color={rampColor(se.health)} pct={se.rampPct} />
                   </div>
@@ -328,17 +344,20 @@ export function PlanCalendarGanttView({
                     className="relative min-w-0 flex-1"
                     style={{ minHeight: rowLayout.rowHeightPx }}
                   >
+                    {headerDays.map((header, index) =>
+                      header.isWeekend ? (
+                        <div
+                          className="pointer-events-none absolute inset-y-0 z-[1] bg-bg"
+                          key={header.iso}
+                          style={{ left: index * GANTT_DAY_PX, width: GANTT_DAY_PX }}
+                        />
+                      ) : null,
+                    )}
                     <div
-                      className="pointer-events-none absolute inset-0 z-[1]"
-                      style={{
-                        background: `repeating-linear-gradient(90deg, transparent 0, transparent ${5 * GANTT_DAY_PX}px, rgba(0,0,0,.025) ${5 * GANTT_DAY_PX}px, rgba(0,0,0,.025) ${7 * GANTT_DAY_PX}px)`,
-                      }}
-                    />
-                    <div
-                      className="pointer-events-none absolute bottom-0 top-0 z-[9] w-0.5 bg-[#0071CE]"
+                      className="pointer-events-none absolute bottom-0 top-0 z-[9] w-0.5 bg-blue"
                       style={{ left: todayDay * GANTT_DAY_PX }}
                     >
-                      <span className="absolute left-[3px] top-0.5 whitespace-nowrap font-mono text-[7px] tracking-wide text-[#0071CE]">
+                      <span className="absolute left-[3px] top-0.5 whitespace-nowrap bg-white/90 px-0.5 font-mono text-xs font-medium text-blue">
                         TODAY
                       </span>
                     </div>
@@ -349,28 +368,25 @@ export function PlanCalendarGanttView({
               })
             )}
 
-            <div className="flex h-7 border-t-2 border-[#E2DFD9] bg-[#F9F8F6]">
+            <div className="flex h-8 border-t border-line bg-surface-2">
               <div
-                className="sticky left-0 z-10 flex shrink-0 items-center border-r border-[#E2DFD9] bg-[#F9F8F6] px-3.5"
+                className="sticky left-0 z-10 flex shrink-0 items-center border-r border-line bg-surface-2 px-3.5"
                 style={{ width: GANTT_LABEL_WIDTH }}
               >
-                <span className="font-mono text-[7px] uppercase tracking-[0.1em] text-[#A09D98]">Segments</span>
+                <span className="label-mono">Segments</span>
               </div>
               <div className="relative min-w-0 flex-1">
                 {[
-                  { label: "SEG 1 · Days 1–30", left: 0, color: "#0057a8" },
-                  { label: "SEG 2 · Days 31–60", left: 30 * GANTT_DAY_PX, color: "#A51E8E" },
-                  { label: "SEG 3 · Days 61–90", left: 60 * GANTT_DAY_PX, color: "#0A6E45" },
+                  { label: "SEG 1 · Days 1–30", left: 0 },
+                  { label: "SEG 2 · Days 31–60", left: 30 * GANTT_DAY_PX },
+                  { label: "SEG 3 · Days 61–90", left: 60 * GANTT_DAY_PX },
                 ].map((seg) => (
                   <div
-                    className="absolute inset-y-0 flex items-center border-r border-dashed border-black/10 pl-2"
+                    className="absolute inset-y-0 flex items-center border-r border-dashed border-dash pl-2"
                     key={seg.label}
                     style={{ left: seg.left, width: 30 * GANTT_DAY_PX }}
                   >
-                    <span
-                      className="whitespace-nowrap font-mono text-[7.5px] tracking-wide"
-                      style={{ color: seg.color }}
-                    >
+                    <span className="whitespace-nowrap font-mono text-xs text-ink-2">
                       {seg.label}
                     </span>
                   </div>
@@ -381,10 +397,9 @@ export function PlanCalendarGanttView({
         </div>
       </div>
 
-      <div className="flex h-[30px] shrink-0 items-center justify-end border-t border-[#E2DFD9] bg-white px-5">
+      <div className="flex h-[32px] shrink-0 items-center justify-end border-t border-line bg-white px-5">
         <div className="flex items-center gap-1.5">
-          <div className="h-1.5 w-1.5 rounded-full bg-[#0A6E45]" />
-          <span className="font-mono text-[9px] text-[#6B6860]">
+          <span className="font-mono text-xs text-muted">
             {format(new Date(`${timelineStart}T12:00:00`), "MMM d")} –{" "}
             {format(new Date(`${timelineEnd}T12:00:00`), "MMM d, yyyy")} · {GANTT_TOTAL_DAYS} days
           </span>

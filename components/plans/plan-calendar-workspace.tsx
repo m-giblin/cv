@@ -18,11 +18,13 @@ import { toast } from "sonner";
 import { PlanCalendarGanttView } from "@/components/plans/plan-calendar-gantt-view";
 import { PlanCalendarIntelStrip } from "@/components/plans/plan-calendar-intel-strip";
 import { PlanCalendarTeamView } from "@/components/plans/plan-calendar-team-view";
+import { TABLE_HEAD_CLS } from "@/components/se/form-classes";
+import { SegmentedToggle } from "@/components/ui/segmented-toggle";
 import type { AccessTier } from "@/lib/auth/rbac";
 import { addCalendarDays, bizToDate } from "@/lib/plans/business-days";
 import { detectPlanCalendarConflicts } from "@/lib/plans/plan-calendar-conflicts";
 import { calendarRowsFromPlans, type CalendarPlanRow } from "@/lib/plans/plan-calendar-data";
-import { BAR_COLORS, CALENDAR_LEGEND } from "@/lib/plans/plan-calendar-colors";
+import { BAR_STYLES, CALENDAR_LEGEND, type BarStyle } from "@/lib/plans/plan-calendar-colors";
 import {
   buildGanttRows,
   dueOffsetFromBarStart,
@@ -31,9 +33,22 @@ import {
   type GanttBar,
 } from "@/lib/plans/plan-calendar-gantt";
 import type { Profile, UserPlan } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 type CalendarView = "timeline" | "month" | "team";
 type CalendarRole = "manager" | "se" | "mentor";
+
+const ROLE_OPTIONS: { id: CalendarRole; label: string }[] = [
+  { id: "manager", label: "Manager" },
+  { id: "se", label: "SE view" },
+  { id: "mentor", label: "Mentor" },
+];
+
+const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
+  { id: "timeline", label: "Timeline" },
+  { id: "month", label: "Month" },
+  { id: "team", label: "Team" },
+];
 
 type PlanHoliday = { id: string; date: string; label: string };
 
@@ -303,13 +318,13 @@ export function PlanCalendarWorkspace({
 
   const monthEventsForDay = (date: Date) => {
     const iso = format(date, "yyyy-MM-dd");
-    const events: { color: string; label: string }[] = [];
+    const events: { style: BarStyle; label: string }[] = [];
     for (const se of displayRows) {
       for (const bar of se.bars) {
         const barDate = addCalendarDays(timelineStart, bar.startDay);
         if (barDate === iso) {
           events.push({
-            color: BAR_COLORS[bar.type],
+            style: BAR_STYLES[bar.type],
             label: `${se.initials}: ${bar.label}`,
           });
         }
@@ -322,34 +337,22 @@ export function PlanCalendarWorkspace({
     roleView === "manager" && canEdit ? "Drag bars to shift dates" : "Read-only view";
 
   return (
-    <div className="flex min-h-[calc(100vh-12rem)] flex-col overflow-hidden rounded-sm border border-[#E2DFD9] bg-white shadow-[0_1px_2px_rgba(0,0,0,.04)]">
+    <div className="flex min-h-[calc(100vh-12rem)] flex-col overflow-hidden rounded-[14px] border border-line bg-white">
       {/* Topbar */}
-      <div className="flex h-11 shrink-0 items-center justify-between border-b border-[#E2DFD9] px-5">
-        <div className="flex items-center gap-0.5">
-          <span className="font-mono text-[10.5px] text-[#A09D98]">Program</span>
-          <span className="mx-0.5 text-[11px] text-[#C4C1BB]">›</span>
-          <span className="font-mono text-[10.5px] font-medium text-[#3D3C38]">Plan Calendar</span>
-        </div>
-        <div className="flex items-center gap-2">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-2.5">
+        <div className="flex flex-wrap items-center gap-2">
           {tier !== "se" ? (
-            <div className="flex overflow-hidden border border-[#D4D1CB]">
-              {(["manager", "se", "mentor"] as CalendarRole[]).map((role, index) => (
-                <button
-                  className={`px-3 py-1 font-mono text-[9px] tracking-wide ${
-                    roleView === role ? "bg-[#00143A] text-white" : "bg-white text-[#7A7772]"
-                  } ${index > 0 ? "border-l border-[#D4D1CB]" : ""}`}
-                  key={role}
-                  onClick={() => setRoleView(role)}
-                  type="button"
-                >
-                  {role === "manager" ? "MANAGER" : role === "se" ? "SE VIEW" : "MENTOR"}
-                </button>
-              ))}
-            </div>
+            <SegmentedToggle
+              label="Calendar perspective"
+              onChange={(id) => setRoleView(id as CalendarRole)}
+              options={ROLE_OPTIONS}
+              value={roleView}
+            />
           ) : null}
           {roleView === "se" && tier !== "se" && orgProfiles.length > 1 ? (
             <select
-              className="border border-[#D4D1CB] px-2 py-1 text-[10px] text-[#3D3C38]"
+              aria-label="Preview SE"
+              className="cursor-pointer rounded-[10px] border-[1.5px] border-line-strong bg-white px-3 py-1.5 text-sm text-ink focus:border-blue"
               onChange={(e) => setPreviewUserId(e.target.value)}
               value={previewUserId ?? orgProfiles[0]?.id ?? ""}
             >
@@ -360,26 +363,22 @@ export function PlanCalendarWorkspace({
               ))}
             </select>
           ) : null}
-          {canEdit ? (
-            <>
-              <button
-                className="inline-flex items-center border border-[#D4D1CB] px-2.5 py-1 text-[10px] font-semibold text-[#3D3C38] hover:border-[#0071CE] hover:text-[#0071CE]"
-                onClick={() => void blockDay()}
-                type="button"
-              >
-                + Block / Holiday
-              </button>
-              <button
-                className="inline-flex items-center bg-[#0071CE] px-2.5 py-1 text-[10px] font-semibold text-white hover:bg-[#005aab] disabled:opacity-50"
-                disabled={!pending || saving}
-                onClick={() => void saveChanges()}
-                type="button"
-              >
-                {saving ? "Saving…" : "Save changes"}
-              </button>
-            </>
-          ) : null}
         </div>
+        {canEdit ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <button className="btn-secondary" onClick={() => void blockDay()} type="button">
+              + Block / Holiday
+            </button>
+            <button
+              className="btn-primary"
+              disabled={!pending || saving}
+              onClick={() => void saveChanges()}
+              type="button"
+            >
+              {saving ? "Saving…" : "Save changes"}
+            </button>
+          </div>
+        ) : null}
       </div>
 
       <PlanCalendarIntelStrip
@@ -391,41 +390,37 @@ export function PlanCalendarWorkspace({
       />
 
       {/* View tabs + legend */}
-      <div className="flex h-[38px] shrink-0 items-center justify-between border-b border-[#E2DFD9] px-5">
-        <div className="flex h-full">
-          {(["timeline", "month", "team"] as CalendarView[]).map((mode) => (
-            <button
-              className={`flex items-center px-3.5 font-mono text-[8.5px] tracking-wide ${
-                view === mode
-                  ? "border-b-2 border-[#0071CE] text-[#0071CE]"
-                  : "border-b-2 border-transparent text-[#A09D98]"
-              }`}
-              key={mode}
-              onClick={() => setView(mode)}
-              type="button"
-            >
-              {mode.toUpperCase()}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center gap-3">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-2.5">
+        <SegmentedToggle
+          label="Calendar view"
+          onChange={(id) => setView(id as CalendarView)}
+          options={VIEW_OPTIONS}
+          value={view}
+        />
+        <ul aria-label="Legend" className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
           {CALENDAR_LEGEND.map((item) => (
-            <div className="flex items-center gap-1" key={item.label}>
+            <li className="flex items-center gap-1.5" key={item.label}>
               <span
-                className="h-2.5 w-2.5"
-                style={{
-                  background: item.color,
-                  transform: item.diamond ? "rotate(45deg)" : undefined,
-                }}
+                aria-hidden="true"
+                className={cn("h-3 w-3 border-[1.5px]", item.diamond ? "rotate-45" : "rounded-[3px]")}
+                style={{ background: item.color, borderColor: item.border }}
               />
-              <span className="text-[9.5px] capitalize text-[#7A7772]">{item.label}</span>
-            </div>
+              <span className="text-xs text-ink-2">{item.label}</span>
+            </li>
           ))}
-          <div className="h-4 w-px bg-[#E2DFD9]" />
-          <span className="font-mono text-[8px] text-[#B83128]">● Conflict</span>
-          <div className="h-4 w-px bg-[#E2DFD9]" />
-          <span className="text-[9.5px] text-[#A09D98]">{dragHint}</span>
-        </div>
+          <li aria-hidden="true" className="h-4 w-px bg-line" />
+          <li className="flex items-center gap-1.5">
+            <span
+              aria-hidden="true"
+              className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-danger font-mono text-xs leading-none text-white"
+            >
+              !
+            </span>
+            <span className="text-xs text-ink-2">Conflict</span>
+          </li>
+          <li aria-hidden="true" className="h-4 w-px bg-line" />
+          <li className="text-xs text-muted">{dragHint}</li>
+        </ul>
       </div>
 
       {view === "timeline" ? (
@@ -447,17 +442,15 @@ export function PlanCalendarWorkspace({
         <div className="min-h-0 flex-1 overflow-y-auto p-5">
           <div className="mb-3.5 flex items-center gap-2.5">
             <button
-              className="inline-flex items-center border border-[#D4D1CB] px-2 py-1 text-[9px] font-semibold text-[#3D3C38] hover:border-[#0071CE]"
+              className="btn-secondary"
               onClick={() => setMonthCursor((d) => addMonths(d, -1))}
               type="button"
             >
               ← Prev
             </button>
-            <span className="font-display text-lg font-bold text-[#0D0E12]">
-              {format(monthCursor, "MMMM yyyy")}
-            </span>
+            <h2 className="text-lg font-extrabold text-ink">{format(monthCursor, "MMMM yyyy")}</h2>
             <button
-              className="inline-flex items-center border border-[#D4D1CB] px-2 py-1 text-[9px] font-semibold text-[#3D3C38] hover:border-[#0071CE]"
+              className="btn-secondary"
               onClick={() => setMonthCursor((d) => addMonths(d, 1))}
               type="button"
             >
@@ -465,77 +458,83 @@ export function PlanCalendarWorkspace({
             </button>
           </div>
 
-          <div className="mb-px grid grid-cols-7 gap-px border border-[#E2DFD9] bg-[#E2DFD9]">
-            {["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"].map((label) => (
-              <div
-                className="bg-[#F9F8F6] px-2 py-1.5 text-center font-mono text-[8px] tracking-wide text-[#A09D98]"
-                key={label}
-              >
-                {label}
-              </div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-7 gap-px border border-[#E2DFD9] bg-[#E2DFD9]">
-            {monthDays.map((day) => {
-              const iso = format(day, "yyyy-MM-dd");
-              const isWeekend = day.getDay() === 0 || day.getDay() === 6;
-              const isToday = isSameDay(day, new Date());
-              const isOther = !isSameMonth(day, monthCursor);
-              const isHoliday = holidays.some((h) => h.date === iso);
-              const events = monthEventsForDay(day);
-
-              return (
-                <div
-                  className={`min-h-[90px] p-1.5 ${
-                    isOther ? "bg-[#F5F4F0]" : isToday ? "bg-[#EFF6FF]" : isWeekend ? "bg-[#F9F8F6]" : "bg-white"
-                  }`}
-                  key={iso}
-                >
-                  <div
-                    className={`mb-1 flex h-5 w-5 items-center justify-center rounded-full font-mono text-[11px] ${
-                      isToday
-                        ? "bg-[#0071CE] font-bold text-white"
-                        : isOther
-                          ? "text-[#C4C1BB]"
-                          : isWeekend
-                            ? "text-[#A09D98]"
-                            : "text-[#0D0E12]"
-                    }`}
-                  >
-                    {format(day, "d")}
-                  </div>
-                  {isHoliday ? (
-                    <div className="mb-0.5 rounded-sm bg-[#FFFBF0] px-1 text-[8px] text-[#D4810A]">Blocked</div>
-                  ) : null}
-                  {events.map((event, index) => (
-                    <div
-                      className="mb-0.5 truncate rounded-sm px-1.5 py-0.5 font-mono text-[9px] text-white"
-                      key={`${event.label}-${index}`}
-                      style={{ background: event.color }}
-                      title={event.label}
-                    >
-                      {event.label}
-                    </div>
-                  ))}
+          <div className="overflow-hidden rounded-[14px] border border-line">
+            <div className={cn("grid grid-cols-7", TABLE_HEAD_CLS)}>
+              {["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"].map((label) => (
+                <div className="px-2 py-2 text-center" key={label}>
+                  {label}
                 </div>
-              );
-            })}
+              ))}
+            </div>
+
+            <div className="grid grid-cols-7 gap-px bg-divider">
+              {monthDays.map((day) => {
+                const iso = format(day, "yyyy-MM-dd");
+                const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+                const isToday = isSameDay(day, new Date());
+                const isOther = !isSameMonth(day, monthCursor);
+                const isHoliday = holidays.some((h) => h.date === iso);
+                const events = monthEventsForDay(day);
+
+                return (
+                  <div
+                    aria-current={isToday ? "date" : undefined}
+                    className={cn(
+                      "min-h-[96px] p-1.5",
+                      isOther ? "bg-surface-2" : isToday ? "bg-signal-soft" : isWeekend ? "bg-bg" : "bg-white",
+                    )}
+                    key={iso}
+                  >
+                    <div
+                      className={cn(
+                        "mb-1 flex h-6 w-6 items-center justify-center rounded-full font-mono text-xs",
+                        isToday
+                          ? "border-[1.5px] border-ink bg-signal font-bold text-ink"
+                          : isOther || isWeekend
+                            ? "text-muted"
+                            : "text-ink",
+                      )}
+                    >
+                      {format(day, "d")}
+                    </div>
+                    {isHoliday ? (
+                      <div className="mb-0.5 rounded-[6px] bg-warning-soft px-1.5 py-0.5 font-mono text-xs text-warning">
+                        ▲ Blocked
+                      </div>
+                    ) : null}
+                    {events.map((event, index) => (
+                      <div
+                        className="mb-0.5 truncate rounded-[6px] border-[1.5px] px-1.5 py-0.5 font-mono text-xs"
+                        key={`${event.label}-${index}`}
+                        style={{
+                          background: event.style.fill,
+                          borderColor: event.style.border,
+                          color: event.style.text,
+                        }}
+                        title={event.label}
+                      >
+                        {event.label}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       ) : null}
 
       {/* Status bar */}
-      <div className="flex h-[30px] shrink-0 items-center justify-between border-t border-[#E2DFD9] px-5">
-        <div className="flex items-center gap-4">
-          <span className="font-mono text-[9px] text-[#A09D98]">
+      <div className="flex min-h-[32px] shrink-0 items-center justify-between border-t border-line px-5 py-1.5">
+        <div className="flex flex-wrap items-center gap-4">
+          <span className="font-mono text-xs text-muted">
             {pendingCount > 0
               ? `${pendingCount} unsaved change${pendingCount === 1 ? "" : "s"}`
               : "No unsaved changes"}
           </span>
           {conflicts.length > 0 ? (
-            <span className="font-mono text-[9px] text-[#B83128]">
-              {conflicts.length} conflict{conflicts.length === 1 ? "" : "s"} need attention
+            <span className="font-mono text-xs text-danger">
+              ▲ {conflicts.length} conflict{conflicts.length === 1 ? "" : "s"} need attention
             </span>
           ) : null}
         </div>

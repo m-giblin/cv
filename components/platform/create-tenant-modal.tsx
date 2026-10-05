@@ -22,7 +22,7 @@ export type CreateTenantFormValues = {
 const EMPTY_FORM: CreateTenantFormValues = {
  name: "",
  slug: "",
- primaryColor: "#0071ce",
+ primaryColor: "#0033A1",
  logoUrl: "",
  welcomeMessage: "",
  allowedEmailDomains: "",

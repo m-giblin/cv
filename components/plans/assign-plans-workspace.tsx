@@ -22,13 +22,12 @@ import {
 import {
   canEditTemplateStructure,
   isLockedTemplate,
-  stepTypeIcon,
   stepTypePills,
-  templateAccentGradient,
 } from "@/lib/plans/template-lock";
-import { avatarGradientForId } from "@/lib/se/avatar-gradients";
 import type { PlanStepType, Profile, ProfileRole, UserPlan } from "@/lib/types";
-import { initials } from "@/lib/utils";
+import { Tag } from "@/components/ui/tag";
+import { Chip } from "@/components/ui/chip";
+import { cn, initials } from "@/lib/utils";
 
 type TemplateStep = DbTemplateStep;
 
@@ -66,13 +65,26 @@ function todayIso() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function roleBadge(profile: Profile) {
-  if (profile.role === "basic_se") return { label: "SE-I", bg: "#EEF4FF", color: "#0057a8" };
-  if (profile.role === "senior_se") return { label: "Senior SE", bg: "#EDE9FE", color: "#5b21b6" };
-  if (profile.role === "advisory_solutions_consultant") {
-    return { label: "ASC", bg: "#FDF0FA", color: "#A51E8E" };
-  }
-  return { label: profile.level, bg: "#F5F4F0", color: "#6B6860" };
+function roleBadge(profile: Profile): { label: string; tone: "blue" | "neutral" } {
+  if (profile.role === "basic_se") return { label: "SE-I", tone: "blue" };
+  if (profile.role === "senior_se") return { label: "Senior SE", tone: "neutral" };
+  if (profile.role === "advisory_solutions_consultant") return { label: "ASC", tone: "neutral" };
+  return { label: profile.level, tone: "neutral" };
+}
+
+/** Text glyph per step type (no emoji); the label carries the meaning. */
+const STEP_TYPE_GLYPH: Record<string, string> = {
+  content_review: "•",
+  challenge: "▲",
+  simulation: "◆",
+  deal_prep: "■",
+  mentor_review: "✓",
+  shadow_meeting_log: "○",
+  custom: "+",
+};
+
+function stepTypeGlyph(type: string) {
+  return STEP_TYPE_GLYPH[type] ?? STEP_TYPE_GLYPH.custom;
 }
 
 function isNewHire(profile: Profile) {
@@ -399,7 +411,7 @@ export function AssignPlansWorkspace({
         targetCompletion,
         status: "not_started",
         progress: 0,
-        steps: templateToAssign.steps.map((step, index) => ({
+        steps: templateToAssign.steps.map((step) => ({
           id: step.id,
           title: step.title,
           description: step.description ?? "",
@@ -445,27 +457,27 @@ export function AssignPlansWorkspace({
     router.refresh();
   }
 
+
   function renderEmployeeCard(profile: Profile) {
     const userPlans = plansByUser.get(profile.id) ?? [];
     const badge = roleBadge(profile);
     const isDragOver = dragOverUserId === profile.id;
-    const dropBorderColor = isDragOver ? "#0071CE" : "#D4D1CB";
-    const dropBg = isDragOver ? "#F0F7FF" : "transparent";
-    const dropIconColor = isDragOver ? "#0071CE" : "#C4C1BB";
-    const dropTextColor = isDragOver ? "#0071CE" : "#B0ADA8";
+    const hasPlans = userPlans.length > 0;
     const dropLabel = isDragOver
-      ? userPlans.length > 0
+      ? hasPlans
         ? "Release to add plan"
         : "Release to assign"
-      : userPlans.length > 0
+      : hasPlans
         ? "Drop to add another plan"
         : "Drop plan here";
 
     return (
       <div
-        className={`emp-card bg-white transition-colors ${
-          userPlans.length > 0 ? "border-[#0A6E45] bg-[#EDFAF3]" : "border border-[#E2DFD9]"
-        } ${isDragOver ? "!border-[#0071CE] !bg-[#F0F7FF]" : ""}`}
+        className={cn(
+          "emp-card rounded-[14px] border bg-white transition-colors",
+          hasPlans ? "border-line-strong" : "border-line",
+          isDragOver && "border-ink bg-signal-soft",
+        )}
         key={profile.id}
         onDragLeave={(event) => {
           const related = event.relatedTarget as Node | null;
@@ -508,60 +520,51 @@ export function AssignPlansWorkspace({
       >
         <div className="p-3">
           <div className="mb-2 flex items-center gap-2">
-            <div
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-mono text-[11px] font-semibold text-white"
-              style={{ background: avatarGradientForId(profile.id) }}
-            >
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-soft font-mono text-xs font-semibold text-blue">
               {initials(profile.fullName)}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[12.5px] font-semibold text-[#0D0E12]">{profile.fullName}</p>
-              <div className="mt-0.5 flex items-center gap-1.5">
-                <span
-                  className="font-mono text-[8px] uppercase tracking-wide"
-                  style={{ background: badge.bg, color: badge.color, padding: "2px 6px" }}
-                >
-                  {badge.label}
-                </span>
-                <span className="font-mono text-[8.5px] text-[#A09D98]">{profileMeta(profile)}</span>
+              <p className="text-sm font-semibold text-ink">{profile.fullName}</p>
+              <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                <Tag tone={badge.tone}>{badge.label}</Tag>
+                <span className="font-mono text-xs text-muted">{profileMeta(profile)}</span>
               </div>
             </div>
-            {userPlans.length > 0 ? (
-              <div className="flex shrink-0 items-center gap-1 border border-[rgba(10,110,69,.15)] bg-[#EDFAF3] px-2 py-1">
-                <span className="font-mono text-[8px] tracking-wide text-[#0A6E45]">
-                  {userPlans.length} PLAN{userPlans.length === 1 ? "" : "S"}
-                </span>
-              </div>
+            {hasPlans ? (
+              <Tag className="shrink-0" tone="success">
+                ✓ {userPlans.length} plan{userPlans.length === 1 ? "" : "s"}
+              </Tag>
             ) : null}
           </div>
 
-          {userPlans.length > 0 ? (
+          {hasPlans ? (
             <div className="space-y-2">
               {userPlans.map((assignment) => (
                 <div key={assignment.id}>
-                  <div className="mb-1.5 border-l-[3px] border-[#0A6E45] bg-[#F0FDF7] px-2.5 py-2">
-                    <p className="text-[11.5px] font-semibold text-[#0A6E45]">{assignment.name}</p>
-                    <p className="font-mono text-[8.5px] text-[#A09D98]">
+                  <div className="mb-1.5 rounded-[10px] border border-line bg-surface-2 px-2.5 py-2">
+                    <p className="text-xs font-semibold text-ink">{assignment.name}</p>
+                    <p className="font-mono text-xs text-muted">
                       Start {format(parseISO(assignment.startDate), "MMM d")} · {assignment.steps.length} steps
                     </p>
                   </div>
                   {editingAssignmentId === assignment.id ? (
                     <div className="mt-1.5 flex gap-1.5">
                       <input
-                        className="inp flex-1 border border-[#D4D1CB] bg-white px-2 py-1 text-[10.5px]"
+                        aria-label={`New start date for ${assignment.name}`}
+                        className="min-w-0 flex-1 rounded-[10px] border border-line-strong bg-white px-2 py-1 text-xs text-ink"
                         onChange={(event) => setEditStartDate(event.target.value)}
                         type="date"
                         value={editStartDate}
                       />
                       <button
-                        className="btn bn bxs px-2 py-1 text-[10px]"
+                        className="rounded-full bg-blue px-3 py-1 text-xs font-semibold text-white hover:bg-blue-2"
                         onClick={() => void saveEditedDates(assignment)}
                         type="button"
                       >
                         Save
                       </button>
                       <button
-                        className="btn bo bxs px-2 py-1 text-[10px]"
+                        className="rounded-full border-[1.5px] border-ink bg-white px-3 py-1 text-xs font-semibold text-ink hover:bg-blue-soft"
                         onClick={() => setEditingAssignmentId(null)}
                         type="button"
                       >
@@ -571,7 +574,7 @@ export function AssignPlansWorkspace({
                   ) : (
                     <div className="mt-1.5 flex gap-1.5">
                       <button
-                        className="btn bo bxs flex-1 justify-center py-1 text-[10px]"
+                        className="flex-1 rounded-full border-[1.5px] border-ink bg-white py-1 text-xs font-semibold text-ink hover:bg-blue-soft"
                         onClick={() => {
                           setEditingAssignmentId(assignment.id);
                           setEditStartDate(assignment.startDate);
@@ -581,7 +584,7 @@ export function AssignPlansWorkspace({
                         Edit dates
                       </button>
                       <button
-                        className="btn bxs shrink-0 border border-[rgba(184,49,40,.15)] bg-[#FEF0EE] px-2 py-1 text-[10px] text-[#B83128]"
+                        className="shrink-0 rounded-full border-[1.5px] border-danger bg-danger-soft px-3 py-1 text-xs font-semibold text-danger"
                         onClick={() => void removeAssignment(assignment, profile.fullName)}
                         type="button"
                       >
@@ -595,16 +598,17 @@ export function AssignPlansWorkspace({
           ) : null}
 
           <div
-            className={`${userPlans.length > 0 ? "mt-2" : ""} flex items-center gap-2 border border-dashed px-2.5 py-2 transition-colors`}
-            style={{ borderColor: dropBorderColor, background: dropBg }}
+            className={cn(
+              "flex items-center gap-2 rounded-[10px] border-[1.5px] border-dashed px-2.5 py-2 transition-colors",
+              hasPlans && "mt-2",
+              isDragOver ? "border-ink bg-signal-soft text-ink" : "border-dash text-muted",
+            )}
           >
-            <svg fill="none" height="12" stroke={dropIconColor} strokeWidth="1.3" viewBox="0 0 14 14" width="12">
+            <svg aria-hidden fill="none" height="12" stroke="currentColor" strokeWidth="1.3" viewBox="0 0 14 14" width="12">
               <path d="M7 2v7M4 6l3 4 3-4" strokeLinecap="round" />
               <path d="M2 11h10" strokeLinecap="round" />
             </svg>
-            <span className="font-mono text-[9px] tracking-wide" style={{ color: dropTextColor }}>
-              {dropLabel}
-            </span>
+            <span className="font-mono text-xs">{dropLabel}</span>
           </div>
         </div>
       </div>
@@ -614,37 +618,44 @@ export function AssignPlansWorkspace({
   if (isLoading) {
     return (
       <div className="flex min-h-[480px] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[#0071ce]" />
+        <Loader2 className="h-8 w-8 animate-spin text-blue" />
       </div>
     );
   }
 
   const confirmAssignmentPanel = pendingAssignment ? (
-    <div className="animate-[dropIn_0.15s_ease-out] border border-[#0071CE]/25 border-l-[3px] border-l-[#0071CE] bg-white p-3 shadow-[0_10px_40px_rgba(0,20,58,.16)]">
-      <p className="mb-1 font-mono text-[8px] tracking-wide text-[#0071CE]">CONFIRM ASSIGNMENT</p>
-      <p className="text-[12px] font-semibold leading-snug text-[#0D0E12]">
-        {pendingAssignment.planName} → {pendingAssignment.personName}
+    <div className="animate-[dropIn_0.15s_ease-out] rounded-[18px] bg-ink p-4 text-white">
+      <p className="mb-1.5 font-mono text-xs font-medium uppercase tracking-[0.03em] text-on-blue-muted">
+        Confirm assignment
+      </p>
+      <p className="text-[15px] font-semibold leading-snug">
+        Assign <span className="text-signal">{pendingAssignment.planName}</span> to{" "}
+        <span className="text-signal">{pendingAssignment.personName}</span>.
       </p>
       {pendingAssignment.existingPlanCount > 0 ? (
-        <p className="mt-1 text-[10.5px] leading-snug text-[#6B6860]">
+        <p className="mt-1.5 text-xs leading-snug text-on-blue">
           Adds to {pendingAssignment.existingPlanCount} existing plan
           {pendingAssignment.existingPlanCount === 1 ? "" : "s"} — stagger the start date to lay out their calendar.
         </p>
       ) : null}
-      <div className="mt-2.5 grid grid-cols-2 gap-2">
-        <div>
-          <p className="mb-0.5 font-mono text-[7.5px] text-[#A09D98]">Start date</p>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <label className="block">
+          <span className="mb-1 block font-mono text-xs font-medium uppercase tracking-[0.03em] text-on-blue-muted">
+            Start date
+          </span>
           <input
-            className="w-full border border-[#D4D1CB] bg-white px-2 py-1.5 text-[10.5px]"
+            className="w-full rounded-[10px] border border-badge-line bg-white px-2 py-1.5 text-xs text-ink"
             onChange={(event) => setAssignStartDate(event.target.value)}
             type="date"
             value={assignStartDate}
           />
-        </div>
-        <div>
-          <p className="mb-0.5 font-mono text-[7.5px] text-[#A09D98]">Mentor</p>
+        </label>
+        <label className="block">
+          <span className="mb-1 block font-mono text-xs font-medium uppercase tracking-[0.03em] text-on-blue-muted">
+            Mentor
+          </span>
           <select
-            className="w-full border border-[#D4D1CB] bg-white px-2 py-1.5 text-[10.5px]"
+            className="w-full rounded-[10px] border border-badge-line bg-white px-2 py-1.5 text-xs text-ink"
             onChange={(event) => setAssignMentorId(event.target.value)}
             value={assignMentorId}
           >
@@ -655,20 +666,20 @@ export function AssignPlansWorkspace({
               </option>
             ))}
           </select>
-        </div>
+        </label>
       </div>
-      <div className="mt-2.5 flex gap-1.5">
+      <div className="mt-3.5 flex flex-wrap items-center gap-2">
         <button
-          className="btn bn bsm flex flex-1 items-center justify-center gap-1 bg-[#00143A] px-3 py-2 text-[10.5px] font-semibold text-white"
+          className="btn-primary inline-flex flex-1 items-center justify-center gap-1.5"
           disabled={isAssigning}
           onClick={() => void confirmAssignment()}
           type="button"
         >
-          {isAssigning ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+          {isAssigning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
           Confirm & assign →
         </button>
         <button
-          className="btn bo bsm border border-[#D4D1CB] px-3 py-2 text-[10.5px] font-semibold text-[#3D3C38]"
+          className="rounded-full border-[1.5px] border-on-blue-muted px-4 py-2 text-sm font-semibold text-white hover:bg-badge-line"
           onClick={() => setPendingAssignment(null)}
           type="button"
         >
@@ -678,35 +689,40 @@ export function AssignPlansWorkspace({
     </div>
   ) : null;
 
+  const currentStage = pendingAssignment ? 3 : dragPlanId ? 2 : 1;
+
   return (
-    <div className="overflow-hidden border border-[#E2DFD9] bg-[#F5F4F0]">
-      {/* Instruction strip */}
-      <div className="flex flex-wrap items-center gap-3 bg-[#00143A] px-5 py-2">
-        {[
-          { n: "1", color: "#0071CE", label: "Drag a plan from the left" },
-          { n: "2", color: "#CC27B0", label: "Drop it on an employee" },
-          { n: "3", color: "#0A6E45", label: "Confirm start date & mentor, then assign" },
-        ].map((step, index) => (
-          <div className="flex items-center gap-2" key={step.n}>
-            {index > 0 ? (
-              <svg fill="none" height="8" viewBox="0 0 18 8" width="16">
-                <path d="M1 4h14M11 1l4 3-4 3" stroke="rgba(255,255,255,.25)" strokeLinecap="round" strokeWidth="1.3" />
-              </svg>
-            ) : null}
-            <div
-              className="flex h-5 w-5 items-center justify-center"
-              style={{ background: step.color }}
-            >
-              <span className="font-mono text-[9px] font-semibold text-white">{step.n}</span>
-            </div>
-            <span className="text-[11.5px] text-white/65">{step.label}</span>
-          </div>
-        ))}
-        <div className="ml-auto flex items-center gap-1.5">
-          <Lock className="h-3 w-3 text-white/30" />
-          <span className="font-mono text-[9px] tracking-wide text-white/30">
-            Locked plans — step delete requires Admin
-          </span>
+    <div className="overflow-hidden rounded-[14px] border border-line bg-bg">
+      {/* Stepper */}
+      <div className="flex flex-wrap items-center gap-3 border-b border-line bg-white px-5 py-3">
+        <ol className="flex min-w-0 flex-1 flex-wrap gap-1.5">
+          {[
+            { n: 1, label: "Drag a plan from the left" },
+            { n: 2, label: "Drop it on an employee" },
+            { n: 3, label: "Confirm start date & mentor, then assign" },
+          ].map((step) => {
+            const done = step.n < currentStage;
+            const current = step.n === currentStage;
+            return (
+              <li
+                aria-current={current ? "step" : undefined}
+                className={cn(
+                  "flex min-w-[180px] flex-1 items-center gap-2 rounded-[10px] px-3 py-2 text-sm",
+                  done && "bg-blue text-white",
+                  current && "border-[1.5px] border-ink bg-signal font-semibold text-ink",
+                  !done && !current && "border-[1.5px] border-dashed border-dash text-ink-2",
+                )}
+                key={step.n}
+              >
+                <span className="font-mono text-xs font-medium">{done ? "✓" : `0${step.n}`}</span>
+                <span>{step.label}</span>
+              </li>
+            );
+          })}
+        </ol>
+        <div className="flex items-center gap-1.5">
+          <Lock className="h-3 w-3 text-muted" />
+          <span className="font-mono text-xs text-muted">Locked plans — step delete requires Admin</span>
         </div>
       </div>
 
@@ -723,18 +739,18 @@ export function AssignPlansWorkspace({
         ) : null}
 
         {confirmAssignmentPanel ? (
-          <div className="border-b border-[#E2DFD9] bg-white p-3 lg:hidden">{confirmAssignmentPanel}</div>
+          <div className="border-b border-line bg-white p-3 lg:hidden">{confirmAssignmentPanel}</div>
         ) : null}
         {/* Col 1 — Plan library */}
-        <div className="flex h-full min-h-0 flex-col overflow-hidden border-[#E2DFD9] bg-[#F9F8F6] lg:border-r">
-          <div className="border-b border-[#E2DFD9] px-3.5 py-3">
+        <div className="flex h-full min-h-0 flex-col overflow-hidden border-line bg-surface-2 lg:border-r">
+          <div className="border-b border-line px-3.5 py-3">
             <div className="mb-2 flex items-center justify-between gap-2">
               <div>
-                <p className="font-display text-sm font-extrabold text-[#0D0E12]">Plan library</p>
-                <p className="text-[11px] text-[#6B6860]">Drag a plan onto an employee →</p>
+                <h2 className="text-base font-extrabold text-ink">Plan library</h2>
+                <p className="text-xs text-muted">Drag a plan onto an employee →</p>
               </div>
               <button
-                className="btn bo bxs inline-flex items-center gap-1 border border-[#D4D1CB] px-2 py-1 text-[10px] font-semibold text-[#3D3C38]"
+                className="inline-flex items-center gap-1 rounded-full border-[1.5px] border-ink bg-white px-3 py-1 text-xs font-semibold text-ink hover:bg-blue-soft"
                 onClick={() => void handleNewCustomPlan()}
                 type="button"
               >
@@ -742,20 +758,11 @@ export function AssignPlansWorkspace({
                 New
               </button>
             </div>
-            <div className="flex border-b border-[#E2DFD9]">
+            <div className="flex flex-wrap gap-1.5">
               {(["all", "locked", "custom"] as PlanTab[]).map((tab) => (
-                <button
-                  className="flex-1 py-1.5 font-mono text-[8.5px] tracking-wide transition-colors"
-                  key={tab}
-                  onClick={() => setPlanTab(tab)}
-                  style={{
-                    borderBottom: `2px solid ${planTab === tab ? "#0071CE" : "transparent"}`,
-                    color: planTab === tab ? "#0071CE" : "#A09D98",
-                  }}
-                  type="button"
-                >
-                  {tab.toUpperCase()}
-                </button>
+                <Chip active={planTab === tab} className="px-3 py-1" key={tab} onClick={() => setPlanTab(tab)}>
+                  {tab}
+                </Chip>
               ))}
             </div>
           </div>
@@ -769,9 +776,11 @@ export function AssignPlansWorkspace({
 
               return (
                 <div
-                  className={`plan-card cursor-grab overflow-hidden border bg-white transition active:cursor-grabbing ${
-                    isSelected ? "border-[#CC27B0] shadow-[0_0_0_2px_rgba(204,39,176,.15)]" : "border-[#E2DFD9]"
-                  } ${isDragging ? "border-dashed border-[#0071CE] opacity-35 shadow-none" : "hover:shadow-md"}`}
+                  className={cn(
+                    "plan-card cursor-grab overflow-hidden rounded-[14px] border transition-colors active:cursor-grabbing",
+                    isSelected ? "border-[1.5px] border-ink bg-signal-soft" : "border-line bg-white hover:border-line-strong",
+                    isDragging && "border-dashed border-blue opacity-35",
+                  )}
                   draggable
                   key={template.id}
                   onClick={() => selectPlan(template)}
@@ -787,57 +796,55 @@ export function AssignPlansWorkspace({
                     event.dataTransfer.setData("text/plain", template.id);
                   }}
                 >
-                  <div className="h-[3px]" style={{ background: templateAccentGradient(template.name) }} />
                   <div className="p-3">
                     <div className="mb-1.5 flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
-                        <p className="text-[12.5px] font-bold leading-tight text-[#0D0E12]">{template.name}</p>
-                        <p className="mt-0.5 text-[11px] leading-snug text-[#6B6860]">{template.description}</p>
+                        <p className="text-sm font-bold leading-tight text-ink">{template.name}</p>
+                        <p className="mt-0.5 text-xs leading-snug text-muted">{template.description}</p>
                       </div>
                       {locked ? (
-                        <div className="flex shrink-0 items-center gap-1 border border-amber-200/60 bg-[#FEF3C7] px-1.5 py-0.5">
-                          <Lock className="h-2.5 w-2.5 text-[#b45309]" />
-                          <span className="font-mono text-[7.5px] tracking-wide text-[#b45309]">LOCKED</span>
-                        </div>
+                        <Tag className="shrink-0" tone="warning">
+                          <Lock className="h-3 w-3" />
+                          Locked
+                        </Tag>
                       ) : (
-                        <span className="shrink-0 bg-[#EDFAF3] px-1.5 py-0.5 font-mono text-[7.5px] uppercase tracking-wide text-[#0A6E45]">
+                        <Tag className="shrink-0" tone="blue">
                           Custom
-                        </span>
+                        </Tag>
                       )}
                     </div>
                     <div className="mb-2 flex flex-wrap gap-1">
                       {stepTypePills(template.steps).map((pill) => (
                         <span
-                          className="font-mono text-[7.5px] tracking-wide"
+                          className="rounded-[6px] bg-surface-2 px-1.5 font-mono text-xs text-ink-2"
                           key={pill.label}
-                          style={{ background: pill.bg, color: pill.color, padding: "1px 5px" }}
                         >
                           {pill.label}
                         </span>
                       ))}
                     </div>
-                    <div className="flex items-center gap-2 font-mono text-[9px] text-[#A09D98]">
+                    <div className="flex flex-wrap items-center gap-2 font-mono text-xs text-muted">
                       <span>{template.steps.length} steps</span>
-                      <span className="text-[#B0ADA8]">·</span>
+                      <span aria-hidden>·</span>
                       <span>{duration}</span>
-                      <span className="text-[#B0ADA8]">·</span>
-                      <span style={{ color: usedBy > 0 ? "#0A6E45" : "#B0ADA8" }}>
-                        {usedBy > 0 ? `Used by ${usedBy}` : "Unused"}
+                      <span aria-hidden>·</span>
+                      <span className={usedBy > 0 ? "text-success" : undefined}>
+                        {usedBy > 0 ? `● Used by ${usedBy}` : "○ Unused"}
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5 border-t border-[#F2F0EC] px-3 py-1.5">
-                    <GripVertical className="h-3 w-3 text-[#C4C1BB]" />
-                    <span className="font-mono text-[8px] tracking-wide text-[#C4C1BB]">DRAG TO ASSIGN</span>
+                  <div className="flex items-center gap-1.5 border-t border-divider px-3 py-1.5">
+                    <GripVertical className="h-3 w-3 text-faint" />
+                    <span className="font-mono text-xs uppercase tracking-[0.03em] text-muted">Drag to assign</span>
                     <button
-                      className="ml-auto font-mono text-[8px] tracking-wide text-[#0071CE]"
+                      className="ml-auto font-mono text-xs font-medium uppercase tracking-[0.03em] text-blue hover:text-ink"
                       onClick={(event) => {
                         event.stopPropagation();
                         selectPlan(template);
                       }}
                       type="button"
                     >
-                      VIEW STEPS
+                      View steps
                     </button>
                   </div>
                 </div>
@@ -847,13 +854,13 @@ export function AssignPlansWorkspace({
         </div>
 
         {/* Col 2 — Employee roster */}
-        <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[#F5F4F0]">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E2DFD9] bg-white px-4 py-3">
+        <div className="flex h-full min-h-0 flex-col overflow-hidden bg-bg">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-white px-4 py-3">
             <div>
-              <p className="font-display text-sm font-extrabold text-[#0D0E12]">My team</p>
-              <p className="text-[11px] text-[#6B6860]">Drop a plan onto any employee to assign it</p>
+              <h2 className="text-base font-extrabold text-ink">My team</h2>
+              <p className="text-xs text-muted">Drop a plan onto any employee to assign it</p>
             </div>
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap gap-1.5">
               {(
                 [
                   { id: "all", label: "All" },
@@ -862,19 +869,14 @@ export function AssignPlansWorkspace({
                   { id: "unassigned", label: "Unassigned" },
                 ] as { id: EmpFilter; label: string }[]
               ).map((filter) => (
-                <button
-                  className="px-2.5 py-1 text-[10px] font-semibold transition-colors"
+                <Chip
+                  active={empFilter === filter.id}
+                  className="px-3 py-1"
                   key={filter.id}
                   onClick={() => setEmpFilter(filter.id)}
-                  style={{
-                    border: `1px solid ${empFilter === filter.id ? "#00143A" : "#E2DFD9"}`,
-                    background: empFilter === filter.id ? "#00143A" : "#fff",
-                    color: empFilter === filter.id ? "white" : "#6B6860",
-                  }}
-                  type="button"
                 >
                   {filter.label}
-                </button>
+                </Chip>
               ))}
             </div>
           </div>
@@ -883,10 +885,9 @@ export function AssignPlansWorkspace({
             {(empFilter === "all" || empFilter === "new") && newHireEmps.length > 0 ? (
               <div className="mb-4">
                 <div className="mb-2 flex items-center gap-2">
-                  <span className="font-mono text-[8px] uppercase tracking-widest text-[#B0ADA8]">New hires</span>
-                  <div className="h-px flex-1 bg-[#E2DFD9]" />
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#0A6E45]" />
-                  <span className="font-mono text-[8px] text-[#0A6E45]">Needs plan</span>
+                  <span className="label-mono">New hires</span>
+                  <div className="h-px flex-1 bg-line" />
+                  <span className="font-mono text-xs text-warning">▲ Needs plan</span>
                 </div>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">{newHireEmps.map(renderEmployeeCard)}</div>
               </div>
@@ -895,26 +896,24 @@ export function AssignPlansWorkspace({
             {(empFilter === "all" || empFilter === "existing") && existingEmps.length > 0 ? (
               <div>
                 <div className="mb-2 flex items-center gap-2">
-                  <span className="font-mono text-[8px] uppercase tracking-widest text-[#B0ADA8]">Existing team</span>
-                  <div className="h-px flex-1 bg-[#E2DFD9]" />
+                  <span className="label-mono">Existing team</span>
+                  <div className="h-px flex-1 bg-line" />
                 </div>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">{existingEmps.map(renderEmployeeCard)}</div>
               </div>
             ) : null}
 
             {roster.length === 0 ? (
-              <p className="py-8 text-center text-sm text-[#6B6860]">No team members match this filter.</p>
+              <p className="py-8 text-center text-sm text-muted">No team members match this filter.</p>
             ) : null}
           </div>
         </div>
 
         {/* Col 3 — Preview + confirm */}
-        <div className="flex h-full min-h-0 flex-col overflow-hidden border-[#E2DFD9] bg-[#F9F8F6] lg:border-l">
-          <div className="border-b border-[#E2DFD9] px-3.5 py-3">
-            <p className="font-display text-sm font-extrabold text-[#0D0E12]">
-              {selectedTemplate?.name ?? "Select a plan"}
-            </p>
-            <p className="text-[11px] text-[#6B6860]">
+        <div className="flex h-full min-h-0 flex-col overflow-hidden border-line bg-surface-2 lg:border-l">
+          <div className="border-b border-line px-3.5 py-3">
+            <h2 className="text-base font-extrabold text-ink">{selectedTemplate?.name ?? "Select a plan"}</h2>
+            <p className="text-xs text-muted">
               {selectedTemplate
                 ? `${previewSteps.length} steps · ${templateDurationLabel(templateDurationDays(selectedTemplate.steps))}${
                     selectedLocked ? " · Locked — reorder only" : " · Custom — full edit"
@@ -922,7 +921,7 @@ export function AssignPlansWorkspace({
                 : "Click or drag a plan from the left"}
             </p>
             {isSavingSteps ? (
-              <p className="mt-1 flex items-center gap-1 text-[10px] text-[#0071ce]">
+              <p className="mt-1 flex items-center gap-1 text-xs text-blue">
                 <Loader2 className="h-3 w-3 animate-spin" />
                 Saving steps…
               </p>
@@ -930,12 +929,12 @@ export function AssignPlansWorkspace({
           </div>
 
           {selectedLocked ? (
-            <div className="mx-2 mt-2 shrink-0 border border-amber-200/40 border-l-[3px] border-l-[#b45309] bg-[#FFFBF0] px-3 py-2">
-              <p className="flex items-center gap-1.5 font-mono text-[9px] font-semibold tracking-wide text-[#b45309]">
+            <div className="mx-2 mt-2 shrink-0 rounded-[14px] border border-warning bg-warning-soft px-3 py-2">
+              <p className="flex items-center gap-1.5 font-mono text-xs font-medium uppercase tracking-[0.03em] text-warning">
                 <Lock className="h-3 w-3" />
-                MANAGER-LOCKED PLAN
+                Manager-locked plan
               </p>
-              <p className="mt-1 text-[11px] leading-snug text-[#5C4200]">
+              <p className="mt-1 text-xs leading-snug text-ink-2">
                 You can reorder steps but cannot add or delete them. Contact an Admin to modify structure.
               </p>
             </div>
@@ -943,7 +942,6 @@ export function AssignPlansWorkspace({
 
           <div className="flex-1 space-y-1 overflow-y-auto p-2">
             {previewSteps.map((step, index) => {
-              const info = stepTypeIcon(step.stepType);
               const indicatorAbove =
                 stepDropIndicator?.index === index && stepDropIndicator.position === "above";
               const indicatorBelow =
@@ -951,15 +949,13 @@ export function AssignPlansWorkspace({
 
               return (
                 <div
-                  className={`relative mb-1 flex border border-[#E2DFD9] bg-white ${
-                    indicatorAbove
-                      ? "before:absolute before:left-0 before:right-0 before:top-0 before:z-10 before:h-0.5 before:bg-[#0071CE] before:content-['']"
-                      : ""
-                  } ${
-                    indicatorBelow
-                      ? "after:absolute after:bottom-0 after:left-0 after:right-0 after:z-10 after:h-0.5 after:bg-[#0071CE] after:content-['']"
-                      : ""
-                  }`}
+                  className={cn(
+                    "relative mb-1 flex overflow-hidden rounded-[10px] border border-line bg-white",
+                    indicatorAbove &&
+                      "before:absolute before:left-0 before:right-0 before:top-0 before:z-10 before:h-0.5 before:bg-blue before:content-['']",
+                    indicatorBelow &&
+                      "after:absolute after:bottom-0 after:left-0 after:right-0 after:z-10 after:h-0.5 after:bg-blue after:content-['']",
+                  )}
                   draggable
                   key={step.id}
                   onDragEnd={() => {
@@ -980,27 +976,29 @@ export function AssignPlansWorkspace({
                     void handleStepReorder(index);
                   }}
                 >
-                  <div className="flex w-6 shrink-0 cursor-grab items-center justify-center border-r border-[#ECEAE6] bg-[#F9F8F6]">
-                    <GripVertical className="h-3 w-3 text-[#C4C1BB]" />
+                  <div className="flex w-6 shrink-0 cursor-grab items-center justify-center border-r border-divider bg-surface-2">
+                    <GripVertical className="h-3 w-3 text-faint" />
                   </div>
-                  <div className="flex w-6 shrink-0 flex-col items-center justify-center gap-0.5 border-r border-[#ECEAE6]">
-                    <span className="font-mono text-[10px] text-[#A09D98]">{index + 1}</span>
+                  <div className="flex w-7 shrink-0 flex-col items-center justify-center gap-0.5 border-r border-divider">
+                    <span className="font-mono text-xs text-muted">{index + 1}</span>
                     {step.isGate ? (
-                      <span className="h-2 w-2 rotate-45 bg-[#CC27B0]" title="Segment gate" />
+                      <span className="h-2 w-2 rotate-45 bg-blue" title="Segment gate">
+                        <span className="sr-only">Segment gate</span>
+                      </span>
                     ) : null}
                   </div>
                   <div
-                    className="flex w-8 shrink-0 items-center justify-center border-r border-[#ECEAE6] text-xs"
-                    style={{ background: info.iconBg }}
+                    aria-hidden
+                    className="flex w-8 shrink-0 items-center justify-center border-r border-divider bg-blue-soft font-mono text-xs text-blue"
                   >
-                    {info.icon}
+                    {stepTypeGlyph(step.stepType)}
                   </div>
                   <div className="min-w-0 flex-1 px-2.5 py-1.5">
-                    <p className="truncate text-[11.5px] font-semibold text-[#0D0E12]">{step.title}</p>
+                    <p className="truncate text-xs font-semibold text-ink">{step.title}</p>
                     <div className="flex items-center gap-1.5">
-                      <span className="font-mono text-[8.5px] text-[#B0ADA8]">+{step.dueOffset}d</span>
+                      <span className="font-mono text-xs text-muted">+{step.dueOffset}d</span>
                       {step.segment ? (
-                        <span className="bg-[#F0F7FF] px-1 font-mono text-[7px] uppercase text-[#0057a8]">
+                        <span className="rounded-[6px] bg-blue-soft px-1 font-mono text-xs uppercase text-blue">
                           {step.segment}
                         </span>
                       ) : null}
@@ -1009,7 +1007,8 @@ export function AssignPlansWorkspace({
                   <div className="flex shrink-0 items-center px-2">
                     {canEditStructure ? (
                       <button
-                        className="text-[#D4D1CB] transition-colors hover:text-[#B83128]"
+                        aria-label={`Delete step ${step.title}`}
+                        className="text-faint transition-colors hover:text-danger"
                         onClick={() => void handleDeleteStep(index)}
                         title="Delete step"
                         type="button"
@@ -1018,7 +1017,7 @@ export function AssignPlansWorkspace({
                       </button>
                     ) : (
                       <span title="Admin only">
-                        <Lock className="h-3.5 w-3.5 text-[#D4D1CB]" />
+                        <Lock className="h-3.5 w-3.5 text-faint" />
                       </span>
                     )}
                   </div>
@@ -1028,7 +1027,7 @@ export function AssignPlansWorkspace({
 
             {canEditStructure ? (
               <button
-                className="btn bo bsm mt-1 flex w-full items-center justify-center gap-1 border border-[#D4D1CB] py-1.5 text-[10px] font-semibold text-[#3D3C38]"
+                className="mt-1 flex w-full items-center justify-center gap-1 rounded-full border-[1.5px] border-ink bg-white py-1.5 text-xs font-semibold text-ink hover:bg-blue-soft"
                 onClick={() => void handleAddStep()}
                 type="button"
               >
@@ -1038,9 +1037,9 @@ export function AssignPlansWorkspace({
             ) : null}
           </div>
 
-          <div className="shrink-0 border-t border-[#E2DFD9] bg-white p-2.5">
+          <div className="shrink-0 border-t border-line bg-white p-2.5">
             {!pendingAssignment ? (
-              <p className="py-2 text-center font-mono text-[9px] text-[#B0ADA8]">
+              <p className="py-2 text-center font-mono text-xs text-muted">
                 Drop a plan onto an employee to assign it
               </p>
             ) : null}

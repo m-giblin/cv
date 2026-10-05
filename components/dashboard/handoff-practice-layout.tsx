@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-/** Accent colors per design handoff practice pages (SE Experience v2.dc.html). */
+/** Practice page variants. v2 has no per-section accent colours; the accent only picks the eyebrow label. */
 export type HandoffPracticeAccent =
  | "market-pulse"
  | "deal-prep"
@@ -10,16 +10,6 @@ export type HandoffPracticeAccent =
  | "pitch"
  | "resources"
  | "flight-check";
-
-const ACCENT_COLORS: Record<HandoffPracticeAccent, string> = {
- "market-pulse": "#0071ce",
- "deal-prep": "#d97706",
- challenges: "#7c3aed",
- simulations: "#cc27b0",
- pitch: "#be185d",
- resources: "#0071ce",
- "flight-check": "#10b981",
-};
 
 const PRACTICE_LABELS: Record<HandoffPracticeAccent, string> = {
  "market-pulse": "Market pulse",
@@ -48,21 +38,15 @@ export function HandoffPracticePage({
  className?: string;
  contentClassName?: string;
 }) {
- const eyebrowColor = ACCENT_COLORS[accent];
  const practiceLabel = PRACTICE_LABELS[accent];
 
  return (
  <div className={cn("handoff-page-enter space-y-5", className)}>
  <header className="mb-1 flex flex-col justify-between gap-4 md:flex-row md:items-end">
  <div>
- <p
- className="text-[10.5px] font-bold uppercase tracking-[0.08em]"
- style={{ color: eyebrowColor }}
- >
- Practice · {practiceLabel}
- </p>
- <h1 className="sp-page-title mt-1">{title}</h1>
- <p className="sp-page-description mt-1 max-w-3xl">{description}</p>
+ <p className="label-mono">Practice · {practiceLabel}</p>
+ <h1 className="mt-1 text-[32px] leading-[1.05] font-extrabold tracking-[-0.02em] text-ink">{title}</h1>
+ <p className="mt-1 max-w-3xl text-sm leading-relaxed text-muted">{description}</p>
  </div>
  {actions ? <div className="flex shrink-0 flex-wrap gap-2">{actions}</div> : null}
  </header>
@@ -71,7 +55,7 @@ export function HandoffPracticePage({
  );
 }
 
-/** Standard handoff card shell — white, 12px radius, design shadow. */
+/** Standard handoff card shell: v2 line card (white, 1px line border, radius 14). `accentLeft` is accepted for compatibility but no longer drawn. */
 export function HandoffCard({
  children,
  className,
@@ -84,10 +68,10 @@ export function HandoffCard({
  return (
  <div
  className={cn(
- "overflow-hidden border border-[#E2DFD9] bg-white ",
+ "overflow-hidden rounded-[14px] border border-line bg-white",
  className,
  )}
- style={accentLeft ? { borderLeft: `3px solid ${accentLeft}` } : undefined}
+ data-accent={accentLeft ? "true" : undefined}
  >
  {children}
  </div>

@@ -234,19 +234,19 @@ function healthStyle(
   hasBlocked: boolean,
 ): { label: string; color: string; bg: string } {
   if (hasBlocked || coaching?.health === "at_risk" || coaching?.health === "stalled") {
-    return { label: "CRITICAL", color: "#B83128", bg: "rgba(184,49,40,.12)" };
+    return { label: "CRITICAL", color: "#B42318", bg: "#FCEBEA" };
   }
   const expected = Math.round(day * 1.6);
   if (day > 7 && progress < expected * 0.35) {
-    return { label: "CRITICAL", color: "#B83128", bg: "rgba(184,49,40,.12)" };
+    return { label: "CRITICAL", color: "#B42318", bg: "#FCEBEA" };
   }
   if (progress > day * 1.15 && day > 0) {
-    return { label: "AHEAD", color: "#0071CE", bg: "rgba(0,113,206,.1)" };
+    return { label: "AHEAD", color: "#0033A1", bg: "#E5ECFA" };
   }
   if (progress < Math.max(10, day * 0.75) && day > 14) {
-    return { label: "BEHIND", color: "#D4810A", bg: "rgba(212,129,10,.1)" };
+    return { label: "BEHIND", color: "#8A5300", bg: "#FBF1DF" };
   }
-  return { label: "ON PACE", color: "#0A6E45", bg: "rgba(10,110,69,.1)" };
+  return { label: "ON PACE", color: "#12703F", bg: "#E7F4EC" };
 }
 
 function programStatusStyle(
@@ -256,29 +256,29 @@ function programStatusStyle(
   if (health.label === "CRITICAL" || pct < 20) {
     return {
       status: "Critical",
-      statusColor: "#B83128",
-      statusBg: "rgba(184,49,40,.08)",
-      borderColor: "rgba(184,49,40,.3)",
+      statusColor: "#B42318",
+      statusBg: "#FCEBEA",
+      borderColor: "#B42318",
     };
   }
   if (health.label === "BEHIND") {
     return {
       status: "Behind",
-      statusColor: "#D4810A",
-      statusBg: "rgba(212,129,10,.08)",
-      borderColor: "rgba(212,129,10,.25)",
+      statusColor: "#8A5300",
+      statusBg: "#FBF1DF",
+      borderColor: "#8A5300",
     };
   }
   if (health.label === "AHEAD") {
-    return { status: "Ahead", statusColor: "#0071CE", statusBg: "rgba(0,113,206,.08)", borderColor: "#E2DFD9" };
+    return { status: "Ahead", statusColor: "#0033A1", statusBg: "#E5ECFA", borderColor: "#D6DCE8" };
   }
   if (pct === 0) {
-    return { status: "Not started", statusColor: "#A09D98", statusBg: "#F9F8F6", borderColor: "#E2DFD9" };
+    return { status: "Not started", statusColor: "#4A5878", statusBg: "#E9EDF5", borderColor: "#D6DCE8" };
   }
   if (pct >= 100) {
-    return { status: "Complete", statusColor: "#0A6E45", statusBg: "rgba(10,110,69,.08)", borderColor: "#E2DFD9" };
+    return { status: "Complete", statusColor: "#12703F", statusBg: "#E7F4EC", borderColor: "#D6DCE8" };
   }
-  return { status: "On track", statusColor: "#0071CE", statusBg: "rgba(0,113,206,.08)", borderColor: "#E2DFD9" };
+  return { status: "On track", statusColor: "#0033A1", statusBg: "#E5ECFA", borderColor: "#D6DCE8" };
 }
 
 function makeStepView(
@@ -294,12 +294,12 @@ function makeStepView(
     label,
     date,
     status,
-    dotBg: done ? "#0A6E45" : blocked ? "#B83128" : active ? "#0071CE" : "#F9F8F6",
-    dotBorder: done ? "#0A6E45" : blocked ? "#B83128" : active ? "#0071CE" : "#D4D1CB",
-    dotColor: done || blocked || active ? "#fff" : "#D4D1CB",
+    dotBg: done ? "#12703F" : blocked ? "#B42318" : active ? "#0033A1" : "#E9EDF5",
+    dotBorder: done ? "#12703F" : blocked ? "#B42318" : active ? "#0033A1" : "#B7C0D3",
+    dotColor: done || blocked || active ? "#FFFFFF" : "#B7C0D3",
     check: done ? "✓" : blocked ? "!" : active ? "→" : "",
-    textColor: done ? "#6B6860" : blocked ? "#B83128" : "#0D0E12",
-    dateColor: blocked ? "#B83128" : "#A09D98",
+    textColor: done ? "#4A5878" : blocked ? "#B42318" : "#0A1A3F",
+    dateColor: blocked ? "#B42318" : "#4A5878",
     strike: done ? "line-through" : "none",
   };
 }
@@ -413,14 +413,14 @@ export function buildProgramTrackerView({
 
     const hasBlocked = phaseStatuses.includes("blocked");
     const health = healthStyle(coaching, progress, day, hasBlocked);
-    const overallColor = hasBlocked ? "#B83128" : progress >= 70 ? "#0071CE" : health.color;
+    const overallColor = hasBlocked ? "#B42318" : progress >= 70 ? "#0033A1" : health.color;
 
     const phases: PhaseCellView[] = phaseStatuses.map((status, index) => {
       const base = {
-        complete: { bg: "#EDFAF3", icon: "✓", textColor: "#0A6E45", label: "Complete" },
-        active: { bg: "#F0F7FF", icon: "→", textColor: "#0071CE", label: "In progress" },
-        blocked: { bg: "#FEF0EE", icon: "!", textColor: "#B83128", label: "Blocked" },
-        upcoming: { bg: "#F9F8F6", icon: "○", textColor: "#A09D98", label: "Upcoming" },
+        complete: { bg: "#E7F4EC", icon: "✓", textColor: "#12703F", label: "Complete" },
+        active: { bg: "#E5ECFA", icon: "→", textColor: "#0033A1", label: "In progress" },
+        blocked: { bg: "#FCEBEA", icon: "!", textColor: "#B42318", label: "Blocked" },
+        upcoming: { bg: "#E9EDF5", icon: "○", textColor: "#4A5878", label: "Upcoming" },
       }[status];
       return phaseCellView(status, { status, ...base });
     });
@@ -433,7 +433,7 @@ export function buildProgramTrackerView({
       day,
       avatarBg: avatarGradientForId(person.id),
       overall: plan ? `${progress}%` : "—",
-      overallColor: plan ? overallColor : "#A09D98",
+      overallColor: plan ? overallColor : "#4A5878",
       overallPct: progress,
       phases,
     });
@@ -447,7 +447,7 @@ export function buildProgramTrackerView({
         name: plan.name,
         subtitle: "SE onboarding program",
         type: "Onboarding",
-        typeColor: rampStyle.statusColor === "#B83128" ? "#B83128" : "#0071CE",
+        typeColor: rampStyle.statusColor === "#B42318" ? "#B42318" : "#0033A1",
         pct: progress,
         ...rampStyle,
         due: plan.targetCompletion ? format(parseISO(plan.targetCompletion), "MMM d") : "—",
@@ -485,7 +485,7 @@ export function buildProgramTrackerView({
         name: `Q${Math.ceil((new Date().getMonth() + 1) / 3)} Dev Goals`,
         subtitle: "Annual development plan",
         type: "Dev Plan",
-        typeColor: "#D4810A",
+        typeColor: "#0A1A3F",
         pct: devPct,
         ...devStyle,
         due: `Dec ${devPlan.year}`,
@@ -505,12 +505,12 @@ export function buildProgramTrackerView({
         name: "Certification track",
         subtitle: "Core certification progress",
         type: "Certification",
-        typeColor: "#0A6E45",
+        typeColor: "#2B3A5C",
         pct: certPct,
         status: certPct >= 50 ? "On track" : "In progress",
-        statusColor: certPct >= 50 ? "#0A6E45" : "#0071CE",
-        statusBg: certPct >= 50 ? "rgba(10,110,69,.08)" : "rgba(0,113,206,.08)",
-        borderColor: "#E2DFD9",
+        statusColor: certPct >= 50 ? "#12703F" : "#0033A1",
+        statusBg: certPct >= 50 ? "#E7F4EC" : "#E5ECFA",
+        borderColor: "#D6DCE8",
         due: "Ongoing",
       };
       personPrograms.push(certCard);
@@ -543,7 +543,7 @@ export function buildProgramTrackerView({
       drawerPrograms.push({
         name: plan.name,
         type: "Onboarding",
-        typeColor: "#0071CE",
+        typeColor: "#0033A1",
         pct: progress,
         status: rampStyle.status,
         statusColor: rampStyle.statusColor,
@@ -564,13 +564,13 @@ export function buildProgramTrackerView({
       drawerPrograms.push({
         name: `Q${Math.ceil((new Date().getMonth() + 1) / 3)} Dev Goals`,
         type: "Dev Plan",
-        typeColor: "#D4810A",
+        typeColor: "#0A1A3F",
         pct: devPct,
         status: "On track",
-        statusColor: "#D4810A",
-        statusBg: "rgba(212,129,10,.08)",
+        statusColor: "#0033A1",
+        statusBg: "#E5ECFA",
         due: `Dec ${devPlan.year}`,
-        borderColor: "#E2DFD9",
+        borderColor: "#D6DCE8",
         steps: devPlan.goals.slice(0, 5).map((goal) =>
           makeStepView(
             goal.title,
@@ -592,7 +592,7 @@ export function buildProgramTrackerView({
         label: entry.title,
         program: plan?.name ?? "Program",
         date: format(parseISO(entry.createdAt), "MMM d"),
-        dotColor: entry.eventType.includes("completed") ? "#0A6E45" : "#0071CE",
+        dotColor: entry.eventType.includes("completed") ? "#12703F" : "#0033A1",
       }));
 
     if (personActivity.length === 0 && plan) {
@@ -602,7 +602,7 @@ export function buildProgramTrackerView({
           label: `Completed ${lastStep.title}`,
           program: plan.name,
           date: lastStep.dueDate ? format(parseISO(lastStep.dueDate), "MMM d") : "—",
-          dotColor: "#0A6E45",
+          dotColor: "#12703F",
         });
       }
     }

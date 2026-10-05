@@ -74,10 +74,10 @@ export function ChallengeGenerator({ showSave = false }: { showSave?: boolean })
  </CardDescription>
  </CardHeader>
  <form className="space-y-4 px-6 pb-6" onSubmit={form.handleSubmit(onSubmit)}>
- <label className="block space-y-2 text-sm font-medium text-slate-700">
+ <label className="block space-y-2 text-sm font-medium text-ink-2">
  SE level
  <select
- className="h-10 w-full border border-slate-200 bg-white px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+ className="h-10 w-full rounded-[10px] border border-line bg-white px-3 text-sm text-ink focus:border-blue"
  {...form.register("level")}
  >
  <option>Basic</option>
@@ -85,14 +85,14 @@ export function ChallengeGenerator({ showSave = false }: { showSave?: boolean })
  <option>Advisory</option>
  </select>
  </label>
- <label className="block space-y-2 text-sm font-medium text-slate-700">
+ <label className="block space-y-2 text-sm font-medium text-ink-2">
  Topic or solution area
  <Input {...form.register("topic")} />
  </label>
- <label className="block space-y-2 text-sm font-medium text-slate-700">
+ <label className="block space-y-2 text-sm font-medium text-ink-2">
  Difficulty
  <select
- className="h-10 w-full border border-slate-200 bg-white px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+ className="h-10 w-full rounded-[10px] border border-line bg-white px-3 text-sm text-ink focus:border-blue"
  {...form.register("difficulty")}
  >
  <option value="foundational">Foundational</option>
@@ -100,7 +100,7 @@ export function ChallengeGenerator({ showSave = false }: { showSave?: boolean })
  <option value="advanced">Advanced</option>
  </select>
  </label>
- <label className="block space-y-2 text-sm font-medium text-slate-700">
+ <label className="block space-y-2 text-sm font-medium text-ink-2">
  Recent activity context
  <Textarea {...form.register("recentActivity")} />
  </label>
@@ -121,24 +121,24 @@ export function ChallengeGenerator({ showSave = false }: { showSave?: boolean })
  {challenge ? (
  <div className="space-y-5 px-6 pb-6">
  <div>
- <p className="text-sm font-semibold text-sp-navy">Steps</p>
- <ol className="mt-2 list-decimal space-y-2 pl-5 text-sm leading-6 text-slate-500">
+ <p className="text-sm font-semibold text-ink">Steps</p>
+ <ol className="mt-2 list-decimal space-y-2 pl-5 text-sm leading-6 text-ink-2">
  {challenge.steps.map((step) => <li key={step}>{step}</li>)}
  </ol>
  </div>
  <div>
- <p className="text-sm font-semibold text-sp-navy">Success criteria</p>
- <ul className="mt-2 list-disc space-y-2 pl-5 text-sm leading-6 text-slate-500">
+ <p className="text-sm font-semibold text-ink">Success criteria</p>
+ <ul className="mt-2 list-disc space-y-2 pl-5 text-sm leading-6 text-ink-2">
  {challenge.successCriteria.map((criterion) => <li key={criterion}>{criterion}</li>)}
  </ul>
  </div>
- <div className="bg-slate-50 p-4 text-sm text-slate-600">
+ <div className="rounded-[10px] bg-surface-2 p-4 text-sm text-ink-2">
  {challenge.estimatedMinutes} minutes • {challenge.difficulty} • {challenge.linkedSolutions.join(", ")}
  </div>
  {showSave ? <SaveChallengeButton challenge={challenge} /> : null}
  </div>
  ) : (
- <div className="mx-6 mb-6 border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">
+ <div className="mx-6 mb-6 rounded-[14px] border border-dashed border-dash p-8 text-center text-sm text-muted">
  Submit the form to call the structured AI endpoint.
  </div>
  )}

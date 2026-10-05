@@ -48,12 +48,13 @@ export function CorpusFeedbackWidget({
  }
 
  return (
- <div className="border border-stone-200 bg-stone-50/80 p-4 text-sm">
- <p className="flex items-center gap-2 font-semibold text-stone-800">
- <MessageCircleQuestion className="h-4 w-4 text-[#0071ce]" />
+ <div className="rounded-[14px] border border-line bg-surface-2 p-4 text-sm">
+ <p className="flex items-center gap-2 font-semibold text-ink">
+ <MessageCircleQuestion className="h-4 w-4 text-blue" />
  Feedback on: {assetTitle}
  </p>
  <Textarea
+ aria-label="What's confusing about this resource?"
  className="mt-2 bg-white"
  onChange={(event) => setComment(event.target.value)}
  placeholder="What's confusing about this resource?"
@@ -61,6 +62,7 @@ export function CorpusFeedbackWidget({
  value={comment}
  />
  <Textarea
+ aria-label="Ask a question"
  className="mt-2 bg-white"
  onChange={(event) => setQuestion(event.target.value)}
  placeholder="Ask a question (routes to SME by project tag)…"

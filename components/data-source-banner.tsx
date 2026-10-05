@@ -8,7 +8,7 @@ export function DataSourceBanner({ source }: { source: DataSource }) {
  }
 
  return (
- <div className="flex items-center gap-2 border border-sp-magenta/15 bg-sp-magenta-soft/40 px-3 py-2 text-xs text-sp-magenta">
+ <div className="flex items-center gap-2 rounded-[16px] border border-blue bg-blue-soft px-3 py-2 text-xs text-blue">
  <Sparkles className="h-3.5 w-3.5 shrink-0" />
  <span>Demo mode — sign in with Supabase to see live data</span>
  </div>

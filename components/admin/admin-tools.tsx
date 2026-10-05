@@ -98,23 +98,24 @@ export function SimulationTemplateForm() {
  Load elevator pitch preset
  </Button>
  </div>
- <Input onChange={(event) => setName(event.target.value)} placeholder="Template name" required value={name} />
- <Input onChange={(event) => setPersona(event.target.value)} placeholder="Persona (e.g. Healthcare CISO)" required value={persona} />
- <Input onChange={(event) => setVertical(event.target.value)} placeholder="Default vertical" required value={vertical} />
- <Input onChange={(event) => setSolutionFocus(event.target.value)} placeholder="Default solution" required value={solutionFocus} />
+ <Input aria-label="Template name" onChange={(event) => setName(event.target.value)} placeholder="Template name" required value={name} />
+ <Input aria-label="Persona" onChange={(event) => setPersona(event.target.value)} placeholder="Persona (e.g. Healthcare CISO)" required value={persona} />
+ <Input aria-label="Default vertical" onChange={(event) => setVertical(event.target.value)} placeholder="Default vertical" required value={vertical} />
+ <Input aria-label="Default solution" onChange={(event) => setSolutionFocus(event.target.value)} placeholder="Default solution" required value={solutionFocus} />
  <Textarea
+ aria-label="Prompt body"
  className="min-h-[240px] font-mono text-xs"
  onChange={(event) => setPrompt(event.target.value)}
  placeholder="Prompt body — use {{solution}}, {{vertical}}, {{difficulty}} where managers should override values at assign time"
  required
  value={prompt}
  />
- <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-sp-navy-muted">
+ <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-ink-2">
  <Upload className="h-4 w-4" />
  Upload prompt from .txt file
  <input accept=".txt,.md" className="hidden" onChange={(event) => void handlePromptFile(event)} type="file" />
  </label>
- <p className="text-xs text-sp-navy-muted">
+ <p className="text-xs text-muted">
  Templates save to the database immediately — no SQL required. Managers see new templates on the Simulations assign form.
  </p>
  <Button disabled={isSaving} type="submit">
@@ -180,8 +181,9 @@ export function ContentAssetForm() {
 
  return (
  <form className="space-y-4" onSubmit={handleSubmit}>
- <Input onChange={(event) => setTitle(event.target.value)} placeholder="Title" value={title} />
+ <Input aria-label="Title" onChange={(event) => setTitle(event.target.value)} placeholder="Title" value={title} />
  <Input
+ aria-label="URL"
  onChange={(event) => setUrl(event.target.value)}
  placeholder="URL (deck, brief, video) — or upload a file below"
  required={!file}
@@ -189,12 +191,14 @@ export function ContentAssetForm() {
  value={url}
  />
  <Input
+ aria-label="Upload content file"
  accept=".pdf,.ppt,.pptx,.doc,.docx,.mp4,.mov"
  onChange={(event) => setFile(event.target.files?.[0] ?? null)}
  type="file"
  />
  <select
- className="h-10 w-full border border-sp-blue/15 bg-white px-3 text-sm"
+ aria-label="Category"
+ className="h-10 w-full rounded-[10px] border border-line bg-white px-3 text-sm text-ink"
  onChange={(event) => setCategory(event.target.value)}
  value={category}
  >

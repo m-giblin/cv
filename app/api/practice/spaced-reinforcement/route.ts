@@ -9,6 +9,7 @@ import {
 } from "@/lib/simulations/objection-practice-prompt";
 import { resolveSimulationStartMessage } from "@/lib/simulations/prompt-template";
 import { getDashboardData } from "@/lib/data/get-dashboard-data";
+import { SE_ROUTES } from "@/lib/se/se-routes";
 
 const schema = z.object({
  competency: z.string().min(2).optional(),
@@ -82,7 +83,7 @@ export async function POST(request: Request) {
 
  return NextResponse.json({
  assignmentId: assignment.id,
- redirectUrl: `/simulations?focus=simulation&assignment=${assignment.id}`,
+ redirectUrl: `${SE_ROUTES.simulations}?focus=simulation&assignment=${assignment.id}`,
  competency,
  });
 }

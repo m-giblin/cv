@@ -12,8 +12,8 @@ export type TenantShellBranding = {
   tenantSlug?: string | null;
 };
 
-/** Fix common typos like #CC27BO → #CC27B0 */
-export function normalizeTenantPrimaryColor(color: string | null | undefined, fallback = "#0071ce"): string {
+/** Fix common typos like #OO33A1 → #0033A1 (letter O typed for zero) */
+export function normalizeTenantPrimaryColor(color: string | null | undefined, fallback = "#0033A1"): string {
   if (!color?.trim()) return fallback;
 
   let hex = color.trim();
@@ -30,6 +30,6 @@ export const DEFAULT_SHELL_BRANDING: TenantShellBranding = {
   tenantId: DEFAULT_TENANT_ID,
   productName: PRODUCT_NAME,
   productTagline: "PLATFORM",
-  primaryColor: "#0071ce",
+  primaryColor: "#0033A1",
   logoUrl: null,
 };

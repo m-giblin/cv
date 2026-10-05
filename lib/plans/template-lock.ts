@@ -19,31 +19,27 @@ export function canEditTemplateStructure(role: ProfileRole, locked: boolean): bo
   return role === "admin" || role === "super_admin" || role === "director";
 }
 
+/**
+ * Accent bar colour for a template card. Kept under its historical name for
+ * callers; v2 has no gradients or per-track accents, so this is a solid
+ * colour: blue for most tracks, ink for senior tracks.
+ */
 export function templateAccentGradient(name: string): string {
   const lower = name.toLowerCase();
-  if (lower.includes("ae") || lower.includes("account exec")) {
-    return "linear-gradient(90deg,#9d174d,#be185d)";
-  }
-  if (lower.includes("sled") || lower.includes("specialist")) {
-    return "linear-gradient(90deg,#065f46,#059669)";
-  }
-  if (lower.includes("lateral") || lower.includes("fast-track")) {
-    return "linear-gradient(90deg,#92400e,#b45309)";
-  }
   if (lower.includes("senior")) {
-    return "linear-gradient(90deg,#5b21b6,#7c3aed)";
+    return "#0A1A3F";
   }
-  return "linear-gradient(90deg,#0033a1,#0071ce)";
+  return "#0033A1";
 }
 
 const STEP_TYPE_PILL: Record<string, { label: string; bg: string; color: string }> = {
-  content_review: { label: "Content", bg: "#EEF4FF", color: "#1D4ED8" },
-  challenge: { label: "Challenge", bg: "#EDE9FE", color: "#5b21b6" },
-  simulation: { label: "Sim", bg: "#FDF0FA", color: "#A51E8E" },
-  deal_prep: { label: "Deal Prep", bg: "#FEF3C7", color: "#b45309" },
-  shadow_meeting_log: { label: "Shadow", bg: "#F5F4F0", color: "#6B6860" },
-  mentor_review: { label: "Review", bg: "#EDFAF3", color: "#0A6E45" },
-  custom: { label: "Custom", bg: "#F5F4F0", color: "#6B6860" },
+  content_review: { label: "Content", bg: "#E5ECFA", color: "#0033A1" },
+  challenge: { label: "Challenge", bg: "#0A1A3F", color: "#FFFFFF" },
+  simulation: { label: "Sim", bg: "#0033A1", color: "#FFFFFF" },
+  deal_prep: { label: "Deal prep", bg: "#FFF6E0", color: "#0A1A3F" },
+  shadow_meeting_log: { label: "Shadow", bg: "#E9EDF5", color: "#2B3A5C" },
+  mentor_review: { label: "Review", bg: "#E7F4EC", color: "#12703F" },
+  custom: { label: "Custom", bg: "#E9EDF5", color: "#4A5878" },
 };
 
 export function stepTypePills(steps: { step_type: string }[]) {
@@ -60,13 +56,13 @@ export function stepTypePills(steps: { step_type: string }[]) {
 
 export function stepTypeIcon(type: string): { icon: string; iconBg: string } {
   const map: Record<string, { icon: string; iconBg: string }> = {
-    content_review: { icon: "📄", iconBg: "#F0F7FF" },
-    challenge: { icon: "🎯", iconBg: "#F5F0FF" },
-    simulation: { icon: "🎭", iconBg: "#FDF0FA" },
-    deal_prep: { icon: "📊", iconBg: "#FFFBF0" },
-    mentor_review: { icon: "✅", iconBg: "#EDFAF3" },
-    shadow_meeting_log: { icon: "👁", iconBg: "#F5F4F0" },
-    custom: { icon: "⚙️", iconBg: "#F9F8F6" },
+    content_review: { icon: "≡", iconBg: "#E5ECFA" },
+    challenge: { icon: "▲", iconBg: "#E9EDF5" },
+    simulation: { icon: "●", iconBg: "#E5ECFA" },
+    deal_prep: { icon: "◆", iconBg: "#FFF6E0" },
+    mentor_review: { icon: "✓", iconBg: "#E7F4EC" },
+    shadow_meeting_log: { icon: "○", iconBg: "#E9EDF5" },
+    custom: { icon: "•", iconBg: "#F2F4F8" },
   };
   return map[type] ?? map.custom;
 }

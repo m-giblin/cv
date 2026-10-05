@@ -124,7 +124,7 @@ export async function createTenant(
       slug,
       name: input.name.trim(),
       status: "provisioning",
-      branding_primary_color: normalizeTenantPrimaryColor(branding.primaryColor ?? "#0071ce"),
+      branding_primary_color: normalizeTenantPrimaryColor(branding.primaryColor ?? "#0033A1"),
       branding_logo_url: branding.logoUrl ?? null,
       welcome_message: branding.welcomeMessage ?? null,
       allowed_email_domains: branding.allowedEmailDomains ?? [],

@@ -142,10 +142,10 @@ const DIM_DISPLAY_LABEL: Record<ReadinessDimName, string> = {
 };
 
 function levelColor(level: ReadinessStatusLevel) {
-  if (level === "good") return "#0A6E45";
-  if (level === "risk") return "#D4810A";
-  if (level === "unknown") return "#7A7772";
-  return "#B83128";
+  if (level === "good") return "#12703F";
+  if (level === "risk") return "#8A5300";
+  if (level === "unknown") return "#4A5878";
+  return "#B42318";
 }
 
 /** More recent signal counts more. Half-life-ish decay, floors at 0.25 so old data still counts a little. */

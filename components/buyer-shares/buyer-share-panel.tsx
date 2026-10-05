@@ -50,14 +50,14 @@ export function BuyerSharePanel({
  }
 
  return (
- <div className="border border-emerald-200/80 bg-emerald-50/50 p-4">
+ <div className="rounded-[14px] border border-line bg-white p-4">
  <div className="flex flex-wrap items-start justify-between gap-3">
  <div>
- <p className="flex items-center gap-2 text-sm font-bold text-sp-navy">
- <Link2 className="h-4 w-4 text-emerald-700" />
+ <p className="flex items-center gap-2 text-sm font-bold text-ink">
+ <Link2 className="h-4 w-4 text-blue" />
  Buyer room (DSR-lite)
  </p>
- <p className="mt-1 text-xs text-sp-navy-muted">
+ <p className="mt-1 text-xs text-muted">
  Share a tracked link with your buyer — see when they open resources. Beats Seismic LiveDocs for ramp SEs.
  </p>
  </div>
@@ -73,9 +73,9 @@ export function BuyerSharePanel({
  )}
  </div>
  {shareUrl ? (
- <p className="mt-3 break-all bg-white px-3 py-2 text-xs text-sp-navy-muted">{shareUrl}</p>
+ <p className="mt-3 break-all rounded-[10px] bg-surface-2 px-3 py-2 font-mono text-xs text-ink-2">{shareUrl}</p>
  ) : null}
- {views !== null ? <p className="mt-2 text-xs text-emerald-800">{views} buyer views</p> : null}
+ {views !== null ? <p className="mt-2 text-xs text-ink-2">{views} buyer views</p> : null}
  </div>
  );
 }

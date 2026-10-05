@@ -39,7 +39,7 @@ export function BuyerEngagementPanel({ accountName }: { accountName?: string }) 
  <Card>
  <CardHeader>
  <CardTitle className="flex items-center gap-2 text-base">
- <BarChart3 className="h-4 w-4 text-sp-blue" />
+ <BarChart3 className="h-4 w-4 text-blue" />
  Buyer engagement analytics
  </CardTitle>
  <CardDescription>
@@ -48,10 +48,10 @@ export function BuyerEngagementPanel({ accountName }: { accountName?: string }) 
  </CardHeader>
  <div className="grid gap-3 sm:grid-cols-3">
  {metrics.map((metric) => (
- <div className="border border-sp-blue/10 bg-sp-blue-soft/10 p-3" key={metric.label}>
- <p className="text-[11px] font-semibold uppercase text-sp-navy-muted">{metric.label}</p>
- <p className="mt-1 text-xl font-bold text-sp-navy">{metric.value}</p>
- <p className="text-xs text-sp-navy-muted">{metric.delta}</p>
+ <div className="rounded-[10px] border border-line bg-white p-3" key={metric.label}>
+ <p className="label-mono">{metric.label}</p>
+ <p className="mt-1 text-xl font-bold text-ink">{metric.value}</p>
+ <p className="text-xs text-muted">{metric.delta}</p>
  </div>
  ))}
  </div>

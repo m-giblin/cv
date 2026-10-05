@@ -1,8 +1,8 @@
 "use client";
 
 import type { LeaderboardEntry } from "@/lib/gamification/leaderboard";
-import { SE_AVATAR_GRADIENTS } from "@/lib/se/avatar-gradients";
-import { initials } from "@/lib/utils";
+import { AVATAR_CLASSNAME } from "@/lib/se/avatar-gradients";
+import { cn, initials } from "@/lib/utils";
 
 export function TeamLeaderboard({
  entries,
@@ -18,12 +18,12 @@ export function TeamLeaderboard({
  if (visible.length === 0) {
  if (embedded) return null;
  return (
- <div className="overflow-hidden border border-[#E2DFD9] bg-white">
- <div className="border-b border-[#ECEAE6] p-[13px_16px_11px]">
- <p className="text-[12.5px] font-bold text-[#0D0E12]">Team leaderboard</p>
- <p className="mt-[1px] text-[10.5px] text-[#A09D98]">Points from trophies, sim scores, and weekly practice streaks</p>
+ <div className="overflow-hidden rounded-[14px] border border-line bg-white">
+ <div className="border-b border-divider px-5 py-3.5">
+ <p className="text-[15px] font-bold text-ink">Team leaderboard</p>
+ <p className="mt-0.5 text-xs text-muted">Points from trophies, sim scores, and weekly practice streaks</p>
  </div>
- <p className="px-5 py-10 text-center text-[12.5px] text-[#A09D98]">
+ <p className="px-5 py-10 text-center text-sm text-muted">
  No leaderboard data yet — points appear after sims, challenges, and trophies.
  </p>
  </div>
@@ -31,30 +31,29 @@ export function TeamLeaderboard({
  }
 
  const rows = visible.map((entry, index) => (
- <div className="flex items-center gap-[12px] border-b border-[#F2F0EC] px-4 py-[9px] last:border-b-0" key={entry.profileId}>
+ <div className="flex items-center gap-3 border-b border-divider px-4 py-2.5 last:border-b-0" key={entry.profileId}>
  <span
- className="w-[22px] shrink-0 text-center font-display text-[16px] font-extrabold"
- style={{
- color: index === 0 ? "#d97706" : index === 1 ? "#6B6860" : index === 2 ? "#b45309" : "#A09D98",
- }}
+ className={cn(
+ "flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full font-mono text-sm font-medium",
+ index === 0 ? "border-[1.5px] border-ink bg-signal text-ink" : index < 3 ? "text-ink" : "text-faint",
+ )}
  >
- {index < 3 ? ["🥇", "🥈", "🥉"][index] : index + 1}
+ {index + 1}
  </span>
  <div
- className="flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
- style={{ background: SE_AVATAR_GRADIENTS[index % 6] }}
+ className={cn("flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded-full text-xs font-bold", AVATAR_CLASSNAME)}
  >
  {initials(entry.fullName)}
  </div>
  <div className="min-w-0 flex-1">
- <p className="text-[11.5px] font-semibold text-[#3D3C38]">{entry.fullName}</p>
- <p className="text-[9.5px] text-[#A09D98]">
+ <p className="text-sm font-semibold text-ink">{entry.fullName}</p>
+ <p className="text-xs text-muted">
  {entry.trophies} trophy{entry.trophies === 1 ? "" : "ies"}
  {entry.avgSimScore !== null ? ` · sim ${entry.avgSimScore}` : ""}
  {entry.streakWeeks > 0 ? ` · ${entry.streakWeeks}w streak` : ""}
  </p>
  </div>
- <span className="font-display text-[14px] font-extrabold text-[#0D0E12]">{entry.points}</span>
+ <span className="font-mono text-[15px] font-medium text-ink">{entry.points}</span>
  </div>
  ));
 
@@ -63,11 +62,11 @@ export function TeamLeaderboard({
  }
 
  return (
- <div className="overflow-hidden border border-[#E2DFD9] bg-white">
+ <div className="overflow-hidden rounded-[14px] border border-line bg-white">
  {!fullPage ? (
- <div className="border-b border-[#ECEAE6] p-[13px_16px_11px]">
- <p className="text-[12.5px] font-bold text-[#0D0E12]">Team leaderboard</p>
- <p className="mt-[1px] text-[10.5px] text-[#A09D98]">Points from trophies, sim scores, and weekly practice streaks</p>
+ <div className="border-b border-divider px-5 py-3.5">
+ <p className="text-[15px] font-bold text-ink">Team leaderboard</p>
+ <p className="mt-0.5 text-xs text-muted">Points from trophies, sim scores, and weekly practice streaks</p>
  </div>
  ) : null}
  <div>{rows}</div>

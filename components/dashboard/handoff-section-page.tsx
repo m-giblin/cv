@@ -8,12 +8,12 @@ export type HandoffSectionAccent =
  | "assessment"
  | "admin";
 
-const SECTION_STYLES: Record<HandoffSectionAccent, { eyebrow: string; color: string }> = {
- readiness: { eyebrow: "Readiness", color: "#0071ce" },
- workspace: { eyebrow: "Workspace", color: "#0071ce" },
- "learning-loop": { eyebrow: "Learning loop", color: "#cc27b0" },
- assessment: { eyebrow: "Assessment · Adaptive", color: "#0891b2" },
- admin: { eyebrow: "Administration", color: "#0033a1" },
+const SECTION_EYEBROWS: Record<HandoffSectionAccent, string> = {
+ readiness: "Readiness",
+ workspace: "Workspace",
+ "learning-loop": "Learning loop",
+ assessment: "Assessment · Adaptive",
+ admin: "Administration",
 };
 
 export function HandoffSectionPage({
@@ -33,20 +33,15 @@ export function HandoffSectionPage({
  children: ReactNode;
  className?: string;
 }) {
- const style = SECTION_STYLES[accent];
+ const eyebrow = SECTION_EYEBROWS[accent];
 
  return (
  <div className={cn("handoff-page-enter space-y-5", className)}>
  <header className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
  <div>
- <p
- className="text-[10.5px] font-bold uppercase tracking-[0.08em]"
- style={{ color: style.color }}
- >
- {label ? `${style.eyebrow} · ${label}` : style.eyebrow}
- </p>
- <h1 className="sp-page-title mt-1">{title}</h1>
- <p className="sp-page-description mt-1 max-w-3xl">{description}</p>
+ <p className="label-mono">{label ? `${eyebrow} · ${label}` : eyebrow}</p>
+ <h1 className="mt-1 text-[32px] leading-[1.05] font-extrabold tracking-[-0.02em] text-ink">{title}</h1>
+ <p className="mt-1 max-w-3xl text-sm leading-relaxed text-muted">{description}</p>
  </div>
  {actions ? <div className="flex shrink-0 flex-wrap gap-2">{actions}</div> : null}
  </header>
@@ -62,6 +57,7 @@ export function HandoffMetricStrip({
  label: string;
  value: string;
  sub: string;
+ /** Kept for compatibility; v2 has no per-metric accent colours. */
  accent: string;
  valueClassName?: string;
  }>;
@@ -70,20 +66,19 @@ export function HandoffMetricStrip({
  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
  {metrics.map((metric) => (
  <div
- className="border border-[#E2DFD9] bg-white p-[13px_16px] "
+ className="rounded-[14px] border border-line bg-white px-4 py-3.5"
  key={metric.label}
- style={{ borderLeft: `3px solid ${metric.accent}` }}
  >
- <p className="mb-1.5 text-[10px] font-semibold text-[#6B6860]">{metric.label}</p>
+ <p className="label-mono mb-1.5">{metric.label}</p>
  <p
  className={cn(
- "font-display text-[26px] font-extrabold leading-none text-[#0D0E12]",
+ "text-[26px] font-extrabold leading-none text-ink",
  metric.valueClassName,
  )}
  >
  {metric.value}
  </p>
- <p className="mt-1 text-[10px] text-[#A09D98]">{metric.sub}</p>
+ <p className="mt-1 text-xs text-muted">{metric.sub}</p>
  </div>
  ))}
  </div>

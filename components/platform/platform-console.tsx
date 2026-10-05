@@ -160,7 +160,7 @@ export function PlatformConsole() {
   const [featureFlags, setFeatureFlags] = useState<PlatformFeatureFlags>({});
   const [savedFlags, setSavedFlags] = useState<PlatformFeatureFlags>({});
   const emptyBranding = {
-    primaryColor: "#0071ce",
+    primaryColor: "#0033A1",
     logoUrl: "",
     welcomeMessage: "",
     allowedEmailDomains: "",

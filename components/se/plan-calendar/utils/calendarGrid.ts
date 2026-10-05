@@ -36,7 +36,7 @@ export function buildMonthGrid(year: number, month: number, milestones: CalMiles
   });
 
   for (let i = 0; i < prefixCount; i++) {
-    days.push({ day: 0, events: [], isToday: false, isOtherMonth: true, cellBg: "#FAFAF8" });
+    days.push({ day: 0, events: [], isToday: false, isOtherMonth: true, cellBg: "#E9EDF5" });
   }
 
   for (let d = 1; d <= daysInMonth; d++) {
@@ -48,21 +48,23 @@ export function buildMonthGrid(year: number, month: number, milestones: CalMiles
       status: ms.status,
       color:
         ms.status === "DONE"
-          ? "#0A6E45"
+          ? "#0033A1"
           : ms.status === "DUE TODAY"
-            ? "#B83128"
+            ? "#0A1A3F"
             : ms.status === "UPCOMING"
-              ? "#A09D98"
-              : "#0071CE",
+              ? "#9AA6C2"
+              : "#B42318",
       done: ms.status === "DONE",
       evBg:
         ms.status === "DONE"
-          ? "rgba(10,110,69,.08)"
+          ? "#E5ECFA"
           : ms.status === "DUE TODAY"
-            ? "rgba(184,49,40,.06)"
-            : "rgba(0,113,206,.06)",
+            ? "#FFB81C"
+            : ms.status === "OPEN"
+              ? "#FCEBEA"
+              : "#FFFFFF",
     }));
-    days.push({ day: d, events, isToday, isOtherMonth: false, cellBg: isToday ? "#F0F7FF" : "#fff" });
+    days.push({ day: d, events, isToday, isOtherMonth: false, cellBg: isToday ? "#FFF6E0" : "#FFFFFF" });
   }
 
   return days;

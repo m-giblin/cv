@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { canViewUserCertifications } from "@/lib/certifications/authorize";
 import { createNotification } from "@/lib/notifications/create-notification";
+import { SE_ROUTES } from "@/lib/se/se-routes";
 import { createClient } from "@/lib/supabase/server";
 
 const CERT_TYPES = [
@@ -117,7 +118,7 @@ export async function POST(request: Request) {
  userId: profile.manager_id,
  title: "Certification submitted for approval",
  body: `Review ${parsed.data.certificationType.replaceAll("_", " ")} readiness evidence.`,
- actionUrl: `/certifications?profile=${user.id}`,
+ actionUrl: `${SE_ROUTES.certification}?profile=${user.id}`,
  });
  }
 

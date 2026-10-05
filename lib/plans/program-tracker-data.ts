@@ -67,38 +67,34 @@ const PHASE_LABELS = [
 ] as const;
 
 const PHASE_STATUS: Record<PhaseCellStatus, Omit<PhaseCell, "status">> = {
-  complete: { bg: "#EDFAF3", icon: "✓", textColor: "#0A6E45", label: "Complete" },
-  active: { bg: "#F0F7FF", icon: "→", textColor: "#0071CE", label: "In progress" },
-  blocked: { bg: "#FEF0EE", icon: "!", textColor: "#B83128", label: "Blocked" },
-  upcoming: { bg: "#F9F8F6", icon: "○", textColor: "#A09D98", label: "Upcoming" },
+  complete: { bg: "#E7F4EC", icon: "✓", textColor: "#12703F", label: "Complete" },
+  active: { bg: "#E5ECFA", icon: "→", textColor: "#0033A1", label: "In progress" },
+  blocked: { bg: "#FCEBEA", icon: "!", textColor: "#B42318", label: "Blocked" },
+  upcoming: { bg: "#E9EDF5", icon: "○", textColor: "#4A5878", label: "Upcoming" },
 };
 
 export const PROGRAM_PHASE_DEFINITIONS = [
   {
-    emoji: "📚",
-    bg: "#F0F7FF",
-    border: "rgba(0,113,206,.15)",
+    bg: "#E5ECFA",
+    border: "#D6DCE8",
     name: "Phase 1 — Foundations (Wks 1–2)",
     desc: "Product overview · ISC basics · Sales motion · IGA landscape",
   },
   {
-    emoji: "⚙️",
-    bg: "#F0FDF7",
-    border: "rgba(10,110,69,.15)",
+    bg: "#E9EDF5",
+    border: "#D6DCE8",
     name: "Phase 2 — Technical Depth (Wks 3–4)",
     desc: "Demo env setup · ISC lab · Technical challenges · Architecture",
   },
   {
-    emoji: "🎯",
-    bg: "#FFF7ED",
-    border: "rgba(212,129,10,.15)",
+    bg: "#FFF6E0",
+    border: "#D6DCE8",
     name: "Phase 3 — Field Application (Wks 5–6)",
     desc: "Discovery sims · Deal prep · Objection handling · SLED/ENT verticals",
   },
   {
-    emoji: "🏆",
-    bg: "#EDFAF3",
-    border: "rgba(10,110,69,.15)",
+    bg: "#E7F4EC",
+    border: "#D6DCE8",
     name: "Phase 4 — Cert Gates (Ongoing)",
     desc: "Solo discovery · Executive demo · Competitive bakeoff · Manager sign-off",
   },
@@ -143,9 +139,9 @@ function segmentPhaseStatus(
 }
 
 function overallColor(progress: number, hasBlocked: boolean): string {
-  if (hasBlocked) return "#B83128";
-  if (progress >= 100) return "#0A6E45";
-  return "#0071CE";
+  if (hasBlocked) return "#B42318";
+  if (progress >= 100) return "#12703F";
+  return "#0033A1";
 }
 
 function milestoneStatus(isoDate: string, now = new Date()): {
@@ -158,18 +154,18 @@ function milestoneStatus(isoDate: string, now = new Date()): {
   const days = Math.floor((due.getTime() - now.getTime()) / 86_400_000);
 
   if (days < 0) {
-    return { status: "OVERDUE", color: "#B83128", statBg: "#FEF0EE", statColor: "#B83128" };
+    return { status: "OVERDUE", color: "#B42318", statBg: "#FCEBEA", statColor: "#B42318" };
   }
   if (days <= 3) {
-    return { status: "CRITICAL", color: "#B83128", statBg: "#FEF0EE", statColor: "#B83128" };
+    return { status: "CRITICAL", color: "#B42318", statBg: "#FCEBEA", statColor: "#B42318" };
   }
   if (days <= 10) {
-    return { status: "DUE SOON", color: "#D4810A", statBg: "#FFFBF0", statColor: "#D4810A" };
+    return { status: "DUE SOON", color: "#8A5300", statBg: "#FBF1DF", statColor: "#8A5300" };
   }
   if (days <= 21) {
-    return { status: "ON TRACK", color: "#0A6E45", statBg: "#EDFAF3", statColor: "#0A6E45" };
+    return { status: "ON TRACK", color: "#12703F", statBg: "#E7F4EC", statColor: "#12703F" };
   }
-  return { status: "PLANNED", color: "#A09D98", statBg: "#F9F8F6", statColor: "#A09D98" };
+  return { status: "PLANNED", color: "#B7C0D3", statBg: "#E9EDF5", statColor: "#4A5878" };
 }
 
 export function buildProgramTrackerModel({
@@ -207,7 +203,7 @@ export function buildProgramTrackerModel({
         level: person.level,
         phases: [1, 2, 3, 4].map(() => phaseCell("upcoming")),
         overall: "—",
-        overallColor: "#A09D98",
+        overallColor: "#4A5878",
         overallPct: 0,
       };
     }
