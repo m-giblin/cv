@@ -1,27 +1,20 @@
 import type { Metadata } from "next";
-import { DM_Mono, DM_Sans, Syne } from "next/font/google";
+import { Bricolage_Grotesque, Geist_Mono } from "next/font/google";
 import { ForgeSdkLoader } from "@/components/forge/forge-sdk-loader";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
-const syne = Syne({
+const bricolage = Bricolage_Grotesque({
  subsets: ["latin"],
  display: "swap",
- weight: ["700", "800"],
- variable: "--font-syne",
+ variable: "--font-bricolage",
 });
 
-const dmSans = DM_Sans({
- subsets: ["latin"],
- display: "swap",
- variable: "--font-dm-sans",
-});
-
-const dmMono = DM_Mono({
+const geistMono = Geist_Mono({
  subsets: ["latin"],
  display: "swap",
  weight: ["400", "500"],
- variable: "--font-dm-mono",
+ variable: "--font-geist-mono",
 });
 
 export const metadata: Metadata = {
@@ -37,7 +30,7 @@ export default function RootLayout({
  return (
  <html lang="en">
  <body
- className={`${syne.variable} ${dmSans.variable} ${dmMono.variable} font-[family-name:var(--font-dm-sans)] antialiased`}
+ className={`${bricolage.variable} ${geistMono.variable} font-[family-name:var(--font-bricolage)] antialiased`}
  >
  <ForgeSdkLoader />
  <Providers>{children}</Providers>

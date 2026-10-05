@@ -2,12 +2,13 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
- variant?: "default" | "secondary" | "outline" | "ghost" | "destructive" | "magenta";
+ variant?: "default" | "secondary" | "outline" | "ghost" | "destructive" | "magenta" | "primary";
  size?: "sm" | "md" | "lg";
  asChild?: boolean;
 };
 
 const variants = {
+ primary: "btn-primary",
  default:
  "bg-sp-blue text-white shadow-sp-blue/20 hover:bg-sp-blue-deep focus-visible:ring-sp-blue",
  secondary: "bg-sp-blue-soft text-sp-blue-deep hover:bg-[#d4e8f9]",
