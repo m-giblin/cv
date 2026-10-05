@@ -1,305 +1,275 @@
 "use client";
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useMemo, type ReactNode } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { CertReviewItem } from "@/components/manager/cert-review-item";
-import type { DealPrepReviewItem } from "@/components/manager/deal-prep-review-item";
-import { ManagerMenteesPanel } from "@/components/manager/manager-mentees-panel";
-import { ManagerActionInbox } from "@/components/manager/manager-action-inbox";
-import { ManagerCoachingCadencePanel } from "@/components/manager/manager-coaching-cadence-panel";
 import { ManagerCohortView } from "@/components/manager/cohort-view";
-import { ManagerDevelopmentPlansPanel } from "@/components/manager/manager-development-plans-panel";
-import { ManagerCommandCenter } from "@/components/manager/manager-command-center";
+import type { DealPrepReviewItem } from "@/components/manager/deal-prep-review-item";
 import { ManagerAssignPlansSection } from "@/components/manager/manager-assign-plans-section";
+import { ManagerCoachingCadencePanel } from "@/components/manager/manager-coaching-cadence-panel";
+import { ManagerDevelopmentPlansPanel } from "@/components/manager/manager-development-plans-panel";
+import { ManagerInbox } from "@/components/manager/manager-inbox";
+import { ManagerLeaderboard } from "@/components/manager/manager-leaderboard";
+import { ManagerMenteesPanel } from "@/components/manager/manager-mentees-panel";
 import { ManagerProgramTrackerPanel } from "@/components/manager/manager-program-tracker-panel";
-import { ManagerTeamTable } from "@/components/manager/manager-team-table";
-import { QuarterlyReviewQueue } from "@/components/manager/quarterly-review-queue";
-import { ReadinessMap } from "@/components/manager/readiness-map";
-import {
- ManagerSeDetailPanel,
- type SeManagerSnapshot,
-} from "@/components/manager/manager-se-detail-panel";
+import { ManagerReviewHistory, type ReviewHistoryEntry } from "@/components/manager/manager-review-history";
+import { ManagerSeDetailPanel, type SeManagerSnapshot } from "@/components/manager/manager-se-detail-panel";
 import { ManagerTeamRoster } from "@/components/manager/manager-team-roster";
-import {
- MANAGER_SECTION_HEADERS,
- ManagerPageLayout,
-} from "@/components/manager/manager-page-layout";
+import { ManagerToday } from "@/components/manager/manager-today";
 import type { PlanStepReviewItem } from "@/components/manager/plan-step-review-panel";
 import type { ReviewItem } from "@/components/manager/review-queue";
-import { ManagerReviewHistory, type ReviewHistoryEntry } from "@/components/manager/manager-review-history";
-import { TeamLeaderboard } from "@/components/gamification/team-leaderboard";
-import type { CoachingCadenceRow } from "@/lib/manager/coaching-cadence";
-import type { SeCoachingSummary } from "@/lib/manager/se-coaching-summary";
-import type { TeamReadinessRow } from "@/lib/manager/team-readiness";
+import { TeamReadiness, type CompetencySeRow } from "@/components/manager/team-readiness";
+import { PageHeader } from "@/components/ui/page-header";
 import type { MenteeAssignment } from "@/lib/data/fetch-mentor-mentees";
 import type { LeaderboardEntry } from "@/lib/gamification/leaderboard";
-import type {
- ActivityLog,
- Challenge,
- DevelopmentPlan,
- Profile,
- UserPlan,
-} from "@/lib/types";
+import type { CoachingCadenceRow } from "@/lib/manager/coaching-cadence";
+import type { SeCoachingSummary } from "@/lib/manager/se-coaching-summary";
+import type { TeamMember } from "@/lib/manager/team-status";
+import type { ActivityLog, Challenge, DevelopmentPlan, Profile, ProfileRole, UserPlan } from "@/lib/types";
 
 export type ManagerSection =
- | "command"
- | "inbox"
- | "roster"
- | "readiness"
- | "leaderboard"
- | "cadence"
- | "history"
- | "dev"
- | "program"
- | "assign"
- | "mentees";
+  | "command"
+  | "inbox"
+  | "roster"
+  | "readiness"
+  | "leaderboard"
+  | "cadence"
+  | "history"
+  | "dev"
+  | "program"
+  | "assign"
+  | "mentees";
+
+function Body({ children }: { children: ReactNode }) {
+  return <div className="px-[var(--gutter)] pb-8">{children}</div>;
+}
+
+/** Updates `?profile=` without a server round trip (Next keeps useSearchParams in sync with pushState). */
+function setProfileParam(pathname: string, profileId: string | null) {
+  const params = new URLSearchParams(window.location.search);
+  if (profileId) params.set("profile", profileId);
+  else params.delete("profile");
+  const query = params.toString();
+  window.history.pushState(null, "", query ? `${pathname}?${query}` : pathname);
+}
 
 export function ManagerPageShell({
- section,
- reviewCount,
- pendingCertCount,
- teamSize,
- averageProgress,
- reviewItems,
- planSteps,
- certReviewItems,
- dealPrepReviewItems,
- developmentPlans,
- readinessRows,
- leaderboardEntries,
- reviewHistory,
- cadenceRows,
- org,
- plans,
- openReviewsByUser,
- assignees,
- activity,
- profiles,
- seSnapshots,
- coachingByUser,
- challenges,
- mentors,
- reviewedChallengeCountByUser,
- approvedCertCountByUser,
- challengeTotalByUser,
- managerFirstName,
- mentees = [],
- viewerRole = "manager",
+  section,
+  reviewCount,
+  reviewsOverSla = 0,
+  reviewItems,
+  planSteps,
+  certReviewItems,
+  dealPrepReviewItems,
+  developmentPlans,
+  leaderboardEntries,
+  reviewHistory,
+  cadenceRows,
+  competencyRows = [],
+  teamMembers = [],
+  org,
+  plans,
+  assignees,
+  activity,
+  profiles,
+  seSnapshots,
+  coachingByUser,
+  challenges,
+  mentors,
+  approvedCertCountByUser,
+  managerFirstName,
+  mentees = [],
+  viewerRole = "manager",
+  readinessAvailable = true,
 }: {
- section: ManagerSection;
- reviewCount: number;
- pendingCertCount: number;
- teamSize: number;
- averageProgress: number;
- reviewItems: ReviewItem[];
- planSteps: PlanStepReviewItem[];
- certReviewItems: CertReviewItem[];
- dealPrepReviewItems: DealPrepReviewItem[];
- developmentPlans: DevelopmentPlan[];
- readinessRows: TeamReadinessRow[];
- leaderboardEntries: LeaderboardEntry[];
- cadenceRows: CoachingCadenceRow[];
- org: Profile[];
- plans: UserPlan[];
- openReviewsByUser: Record<string, number>;
- assignees: Profile[];
- activity: ActivityLog[];
- profiles: Profile[];
- reviewHistory: ReviewHistoryEntry[];
- seSnapshots: SeManagerSnapshot[];
- coachingByUser: Record<string, SeCoachingSummary>;
- challenges: Challenge[];
- mentors: Profile[];
- reviewedChallengeCountByUser: Record<string, number>;
- approvedCertCountByUser: Record<string, number>;
- challengeTotalByUser: Record<string, number>;
- managerFirstName?: string;
- mentees?: MenteeAssignment[];
- viewerRole?: import("@/lib/types").ProfileRole;
+  section: ManagerSection;
+  reviewCount: number;
+  reviewsOverSla?: number;
+  reviewItems: ReviewItem[];
+  planSteps: PlanStepReviewItem[];
+  certReviewItems: CertReviewItem[];
+  dealPrepReviewItems: DealPrepReviewItem[];
+  developmentPlans: DevelopmentPlan[];
+  leaderboardEntries: LeaderboardEntry[];
+  cadenceRows: CoachingCadenceRow[];
+  competencyRows?: CompetencySeRow[];
+  teamMembers?: TeamMember[];
+  org: Profile[];
+  plans: UserPlan[];
+  assignees: Profile[];
+  activity: ActivityLog[];
+  profiles: Profile[];
+  reviewHistory: ReviewHistoryEntry[];
+  seSnapshots: SeManagerSnapshot[];
+  coachingByUser: Record<string, SeCoachingSummary>;
+  challenges: Challenge[];
+  mentors: Profile[];
+  approvedCertCountByUser: Record<string, number>;
+  managerFirstName?: string;
+  mentees?: MenteeAssignment[];
+  viewerRole?: ProfileRole;
+  readinessAvailable?: boolean;
 }) {
- const router = useRouter();
- const pathname = usePathname();
- const searchParams = useSearchParams();
- const selectedProfileId = searchParams.get("profile");
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(searchParams.get("profile"));
 
- const selectedSnapshot = useMemo(
- () => seSnapshots.find((snapshot) => snapshot.profile.id === selectedProfileId) ?? null,
- [seSnapshots, selectedProfileId],
- );
+  // Back/forward and in-app links that change ?profile= keep the drawer in sync.
+  useEffect(() => {
+    setSelectedProfileId(searchParams.get("profile"));
+  }, [searchParams]);
 
- const openProfile = useCallback(
- (profileId: string) => {
- const params = new URLSearchParams(searchParams.toString());
- params.set("profile", profileId);
- router.push(`${pathname}?${params.toString()}`, { scroll: false });
- },
- [pathname, router, searchParams],
- );
+  const selectedSnapshot = useMemo(
+    () => seSnapshots.find((snapshot) => snapshot.profile.id === selectedProfileId) ?? null,
+    [seSnapshots, selectedProfileId],
+  );
 
- const closeProfile = useCallback(() => {
- const params = new URLSearchParams(searchParams.toString());
- params.delete("profile");
- const query = params.toString();
- router.push(query ? `${pathname}?${query}` : pathname, { scroll: false });
- }, [pathname, router, searchParams]);
+  const openProfile = useCallback(
+    (profileId: string) => {
+      setSelectedProfileId(profileId);
+      setProfileParam(pathname, profileId);
+    },
+    [pathname],
+  );
 
- let content: ReactNode;
+  const closeProfile = useCallback(() => {
+    setSelectedProfileId(null);
+    setProfileParam(pathname, null);
+  }, [pathname]);
 
- switch (section) {
- case "inbox":
- content = (
- <div className="animate-[fadeUp_0.2s_ease-out]">
- <ManagerActionInbox
- certItems={certReviewItems}
- dealPrepItems={dealPrepReviewItems}
- planSteps={planSteps}
- reviewItems={reviewItems}
- />
- </div>
- );
- break;
- case "roster":
- content = (
- <div className="animate-[fadeUp_0.2s_ease-out] space-y-4">
- <ManagerTeamRoster
- coachingByUser={coachingByUser}
- onSelectProfile={openProfile}
- org={org}
- plans={plans}
- selectedProfileId={selectedProfileId}
- />
- <ManagerTeamTable
- coachingByUser={coachingByUser}
- onSelectProfile={openProfile}
- org={org}
- plans={plans}
- selectedProfileId={selectedProfileId}
- />
- </div>
- );
- break;
- case "readiness":
- content = (
- <div className="animate-[fadeUp_0.2s_ease-out]">
- <ReadinessMap onOpenProfile={openProfile} />
- </div>
- );
- break;
- case "leaderboard":
- content = (
- <div className="animate-[fadeUp_0.2s_ease-out]">
- <TeamLeaderboard entries={leaderboardEntries} fullPage />
- </div>
- );
- break;
- case "history":
- content = (
- <div className="animate-[fadeUp_0.2s_ease-out]">
- <ManagerReviewHistory entries={reviewHistory} fullPage />
- </div>
- );
- break;
- case "cadence":
- content = (
- <div className="animate-[fadeUp_0.2s_ease-out]">
- <ManagerCoachingCadencePanel org={org} />
- </div>
- );
- break;
- case "dev":
- content = (
- <div className="animate-[fadeUp_0.2s_ease-out] space-y-4">
- <ManagerDevelopmentPlansPanel />
- <QuarterlyReviewQueue developmentPlans={developmentPlans} />
- </div>
- );
- break;
- case "program":
- content = (
- <div className="animate-[fadeUp_0.2s_ease-out] space-y-4">
- <ManagerProgramTrackerPanel
- org={org}
- plans={plans}
- coachingByUser={coachingByUser}
- approvedCertCountByUser={approvedCertCountByUser}
- developmentPlans={developmentPlans}
- activity={activity}
- planSteps={planSteps}
- certReviewItems={certReviewItems}
- />
- <ManagerCohortView org={org} plans={plans} />
- </div>
- );
- break;
- case "assign":
- content = (
- <div className="animate-[fadeUp_0.2s_ease-out]">
- <ManagerAssignPlansSection assignees={assignees} mentors={mentors} org={org} plans={plans} viewerRole={viewerRole} />
- </div>
- );
- break;
- case "mentees":
- content = (
- <div className="animate-[fadeUp_0.2s_ease-out]">
- <ManagerMenteesPanel mentees={mentees} />
- </div>
- );
- break;
- case "command":
- default:
- content = (
- <ManagerCommandCenter
- approvedCertCountByUser={approvedCertCountByUser}
- activity={activity}
- averageProgress={averageProgress}
- cadenceRows={cadenceRows}
- certReviewItems={certReviewItems}
- challengeTotalByUser={challengeTotalByUser}
- coachingByUser={coachingByUser}
- developmentPlans={developmentPlans}
- leaderboardEntries={leaderboardEntries}
- onSelectProfile={openProfile}
- pendingCertCount={pendingCertCount}
- planStepCount={planSteps.length}
- plans={plans}
- profiles={profiles}
- readinessRows={readinessRows}
- reviewCount={reviewCount}
- reviewedChallengeCountByUser={reviewedChallengeCountByUser}
- reviewItems={reviewItems}
- teamSize={teamSize}
- org={org}
- />
- );
- break;
- }
+  let content: ReactNode;
 
- const header = MANAGER_SECTION_HEADERS[section] ?? MANAGER_SECTION_HEADERS.command;
+  switch (section) {
+    case "inbox":
+      content = (
+        <ManagerInbox
+          certItems={certReviewItems}
+          dealPrepItems={dealPrepReviewItems}
+          planSteps={planSteps}
+          reviewItems={reviewItems}
+        />
+      );
+      break;
+    case "roster":
+      content = (
+        <ManagerTeamRoster members={teamMembers} onSelectProfile={openProfile} readinessAvailable={readinessAvailable} />
+      );
+      break;
+    case "readiness":
+      content = <TeamReadiness org={org} rows={competencyRows} />;
+      break;
+    case "leaderboard":
+      content = (
+        <>
+          <PageHeader eyebrow="Trophies · sim scores · weekly practice streaks" title="Leaderboard" />
+          <Body>
+            <ManagerLeaderboard entries={leaderboardEntries} onOpenProfile={openProfile} />
+          </Body>
+        </>
+      );
+      break;
+    case "history":
+      content = (
+        <>
+          <PageHeader eyebrow={`Coaching archive · ${reviewHistory.length} reviews`} title="Review history" />
+          <Body>
+            <ManagerReviewHistory entries={reviewHistory} />
+          </Body>
+        </>
+      );
+      break;
+    case "cadence":
+      content = (
+        <ManagerCoachingCadencePanel
+          cadenceRows={cadenceRows}
+          coachingByUser={coachingByUser}
+          onOpenProfile={openProfile}
+          org={org}
+        />
+      );
+      break;
+    case "dev":
+      content = (
+        <ManagerDevelopmentPlansPanel developmentPlans={developmentPlans} onOpenProfile={openProfile} org={org} />
+      );
+      break;
+    case "program":
+      content = (
+        <>
+          <PageHeader eyebrow="Onboarding program" title="Programs" />
+          <Body>
+            <div className="flex flex-col gap-7">
+              <ManagerProgramTrackerPanel
+                activity={activity}
+                approvedCertCountByUser={approvedCertCountByUser}
+                certReviewItems={certReviewItems}
+                coachingByUser={coachingByUser}
+                developmentPlans={developmentPlans}
+                org={org}
+                planSteps={planSteps}
+                plans={plans}
+              />
+              <ManagerCohortView org={org} plans={plans} />
+            </div>
+          </Body>
+        </>
+      );
+      break;
+    case "assign":
+      content = (
+        <>
+          <PageHeader eyebrow="Ramp assignments" title="Assign plans" />
+          <Body>
+            <ManagerAssignPlansSection
+              assignees={assignees}
+              mentors={mentors}
+              org={org}
+              plans={plans}
+              viewerRole={viewerRole}
+            />
+          </Body>
+        </>
+      );
+      break;
+    case "mentees":
+      content = (
+        <>
+          <PageHeader eyebrow="Mentor workspace" title="Mentees" />
+          <Body>
+            <ManagerMenteesPanel mentees={mentees} />
+          </Body>
+        </>
+      );
+      break;
+    case "command":
+    default:
+      content = (
+        <ManagerToday
+          managerFirstName={managerFirstName}
+          members={teamMembers}
+          onOpenProfile={openProfile}
+          readinessAvailable={readinessAvailable}
+          reviewCount={reviewCount}
+          reviewsOverSla={reviewsOverSla}
+        />
+      );
+      break;
+  }
 
- return (
- <>
- <ManagerPageLayout
- bleed={header.bleed}
- compact={header.compact}
- eyebrow={header.eyebrow}
- eyebrowColor={header.eyebrowColor}
- headerRight={undefined}
- subtitle={header.subtitle}
- title={header.title}
- >
- {content}
- </ManagerPageLayout>
- {selectedSnapshot ? (
- <ManagerSeDetailPanel
- challenges={challenges}
- mentors={mentors}
- onClose={closeProfile}
- plans={plans}
- profiles={profiles}
- snapshot={selectedSnapshot}
- teamAssignees={org}
- />
- ) : null}
- </>
- );
+  return (
+    <>
+      {content}
+      {selectedSnapshot ? (
+        <ManagerSeDetailPanel
+          challenges={challenges}
+          mentors={mentors}
+          onClose={closeProfile}
+          plans={plans}
+          profiles={profiles}
+          snapshot={selectedSnapshot}
+          teamAssignees={org}
+        />
+      ) : null}
+    </>
+  );
 }

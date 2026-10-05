@@ -1,11 +1,11 @@
 "use client";
 
-import { Loader2, Send, Users } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { DataTableShell, DataTableToolbar, paginate, DataTablePagination } from "@/components/ui/data-table";
+import { Chip } from "@/components/ui/chip";
+import { Tag } from "@/components/ui/tag";
+import { paginate } from "@/components/ui/data-table";
 import {
   DIFFICULTY_OPTIONS,
   SOLUTION_OPTIONS,
@@ -28,6 +28,10 @@ const PAGE_SIZE = 10;
 
 const SE_ROLES = new Set(["basic_se", "senior_se", "advisory_solutions_consultant"]);
 
+const INPUT_CLASS =
+  "w-full rounded-[10px] border-[1.5px] border-line-strong bg-white px-3 py-2.5 text-sm font-normal text-ink";
+const LABEL_CLASS = "block space-y-1.5 text-sm font-bold text-ink";
+
 function seProfiles(profiles: Profile[]) {
   return profiles.filter((profile) => SE_ROLES.has(profile.role));
 }
@@ -37,6 +41,8 @@ export function SimulationAssignForm({
   teamAssignees,
   personaQuickPick,
   defaultAssigneeId,
+  fixedAssigneeIds,
+  onAssigned,
 }: {
   /** People available in the single-assign dropdown (usually one SE on the detail panel). */
   assignees: Profile[];
@@ -44,12 +50,28 @@ export function SimulationAssignForm({
   teamAssignees?: Profile[];
   personaQuickPick?: string | null;
   defaultAssigneeId?: string;
+  /**
+   * When non-empty, the assignee set is locked to these profile ids: the one/all switch and
+   * the SE picker are hidden, and no confirmation is asked before assigning.
+   */
+  fixedAssigneeIds?: string[];
+  /** Called after a successful assignment. */
+  onAssigned?: () => void;
 }) {
   const singleOptions = useMemo(() => seProfiles(assignees), [assignees]);
   const teamOptions = useMemo(
     () => seProfiles(teamAssignees ?? assignees),
     [teamAssignees, assignees],
   );
+
+  const isFixed = (fixedAssigneeIds?.length ?? 0) > 0;
+  const fixedNames = useMemo(() => {
+    if (!fixedAssigneeIds || fixedAssigneeIds.length === 0) return [];
+    const pool = teamAssignees ?? assignees;
+    return fixedAssigneeIds
+      .map((id) => pool.find((profile) => profile.id === id)?.fullName)
+      .filter((name): name is string => Boolean(name));
+  }, [fixedAssigneeIds, teamAssignees, assignees]);
 
   const [templates, setTemplates] = useState<Template[]>([]);
   const [templateId, setTemplateId] = useState("");
@@ -129,6 +151,13 @@ export function SimulationAssignForm({
     setTemplateSearch(match.name);
   }, [personaQuickPick, templates]);
 
+  function selectTemplate(template: Template) {
+    setTemplateId(template.id);
+    setVertical(template.vertical);
+    setSolutionFocus(template.solution_focus);
+    setDifficulty(template.difficulty);
+  }
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
 
@@ -138,19 +167,24 @@ export function SimulationAssignForm({
     }
 
     if (!resolvedSolution && showSolution) {
-      toast.error("Enter a SailPoint solution.");
+      toast.error("Enter a solution.");
       return;
     }
 
-    const assignedToIds =
-      assignMode === "all" ? teamOptions.map((profile) => profile.id) : assignedTo ? [assignedTo] : [];
+    const assignedToIds = isFixed
+      ? [...(fixedAssigneeIds ?? [])]
+      : assignMode === "all"
+        ? teamOptions.map((profile) => profile.id)
+        : assignedTo
+          ? [assignedTo]
+          : [];
 
     if (assignedToIds.length === 0) {
       toast.error("Pick at least one SE.");
       return;
     }
 
-    if (assignMode === "all") {
+    if (!isFixed && assignMode === "all") {
       const confirmed = window.confirm(
         `Assign this simulation to all ${assignedToIds.length} SEs on your team?`,
       );
@@ -190,215 +224,253 @@ export function SimulationAssignForm({
         ? "Simulation assigned — SE opens Simulations to start."
         : `Simulation assigned to ${count} SEs.`,
     );
+    onAssigned?.();
   }
 
+  const fixedCount = fixedAssigneeIds?.length ?? 0;
+  const submitLabel = isFixed
+    ? fixedCount === 1
+      ? "Assign to SE"
+      : `Assign to ${fixedCount} SEs`
+    : assignMode === "all"
+      ? `Assign to all ${teamOptions.length} SEs`
+      : "Assign to SE";
+
   return (
-    <div className="overflow-hidden border border-[#E2DFD9] bg-white ">
-      <div className="border-b border-[#ECEAE6] p-[16px_18px]">
-        <p className="text-[15px] font-bold text-[#0D0E12]">Assign simulation</p>
-        <p className="text-[12px] text-[#6B6860]">
-          Select a template, then assign to one SE or everyone on your team.
+    <div className="min-w-0 space-y-6">
+      <section className="space-y-3">
+        <div>
+          <p className="label-mono">Step 1</p>
+          <h3 className="text-[15px] font-bold text-ink">Prompt template</h3>
+        </div>
+
+        <label className="block">
+          <span className="sr-only">Search templates</span>
+          <span className="relative block">
+            <Search
+              aria-hidden
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
+            />
+            <input
+              className={`${INPUT_CLASS} pl-9`}
+              onChange={(event) => setTemplateSearch(event.target.value)}
+              placeholder="Search templates…"
+              type="search"
+              value={templateSearch}
+            />
+          </span>
+        </label>
+        <p className="font-mono text-xs text-muted">
+          {filteredTemplates.length === templates.length
+            ? `${templates.length} templates`
+            : `${filteredTemplates.length} of ${templates.length} templates`}
         </p>
-      </div>
 
-      <div className="space-y-6 p-[16px_18px]">
-        <section className="space-y-3">
-          <h3 className="text-sm font-bold text-sp-navy">1. Prompt template</h3>
-          <DataTableToolbar
-            filtered={filteredTemplates.length}
-            onSearchChange={setTemplateSearch}
-            placeholder="Search templates…"
-            search={templateSearch}
-            total={templates.length}
-          />
-          <DataTableShell>
-            <table className="min-w-full text-left text-sm">
-              <thead className="border-b border-sp-blue/10 bg-sp-blue-soft/30 text-xs uppercase tracking-wide text-sp-navy-muted">
-                <tr>
-                  <th className="w-10 px-4 py-3" />
-                  <th className="px-4 py-3 font-semibold">Template</th>
-                  <th className="px-4 py-3 font-semibold">Persona</th>
-                  <th className="px-4 py-3 font-semibold">Vertical</th>
-                  <th className="px-4 py-3 font-semibold">Overrides</th>
-                </tr>
-              </thead>
-              <tbody>
-                {templateRows.map((template) => {
-                  const selected = template.id === templateId;
-                  return (
-                    <tr
-                      className={`cursor-pointer border-b border-sp-blue/5 ${selected ? "bg-sp-blue-soft/50" : "hover:bg-sp-blue-soft/20"}`}
-                      key={template.id}
-                      onClick={() => {
-                        setTemplateId(template.id);
-                        setVertical(template.vertical);
-                        setSolutionFocus(template.solution_focus);
-                        setDifficulty(template.difficulty);
-                      }}
-                    >
-                      <td className="px-4 py-3">
-                        <input
-                          checked={selected}
-                          name="template"
-                          onChange={() => setTemplateId(template.id)}
-                          type="radio"
-                        />
-                      </td>
-                      <td className="px-4 py-3 font-semibold text-sp-navy">{template.name}</td>
-                      <td className="max-w-[180px] truncate px-4 py-3 text-sp-navy-muted" title={template.persona}>
+        <fieldset className="min-w-0">
+          <legend className="sr-only">Prompt template</legend>
+          <ul className="overflow-hidden rounded-[14px] border border-line bg-white">
+            {templateRows.map((template) => {
+              const selected = template.id === templateId;
+              return (
+                <li className="border-b border-divider last:border-b-0" key={template.id}>
+                  <label
+                    className={`flex cursor-pointer items-start gap-3 px-4 py-3 ${
+                      selected ? "bg-blue-soft" : "hover:bg-bg"
+                    }`}
+                  >
+                    <input
+                      checked={selected}
+                      className="mt-1 accent-[var(--color-blue)]"
+                      name="template"
+                      onChange={() => selectTemplate(template)}
+                      type="radio"
+                    />
+                    <span className="min-w-0 flex-1 space-y-1">
+                      <span className="block text-sm font-bold text-ink">{template.name}</span>
+                      <span className="block truncate text-sm text-muted" title={template.persona}>
                         {template.persona}
-                      </td>
-                      <td className="px-4 py-3 text-sp-navy-muted">{template.vertical}</td>
-                      <td className="px-4 py-3">
+                      </span>
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-xs text-muted">{template.vertical}</span>
                         {template.parameterized ? (
-                          <Badge tone="blue">Solution + vertical + difficulty</Badge>
+                          <Tag tone="blue">◆ Solution · vertical · difficulty</Tag>
                         ) : template.hasSolutionPlaceholder ? (
-                          <Badge tone="purple">Solution</Badge>
+                          <Tag tone="blue">◆ Solution</Tag>
                         ) : (
-                          <Badge tone="slate">Fixed</Badge>
+                          <Tag>• Fixed</Tag>
                         )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </DataTableShell>
-          <DataTablePagination
-            onPageChange={setTemplatePage}
-            page={templateSafePage}
-            pageCount={templatePageCount}
-          />
-        </section>
+                      </span>
+                    </span>
+                  </label>
+                </li>
+              );
+            })}
+            {templateRows.length === 0 ? (
+              <li className="px-4 py-3 text-sm text-muted">No templates match your search.</li>
+            ) : null}
+          </ul>
+        </fieldset>
 
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          <h3 className="text-sm font-bold text-sp-navy">2. Assignment details</h3>
-
-          {canAssignAll ? (
-            <div className="flex flex-wrap gap-2">
+        {templatePageCount > 1 ? (
+          <div className="flex items-center justify-between gap-2">
+            <p className="font-mono text-xs text-muted">
+              Page {templateSafePage} of {templatePageCount}
+            </p>
+            <div className="flex gap-2">
               <button
-                className={`border px-3 py-1.5 text-xs font-semibold ${
-                  assignMode === "one"
-                    ? "border-[#0071ce] bg-[#F0F7FF] text-[#0033a1]"
-                    : "border-[#E2DFD9] bg-white text-[#6B6860]"
-                }`}
-                onClick={() => setAssignMode("one")}
+                aria-label="Previous page"
+                className="btn-secondary inline-flex items-center gap-1 px-3 py-1.5 disabled:opacity-50"
+                disabled={templateSafePage <= 1}
+                onClick={() => setTemplatePage(templateSafePage - 1)}
                 type="button"
               >
-                One SE
+                <ChevronLeft aria-hidden className="h-4 w-4" />
               </button>
               <button
-                className={`inline-flex items-center gap-1.5 border px-3 py-1.5 text-xs font-semibold ${
-                  assignMode === "all"
-                    ? "border-[#0071ce] bg-[#F0F7FF] text-[#0033a1]"
-                    : "border-[#E2DFD9] bg-white text-[#6B6860]"
-                }`}
-                onClick={() => setAssignMode("all")}
+                aria-label="Next page"
+                className="btn-secondary inline-flex items-center gap-1 px-3 py-1.5 disabled:opacity-50"
+                disabled={templateSafePage >= templatePageCount}
+                onClick={() => setTemplatePage(templateSafePage + 1)}
                 type="button"
               >
-                <Users className="h-3.5 w-3.5" />
-                All SEs ({teamOptions.length})
+                <ChevronRight aria-hidden className="h-4 w-4" />
               </button>
             </div>
-          ) : null}
+          </div>
+        ) : null}
+      </section>
 
-          {assignMode === "one" ? (
-            <label className="block space-y-1 text-sm font-medium text-sp-navy-muted">
-              Assign to
+      <form className="space-y-4" onSubmit={handleSubmit}>
+        <div>
+          <p className="label-mono">Step 2</p>
+          <h3 className="text-[15px] font-bold text-ink">Assignment details</h3>
+        </div>
+
+        {isFixed ? (
+          <div className="rounded-[14px] bg-blue-soft px-4 py-3 text-sm text-ink">
+            <p className="font-bold">
+              Assigning to {fixedCount} SE{fixedCount === 1 ? "" : "s"}
+            </p>
+            {fixedNames.length > 0 ? <p className="text-ink-2">{fixedNames.join(", ")}</p> : null}
+          </div>
+        ) : (
+          <>
+            {canAssignAll ? (
+              <div aria-label="Assign to" className="flex flex-wrap gap-2" role="group">
+                <Chip active={assignMode === "one"} onClick={() => setAssignMode("one")}>
+                  One SE
+                </Chip>
+                <Chip active={assignMode === "all"} onClick={() => setAssignMode("all")}>
+                  All SEs ({teamOptions.length})
+                </Chip>
+              </div>
+            ) : null}
+
+            {assignMode === "one" ? (
+              <label className={LABEL_CLASS}>
+                <span className="block">Assign to</span>
+                <select
+                  className={INPUT_CLASS}
+                  onChange={(e) => setAssignedTo(e.target.value)}
+                  required
+                  value={assignedTo}
+                >
+                  {(singleOptions.length > 0 ? singleOptions : teamOptions).map((profile) => (
+                    <option key={profile.id} value={profile.id}>
+                      {profile.fullName}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : (
+              <p className="rounded-[14px] bg-blue-soft px-4 py-3 text-sm text-ink">
+                Will assign to <span className="font-bold">{teamOptions.length}</span> SEs:{" "}
+                {teamOptions
+                  .slice(0, 6)
+                  .map((profile) => profile.fullName)
+                  .join(", ")}
+                {teamOptions.length > 6 ? ` +${teamOptions.length - 6} more` : ""}.
+              </p>
+            )}
+          </>
+        )}
+
+        {showSolution ? (
+          <>
+            <label className={LABEL_CLASS}>
+              <span className="block">Solution</span>
               <select
-                className="h-10 w-full border border-sp-blue/15 bg-white px-3 text-sm"
-                onChange={(e) => setAssignedTo(e.target.value)}
-                required
-                value={assignedTo}
+                className={INPUT_CLASS}
+                onChange={(e) => setSolutionFocus(e.target.value)}
+                value={solutionFocus}
               >
-                {(singleOptions.length > 0 ? singleOptions : teamOptions).map((profile) => (
-                  <option key={profile.id} value={profile.id}>
-                    {profile.fullName}
+                {SOLUTION_OPTIONS.map((solution) => (
+                  <option key={solution} value={solution}>
+                    {solution}
+                  </option>
+                ))}
+                <option value="custom">Custom solution…</option>
+              </select>
+            </label>
+            {solutionFocus === "custom" ? (
+              <label className={LABEL_CLASS}>
+                <span className="block">Custom solution</span>
+                <input
+                  className={INPUT_CLASS}
+                  onChange={(e) => setCustomSolution(e.target.value)}
+                  placeholder="Enter a solution"
+                  required
+                  value={customSolution}
+                />
+              </label>
+            ) : null}
+          </>
+        ) : null}
+
+        {showVerticalDifficulty ? (
+          <>
+            <label className={LABEL_CLASS}>
+              <span className="block">Vertical</span>
+              <select
+                className={INPUT_CLASS}
+                onChange={(e) => setVertical(e.target.value)}
+                value={vertical}
+              >
+                {VERTICAL_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
                   </option>
                 ))}
               </select>
             </label>
-          ) : (
-            <p className="border border-[#E2DFD9] bg-[#F9F8F6] px-3 py-2 text-sm text-[#3D3C38]">
-              Will assign to <span className="font-semibold">{teamOptions.length}</span> SEs:{" "}
-              {teamOptions
-                .slice(0, 6)
-                .map((profile) => profile.fullName)
-                .join(", ")}
-              {teamOptions.length > 6 ? ` +${teamOptions.length - 6} more` : ""}.
-            </p>
-          )}
+            <label className={LABEL_CLASS}>
+              <span className="block">Difficulty</span>
+              <select
+                className={INPUT_CLASS}
+                onChange={(e) =>
+                  setDifficulty(e.target.value as "foundational" | "intermediate" | "advanced")
+                }
+                value={difficulty}
+              >
+                {DIFFICULTY_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </>
+        ) : null}
 
-          {showSolution ? (
-            <>
-              <label className="block space-y-1 text-sm font-medium text-sp-navy-muted">
-                Solution
-                <select
-                  className="h-10 w-full border border-sp-blue/15 bg-white px-3 text-sm"
-                  onChange={(e) => setSolutionFocus(e.target.value)}
-                  value={solutionFocus}
-                >
-                  {SOLUTION_OPTIONS.map((solution) => (
-                    <option key={solution} value={solution}>
-                      {solution}
-                    </option>
-                  ))}
-                  <option value="custom">Custom solution…</option>
-                </select>
-              </label>
-              {solutionFocus === "custom" ? (
-                <input
-                  className="h-10 w-full border border-sp-blue/15 px-3 text-sm"
-                  onChange={(e) => setCustomSolution(e.target.value)}
-                  placeholder="Enter a SailPoint solution"
-                  required
-                  value={customSolution}
-                />
-              ) : null}
-            </>
-          ) : null}
-
-          {showVerticalDifficulty ? (
-            <>
-              <label className="block space-y-1 text-sm font-medium text-sp-navy-muted">
-                Vertical
-                <select
-                  className="h-10 w-full border border-sp-blue/15 bg-white px-3 text-sm"
-                  onChange={(e) => setVertical(e.target.value)}
-                  value={vertical}
-                >
-                  {VERTICAL_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="block space-y-1 text-sm font-medium text-sp-navy-muted">
-                Difficulty
-                <select
-                  className="h-10 w-full border border-sp-blue/15 bg-white px-3 text-sm"
-                  onChange={(e) =>
-                    setDifficulty(e.target.value as "foundational" | "intermediate" | "advanced")
-                  }
-                  value={difficulty}
-                >
-                  {DIFFICULTY_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </>
-          ) : null}
-
-          <Button className="w-full" disabled={isSaving || !templateId} type="submit">
-            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            {assignMode === "all" ? `Assign to all ${teamOptions.length} SEs` : "Assign to SE"}
-          </Button>
-        </form>
-      </div>
+        <button
+          className="btn-secondary inline-flex w-full items-center justify-center gap-2 disabled:opacity-50"
+          disabled={isSaving || !templateId}
+          type="submit"
+        >
+          {isSaving ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
+          {submitLabel}
+        </button>
+      </form>
     </div>
   );
 }

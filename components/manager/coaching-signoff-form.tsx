@@ -6,6 +6,10 @@ import type { SignoffTier } from "@/lib/coaching/signoff-policy";
 import type { CoachingSignoffInput } from "@/lib/coaching/signoff-validation";
 import { validateCoachingSignoff } from "@/lib/coaching/signoff-validation";
 
+const INPUT_CLASS =
+  "w-full rounded-[10px] border-[1.5px] border-line-strong bg-white px-3 py-2.5 text-sm font-normal text-ink";
+const LABEL_CLASS = "block space-y-1.5 text-sm font-bold text-ink";
+
 export type CoachingBrief = {
   brief: string;
   suggestedStrength: string;
@@ -104,8 +108,8 @@ export function ManagerCoachingBriefPanel({
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 border-l-[3px] border-[#0071ce] bg-[#EEF4FF] px-3 py-2 text-[11px] text-[#0071ce]">
-        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+      <div className="flex items-center gap-2 rounded-[14px] bg-blue-soft px-4 py-3 text-sm text-ink-2" role="status">
+        <Loader2 aria-hidden className="h-4 w-4 animate-spin text-blue" />
         Preparing coaching brief…
       </div>
     );
@@ -114,13 +118,15 @@ export function ManagerCoachingBriefPanel({
   if (!brief) return null;
 
   return (
-    <div className="space-y-2 border-l-[3px] border-[#0071ce] bg-[#EEF4FF] px-3 py-2.5">
-      <p className="flex items-center gap-1.5 font-mono text-[8px] uppercase tracking-[0.1em] text-[#0071ce]">
-        <Sparkles className="h-3 w-3" />
+    <div className="space-y-2 rounded-[14px] bg-blue-soft px-4 py-3">
+      <p className="label-mono flex items-center gap-1.5">
+        <Sparkles aria-hidden className="h-3.5 w-3.5 text-blue" />
         Coaching brief {brief.source === "ai" ? "· AI" : ""}
       </p>
-      <p className="text-[11.5px] leading-relaxed text-[#0D0E12]">{brief.brief}</p>
-      <p className="text-[10.5px] italic text-[#3D3C38]">1:1 question: {brief.coachingQuestion}</p>
+      <p className="text-sm leading-relaxed text-ink">{brief.brief}</p>
+      <p className="text-sm text-ink-2">
+        <span className="font-bold">1:1 question:</span> {brief.coachingQuestion}
+      </p>
     </div>
   );
 }
@@ -152,15 +158,15 @@ export function CoachingSignoffForm({
   );
 
   return (
-    <div className="space-y-2.5 border border-[#E2DFD9] bg-[#F9F8F6] p-3">
-      <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-[#6B6860]">
-        <ShieldCheck className="h-3.5 w-3.5 text-[#0071ce]" />
+    <div className="space-y-4 rounded-[14px] border border-line bg-white p-4">
+      <p className="label-mono flex items-center gap-1.5">
+        <ShieldCheck aria-hidden className="h-4 w-4 text-blue" />
         Coaching sign-off {tier === "hard" ? "· gate" : tier === "standard" ? "· required" : "· light"}
       </p>
-      <label className="block text-[10px] font-semibold text-[#3D3C38]">
-        Strength observed
+      <label className={LABEL_CLASS}>
+        <span className="block">Strength observed</span>
         <textarea
-          className="mt-1 w-full border border-[#D4D1CB] bg-white px-2 py-1.5 text-[11px]"
+          className={INPUT_CLASS}
           onChange={(event) => onStrengthChange(event.target.value)}
           placeholder="What did they do well — be specific…"
           rows={2}
@@ -168,10 +174,10 @@ export function CoachingSignoffForm({
         />
       </label>
       {tier !== "light" ? (
-        <label className="block text-[10px] font-semibold text-[#3D3C38]">
-          Gap to address
+        <label className={LABEL_CLASS}>
+          <span className="block">Gap to address</span>
           <textarea
-            className="mt-1 w-full border border-[#D4D1CB] bg-white px-2 py-1.5 text-[11px]"
+            className={INPUT_CLASS}
             onChange={(event) => onGapChange(event.target.value)}
             placeholder="Highest-impact improvement area…"
             rows={2}
@@ -179,10 +185,10 @@ export function CoachingSignoffForm({
           />
         </label>
       ) : null}
-      <label className="block text-[10px] font-semibold text-[#3D3C38]">
-        Next action (concrete)
+      <label className={LABEL_CLASS}>
+        <span className="block">Next action (concrete)</span>
         <textarea
-          className="mt-1 w-full border border-[#D4D1CB] bg-white px-2 py-1.5 text-[11px]"
+          className={INPUT_CLASS}
           onChange={(event) => onNextActionChange(event.target.value)}
           placeholder="What they should practice or do before the next milestone…"
           rows={2}
@@ -191,10 +197,10 @@ export function CoachingSignoffForm({
       </label>
       {tier === "hard" && decision === "approve" ? (
         <>
-          <label className="block text-[10px] font-semibold text-[#3D3C38]">
-            Readiness confidence (1–5)
+          <label className={LABEL_CLASS}>
+            <span className="block">Readiness confidence (1–5)</span>
             <select
-              className="mt-1 w-full border border-[#D4D1CB] bg-white px-2 py-1.5 text-[11px]"
+              className={INPUT_CLASS}
               onChange={(event) =>
                 onConfidenceChange(event.target.value ? Number(event.target.value) : null)
               }
@@ -208,33 +214,36 @@ export function CoachingSignoffForm({
               ))}
             </select>
           </label>
-          <label className="flex items-start gap-2 text-[10px] text-[#3D3C38]">
+          <label className="flex items-start gap-2.5 text-sm text-ink-2">
             <input
               checked={signoff.liveAttestation ?? false}
-              className="mt-0.5"
+              className="mt-1 h-4 w-4 shrink-0 accent-[var(--color-blue)]"
               onChange={(event) => onLiveAttestationChange(event.target.checked)}
               type="checkbox"
             />
             <span>
-              <span className="font-semibold">Live coaching attestation</span> — I observed or coached them
+              <span className="font-bold text-ink">Live coaching attestation</span> — I observed or coached them
               directly (1:1, call shadow, or live review).
             </span>
           </label>
           {signoff.liveAttestation ? (
-            <textarea
-              className="w-full border border-[#D4D1CB] bg-white px-2 py-1.5 text-[11px]"
-              onChange={(event) => onAttestationNoteChange(event.target.value)}
-              placeholder="What you observed or coached in the live moment…"
-              rows={2}
-              value={signoff.attestationNote ?? ""}
-            />
+            <label className={LABEL_CLASS}>
+              <span className="block">What you observed</span>
+              <textarea
+                className={INPUT_CLASS}
+                onChange={(event) => onAttestationNoteChange(event.target.value)}
+                placeholder="What you observed or coached in the live moment…"
+                rows={2}
+                value={signoff.attestationNote ?? ""}
+              />
+            </label>
           ) : null}
         </>
       ) : null}
       {!validation.ok && decision === "approve" ? (
-        <ul className="space-y-0.5 text-[10px] text-[#B83128]">
+        <ul className="space-y-1 rounded-[10px] bg-danger-soft px-3 py-2 text-sm text-danger">
           {validation.errors.map((error) => (
-            <li key={error}>• {error}</li>
+            <li key={error}>▲ {error}</li>
           ))}
         </ul>
       ) : null}

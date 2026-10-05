@@ -1,12 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { MentorReviewPanel } from "@/components/manager/mentor-review-panel";
-import { ManagerOutlineBtn } from "@/components/manager/manager-ui-primitives";
 import { MentorCoachingNotesEditor } from "@/components/manager/mentor-coaching-notes-editor";
-import { Button } from "@/components/ui/button";
+import { Stat } from "@/components/ui/stat";
+import { Tag } from "@/components/ui/tag";
 import type { MenteeAssignment } from "@/lib/data/fetch-mentor-mentees";
-import { avatarGradientForId } from "@/lib/se/avatar-gradients";
 import { initials } from "@/lib/utils";
 
 function formatPercent(value: number) {
@@ -23,100 +23,110 @@ export function ManagerMenteesPanel({
   return (
     <>
       {mentees.length === 0 ? (
-        <div className="border border-[#E2DFD9] bg-white p-6">
-          <p className="text-sm text-[#6B6860]">
+        <div className="rounded-[14px] border border-line bg-white p-6">
+          <p className="text-sm text-muted">
             No active mentee assignments yet. Your manager will assign you when onboarding plans are
             created.
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="border border-[#E2DFD9] bg-white p-4">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-[#A09D98]">Active mentees</p>
-              <p className="font-display text-2xl font-extrabold text-[#0D0E12]">{mentees.length}</p>
+            <div className="rounded-[14px] border border-line bg-white p-4">
+              <Stat label="Active mentees" value={mentees.length} />
             </div>
-            <div className="border border-[#E2DFD9] bg-white p-4">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-[#A09D98]">Check-ins pending</p>
-              <p className="font-display text-2xl font-extrabold text-[#b45309]">
-                {mentees.reduce((sum, item) => sum + item.pendingMentorReviews, 0)}
-              </p>
+            <div className="rounded-[14px] border border-line bg-white p-4">
+              <Stat
+                label="Check-ins pending"
+                value={mentees.reduce((sum, item) => sum + item.pendingMentorReviews, 0)}
+              />
             </div>
-            <div className="border border-[#E2DFD9] bg-white p-4">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-[#A09D98]">Awaiting manager sign-off</p>
-              <p className="font-display text-2xl font-extrabold text-[#0071ce]">
-                {mentees.reduce((sum, item) => sum + item.awaitingManagerSignoff, 0)}
-              </p>
+            <div className="rounded-[14px] border border-line bg-white p-4">
+              <Stat
+                label="Awaiting manager sign-off"
+                value={mentees.reduce((sum, item) => sum + item.awaitingManagerSignoff, 0)}
+              />
             </div>
           </div>
 
           <MentorReviewPanel />
 
-          {mentees.map(({ plan, profile, pendingMentorReviews, awaitingManagerSignoff }) => {
-            const isOpen = expandedId === profile.id;
-            const nextStep = plan.steps
-              .filter((step) => step.status !== "reviewed")
-              .sort((a, b) => a.order - b.order)[0];
+          <section className="space-y-3">
+            <h3 className="text-base font-bold text-ink">Your mentees</h3>
+            <ul className="overflow-hidden rounded-[14px] border border-line bg-white">
+              {mentees.map(({ plan, profile, pendingMentorReviews, awaitingManagerSignoff }) => {
+                const isOpen = expandedId === profile.id;
+                const nextStep = plan.steps
+                  .filter((step) => step.status !== "reviewed")
+                  .sort((a, b) => a.order - b.order)[0];
+                const panelId = `mentee-${profile.id}`;
 
-            return (
-              <div className="border border-[#E2DFD9] bg-white" key={profile.id}>
-                <div className="flex flex-wrap items-center gap-3 p-4">
-                  <div
-                    className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white"
-                    style={{ background: avatarGradientForId(profile.id) }}
-                  >
-                    {initials(profile.fullName)}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-[#0D0E12]">{profile.fullName}</p>
-                    <p className="text-xs text-[#6B6860]">
-                      {plan.name} · {formatPercent(plan.progress)} complete
-                    </p>
-                  </div>
-                  {pendingMentorReviews > 0 ? (
-                    <span className="rounded-full bg-[#fef3c7] px-2 py-0.5 text-[10px] font-bold text-[#b45309]">
-                      {pendingMentorReviews} check-in{pendingMentorReviews === 1 ? "" : "s"}
-                    </span>
-                  ) : null}
-                  {awaitingManagerSignoff > 0 ? (
-                    <span className="rounded-full bg-[#e8f2fc] px-2 py-0.5 text-[10px] font-bold text-[#0071ce]">
-                      Manager sign-off pending
-                    </span>
-                  ) : null}
-                  <Button onClick={() => setExpandedId(isOpen ? null : profile.id)} size="sm" variant="outline">
-                    {isOpen ? "Close" : "Coach"}
-                  </Button>
-                </div>
-
-                {isOpen ? (
-                  <div className="space-y-4 border-t border-[#ECEAE6] p-4">
-                    {nextStep ? (
-                      <p className="text-xs text-[#6B6860]">
-                        Next step: <span className="font-semibold text-[#3D3C38]">{nextStep.title}</span> (
-                        {nextStep.status.replaceAll("_", " ")})
-                      </p>
-                    ) : null}
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      {plan.steps.slice(0, 8).map((step) => (
-                        <div className="border border-[#ECEAE6] bg-[#F9F8F6] px-3 py-2 text-xs" key={step.id}>
-                          <p className="font-semibold text-[#3D3C38]">{step.title}</p>
-                          <p className="capitalize text-[#6B6860]">{step.status.replaceAll("_", " ")}</p>
-                        </div>
-                      ))}
-                    </div>
-                    <MentorCoachingNotesEditor seUserId={profile.id} />
-                    <div className="flex flex-wrap gap-2">
-                      {nextStep?.assignmentStepId ? (
-                        <ManagerOutlineBtn href={`/plan-steps/${nextStep.assignmentStepId}`}>
-                          Open current step →
-                        </ManagerOutlineBtn>
+                return (
+                  <li className="border-b border-divider last:border-b-0" key={profile.id}>
+                    <div className="flex flex-wrap items-center gap-3 p-4">
+                      <div
+                        aria-hidden
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue text-sm font-bold text-white"
+                      >
+                        {initials(profile.fullName)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-bold text-ink">{profile.fullName}</p>
+                        <p className="text-sm text-muted">
+                          {plan.name} · {formatPercent(plan.progress)} complete
+                        </p>
+                      </div>
+                      {pendingMentorReviews > 0 ? (
+                        <Tag tone="warning">
+                          ▲ {pendingMentorReviews} check-in{pendingMentorReviews === 1 ? "" : "s"}
+                        </Tag>
                       ) : null}
+                      {awaitingManagerSignoff > 0 ? <Tag tone="blue">◆ Manager sign-off pending</Tag> : null}
+                      <button
+                        aria-controls={panelId}
+                        aria-expanded={isOpen}
+                        className="btn-secondary px-3.5 py-1.5"
+                        onClick={() => setExpandedId(isOpen ? null : profile.id)}
+                        type="button"
+                      >
+                        {isOpen ? "Close" : "Coach"}
+                      </button>
                     </div>
-                  </div>
-                ) : null}
-              </div>
-            );
-          })}
+
+                    {isOpen ? (
+                      <div className="space-y-4 border-t border-divider bg-bg p-4" id={panelId}>
+                        {nextStep ? (
+                          <p className="text-sm text-muted">
+                            Next step: <span className="font-bold text-ink">{nextStep.title}</span> (
+                            {nextStep.status.replaceAll("_", " ")})
+                          </p>
+                        ) : null}
+                        <ul className="overflow-hidden rounded-[14px] border border-line bg-white">
+                          {plan.steps.slice(0, 8).map((step) => (
+                            <li
+                              className="flex items-start justify-between gap-3 border-b border-divider px-4 py-2.5 text-sm last:border-b-0"
+                              key={step.id}
+                            >
+                              <span className="min-w-0 font-bold text-ink-2">{step.title}</span>
+                              <span className="shrink-0 font-mono text-xs uppercase text-muted">
+                                {step.status.replaceAll("_", " ")}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                        <MentorCoachingNotesEditor seUserId={profile.id} />
+                        {nextStep?.assignmentStepId ? (
+                          <Link className="link text-sm" href={`/plan-steps/${nextStep.assignmentStepId}`}>
+                            Open current step
+                          </Link>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
         </div>
       )}
     </>

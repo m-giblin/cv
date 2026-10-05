@@ -4,9 +4,10 @@ import { Loader2, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+
+const INPUT_CLASS =
+  "w-full rounded-[10px] border-[1.5px] border-line-strong bg-white px-3 py-2.5 text-sm font-normal text-ink";
+const LABEL_CLASS = "block space-y-1.5 text-sm font-bold text-ink";
 
 export function ManagerAddAdHocTask({
   assignmentId,
@@ -56,34 +57,64 @@ export function ManagerAddAdHocTask({
   }
 
   return (
-    <section className="border border-[#E2DFD9] bg-[#F9F8F6] p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h3 className="text-sm font-bold text-[#0D0E12]">Add ramp task</h3>
-          <p className="mt-1 text-xs text-[#6B6860]">
+    <section className="rounded-[14px] border border-line bg-white p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <h3 className="text-[15px] font-bold text-ink">Add ramp task</h3>
+          <p className="mt-1 text-sm text-muted">
             One-off assignments for this employee. You conduct the live sign-off when they submit.
           </p>
         </div>
-        <Button onClick={() => setOpen((value) => !value)} size="sm" type="button" variant="outline">
-          <Plus className="h-4 w-4" />
+        <button
+          aria-expanded={open}
+          className="link inline-flex items-center gap-1 text-sm"
+          onClick={() => setOpen((value) => !value)}
+          type="button"
+        >
+          {open ? null : <Plus aria-hidden className="h-4 w-4" />}
           {open ? "Cancel" : "Add task"}
-        </Button>
+        </button>
       </div>
 
       {open ? (
         <form className="mt-4 space-y-3" onSubmit={handleAdd}>
-          <Input onChange={(e) => setTitle(e.target.value)} placeholder="Task title" required value={title} />
-          <Textarea
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="What should they do? What will you validate live?"
-            rows={3}
-            value={description}
-          />
-          <Input onChange={(e) => setDueDate(e.target.value)} type="date" value={dueDate} />
-          <Button disabled={isSaving} type="submit">
-            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          <label className={LABEL_CLASS}>
+            <span className="block">Task title</span>
+            <input
+              className={INPUT_CLASS}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Task title"
+              required
+              value={title}
+            />
+          </label>
+          <label className={LABEL_CLASS}>
+            <span className="block">Description</span>
+            <textarea
+              className={INPUT_CLASS}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="What should they do? What will you validate live?"
+              rows={3}
+              value={description}
+            />
+          </label>
+          <label className={LABEL_CLASS}>
+            <span className="block">Due date (optional)</span>
+            <input
+              className={INPUT_CLASS}
+              onChange={(e) => setDueDate(e.target.value)}
+              type="date"
+              value={dueDate}
+            />
+          </label>
+          <button
+            className="btn-secondary inline-flex items-center gap-2 disabled:opacity-50"
+            disabled={isSaving}
+            type="submit"
+          >
+            {isSaving ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
             Add to ramp plan
-          </Button>
+          </button>
         </form>
       ) : null}
     </section>

@@ -1,6 +1,6 @@
 import { formatDistanceToNow } from "date-fns";
-import { CheckCircle2, RotateCcw } from "lucide-react";
-import { ActivityLog, CoachingCard, Profile } from "@/lib/types";
+import { Tag } from "@/components/ui/tag";
+import type { ActivityLog, CoachingCard, Profile } from "@/lib/types";
 
 export type ReviewHistoryEntry = {
  id: string;
@@ -12,10 +12,10 @@ export type ReviewHistoryEntry = {
  feedbackPreview?: string;
 };
 
-const TYPE_BADGE: Record<ReviewHistoryEntry["type"], { bg: string; color: string; label: string }> = {
- simulation: { bg: "#e8f2fc", color: "#0057a8", label: "Simulation" },
- challenge: { bg: "#ede9fe", color: "#5b21b6", label: "Challenge" },
- plan_step: { bg: "#fef3c7", color: "#b45309", label: "Plan step" },
+const TYPE_LABEL: Record<ReviewHistoryEntry["type"], string> = {
+ simulation: "Sim card",
+ challenge: "Challenge",
+ plan_step: "Plan step",
 };
 
 export function buildReviewHistory(
@@ -89,82 +89,59 @@ export function buildReviewHistory(
 
 export function ManagerReviewHistory({
  entries,
- fullPage = false,
 }: {
  entries: ReviewHistoryEntry[];
  fullPage?: boolean;
 }) {
  if (entries.length === 0) {
- if (!fullPage) return null;
  return (
- <div className="overflow-hidden border border-[#E2DFD9] bg-white">
- <p className="px-5 py-10 text-center text-[12.5px] text-[#A09D98]">
- No completed reviews yet — approved and sent-back items will appear here.
+ <p className="rounded-[14px] border border-line bg-white px-5 py-10 text-center text-[15px] text-muted">
+ No completed reviews yet. Approved and sent-back items appear here.
  </p>
- </div>
  );
  }
 
  return (
- <div className="overflow-hidden border border-[#E2DFD9] bg-white">
- {!fullPage ? (
- <div className="border-b border-[#ECEAE6] p-[13px_16px_11px]">
- <p className="text-[12.5px] font-bold text-[#0D0E12]">Review history</p>
- <p className="mt-[1px] text-[10.5px] text-[#A09D98]">
- Audit trail of completed reviews — approved and sent-back items leave the inbox but stay here.
- </p>
- </div>
- ) : null}
- <div>
+ <div className="overflow-x-auto rounded-[14px] border border-line bg-white">
+ <table className="w-full min-w-[760px] border-collapse text-left text-[15px]">
+ <caption className="sr-only">Completed reviews, newest first</caption>
+ <thead className="bg-blue font-mono text-xs text-white uppercase">
+ <tr>
+ <th className="px-5 py-[11px] font-medium" scope="col">When</th>
+ <th className="px-5 py-[11px] font-medium" scope="col">Decision</th>
+ <th className="px-5 py-[11px] font-medium" scope="col">Type</th>
+ <th className="px-5 py-[11px] font-medium" scope="col">Item</th>
+ <th className="px-5 py-[11px] font-medium" scope="col">SE</th>
+ </tr>
+ </thead>
+ <tbody>
  {entries.map((entry) => {
- const typeBadge = TYPE_BADGE[entry.type];
  const approved = entry.decision === "approved";
  return (
- <div
- className="flex items-start justify-between gap-3 border-b border-[#f9fafb] px-[18px] py-[11px] last:border-0 hover:bg-[#f7fafd]"
- key={entry.id}
- >
- <div className="min-w-0">
- <div className="flex flex-wrap items-center gap-2">
- <span
- className="inline-flex items-center gap-1 font-mono text-[8px] uppercase tracking-[0.08em] px-[8px] py-[2px] text-[9.5px] font-bold"
- style={{
- background: approved ? "#dcfce7" : "#fef3c7",
- color: approved ? "#15803d" : "#b45309",
- }}
- >
- {approved ? (
- <>
- <CheckCircle2 className="h-3 w-3" />
- Approved
- </>
- ) : (
- <>
- <RotateCcw className="h-3 w-3" />
- Needs redo
- </>
- )}
- </span>
- <span
- className="font-mono text-[8px] uppercase tracking-[0.08em] px-[8px] py-[2px] text-[9.5px] font-bold"
- style={{ background: typeBadge.bg, color: typeBadge.color }}
- >
- {typeBadge.label}
- </span>
- </div>
- <p className="mt-1 text-[12px] font-semibold text-[#3D3C38]">{entry.personName}</p>
- <p className="truncate text-[11.5px] text-[#6B6860]">{entry.title}</p>
- {entry.feedbackPreview ? (
- <p className="mt-1 line-clamp-2 text-[10.5px] text-[#A09D98]">{entry.feedbackPreview}</p>
- ) : null}
- </div>
- <span className="shrink-0 text-[10.5px] text-[#A09D98]">
+ <tr className="border-b border-divider align-top last:border-b-0" key={entry.id}>
+ <td className="px-5 py-3 font-mono text-xs whitespace-nowrap text-ink-2">
  {formatDistanceToNow(new Date(entry.reviewedAt), { addSuffix: true })}
- </span>
- </div>
+ </td>
+ <td className="px-5 py-3">
+ <Tag className="bg-transparent" tone={approved ? "success" : "warning"}>
+ {approved ? "✓ Approved" : "• Changes requested"}
+ </Tag>
+ </td>
+ <td className="px-5 py-3">
+ <Tag>{TYPE_LABEL[entry.type]}</Tag>
+ </td>
+ <td className="px-5 py-3">
+ <span className="block font-bold text-ink">{entry.title}</span>
+ {entry.feedbackPreview ? (
+ <span className="mt-1 line-clamp-2 block text-sm text-ink-2">{entry.feedbackPreview}</span>
+ ) : null}
+ </td>
+ <td className="px-5 py-3 text-ink">{entry.personName}</td>
+ </tr>
  );
  })}
- </div>
+ </tbody>
+ </table>
  </div>
  );
 }

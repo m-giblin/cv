@@ -2,12 +2,19 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { ProgramTrackerSeDrawer } from "@/components/manager/program-tracker-se-drawer";
+import {
+  healthTag,
+  InitialsAvatar,
+  ProgramTrackerSeDrawer,
+  programStatusTag,
+} from "@/components/manager/program-tracker-se-drawer";
 import type { CertReviewItem } from "@/components/manager/cert-review-item";
 import type { PlanStepReviewItem } from "@/components/manager/plan-step-review-panel";
-import { Input } from "@/components/ui/input";
+import { SegmentedToggle } from "@/components/ui/segmented-toggle";
+import { Stat } from "@/components/ui/stat";
+import { Tag } from "@/components/ui/tag";
 import type { MilestoneNudgeStatus } from "@/lib/manager/milestone-actions";
 import type { SeCoachingSummary } from "@/lib/manager/se-coaching-summary";
 import { addCalendarDays } from "@/lib/plans/business-days";
@@ -60,26 +67,31 @@ function planCalendarHref(userId: string): string {
   return `/plan-calendar?se=${encodeURIComponent(userId)}`;
 }
 
-function Avatar({
-  initials: label,
-  bg,
-  size = 28,
-  fontSize = 9.5,
-}: {
-  initials: string;
-  bg: string;
-  size?: number;
-  fontSize?: number;
-}) {
-  return (
-    <div
-      className="flex shrink-0 items-center justify-center rounded-full font-mono font-medium text-white"
-      style={{ width: size, height: size, background: bg, fontSize }}
-    >
-      {label}
-    </div>
-  );
-}
+/** Small pill action used inside rows (btn-secondary is too large for dense lists). */
+const PILL =
+  "inline-flex items-center rounded-full border-[1.5px] border-ink bg-white px-3 py-1 text-xs font-bold text-ink no-underline hover:bg-blue-soft disabled:cursor-not-allowed disabled:border-line-strong disabled:text-muted disabled:hover:bg-white";
+
+const LINE_CARD = "overflow-hidden rounded-[14px] border border-line bg-white";
+
+const QUARTERS = ["Q3 FY2026", "Q2 FY2026", "All"];
+
+const TRACKER_TABS: ProgramTrackerTab[] = ["cohort", "programs", "milestones"];
+
+const PHASE_HEADERS = [
+  ["Phase 1", "Foundations · wks 1–2"],
+  ["Phase 2", "Technical depth · wks 3–4"],
+  ["Phase 3", "Field application · wks 5–6"],
+  ["Phase 4", "Cert gates · ongoing"],
+] as const;
+
+const PHASE_CELL: Record<string, { cls: string; symbol: string }> = {
+  complete: { cls: "bg-success-soft text-success", symbol: "✓" },
+  active: { cls: "bg-blue-soft text-blue", symbol: "●" },
+  blocked: { cls: "bg-danger-soft text-danger", symbol: "▲" },
+  upcoming: { cls: "bg-white text-muted", symbol: "•" },
+};
+
+const COHORT_GRID = "grid grid-cols-[200px_repeat(4,minmax(0,1fr))_110px]";
 
 export function ManagerProgramTrackerPanel({
   org,
@@ -336,585 +348,467 @@ export function ManagerProgramTrackerPanel({
     [router, setLoading],
   );
 
+
+  const closeDrawer = useCallback(() => setDrawerUserId(null), []);
+
   const drawerProfile = drawerUserId ? view.drawerProfiles[drawerUserId] ?? null : null;
+
+  const nudgeLabel = (item: MilestoneItemView, idle: string) =>
+    actionLoading[`nudge:${item.assignmentStepId}`]
+      ? "Sending…"
+      : nudgeStatus[item.assignmentStepId]?.canNudge === false
+        ? "Nudged"
+        : idle;
+
+  const nudgeDisabled = (item: MilestoneItemView) =>
+    Boolean(
+      actionLoading[`nudge:${item.assignmentStepId}`] ||
+        nudgeStatus[item.assignmentStepId]?.canNudge === false,
+    );
 
   return (
     <>
-      <div className="flex min-h-[calc(100vh-10rem)] flex-col overflow-hidden rounded-sm border border-[#E2DFD9] bg-white shadow-[0_1px_2px_rgba(0,0,0,.04)]">
-        {/* Topbar */}
-        <div className="flex h-11 shrink-0 items-center justify-between border-b border-[#E2DFD9] px-5">
-          <div className="flex items-center">
-            <span className="font-mono text-[10.5px] text-[#A09D98]">Program</span>
-            <span className="mx-0.5 text-[11px] text-[#C4C1BB]">›</span>
-            <span className="font-mono text-[10.5px] font-medium text-[#3D3C38]">Program Tracker</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link
-              className="inline-flex items-center border border-[#D4D1CB] px-2.5 py-1 text-[10px] font-semibold text-[#3D3C38] hover:border-[#0071CE] hover:text-[#0071CE]"
-              href="/plans"
-            >
+      <div className="space-y-6">
+        {/* Toolbar */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="label-mono">{view.cohortEyebrow}</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <SegmentedToggle
+              label="Quarter"
+              onChange={(id) => setQuarterIdx(Number(id))}
+              options={QUARTERS.map((label, index) => ({ id: String(index), label }))}
+              value={String(quarterIdx)}
+            />
+            <Link className="btn-secondary no-underline" href="/plans">
               + Add program
             </Link>
           </div>
         </div>
 
-        {/* Manager queue strip */}
+        {/* Manager queue */}
         {view.managerQueue.length > 0 ? (
-          <div className="flex shrink-0 items-center gap-4 bg-[#00143A] px-5 py-2">
-            <div className="h-1.5 w-1.5 shrink-0 animate-[alertPulse_2.8s_ease-in-out_infinite] rounded-full bg-[#D4810A]" />
-            <span className="font-mono text-[8px] uppercase tracking-[0.12em] text-white/50">
-              Manager queue
-            </span>
-            <div className="flex flex-1 flex-wrap items-center gap-2.5">
+          <section
+            aria-label="Manager queue"
+            className="rounded-[14px] border-[1.5px] border-ink bg-signal-soft px-5 py-4"
+          >
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <p className="label-mono text-ink">Manager queue</p>
+              <span className="font-mono text-xs text-muted">
+                {view.managerQueue.length} pending your action
+              </span>
+            </div>
+            <ul className="flex flex-wrap gap-2.5">
               {view.managerQueue.map((item) => (
-                <div
-                  className="flex items-center gap-2 border border-white/10 bg-white/5 px-3 py-1"
+                <li
+                  className="flex items-center gap-3 rounded-full border border-line bg-white py-1 pl-4 pr-1"
                   key={item.id}
                 >
-                  <span className="text-[11px] text-white/75">{item.title}</span>
+                  <span className="text-sm text-ink">{item.title}</span>
                   <button
-                    className="px-2 py-0.5 text-[9px] font-semibold text-white"
-                    onClick={() => {
-                      if (item.actionStyle === "amber") {
-                        router.push("/manager/inbox");
-                      } else {
-                        router.push("/manager/inbox");
-                      }
-                    }}
-                    style={{
-                      background: item.actionStyle === "amber" ? "#D4810A" : "rgba(0,113,206,.6)",
-                    }}
+                    className={PILL}
+                    onClick={() => router.push("/manager/inbox")}
                     type="button"
                   >
                     {item.actionLabel}
                   </button>
-                </div>
+                </li>
               ))}
+            </ul>
+          </section>
+        ) : null}
+
+        {/* Stats */}
+        <section aria-label="Program stats" className={LINE_CARD}>
+          <div className="-mb-px -mr-px grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+            <StatCell>
+              <Stat label="Active programs" value={view.stats.activePrograms} />
+              <p className="mt-1 text-xs text-muted">Across cohort</p>
+            </StatCell>
+            <StatCell>
+              <Stat label="On track" value={view.stats.onTrack} />
+              <p className="mt-1 text-xs text-muted">{view.stats.onTrackPct}% of programs</p>
+            </StatCell>
+            <StatCell>
+              <Stat
+                label="At risk"
+                tone={view.stats.atRisk > 0 ? "danger" : "blue"}
+                value={view.stats.atRisk}
+              />
+              <p className="mt-1 text-xs text-muted">Behind pace</p>
+            </StatCell>
+            <StatCell>
+              <Stat
+                label="Overdue items"
+                note={view.stats.overdueItems > 0 ? "Need action now" : undefined}
+                tone={view.stats.overdueItems > 0 ? "danger" : "blue"}
+                value={view.stats.overdueItems}
+              />
+              {view.stats.overdueItems > 0 ? null : (
+                <p className="mt-1 text-xs text-muted">Nothing overdue</p>
+              )}
+            </StatCell>
+            <StatCell>
+              <Stat label="Avg completion" value={`${view.stats.avgCompletion}%`} />
+              <ProgressBar className="mt-2" pct={view.stats.avgCompletion} />
+            </StatCell>
+            <StatCell>
+              <Stat
+                label="Cert gates cleared"
+                value={
+                  <>
+                    {view.stats.certGatesCleared}
+                    <span className="text-[22px] text-faint">/{view.stats.certGatesTotal}</span>
+                  </>
+                }
+              />
+              <p className="mt-1 text-xs text-muted">This quarter</p>
+            </StatCell>
+          </div>
+        </section>
+
+        {/* View switcher */}
+        <SegmentedToggle
+          label="Program tracker view"
+          onChange={(id) => setTab(id as ProgramTrackerTab)}
+          options={TRACKER_TABS.map((mode) => ({
+            id: mode,
+            label:
+              mode === "milestones" && view.overdueCount > 0
+                ? `Milestones · ${view.overdueCount}`
+                : mode,
+          }))}
+          value={tab}
+        />
+
+        {tab === "cohort" ? (
+          <div className="space-y-6">
+            <section className={LINE_CARD}>
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-divider px-5 py-4">
+                <div>
+                  <h2 className="text-lg font-extrabold text-ink">SE-I onboarding program</h2>
+                  <p className="label-mono mt-0.5">4-phase · weeks 1–12</p>
+                </div>
+                <Link className="link text-sm" href="/plan-calendar">
+                  View plan calendar
+                </Link>
+              </div>
+
+              <div className="overflow-x-auto">
+                <div className="min-w-[760px]">
+                  <div className={`${COHORT_GRID} bg-blue font-mono text-xs uppercase text-white`}>
+                    <div className="px-5 py-[11px]">SE</div>
+                    {PHASE_HEADERS.map(([phase, sub]) => (
+                      <div className="px-3 py-[11px]" key={phase}>
+                        <div>{phase}</div>
+                        <div className="mt-0.5 normal-case text-on-blue-muted">{sub}</div>
+                      </div>
+                    ))}
+                    <div className="px-3 py-[11px] text-center">Overall</div>
+                  </div>
+
+                  {view.cohortRows.length === 0 ? (
+                    <p className="px-5 py-8 text-center text-sm text-muted">
+                      No team members in scope.{" "}
+                      <Link className="link" href="/plans">
+                        Assign plans
+                      </Link>
+                    </p>
+                  ) : (
+                    view.cohortRows.map((row) => {
+                      const blocked = row.phases.some((phase) => phase.status === "blocked");
+                      const hasOverall = row.overall !== "—";
+                      return (
+                        <button
+                          aria-label={`Open ${row.name}'s programs`}
+                          className={`${COHORT_GRID} w-full border-b border-divider text-left last:border-b-0 hover:bg-bg`}
+                          key={row.userId}
+                          onClick={() => setDrawerUserId(row.userId)}
+                          type="button"
+                        >
+                          <div className="flex items-center gap-2.5 px-5 py-3">
+                            <InitialsAvatar initials={row.initials} />
+                            <div className="min-w-0">
+                              <div className="truncate text-sm font-bold text-ink">{row.name}</div>
+                              <div className="font-mono text-xs text-muted">
+                                {row.level} · Day {row.day}
+                              </div>
+                            </div>
+                          </div>
+                          {row.phases.map((phase, index) => {
+                            const cell = PHASE_CELL[phase.status] ?? PHASE_CELL.upcoming!;
+                            return (
+                              <div
+                                className={`flex flex-col justify-center gap-0.5 border-l border-divider px-3 py-3 ${cell.cls}`}
+                                key={index}
+                              >
+                                <span className="text-sm font-bold">
+                                  <span aria-hidden>{cell.symbol}</span> {phase.label}
+                                </span>
+                                {phase.sub ? <span className="text-xs text-muted">{phase.sub}</span> : null}
+                              </div>
+                            );
+                          })}
+                          <div className="flex flex-col items-center justify-center gap-1.5 border-l border-divider px-3 py-3">
+                            <span
+                              className={`text-[22px] font-extrabold leading-none tracking-[-0.03em] ${
+                                !hasOverall ? "text-faint" : blocked ? "text-danger" : "text-blue"
+                              }`}
+                            >
+                              {row.overall}
+                            </span>
+                            <ProgressBar
+                              className="w-16"
+                              danger={blocked}
+                              pct={hasOverall ? row.overallPct : 0}
+                            />
+                          </div>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </section>
+
+            <div className="grid gap-6 lg:grid-cols-2">
+              <section className={LINE_CARD}>
+                <div className="border-b border-divider px-5 py-4">
+                  <h2 className="text-lg font-extrabold text-ink">Phase definitions</h2>
+                </div>
+                <ul>
+                  {PROGRAM_PHASE_DEFINITIONS.map((phase, index) => (
+                    <li className="flex gap-3 border-b border-divider px-5 py-3 last:border-b-0" key={phase.name}>
+                      <span
+                        aria-hidden
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-soft font-mono text-xs font-medium text-blue"
+                      >
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <div>
+                        <p className="text-sm font-bold text-ink">{phase.name}</p>
+                        <p className="mt-0.5 text-xs leading-snug text-muted">{phase.desc}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+
+              <section className={LINE_CARD}>
+                <div className="flex items-center justify-between gap-3 border-b border-divider px-5 py-4">
+                  <div>
+                    <h2 className="text-lg font-extrabold text-ink">Overdue milestones</h2>
+                    <p className="mt-0.5 text-sm text-danger">
+                      {view.milestonesOverdue.length} items need action now
+                    </p>
+                  </div>
+                  <button className="link text-sm" onClick={() => setTab("milestones")} type="button">
+                    See all
+                  </button>
+                </div>
+                {view.milestonesOverdue.length === 0 ? (
+                  <p className="px-5 py-6 text-sm text-muted">Nothing overdue.</p>
+                ) : (
+                  <ul>
+                    {view.milestonesOverdue.slice(0, 6).map((item) => (
+                      <li
+                        className="flex items-center justify-between gap-3 border-b border-divider px-5 py-3 last:border-b-0"
+                        key={item.id}
+                      >
+                        <div className="flex min-w-0 items-center gap-3">
+                          <span className="w-12 shrink-0 font-mono text-xs font-medium text-danger">
+                            {item.dateShort}
+                          </span>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-bold text-ink">{item.label}</p>
+                            <p className="truncate text-xs text-muted">{item.program}</p>
+                          </div>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <Tag tone="danger">▲ Overdue</Tag>
+                          <button
+                            className={PILL}
+                            disabled={nudgeDisabled(item)}
+                            onClick={() => handleNudge(item)}
+                            title={nudgeStatus[item.assignmentStepId]?.reason}
+                            type="button"
+                          >
+                            {nudgeLabel(item, "Nudge")}
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
             </div>
-            <span className="font-mono text-[9px] text-white/30">
-              {view.managerQueue.length} pending your action
-            </span>
           </div>
         ) : null}
 
-        {/* Page header + stats + tabs */}
-        <div className="shrink-0 border-b border-[#E2DFD9] bg-white px-5 pb-0 pt-4">
-          <div className="mb-3.5 flex items-start justify-between">
-            <div>
-              <p className="mb-1 font-mono text-[8.5px] uppercase tracking-[0.14em] text-[#A09D98]">
-                {view.cohortEyebrow}
-              </p>
-              <h2 className="font-display text-2xl font-extrabold leading-none tracking-[-0.025em] text-[#0D0E12]">
-                Program Tracker
-              </h2>
-              <p className="mt-1 text-[11.5px] text-[#7A7772]">
-                All structured programs — onboarding, certifications, specialization tracks, dev plans
-              </p>
-            </div>
-            <div className="flex overflow-hidden border border-[#D4D1CB]">
-              {["Q3 FY2026", "Q2 FY2026", "All"].map((label, index) => (
-                <button
-                  className={`px-2.5 py-1 font-mono text-[8.5px] ${
-                    quarterIdx === index ? "bg-[#00143A] text-white" : "bg-white text-[#7A7772]"
-                  } ${index > 0 ? "border-l border-[#D4D1CB]" : ""}`}
-                  key={label}
-                  onClick={() => setQuarterIdx(index)}
-                  type="button"
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="-mx-5 grid grid-cols-2 border-t border-[#E2DFD9] lg:grid-cols-6">
-            <StatCell label="Active programs" sub="across cohort" value={String(view.stats.activePrograms)} />
-            <StatCell
-              label="On track"
-              sub={`${view.stats.onTrackPct}% of programs`}
-              value={String(view.stats.onTrack)}
-              valueColor="#0A6E45"
-            />
-            <StatCell
-              label="At risk"
-              sub="behind pace"
-              value={String(view.stats.atRisk)}
-              valueColor="#D4810A"
-            />
-            <StatCell
-              label="Overdue items"
-              sub="need action now"
-              subColor="#B83128"
-              value={String(view.stats.overdueItems)}
-              valueColor="#B83128"
-            />
-            <StatCell
-              label="Avg completion"
-              progress={view.stats.avgCompletion}
-              sub=""
-              value={`${view.stats.avgCompletion}%`}
-              valueColor="#0071CE"
-            />
-            <StatCell
-              label="Cert gates cleared"
-              last
-              sub="this quarter"
-              value={String(view.stats.certGatesCleared)}
-              valueSuffix={`/${view.stats.certGatesTotal}`}
-            />
-          </div>
-
-          <div className="-mx-5 flex border-t border-[#E2DFD9]">
-            {(["cohort", "programs", "milestones"] as ProgramTrackerTab[]).map((mode) => (
-              <button
-                className={`flex items-center gap-1.5 px-5 py-2.5 font-mono text-[8.5px] tracking-wide ${
-                  tab === mode
-                    ? "border-b-2 border-[#0071CE] text-[#0071CE]"
-                    : "border-b-2 border-transparent text-[#A09D98]"
-                }`}
-                key={mode}
-                onClick={() => setTab(mode)}
-                type="button"
-              >
-                {mode.toUpperCase()}
-                {mode === "milestones" && view.overdueCount > 0 ? (
-                  <span className="rounded-full bg-[#B83128] px-1.5 py-px text-[7.5px] text-white">
-                    {view.overdueCount}
-                  </span>
-                ) : null}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Tab body */}
-        <div className="min-h-0 flex-1 overflow-y-auto bg-[#F5F4F0]">
-          {tab === "cohort" ? (
-            <div className="p-5">
-              <div className="mb-4 overflow-hidden border border-[#E2DFD9] bg-white">
-                <div className="flex items-center justify-between border-b border-[#E2DFD9] bg-[#F9F8F6] px-4 py-2.5">
-                  <div>
-                    <span className="font-display text-[13px] font-bold text-[#0D0E12]">
-                      SE-I Onboarding Program
-                    </span>
-                    <span className="ml-2.5 font-mono text-[8px] uppercase tracking-[0.1em] text-[#A09D98]">
-                      4-phase · Weeks 1–12
-                    </span>
-                  </div>
-                  <Link
-                    className="inline-flex items-center border border-[#D4D1CB] px-2 py-1 text-[9px] font-semibold text-[#3D3C38] hover:border-[#0071CE] hover:text-[#0071CE]"
-                    href="/plan-calendar"
-                  >
-                    View plan calendar →
-                  </Link>
-                </div>
-
-                <div
-                  className="grid gap-px border-b border-[#E2DFD9] bg-[#E2DFD9]"
-                  style={{ gridTemplateColumns: "180px repeat(4, 1fr) 80px" }}
-                >
-                  <div className="bg-[#F9F8F6] px-3.5 py-2">
-                    <span className="font-mono text-[7.5px] uppercase tracking-wide text-[#A09D98]">SE</span>
-                  </div>
-                  {[
-                    ["PHASE 1", "Foundations · Wks 1–2"],
-                    ["PHASE 2", "Technical Depth · Wks 3–4"],
-                    ["PHASE 3", "Field Application · Wks 5–6"],
-                    ["PHASE 4", "Cert Gates · Ongoing"],
-                  ].map(([phase, sub]) => (
-                    <div className="bg-[#F9F8F6] px-3 py-2" key={phase}>
-                      <div className="font-mono text-[7.5px] font-medium text-[#3D3C38]">{phase}</div>
-                      <div className="mt-0.5 text-[9px] text-[#A09D98]">{sub}</div>
-                    </div>
-                  ))}
-                  <div className="bg-[#F9F8F6] px-3 py-2 text-center">
-                    <span className="font-mono text-[7.5px] uppercase tracking-wide text-[#A09D98]">
-                      Overall
-                    </span>
-                  </div>
-                </div>
-
-                {view.cohortRows.length === 0 ? (
-                  <div className="px-4 py-8 text-center text-sm text-[#6B6860]">
-                    No team members in scope.{" "}
-                    <Link className="font-semibold text-[#0071CE] hover:underline" href="/plans">
-                      Assign plans →
-                    </Link>
-                  </div>
-                ) : (
-                  view.cohortRows.map((row) => (
-                    <button
-                      className="grid w-full gap-px border-b border-[#E2DFD9] bg-[#E2DFD9] text-left transition-colors last:border-b-0 hover:opacity-95"
-                      key={row.userId}
-                      onClick={() => setDrawerUserId(row.userId)}
-                      style={{ gridTemplateColumns: "180px repeat(4, 1fr) 80px" }}
-                      type="button"
-                    >
-                      <div className="flex items-center gap-2 bg-white px-3.5 py-2.5 hover:bg-[#F9F8F6]">
-                        <Avatar bg={row.avatarBg} initials={row.initials} />
-                        <div>
-                          <div className="text-xs font-medium text-[#0D0E12]">{row.name}</div>
-                          <div className="font-mono text-[8px] text-[#A09D98]">
-                            {row.level} · Day {row.day}
-                          </div>
-                        </div>
-                      </div>
-                      {row.phases.map((phase, index) => (
-                        <div
-                          className="flex flex-col justify-center gap-0.5 px-3 py-2.5"
-                          key={index}
-                          style={{ background: phase.bg }}
-                        >
-                          <div className="flex items-center gap-1">
-                            <span className="text-[11px]" style={{ color: phase.textColor }}>
-                              {phase.icon}
-                            </span>
-                            <span className="text-[11px] font-medium" style={{ color: phase.textColor }}>
-                              {phase.label}
-                            </span>
-                          </div>
-                          {phase.sub ? (
-                            <div className="text-[9px] text-[#A09D98]">{phase.sub}</div>
-                          ) : null}
-                        </div>
-                      ))}
-                      <div className="flex flex-col items-center justify-center gap-1 bg-white px-3 py-2.5">
-                        <span
-                          className="font-mono text-sm font-medium"
-                          style={{ color: row.overallColor }}
-                        >
-                          {row.overall}
-                        </span>
-                        <div className="h-[3px] w-14 overflow-hidden bg-[#ECEAE6]">
-                          <div
-                            className="h-full"
-                            style={{
-                              width: row.overall === "—" ? "0%" : row.overall,
-                              background: row.overallColor,
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </button>
-                  ))
-                )}
-              </div>
-
-              <div className="grid gap-3.5 lg:grid-cols-2">
-                <div className="border border-[#E2DFD9] bg-white px-4 py-3.5">
-                  <p className="mb-3 font-display text-[13px] font-bold text-[#0D0E12]">
-                    Phase definitions
-                  </p>
-                  {PROGRAM_PHASE_DEFINITIONS.map((phase) => (
-                    <div
-                      className="flex gap-3 border-b border-[#F0EFEB] py-2.5 last:border-b-0"
-                      key={phase.name}
-                    >
-                      <div
-                        className="flex h-7 w-7 shrink-0 items-center justify-center text-[13px]"
-                        style={{ background: phase.bg, border: `1px solid ${phase.border}` }}
-                      >
-                        {phase.emoji}
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-[#0D0E12]">{phase.name}</p>
-                        <p className="mt-0.5 text-[10.5px] leading-snug text-[#7A7772]">{phase.desc}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="border border-[#E2DFD9] bg-white">
-                  <div className="flex items-center justify-between border-b border-[#E2DFD9] px-4 py-3">
-                    <div>
-                      <p className="font-display text-[13px] font-bold text-[#0D0E12]">
-                        Overdue milestones
-                      </p>
-                      <p className="mt-0.5 text-[10.5px] text-[#B83128]">
-                        {view.milestonesOverdue.length} items need action now
-                      </p>
-                    </div>
-                    <button
-                      className="border border-[#D4D1CB] px-2 py-1 text-[9px] font-semibold text-[#3D3C38] hover:border-[#0071CE]"
-                      onClick={() => setTab("milestones")}
-                      type="button"
-                    >
-                      See all →
-                    </button>
-                  </div>
-                  {view.milestonesOverdue.slice(0, 6).map((item) => (
-                    <div
-                      className="flex items-center justify-between border-b border-[#F0EFEB] px-4 py-2 last:border-b-0"
-                      key={item.id}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <span className="w-8 shrink-0 text-center font-mono text-[8px] font-medium text-[#B83128]">
-                          {item.dateShort}
-                        </span>
-                        <div>
-                          <p className="text-[11px] font-medium text-[#0D0E12]">{item.label}</p>
-                          <p className="text-[9.5px] text-[#A09D98]">{item.program}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="bg-[#FEF0EE] px-1.5 py-0.5 font-mono text-[8px] tracking-wide text-[#B83128]">
-                          OVERDUE
-                        </span>
-                        <button
-                          className="border border-[rgba(0,113,206,.2)] bg-[#F0F7FF] px-2 py-0.5 text-[9px] font-semibold text-[#0071CE] disabled:cursor-not-allowed disabled:opacity-50"
-                          disabled={
-                            actionLoading[`nudge:${item.assignmentStepId}`] ||
-                            nudgeStatus[item.assignmentStepId]?.canNudge === false
-                          }
-                          onClick={() => handleNudge(item)}
-                          title={nudgeStatus[item.assignmentStepId]?.reason}
-                          type="button"
-                        >
-                          {actionLoading[`nudge:${item.assignmentStepId}`]
-                            ? "Sending…"
-                            : nudgeStatus[item.assignmentStepId]?.canNudge === false
-                              ? "Nudged"
-                              : "Nudge"}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ) : null}
-
-          {tab === "programs" ? (
-            <div className="p-5">
-              {view.sePrograms.map((se) => (
-                <div className="mb-4" key={se.userId}>
+        {tab === "programs" ? (
+          <div className="space-y-8">
+            {view.sePrograms.length === 0 ? (
+              <p className="text-sm text-muted">No programs in scope.</p>
+            ) : null}
+            {view.sePrograms.map((se) => {
+              const health = healthTag(se.healthLabel);
+              return (
+                <section key={se.userId}>
                   <button
-                    className="mb-2 flex w-full items-center gap-2.5 text-left"
+                    className="mb-3 flex w-full flex-wrap items-center gap-3 rounded-[10px] text-left"
                     onClick={() => setDrawerUserId(se.userId)}
                     type="button"
                   >
-                    <Avatar bg={se.avatarBg} fontSize={10} initials={se.initials} size={32} />
-                    <div>
-                      <span className="text-[13px] font-semibold text-[#0D0E12]">{se.name}</span>
-                      <span className="ml-2 font-mono text-[9px] text-[#A09D98]">
-                        {se.level} · Day {se.day}
-                      </span>
-                    </div>
-                    <span
-                      className="ml-1 font-mono text-[8px] tracking-wide"
-                      style={{ color: se.healthColor, background: se.healthBg, padding: "2px 8px" }}
-                    >
-                      {se.healthLabel}
+                    <InitialsAvatar initials={se.initials} size={32} />
+                    <span className="text-lg font-extrabold text-ink">{se.name}</span>
+                    <span className="font-mono text-xs text-muted">
+                      {se.level} · Day {se.day}
                     </span>
-                    <span className="ml-auto text-[10px] text-[#A09D98]">
+                    <Tag tone={health.tone}>
+                      {health.symbol} {health.text}
+                    </Tag>
+                    <span className="ml-auto text-xs text-muted">
                       {se.programCount} active program{se.programCount === 1 ? "" : "s"}
                     </span>
                   </button>
-                  <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
-                    {se.programs.map((program) => (
-                      <div
-                        className="border bg-white px-3.5 py-3"
-                        key={program.id}
-                        style={{ borderColor: program.borderColor }}
-                      >
-                        <div className="mb-2 flex items-start justify-between">
-                          <div className="flex items-center gap-1.5">
-                            <div
-                              className="h-2 w-2 shrink-0 rounded-full"
-                              style={{ background: program.typeColor }}
-                            />
-                            <span
-                              className="font-mono text-[7.5px] uppercase tracking-wide"
-                              style={{ color: program.typeColor }}
-                            >
-                              {program.type}
-                            </span>
-                          </div>
-                          <span
-                            className="font-mono text-[7.5px] tracking-wide"
-                            style={{
-                              color: program.statusColor,
-                              background: program.statusBg,
-                              padding: "2px 6px",
-                            }}
-                          >
-                            {program.status}
-                          </span>
-                        </div>
-                        <p className="mb-1 text-xs font-semibold leading-snug text-[#0D0E12]">
-                          {program.name}
-                        </p>
-                        <p className="mb-2 text-[10px] text-[#7A7772]">{program.subtitle}</p>
-                        <div className="mb-1 flex justify-between">
-                          <span className="text-[9.5px] text-[#6B6860]">Progress</span>
-                          <span
-                            className="font-mono text-[9.5px] font-medium"
-                            style={{ color: program.statusColor }}
-                          >
-                            {program.pct}%
-                          </span>
-                        </div>
-                        <div className="mb-2 h-[3px] overflow-hidden bg-[#ECEAE6]">
-                          <div
-                            className="h-full"
-                            style={{ width: `${program.pct}%`, background: program.statusColor }}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-[9px] text-[#A09D98]">Due {program.due}</span>
-                          <Link
-                            className="border border-[#D4D1CB] px-2 py-0.5 text-[9px] font-semibold text-[#3D3C38] hover:border-[#0071CE] hover:text-[#0071CE]"
-                            href={`/manager/team?profile=${se.userId}`}
-                          >
-                            Open →
-                          </Link>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : null}
-
-          {tab === "milestones" ? (
-            <div className="grid gap-4 p-5 lg:grid-cols-[1fr_320px]">
-              <div>
-                <MilestoneSection
-                  actionLoading={actionLoading}
-                  actions="overdue"
-                  datePickerStepId={datePickerStepId}
-                  dotColor="#B83128"
-                  items={view.milestonesOverdue}
-                  label="Overdue"
-                  nudgeStatus={nudgeStatus}
-                  onMarkDone={handleMarkDone}
-                  onNudge={handleNudge}
-                  onReschedule={handleReschedule}
-                  onRescheduleToDate={handleRescheduleToDate}
-                  setDatePickerStepId={setDatePickerStepId}
-                />
-                <MilestoneSection
-                  actions="thisWeek"
-                  dotColor="#D4810A"
-                  items={view.milestonesThisWeek}
-                  label="Due this week"
-                />
-                <MilestoneSection
-                  actions="upcoming"
-                  dotColor="#A09D98"
-                  items={view.milestonesUpcoming}
-                  label="Upcoming · next 2 weeks"
-                />
-                <MilestoneSection
-                  actions="later"
-                  dotColor="#6B6860"
-                  items={view.milestonesLater}
-                  label="Later"
-                />
-                {view.milestonesOverdue.length === 0 &&
-                view.milestonesThisWeek.length === 0 &&
-                view.milestonesUpcoming.length === 0 &&
-                view.milestonesLater.length === 0 ? (
-                  <p className="text-[11px] text-[#A09D98]">No open milestones on the horizon.</p>
-                ) : null}
-                <p className="mt-2 text-[10px] text-[#A09D98]">
-                  Rescheduled milestones stay here by due date, or view the full timeline on{" "}
-                  <Link className="font-semibold text-[#0071CE] hover:underline" href="/plan-calendar">
-                    Plan Calendar
-                  </Link>
-                  .
-                </p>
-              </div>
-
-              <div className="sticky top-0 border border-[#E2DFD9] bg-white">
-                <div className="border-b border-[#E2DFD9] px-4 py-3">
-                  <p className="font-mono text-[8px] uppercase tracking-wide text-[#D4810A]">
-                    Manager sign-off queue
-                  </p>
-                  <p className="text-[11.5px] font-semibold text-[#0D0E12]">
-                    {view.signOffItems.length} item{view.signOffItems.length === 1 ? "" : "s"} waiting
-                  </p>
-                </div>
-                {view.signOffItems.length === 0 ? (
-                  <p className="px-4 py-6 text-[11px] text-[#A09D98]">No pending sign-offs.</p>
-                ) : (
-                  view.signOffItems.map((item) => (
-                    <div className="border-b border-[#F0EFEB] px-4 py-3 last:border-b-0" key={item.id}>
-                      <div className="mb-1.5 flex items-center gap-2">
-                        <Avatar bg={item.avatarBg} fontSize={8} initials={item.seInitials} size={22} />
-                        <span className="text-[11px] font-medium text-[#0D0E12]">{item.title}</span>
-                      </div>
-                      <p className="mb-2 text-[10.5px] leading-snug text-[#6B6860]">{item.description}</p>
-                      <div className="flex gap-1.5">
-                        <button
-                          className="border border-[rgba(10,110,69,.2)] bg-[#EDFAF3] px-2 py-1 text-[9px] font-semibold text-[#0A6E45]"
-                          onClick={() => router.push("/manager/inbox")}
-                          type="button"
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    {se.programs.map((program) => {
+                      const status = programStatusTag(program.status);
+                      const bad = program.status === "Critical";
+                      return (
+                        <div
+                          className={`flex flex-col rounded-[14px] border bg-white px-5 py-4 ${
+                            bad ? "border-danger" : "border-line"
+                          }`}
+                          key={program.id}
                         >
+                          <div className="mb-2 flex items-start justify-between gap-2">
+                            <span className="label-mono">{program.type}</span>
+                            <Tag tone={status.tone}>
+                              {status.symbol} {program.status}
+                            </Tag>
+                          </div>
+                          <p className="mb-1 text-sm font-bold leading-snug text-ink">{program.name}</p>
+                          <p className="mb-3 text-xs text-muted">{program.subtitle}</p>
+                          <div className="mt-auto">
+                            <div className="mb-1 flex justify-between text-xs">
+                              <span className="text-muted">Progress</span>
+                              <span className={`font-mono font-medium ${bad ? "text-danger" : "text-blue"}`}>
+                                {program.pct}%
+                              </span>
+                            </div>
+                            <ProgressBar className="mb-3" danger={bad} pct={program.pct} />
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-mono text-xs text-muted">Due {program.due}</span>
+                              <Link className="link text-sm" href={`/manager/team?profile=${se.userId}`}>
+                                Open
+                              </Link>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+        ) : null}
+
+        {tab === "milestones" ? (
+          <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+            <div className="space-y-6">
+              <MilestoneSection
+                actionLoading={actionLoading}
+                actions="overdue"
+                datePickerStepId={datePickerStepId}
+                items={view.milestonesOverdue}
+                label="Overdue"
+                nudgeStatus={nudgeStatus}
+                onMarkDone={handleMarkDone}
+                onNudge={handleNudge}
+                onReschedule={handleReschedule}
+                onRescheduleToDate={handleRescheduleToDate}
+                setDatePickerStepId={setDatePickerStepId}
+              />
+              <MilestoneSection actions="thisWeek" items={view.milestonesThisWeek} label="Due this week" />
+              <MilestoneSection
+                actions="upcoming"
+                items={view.milestonesUpcoming}
+                label="Upcoming · next 2 weeks"
+              />
+              <MilestoneSection actions="later" items={view.milestonesLater} label="Later" />
+              {view.milestonesOverdue.length === 0 &&
+              view.milestonesThisWeek.length === 0 &&
+              view.milestonesUpcoming.length === 0 &&
+              view.milestonesLater.length === 0 ? (
+                <p className="text-sm text-muted">No open milestones on the horizon.</p>
+              ) : null}
+              <p className="text-xs text-muted">
+                Rescheduled milestones stay here by due date, or view the full timeline on{" "}
+                <Link className="link" href="/plan-calendar">
+                  Plan Calendar
+                </Link>
+                .
+              </p>
+            </div>
+
+            <aside className={`${LINE_CARD} lg:sticky lg:top-4`}>
+              <div className="border-b border-divider px-5 py-4">
+                <p className="label-mono">Manager sign-off queue</p>
+                <h2 className="mt-0.5 text-lg font-extrabold text-ink">
+                  {view.signOffItems.length} item{view.signOffItems.length === 1 ? "" : "s"} waiting
+                </h2>
+              </div>
+              {view.signOffItems.length === 0 ? (
+                <p className="px-5 py-6 text-sm text-muted">No pending sign-offs.</p>
+              ) : (
+                <ul>
+                  {view.signOffItems.map((item) => (
+                    <li className="border-b border-divider px-5 py-3 last:border-b-0" key={item.id}>
+                      <div className="mb-1.5 flex items-center gap-2.5">
+                        <InitialsAvatar initials={item.seInitials} />
+                        <span className="text-sm font-bold text-ink">{item.title}</span>
+                      </div>
+                      <p className="mb-2.5 text-xs leading-snug text-muted">{item.description}</p>
+                      <div className="flex gap-2">
+                        <button className={PILL} onClick={() => router.push("/manager/inbox")} type="button">
                           Approve ✓
                         </button>
-                        <button
-                          className="border border-[#D4D1CB] px-2 py-1 text-[9px] font-semibold text-[#3D3C38]"
-                          onClick={() => router.push("/manager/inbox")}
-                          type="button"
-                        >
+                        <button className={PILL} onClick={() => router.push("/manager/inbox")} type="button">
                           Review
                         </button>
                       </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          ) : null}
-        </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </aside>
+          </div>
+        ) : null}
       </div>
 
-      <ProgramTrackerSeDrawer onClose={() => setDrawerUserId(null)} profile={drawerProfile} />
+      <ProgramTrackerSeDrawer onClose={closeDrawer} profile={drawerProfile} />
     </>
   );
 }
 
-function StatCell({
-  label,
-  value,
-  sub,
-  valueColor = "#0D0E12",
-  subColor = "#7A7772",
-  progress,
-  valueSuffix,
-  last,
+function StatCell({ children }: { children: ReactNode }) {
+  return <div className="border-b border-r border-divider px-5 py-4">{children}</div>;
+}
+
+function ProgressBar({
+  pct,
+  danger = false,
+  className = "",
 }: {
-  label: string;
-  value: string;
-  sub: string;
-  valueColor?: string;
-  subColor?: string;
-  progress?: number;
-  valueSuffix?: string;
-  last?: boolean;
+  pct: number;
+  danger?: boolean;
+  className?: string;
 }) {
+  const width = Math.max(0, Math.min(100, pct));
   return (
-    <div
-      className={`bg-white px-4 py-3 ${last ? "" : "border-r border-[#E2DFD9] lg:border-r"}`}
-    >
-      <p className="mb-1 font-mono text-[8px] uppercase tracking-[0.1em] text-[#A09D98]">{label}</p>
-      <p className="font-display text-[22px] font-bold leading-none" style={{ color: valueColor }}>
-        {value}
-        {valueSuffix ? (
-          <span className="text-sm font-medium text-[#A09D98]">{valueSuffix}</span>
-        ) : null}
-      </p>
-      {progress !== undefined ? (
-        <div className="mt-1.5 h-[3px] overflow-hidden bg-[#ECEAE6]">
-          <div className="h-full" style={{ width: `${progress}%`, background: valueColor }} />
-        </div>
-      ) : (
-        <p className="mt-0.5 text-[10px]" style={{ color: subColor }}>
-          {sub}
-        </p>
-      )}
+    <div aria-hidden className={`h-2 overflow-hidden rounded-full bg-divider ${className}`}>
+      <div className={`h-full rounded-full ${danger ? "bg-danger" : "bg-blue"}`} style={{ width: `${width}%` }} />
     </div>
   );
 }
@@ -933,6 +827,7 @@ function MilestoneDatePickerRow({
   onApply: (date: string) => void;
 }) {
   const [pickedDate, setPickedDate] = useState(() => addCalendarDays(todayIso(), 14));
+  const inputId = useId();
 
   useEffect(() => {
     if (open) {
@@ -943,40 +838,47 @@ function MilestoneDatePickerRow({
   if (!open) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-2 border-t border-[#F0EFEB] bg-[#F9F8F6] px-4 py-2.5">
-      <span className="text-[10px] text-[#6B6860]">
-        Was {formatMilestoneDate(item.isoDate)} — pick new due date
-      </span>
-      <Input
-        className="h-8 w-[10.5rem] text-xs"
-        min={todayIso()}
-        onChange={(event) => setPickedDate(event.target.value)}
-        type="date"
-        value={pickedDate}
-      />
+    <div className="flex flex-wrap items-end gap-3 border-t border-divider bg-bg px-5 py-3">
+      <div className="flex flex-col gap-1">
+        <label className="text-xs text-muted" htmlFor={inputId}>
+          Was {formatMilestoneDate(item.isoDate)}. New due date
+        </label>
+        <input
+          className="h-9 w-[11rem] rounded-[10px] border border-line-strong bg-white px-3 text-sm text-ink"
+          id={inputId}
+          min={todayIso()}
+          onChange={(event) => setPickedDate(event.target.value)}
+          type="date"
+          value={pickedDate}
+        />
+      </div>
       <button
-        className="border border-[rgba(0,113,206,.2)] bg-[#F0F7FF] px-2 py-1 text-[9px] font-semibold text-[#0071CE] disabled:cursor-not-allowed disabled:opacity-50"
+        className={PILL}
         disabled={!pickedDate || saving}
         onClick={() => onApply(pickedDate)}
         type="button"
       >
         {saving ? "Saving…" : "Apply"}
       </button>
-      <button
-        className="border border-[#D4D1CB] px-2 py-1 text-[9px] font-semibold text-[#3D3C38]"
-        disabled={saving}
-        onClick={onCancel}
-        type="button"
-      >
+      <button className="link text-sm" disabled={saving} onClick={onCancel} type="button">
         Cancel
       </button>
     </div>
   );
 }
 
+const SECTION_STYLE: Record<
+  "overdue" | "thisWeek" | "upcoming" | "later",
+  { symbol: string; text: string; date: string }
+> = {
+  overdue: { symbol: "▲", text: "text-danger", date: "text-danger" },
+  thisWeek: { symbol: "●", text: "text-warning", date: "text-warning" },
+  upcoming: { symbol: "•", text: "text-muted", date: "text-ink" },
+  later: { symbol: "•", text: "text-muted", date: "text-muted" },
+};
+
 function MilestoneSection({
   label,
-  dotColor,
   items,
   actions,
   nudgeStatus = {},
@@ -989,7 +891,6 @@ function MilestoneSection({
   onMarkDone,
 }: {
   label: string;
-  dotColor: string;
   items: MilestoneItemView[];
   actions: "overdue" | "thisWeek" | "upcoming" | "later";
   nudgeStatus?: Record<string, MilestoneNudgeStatus>;
@@ -1001,59 +902,37 @@ function MilestoneSection({
   onRescheduleToDate?: (item: MilestoneItemView, newDueDate: string) => void;
   onMarkDone?: (item: MilestoneItemView) => void;
 }) {
-  const textColor =
-    actions === "overdue"
-      ? "#B83128"
-      : actions === "thisWeek"
-        ? "#D4810A"
-        : actions === "later"
-          ? "#6B6860"
-          : "#A09D98";
-  const borderColor =
-    actions === "overdue"
-      ? "rgba(184,49,40,.2)"
-      : actions === "thisWeek"
-        ? "rgba(212,129,10,.2)"
-        : actions === "later"
-          ? "rgba(107,104,96,.2)"
-          : "#E2DFD9";
+  const style = SECTION_STYLE[actions];
 
   if (items.length === 0) return null;
 
   return (
-    <div className="mb-3.5">
-      <div className="mb-2 flex items-center gap-2">
-        <div className="h-2 w-2 rounded-full" style={{ background: dotColor }} />
-        <span
-          className="font-mono text-[8px] font-medium uppercase tracking-[0.1em]"
-          style={{ color: textColor }}
-        >
-          {label} · {items.length} items
-        </span>
-      </div>
-      <div className="border bg-white" style={{ borderColor }}>
+    <section>
+      <h2 className={`mb-2 font-mono text-xs font-medium uppercase tracking-[0.03em] ${style.text}`}>
+        <span aria-hidden>{style.symbol}</span> {label} · {items.length} items
+      </h2>
+      <ul
+        className={`overflow-hidden rounded-[14px] border bg-white ${
+          actions === "overdue" ? "border-danger" : "border-line"
+        }`}
+      >
         {items.map((item) => (
-          <div className="border-b border-[#F0EFEB] last:border-b-0" key={item.id}>
-            <div className="flex items-center gap-3.5 px-4 py-2.5">
-              <div className="w-9 shrink-0 text-center">
-                <div className="font-mono text-[9px] font-medium" style={{ color: textColor }}>
-                  {item.dateShort}
-                </div>
-                <div className="font-mono text-[7.5px]" style={{ color: textColor }}>
-                  {item.dayOfWeek}
-                </div>
+          <li className="border-b border-divider last:border-b-0" key={item.id}>
+            <div className="flex flex-wrap items-center gap-4 px-5 py-3">
+              <div className={`w-12 shrink-0 text-center font-mono text-xs ${style.date}`}>
+                <div className="font-medium">{item.dateShort}</div>
+                <div>{item.dayOfWeek}</div>
               </div>
-              <div className="h-8 w-px shrink-0" style={{ background: borderColor }} />
-              <Avatar bg={item.avatarBg} fontSize={8} initials={item.initials} size={24} />
+              <InitialsAvatar initials={item.initials} />
               <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-medium text-[#0D0E12]">{item.se}</p>
-                <p className="text-[11.5px] text-[#0D0E12]">{item.label}</p>
-                <p className="font-mono text-[8.5px] text-[#A09D98]">{item.program}</p>
+                <p className="text-xs font-bold text-muted">{item.se}</p>
+                <p className="text-sm font-bold text-ink">{item.label}</p>
+                <p className="font-mono text-xs text-muted">{item.program}</p>
               </div>
               {actions === "overdue" ? (
-                <div className="flex shrink-0 flex-wrap items-center gap-1">
+                <div className="flex shrink-0 flex-wrap items-center gap-2">
                   <button
-                    className="border border-[rgba(0,113,206,.2)] bg-[#F0F7FF] px-2 py-1 text-[9px] font-semibold text-[#0071CE] disabled:cursor-not-allowed disabled:opacity-50"
+                    className={PILL}
                     disabled={
                       actionLoading[`nudge:${item.assignmentStepId}`] ||
                       nudgeStatus[item.assignmentStepId]?.canNudge === false
@@ -1069,7 +948,7 @@ function MilestoneSection({
                         : "Nudge SE"}
                   </button>
                   <button
-                    className="border border-[#D4D1CB] px-2 py-1 text-[9px] font-semibold text-[#3D3C38] disabled:cursor-not-allowed disabled:opacity-50"
+                    className={PILL}
                     disabled={actionLoading[`reschedule:${item.assignmentStepId}`]}
                     onClick={() => onReschedule?.(item)}
                     title="Move due date forward 7 days from today"
@@ -1078,7 +957,8 @@ function MilestoneSection({
                     {actionLoading[`reschedule:${item.assignmentStepId}`] ? "Saving…" : "+7 days"}
                   </button>
                   <button
-                    className="border border-[#D4D1CB] px-2 py-1 text-[9px] font-semibold text-[#3D3C38] disabled:cursor-not-allowed disabled:opacity-50"
+                    aria-expanded={datePickerStepId === item.assignmentStepId}
+                    className={PILL}
                     disabled={actionLoading[`reschedule-date:${item.assignmentStepId}`]}
                     onClick={() =>
                       setDatePickerStepId?.(
@@ -1091,7 +971,7 @@ function MilestoneSection({
                     {datePickerStepId === item.assignmentStepId ? "Close" : "Pick date"}
                   </button>
                   <button
-                    className="border border-[rgba(10,110,69,.2)] bg-[#EDFAF3] px-2 py-1 text-[9px] font-semibold text-[#0A6E45] disabled:cursor-not-allowed disabled:opacity-50"
+                    className={PILL}
                     disabled={actionLoading[`complete:${item.assignmentStepId}`]}
                     onClick={() => onMarkDone?.(item)}
                     type="button"
@@ -1101,36 +981,24 @@ function MilestoneSection({
                 </div>
               ) : null}
               {actions === "thisWeek" ? (
-                <div className="flex shrink-0 gap-1">
-                  <button
-                    className="border border-[rgba(212,129,10,.2)] bg-[#FFFBF0] px-2 py-1 text-[9px] font-semibold text-[#D4810A]"
-                    type="button"
-                  >
+                <div className="flex shrink-0 flex-wrap items-center gap-3">
+                  <button className={PILL} type="button">
                     Remind SE
                   </button>
-                  <Link
-                    className="border border-[#D4D1CB] px-2 py-1 text-[9px] font-semibold text-[#3D3C38]"
-                    href={`/manager/team?profile=${item.userId}`}
-                  >
+                  <Link className="link text-sm" href={`/manager/team?profile=${item.userId}`}>
                     View step
                   </Link>
-                  <Link
-                    className="border border-[rgba(0,113,206,.2)] bg-[#F0F7FF] px-2 py-1 text-[9px] font-semibold text-[#0071CE]"
-                    href={planCalendarHref(item.userId)}
-                  >
+                  <Link className="link text-sm" href={planCalendarHref(item.userId)}>
                     Calendar
                   </Link>
                 </div>
               ) : null}
               {actions === "upcoming" || actions === "later" ? (
-                <div className="flex shrink-0 items-center gap-1.5">
+                <div className="flex shrink-0 items-center gap-3">
                   {item.daysAway ? (
-                    <span className="shrink-0 font-mono text-[9px] text-[#A09D98]">{item.daysAway}</span>
+                    <span className="font-mono text-xs text-muted">{item.daysAway}</span>
                   ) : null}
-                  <Link
-                    className="border border-[rgba(0,113,206,.2)] bg-[#F0F7FF] px-2 py-1 text-[9px] font-semibold text-[#0071CE]"
-                    href={planCalendarHref(item.userId)}
-                  >
+                  <Link className="link text-sm" href={planCalendarHref(item.userId)}>
                     Calendar
                   </Link>
                 </div>
@@ -1143,9 +1011,9 @@ function MilestoneSection({
               open={datePickerStepId === item.assignmentStepId}
               saving={Boolean(actionLoading[`reschedule-date:${item.assignmentStepId}`])}
             />
-          </div>
+          </li>
         ))}
-      </div>
-    </div>
+      </ul>
+    </section>
   );
 }

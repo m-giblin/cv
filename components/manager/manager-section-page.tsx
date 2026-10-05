@@ -8,10 +8,7 @@ import { eligibleMentorsForOrg } from "@/lib/manager/eligible-mentors";
 import { buildReviewHistory } from "@/components/manager/manager-review-history";
 import type { SeManagerSnapshot } from "@/components/manager/manager-se-detail-panel";
 import { buildSeCoachingSummary } from "@/lib/manager/se-coaching-summary";
-import {
- fetchDealPrepManagerStats,
- fetchSharedDealPrepForManager,
-} from "@/lib/data/get-deal-prep-manager-stats";
+import { fetchSharedDealPrepForManager } from "@/lib/data/get-deal-prep-manager-stats";
 import {
  buildCertSummary,
  buildCohortBenchmark,
@@ -22,7 +19,17 @@ import { buildTeamReadiness, certLabel } from "@/lib/manager/team-readiness";
 import { buildTeamLeaderboard } from "@/lib/gamification/leaderboard";
 import { requireManagerPageAccess } from "@/lib/auth/require-access";
 import { fetchDevelopmentPlans } from "@/lib/data/get-development-data";
-import { isManagerSectionAllowed } from "@/lib/platform/feature-flags";
+import { isFeatureEnabled, isManagerSectionAllowed } from "@/lib/platform/feature-flags";
+import { fetchReadinessMapPayload } from "@/lib/manager/readiness-map-fetch";
+import type { ReadinessMapPayload } from "@/lib/manager/readiness-map-data";
+import { checkAndNotifyThresholdCrossings } from "@/lib/manager/readiness-nudges";
+import {
+ INBOX_SLA_DAYS,
+ ageInDays,
+ buildTeamMember,
+ sortByUrgency,
+ type PendingReviewSummary,
+} from "@/lib/manager/team-status";
 import { loadPlatformSettings } from "@/lib/platform/settings";
 import { redirect } from "next/navigation";
 import {
@@ -35,12 +42,15 @@ import {
 } from "@/lib/data/get-manager-growth-data";
 import { createClient } from "@/lib/supabase/server";
 
+/** Sections that show readiness numbers and so need the readiness payload. */
+const READINESS_SECTIONS = new Set(["command", "roster", "readiness"]);
+
 const ManagerPageShell = dynamic(
  () => import("@/components/manager/manager-page-shell").then((mod) => mod.ManagerPageShell),
  {
  loading: () => (
- <div className="flex min-h-[40vh] items-center justify-center text-[#6B6860]">
- Loading team overview…
+ <div aria-busy="true" className="flex min-h-[40vh] items-center justify-center" role="status">
+ <span className="label-mono">Loading team overview…</span>
  </div>
  ),
  },
@@ -79,10 +89,19 @@ export async function ManagerSectionPage({ section }: { section: ManagerSection 
  }));
  });
 
- const [certRows, dealPrepStats, sharedDealPrep, developmentPlans, managerNotes, mentees, mentorNotesByUser] =
- await Promise.all([
+ const wantsReadiness =
+ READINESS_SECTIONS.has(section) && isFeatureEnabled(settings.featureFlags, "readiness-map");
+
+ const [
+ certRows,
+ sharedDealPrep,
+ developmentPlans,
+ managerNotes,
+ mentees,
+ mentorNotesByUser,
+ readinessPayload,
+ ] = await Promise.all([
  fetchReadinessCertifications([...orgIds]),
- fetchDealPrepManagerStats([...orgIds]),
  fetchSharedDealPrepForManager([...orgIds]),
  fetchDevelopmentPlans([...orgIds]),
  fetchManagerCoachingNotes(data.currentUser.id, [...orgIds]),
@@ -101,6 +120,23 @@ export async function ManagerSectionPage({ section }: { section: ManagerSection 
  if (!supabase) return {};
  return fetchMentorCoachingNotesForManager(supabase, [...orgIds]);
  })(),
+ (async (): Promise<ReadinessMapPayload | null> => {
+ if (!wantsReadiness || orgIds.size === 0) return null;
+ const supabase = await createClient();
+ if (!supabase) return null;
+ try {
+ const payload = await fetchReadinessMapPayload(supabase, data.currentUser.tenantId, [...orgIds]);
+ // Same best-effort threshold nudges the readiness API used to send on page load.
+ try {
+ await checkAndNotifyThresholdCrossings(supabase, data.currentUser.id, payload.rows);
+ } catch {
+ // nudges must never break the page
+ }
+ return payload;
+ } catch {
+ return null;
+ }
+ })(),
  ]);
  const dealPrepReviewItems = sharedDealPrep.map((session) => {
  const person = data.profiles.find((profile) => profile.id === session.user_id);
@@ -117,9 +153,6 @@ export async function ManagerSectionPage({ section }: { section: ManagerSection 
  const pendingCertRows = certRows.filter((row) => row.status === "submitted" && orgIds.has(row.userId));
  const pendingCertCount = pendingCertRows.length;
  const totalReviewCount = reviewCount + pendingCertCount;
- const averageProgress = orgPlans.length
- ? Math.round(orgPlans.reduce((total, plan) => total + plan.progress, 0) / orgPlans.length)
- : 0;
 
  const openReviewsByUser: Record<string, number> = {};
  for (const profile of data.myOrg) {
@@ -165,16 +198,12 @@ export async function ManagerSectionPage({ section }: { section: ManagerSection 
 
  const reviewedChallengeCountByUser: Record<string, number> = {};
  const approvedCertCountByUser: Record<string, number> = {};
- const challengeTotalByUser: Record<string, number> = {};
  for (const profile of data.myOrg) {
  const userSubmissions = data.submissions.filter((s) => s.userId === profile.id);
  reviewedChallengeCountByUser[profile.id] = userSubmissions.filter((s) => s.status === "reviewed").length;
  approvedCertCountByUser[profile.id] = certRows.filter(
  (row) => row.userId === profile.id && row.status === "approved",
  ).length;
- const reviewed = reviewedChallengeCountByUser[profile.id] ?? 0;
- const targetTotal = profile.level === "Senior" || profile.level === "Advisory" ? 8 : 4;
- challengeTotalByUser[profile.id] = Math.max(userSubmissions.length, targetTotal, reviewed);
  }
 
  const reviewedSimCountByUser: Record<string, number> = {};
@@ -199,6 +228,8 @@ export async function ManagerSectionPage({ section }: { section: ManagerSection 
  return {
  kind: "submission" as const,
  id: submission.id,
+ userId: submission.userId,
+ submittedAt: submission.submittedAt,
  title: challenge?.title ?? "Challenge submission",
  personName: person?.fullName ?? "Team member",
  reflectionText: submission.reflectionText,
@@ -212,6 +243,8 @@ export async function ManagerSectionPage({ section }: { section: ManagerSection 
  return {
  kind: "coaching" as const,
  id: card.id,
+ userId: card.userId,
+ submittedAt: card.sentToManagerAt,
  title: context?.persona ?? simulation?.persona ?? "Simulation coaching card",
  personName: person?.fullName ?? "Team member",
  score: card.score,
@@ -312,6 +345,77 @@ export async function ManagerSectionPage({ section }: { section: ManagerSection 
  };
  });
 
+ const now = Date.now();
+ const pendingEntries: Array<{ userId: string } & Omit<PendingReviewSummary, "count">> = [
+ ...openReviews.map((submission) => ({
+ userId: submission.userId,
+ kind: "challenge" as const,
+ title: data.challenges.find((item) => item.id === submission.challengeId)?.title ?? "Challenge",
+ ageDays: ageInDays(submission.submittedAt, now),
+ })),
+ ...pendingCards.map((card) => ({
+ userId: card.userId,
+ kind: "sim" as const,
+ title: `${card.simulationContext?.persona ?? "Simulation"} sim`,
+ ageDays: ageInDays(card.sentToManagerAt, now),
+ })),
+ ...pendingPlanSteps.map((step) => ({
+ userId: step.userId,
+ kind: "plan_step" as const,
+ title: step.title,
+ ageDays: null,
+ })),
+ ...certReviewItems.map((cert) => ({
+ userId: cert.userId,
+ kind: "cert" as const,
+ title: `${cert.label} gate`,
+ ageDays: null,
+ })),
+ ];
+ const pendingByUser: Record<string, PendingReviewSummary> = {};
+ for (const entry of pendingEntries) {
+ const current = pendingByUser[entry.userId];
+ const count = (current?.count ?? 0) + 1;
+ const older = !current || (entry.ageDays ?? -1) > (current.ageDays ?? -1);
+ pendingByUser[entry.userId] = older
+ ? { title: entry.title, kind: entry.kind, ageDays: entry.ageDays, count }
+ : { ...current!, count };
+ }
+ const reviewsOverSla = [
+ ...pendingEntries.map((entry) => entry.ageDays),
+ ...dealPrepReviewItems.map((item) => ageInDays(item.createdAt, now)),
+ ].filter((age): age is number => age !== null && age > INBOX_SLA_DAYS).length;
+
+ const readinessRowByUser = new Map((readinessPayload?.rows ?? []).map((row) => [row.userId, row]));
+ const cadenceByUser = new Map(cadenceRows.map((row) => [row.profileId, row.daysSinceCoaching]));
+ const teamMembers = sortByUrgency(
+ seSnapshots.map((snapshot) => {
+ const mapRow = readinessRowByUser.get(snapshot.profile.id);
+ return buildTeamMember({
+ profile: snapshot.profile,
+ plan: snapshot.plan,
+ coaching: snapshot.coaching,
+ certSummary: snapshot.certSummary,
+ openReviewCount: snapshot.openReviewCount,
+ pending: pendingByUser[snapshot.profile.id] ?? null,
+ readiness: readinessPayload
+ ? (mapRow?.composite ?? null)
+ : (readinessByUser[snapshot.profile.id] ?? null),
+ competencySummary: mapRow?.competencySummary,
+ daysSinceCoaching: cadenceByUser.get(snapshot.profile.id) ?? null,
+ now,
+ });
+ }),
+ );
+ const competencyRows = (readinessPayload?.rows ?? [])
+ .filter((row) => orgIds.has(row.userId))
+ .map((row) => ({
+ userId: row.userId,
+ fullName: row.fullName,
+ firstName: row.firstName,
+ competencySummary: row.competencySummary,
+ }));
+
  const coachingByUser = Object.fromEntries(
  seSnapshots.map((snapshot) => [snapshot.profile.id, snapshot.coaching]),
  );
@@ -322,8 +426,8 @@ export async function ManagerSectionPage({ section }: { section: ManagerSection 
  <AppShell contentWidth="wide" currentUser={data.currentUser} notifications={data.notifications}>
  <Suspense
  fallback={
- <div className="flex min-h-[40vh] items-center justify-center text-[#6B6860]">
- Loading team overview…
+ <div aria-busy="true" className="flex min-h-[40vh] items-center justify-center" role="status">
+ <span className="label-mono">Loading team overview…</span>
  </div>
  }
  >
@@ -335,31 +439,28 @@ export async function ManagerSectionPage({ section }: { section: ManagerSection 
  ? data.myOrg
  : data.profiles.filter((p) => p.role === "basic_se" || p.role === "senior_se")
  }
- averageProgress={averageProgress}
  cadenceRows={cadenceRows}
+ competencyRows={competencyRows}
  certReviewItems={certReviewItems}
  challenges={data.challenges}
- challengeTotalByUser={challengeTotalByUser}
  coachingByUser={coachingByUser}
  dealPrepReviewItems={dealPrepReviewItems}
  developmentPlans={developmentPlans}
  leaderboardEntries={leaderboardEntries}
  mentors={mentors}
- openReviewsByUser={openReviewsByUser}
  org={data.myOrg}
- pendingCertCount={pendingCertCount}
  planSteps={pendingPlanSteps}
  plans={orgPlans}
  profiles={data.profiles}
- readinessRows={readinessRows}
  reviewCount={totalReviewCount}
  reviewHistory={reviewHistory}
+ reviewsOverSla={reviewsOverSla}
+ teamMembers={teamMembers}
  reviewItems={reviewItems}
- reviewedChallengeCountByUser={reviewedChallengeCountByUser}
  section={section}
  seSnapshots={seSnapshots}
- teamSize={data.myOrg.length}
  managerFirstName={data.currentUser.fullName.split(" ")[0]}
+ readinessAvailable={isManagerSectionAllowed("readiness", settings.featureFlags)}
  mentees={mentees}
  viewerRole={role}
  />
