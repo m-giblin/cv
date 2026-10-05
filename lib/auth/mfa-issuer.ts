@@ -1,7 +1,7 @@
 /** Label shown in authenticator apps for TOTP enrollment (QR + manual key). */
 export function mfaTotpIssuer(): string {
   if (typeof window === "undefined") {
-    return process.env.NEXT_PUBLIC_MFA_ISSUER ?? "SailPoint SE Enablement";
+    return process.env.NEXT_PUBLIC_MFA_ISSUER ?? "SE Enablement";
   }
 
   if (process.env.NEXT_PUBLIC_MFA_ISSUER) {
@@ -10,8 +10,8 @@ export function mfaTotpIssuer(): string {
 
   const host = window.location.hostname;
   if (host === "localhost" || host === "127.0.0.1") {
-    return "SailPoint SE Enablement (local)";
+    return "SE Enablement (local)";
   }
 
-  return "SailPoint SE Enablement";
+  return "SE Enablement";
 }

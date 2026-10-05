@@ -1,51 +1,63 @@
 "use client";
 
-import { useRef } from "react";
+import { useId, useState } from "react";
+import { cn } from "@/lib/utils";
 
+/**
+ * Six-box one-time-code field. A single real input (visually hidden) carries the value, the label and
+ * autofill; the boxes mirror it. The input sits over the boxes, so clicking them focuses it.
+ */
 export function OtpInput({
- value,
- onChange,
- length = 6,
+  value,
+  onChange,
+  length = 6,
+  label = "One-time code",
 }: {
- value: string;
- onChange: (next: string) => void;
- length?: number;
+  value: string;
+  onChange: (next: string) => void;
+  length?: number;
+  label?: string;
 }) {
- const inputRef = useRef<HTMLInputElement>(null);
- const digits = value.padEnd(length, " ").split("").slice(0, length);
- const focusIndex = value.length < length ? value.length : null;
+  const id = useId();
+  const [focused, setFocused] = useState(false);
+  const digits = value.padEnd(length, " ").split("").slice(0, length);
+  const focusIndex = value.length < length ? value.length : length - 1;
 
- return (
- <div>
- <div
- className="flex justify-center gap-[7px]"
- onClick={() => inputRef.current?.focus()}
- onKeyDown={() => inputRef.current?.focus()}
- role="presentation"
- >
- {digits.map((digit, index) => (
- <div
- className="flex h-[52px] w-[44px] items-center justify-center border-[1.5px] font-mono text-[22px] font-medium transition-colors"
- key={index}
- style={{
- borderColor: digit.trim() ? "#0071CE" : focusIndex === index ? "#0071CE" : "#D4D1CB",
- background: digit.trim() ? "#F8FBFF" : "#ffffff",
- }}
- >
- {digit.trim() || ""}
- </div>
- ))}
- </div>
- <input
- autoComplete="one-time-code"
- className="sr-only"
- inputMode="numeric"
- maxLength={length}
- onChange={(event) => onChange(event.target.value.replace(/\D/g, "").slice(0, length))}
- ref={inputRef}
- type="text"
- value={value}
- />
- </div>
- );
+  return (
+    <div>
+      <label className="mb-2 block text-sm font-semibold text-ink" htmlFor={id}>
+        {label}
+      </label>
+      <div className="relative">
+        <div aria-hidden className="flex justify-between gap-2">
+          {digits.map((digit, index) => (
+            <div
+              className={cn(
+                "flex h-[52px] w-full max-w-[52px] items-center justify-center rounded-[10px] border-[1.5px] bg-white font-mono text-[22px] font-medium text-ink",
+                digit.trim() ? "border-ink" : "border-line-strong",
+                focused && index === focusIndex && "border-blue outline-2 outline-offset-2 outline-blue",
+              )}
+              key={index}
+            >
+              {digit.trim()}
+            </div>
+          ))}
+        </div>
+        <input
+          autoComplete="one-time-code"
+          className="absolute inset-0 h-full w-full cursor-text opacity-0"
+          id={id}
+          inputMode="numeric"
+          maxLength={length}
+          onBlur={() => setFocused(false)}
+          onChange={(event) => onChange(event.target.value.replace(/\D/g, "").slice(0, length))}
+          onFocus={() => setFocused(true)}
+          pattern="[0-9]*"
+          type="text"
+          value={value}
+        />
+      </div>
+      <p className="mt-2 font-mono text-xs text-muted">CODE REFRESHES EVERY 30 SECONDS</p>
+    </div>
+  );
 }

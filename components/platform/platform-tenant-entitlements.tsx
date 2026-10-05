@@ -1,9 +1,24 @@
 "use client";
 
-import { AlertCircle, Loader2, Package, Save } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Toggle as AdminToggle } from "@/components/admin/admin-toggle";
-import { Button } from "@/components/ui/button";
+import { PlatformUnsavedBanner } from "@/components/platform/platform-unsaved-banner";
+import {
+  ChangedMark,
+  EmptyLine,
+  TABLE,
+  TABLE_SCROLL,
+  TABLE_WRAP,
+  TD,
+  TD_MONO,
+  TD_MUTED,
+  TH,
+  THEAD_ROW,
+  TR,
+  Toggle,
+} from "@/components/platform/platform-ui";
+import { Chip } from "@/components/ui/chip";
+import { SegmentedToggle } from "@/components/ui/segmented-toggle";
+import { Tag } from "@/components/ui/tag";
 import { FEATURE_FLAG_CATEGORY_LABELS, previewEntitledSurfaces } from "@/lib/platform/feature-flags";
 import {
   applyFeatureFlagPreset,
@@ -17,10 +32,14 @@ import {
   featureFlagsByCategory,
   isFlagEffectivelyEnabled,
   mergeFeatureFlags,
+  PLATFORM_FEATURE_FLAG_DEFS,
   type PlatformFeatureFlags,
 } from "@/lib/platform/settings-shared";
+import { cn } from "@/lib/utils";
 
 type EntitlementsPanel = "package" | "modules" | "preview" | "diff";
+
+const FLAG_LABELS = new Map(PLATFORM_FEATURE_FLAG_DEFS.map((def) => [def.id, def.label]));
 
 export function PlatformTenantEntitlements({
   featureFlags,
@@ -29,6 +48,7 @@ export function PlatformTenantEntitlements({
   billingPlan,
   onChange,
   onSave,
+  onDiscard,
   onApplyPackage,
 }: {
   featureFlags: PlatformFeatureFlags;
@@ -37,109 +57,86 @@ export function PlatformTenantEntitlements({
   billingPlan?: string | null;
   onChange: (flags: PlatformFeatureFlags) => void;
   onSave: () => void;
+  onDiscard: () => void;
   onApplyPackage: (presetId: FeatureFlagPresetId, flags: PlatformFeatureFlags) => void;
 }) {
   const [panel, setPanel] = useState<EntitlementsPanel>("package");
+  const [area, setArea] = useState<string>("all");
   const flagsByCategory = featureFlagsByCategory();
   const matchedPackage = useMemo(() => matchFeatureFlagPreset(featureFlags), [featureFlags]);
   const diff = useMemo(() => featureFlagsDiffFromDefaults(featureFlags), [featureFlags]);
   const preview = useMemo(() => previewEntitledSurfaces(featureFlags), [featureFlags]);
-  const hasUnsavedChanges = useMemo(
-    () => JSON.stringify(featureFlags) !== JSON.stringify(savedFlags),
-    [featureFlags, savedFlags],
-  );
 
   const enabledCount = useMemo(
     () => Object.values(mergeFeatureFlags(featureFlags)).filter(Boolean).length,
     [featureFlags],
   );
 
+  const changedIds = useMemo(
+    () =>
+      PLATFORM_FEATURE_FLAG_DEFS.filter(
+        (def) => (featureFlags[def.id] ?? def.defaultEnabled) !== (savedFlags[def.id] ?? def.defaultEnabled),
+      ).map((def) => def.id),
+    [featureFlags, savedFlags],
+  );
+  const hasUnsavedChanges = JSON.stringify(featureFlags) !== JSON.stringify(savedFlags);
+
+  const packageLabel =
+    matchedPackage === "custom" ? "Custom" : FEATURE_FLAG_PRESETS.find((p) => p.id === matchedPackage)?.label;
+
+  const visibleFlags = Object.entries(flagsByCategory)
+    .filter(([category]) => area === "all" || category === area)
+    .flatMap(([category, flags]) => flags.map((flag) => ({ category, flag })));
+
   return (
-    <div className="border border-[#E2DFD9] bg-white p-4">
-      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h3 className="text-sm font-bold text-[#0D0E12]">Entitlements</h3>
-          <p className="text-xs text-[#6B6860]">
-            Package → modules → preview. Commercial plan syncs when you apply a package.
-          </p>
-          <p className="mt-1 text-[11px] text-[#A09D98]">
-            Package:{" "}
-            <span className="font-semibold text-[#3D3C38]">
-              {matchedPackage === "custom" ? "Custom" : FEATURE_FLAG_PRESETS.find((p) => p.id === matchedPackage)?.label}
-            </span>
-            {billingPlan ? (
-              <>
-                {" "}
-                · Plan slug: <span className="font-mono text-[#3D3C38]">{billingPlan}</span>
-              </>
-            ) : null}
-            {" · "}
-            {enabledCount} modules on
-          </p>
-        </div>
-        <Button disabled={saving || !hasUnsavedChanges} onClick={onSave} size="sm" type="button">
-          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-          Save entitlements
-        </Button>
-      </div>
-
-      {hasUnsavedChanges ? (
-        <div className="mb-3 flex items-center gap-2 border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-          Unsaved changes — save before leaving this tab.
-        </div>
-      ) : null}
-
-      <div className="mb-4 flex gap-1 border-b border-[#E2DFD9]">
-        {(
-          [
-            ["package", "Package"],
-            ["modules", "Modules"],
-            ["preview", "Preview"],
-            ["diff", "Diff"],
-          ] as const
-        ).map(([id, label]) => (
-          <button
-            className={`border-b-2 px-3 py-1.5 text-xs font-medium ${
-              panel === id
-                ? "border-[#0071ce] text-[#0033a1]"
-                : "border-transparent text-[#6B6860] hover:text-[#3D3C38]"
-            }`}
-            key={id}
-            onClick={() => setPanel(id)}
-            type="button"
-          >
-            {label}
-          </button>
-        ))}
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <p className="font-mono text-xs text-muted uppercase tracking-[0.03em]">
+          Package <span className="text-ink">{packageLabel}</span>
+          {billingPlan ? (
+            <>
+              {" "}
+              · plan <span className="text-ink">{billingPlan}</span>
+            </>
+          ) : null}{" "}
+          · {enabledCount} modules on
+        </p>
+        <SegmentedToggle
+          label="Entitlements view"
+          onChange={(id) => setPanel(id as EntitlementsPanel)}
+          options={[
+            { id: "package", label: "Package" },
+            { id: "modules", label: "Modules" },
+            { id: "preview", label: "Preview" },
+            { id: "diff", label: "Diff" },
+          ]}
+          value={panel}
+        />
       </div>
 
       {panel === "package" ? (
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2">
           {FEATURE_FLAG_PRESETS.map((preset) => {
             const active = matchedPackage === preset.id;
             return (
               <button
-                className={`border px-3 py-3 text-left transition ${
+                aria-pressed={active}
+                className={cn(
+                  "rounded-[14px] px-5 py-4 text-left transition-colors",
                   active
-                    ? "border-[#0071ce] bg-[#F0F7FF]"
-                    : "border-[#E2DFD9] bg-[#F9F8F6] hover:border-[#0071ce]"
-                }`}
+                    ? "border-[1.5px] border-blue bg-blue-soft"
+                    : "border border-line bg-white hover:border-blue",
+                )}
                 key={preset.id}
                 onClick={() => onApplyPackage(preset.id, applyFeatureFlagPreset(preset.id))}
                 type="button"
               >
-                <div className="mb-1 flex items-center gap-2">
-                  <Package className="h-3.5 w-3.5 text-[#0071ce]" />
-                  <p className="text-sm font-semibold text-[#0D0E12]">{preset.label}</p>
-                  {active ? (
-                    <span className="ml-auto text-[10px] font-bold uppercase tracking-wide text-[#0071ce]">
-                      Active
-                    </span>
-                  ) : null}
-                </div>
-                <p className="text-xs text-[#6B6860]">{preset.description}</p>
-                <p className="mt-2 font-mono text-[10px] text-[#A09D98]">plan → {preset.billingPlan}</p>
+                <span className="flex items-center justify-between gap-2">
+                  <span className="text-[15px] font-bold text-ink">{preset.label}</span>
+                  {active ? <Tag tone="blue">✓ Active</Tag> : null}
+                </span>
+                <span className="mt-1 block text-sm text-ink-2">{preset.description}</span>
+                <span className="mt-2 block font-mono text-xs text-muted">PLAN → {preset.billingPlan}</span>
               </button>
             );
           })}
@@ -147,102 +144,142 @@ export function PlatformTenantEntitlements({
       ) : null}
 
       {panel === "modules" ? (
-        <div className="space-y-5">
-          {Object.entries(flagsByCategory).map(([category, flags]) => (
-            <div key={category}>
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-[#6B6860]">
+        <div className="space-y-3">
+          <div aria-label="Filter modules by area" className="flex flex-wrap gap-1.5" role="group">
+            <Chip active={area === "all"} onClick={() => setArea("all")}>
+              All
+            </Chip>
+            {Object.keys(flagsByCategory).map((category) => (
+              <Chip active={area === category} key={category} onClick={() => setArea(category)}>
                 {FEATURE_FLAG_CATEGORY_LABELS[category] ?? category}
-              </p>
-              <div className="space-y-1.5">
-                {flags.map((flag) => {
-                  const storedOn = featureFlags[flag.id] ?? flag.defaultEnabled;
-                  const effective = isFlagEffectivelyEnabled(featureFlags, flag.id);
-                  const parentBlocked = storedOn && !effective;
-                  return (
-                    <div
-                      className="flex items-start justify-between gap-3 border border-[#ECEAE6] px-3 py-2"
-                      key={flag.id}
-                    >
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-sm font-semibold text-[#0D0E12]">{flag.label}</p>
-                          {flag.kind === "ops" ? (
-                            <span className="text-[9px] font-bold uppercase tracking-wide text-[#A09D98]">
-                              Ops
-                            </span>
-                          ) : null}
-                          {parentBlocked ? (
-                            <span className="text-[9px] font-bold uppercase tracking-wide text-amber-700">
-                              Needs parent
-                            </span>
-                          ) : null}
-                        </div>
-                        <p className="text-xs text-[#A09D98]">{flag.description}</p>
-                        {flag.dependsOn?.length ? (
-                          <p className="mt-0.5 text-[10px] text-[#C9C7C2]">
-                            Requires: {flag.dependsOn.join(", ")}
+              </Chip>
+            ))}
+          </div>
+          <div className={TABLE_WRAP}>
+            <div className={TABLE_SCROLL}>
+              <table className={TABLE}>
+                <thead>
+                  <tr className={THEAD_ROW}>
+                    <th className={TH} scope="col">Feature</th>
+                    <th className={TH} scope="col">Area</th>
+                    <th className={TH} scope="col">Depends on</th>
+                    <th className={`${TH} text-right`} scope="col">On</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleFlags.map(({ category, flag }) => {
+                    const storedOn = featureFlags[flag.id] ?? flag.defaultEnabled;
+                    const effective = isFlagEffectivelyEnabled(featureFlags, flag.id);
+                    const parentBlocked = storedOn && !effective;
+                    const changed = changedIds.includes(flag.id);
+                    return (
+                      <tr className={cn(TR, changed && "bg-signal-soft")} key={flag.id}>
+                        <td className={TD}>
+                          <p className="font-bold">
+                            {flag.label}
+                            {changed ? <ChangedMark /> : null}
                           </p>
-                        ) : null}
-                      </div>
-                      <AdminToggle
-                        checked={storedOn}
-                        className="shrink-0"
-                        onChange={(enabled) => onChange(applyFlagToggle(featureFlags, flag.id, enabled))}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
+                          <p className="text-sm text-muted">{flag.description}</p>
+                          <div className="mt-1 flex flex-wrap gap-1.5">
+                            {flag.kind === "ops" ? <Tag>• Ops</Tag> : null}
+                            {parentBlocked ? <Tag tone="warning">▲ Needs parent</Tag> : null}
+                          </div>
+                        </td>
+                        <td className={TD_MUTED}>
+                          <Tag>{FEATURE_FLAG_CATEGORY_LABELS[category] ?? category}</Tag>
+                        </td>
+                        <td className={TD_MONO}>
+                          {flag.dependsOn?.length
+                            ? flag.dependsOn.map((id) => (FLAG_LABELS.get(id) ?? id).toUpperCase()).join(", ")
+                            : "—"}
+                        </td>
+                        <td className={`${TD} text-right`}>
+                          <Toggle
+                            changed={changed}
+                            checked={storedOn}
+                            label={flag.label}
+                            onChange={(enabled) => onChange(applyFlagToggle(featureFlags, flag.id, enabled))}
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-          ))}
+          </div>
         </div>
       ) : null}
 
       {panel === "preview" ? (
-        <div>
-          <p className="mb-2 text-xs text-[#6B6860]">
-            Surfaces a user would see with these entitlements (nav / middleware).
-          </p>
-          <ul className="divide-y divide-[#ECEAE6] border border-[#E2DFD9]">
-            {preview.map((surface) => (
-              <li className="flex items-center justify-between gap-3 px-3 py-2 text-sm" key={surface.id}>
-                <div>
-                  <p className="font-medium text-[#0D0E12]">{surface.label}</p>
-                  <p className="font-mono text-[10px] text-[#A09D98]">{surface.href}</p>
-                </div>
-                <span
-                  className={`text-[10px] font-bold uppercase tracking-wide ${
-                    surface.allowed ? "text-emerald-700" : "text-[#A09D98]"
-                  }`}
-                >
-                  {surface.allowed ? "Allowed" : "Blocked"}
-                </span>
-              </li>
-            ))}
-          </ul>
+        <div className="space-y-3">
+          <p className="text-sm text-ink-2">Surfaces a user would see with these entitlements (nav and middleware).</p>
+          <div className={TABLE_WRAP}>
+            <div className={TABLE_SCROLL}>
+              <table className={TABLE}>
+                <thead>
+                  <tr className={THEAD_ROW}>
+                    <th className={TH} scope="col">Surface</th>
+                    <th className={TH} scope="col">Route</th>
+                    <th className={`${TH} text-right`} scope="col">Access</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {preview.map((surface) => (
+                    <tr className={TR} key={surface.id}>
+                      <td className={`${TD} font-semibold`}>{surface.label}</td>
+                      <td className={TD_MONO}>{surface.href}</td>
+                      <td className={`${TD} text-right`}>
+                        {surface.allowed ? <Tag tone="success">✓ Allowed</Tag> : <Tag>○ Blocked</Tag>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       ) : null}
 
       {panel === "diff" ? (
-        <div>
+        <div className={TABLE_WRAP}>
           {diff.length > 0 ? (
-            <ul className="space-y-1.5 text-sm">
+            <ul>
               {diff.map((item) => (
-                <li className="border border-[#ECEAE6] px-3 py-2 text-[#3D3C38]" key={item.id}>
-                  <span className="font-medium text-[#0D0E12]">{item.label}</span>
-                  <span className="text-[#A09D98]"> — default {item.defaultEnabled ? "on" : "off"}</span>
-                  <span className="text-[#A09D98]"> · effective </span>
-                  <span className={item.effective ? "text-emerald-700" : "text-amber-800"}>
-                    {item.effective ? "on" : "off"}
+                <li
+                  className="flex flex-wrap items-center justify-between gap-3 border-b border-divider px-5 py-3 last:border-b-0"
+                  key={item.id}
+                >
+                  <span className="text-[15px] font-semibold text-ink">{item.label}</span>
+                  <span className="flex items-center gap-2 font-mono text-xs text-muted">
+                    DEFAULT {item.defaultEnabled ? "ON" : "OFF"} →
+                    {item.effective ? <Tag tone="success">✓ On</Tag> : <Tag tone="warning">○ Off</Tag>}
                   </span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-[#6B6860]">All modules match platform defaults (Full package).</p>
+            <EmptyLine>All modules match platform defaults (Full package).</EmptyLine>
           )}
         </div>
       ) : null}
+
+      <PlatformUnsavedBanner
+        count={changedIds.length}
+        onDiscard={onDiscard}
+        onSave={onSave}
+        saveLabel="Save entitlements"
+        saving={saving}
+        show={hasUnsavedChanges}
+        summary={
+          changedIds.length > 0
+            ? changedIds
+                .slice(0, 3)
+                .map((id) => FLAG_LABELS.get(id) ?? id)
+                .join(" · ") + (changedIds.length > 3 ? ` · +${changedIds.length - 3}` : "")
+            : undefined
+        }
+      />
     </div>
   );
 }

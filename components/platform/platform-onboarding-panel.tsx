@@ -1,9 +1,22 @@
 "use client";
 
-import { GraduationCap, Route, UserCog, UserPlus } from "lucide-react";
+import {
+  EmptyLine,
+  TABLE,
+  TABLE_SCROLL,
+  TABLE_WRAP,
+  TD,
+  TD_MONO,
+  TD_MUTED,
+  TH,
+  THEAD_ROW,
+  TR,
+  formatDate,
+} from "@/components/platform/platform-ui";
+import { Tag } from "@/components/ui/tag";
 import type { OnboardingFunnelEntry, OnboardingStage } from "@/lib/platform/mission-control-types";
 import { ONBOARDING_STAGE_LABELS } from "@/lib/platform/mission-control-types";
-import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const STAGES: OnboardingStage[] = [
   "created",
@@ -40,6 +53,28 @@ function nextActions(entry: OnboardingFunnelEntry): string {
   }
 }
 
+function StageRunway({ stageIndex }: { stageIndex: number }) {
+  return (
+    <div className="flex items-center gap-1">
+      {STAGES.map((stage, index) => (
+        <span
+          aria-hidden
+          className={cn(
+            "h-2 w-6 rounded-[2px]",
+            index < stageIndex && "bg-blue",
+            index === stageIndex && (stageIndex === STAGES.length - 1 ? "bg-blue" : "bg-signal outline outline-[1.5px] outline-ink"),
+            index > stageIndex && "bg-divider",
+          )}
+          key={stage}
+        />
+      ))}
+      <span className="sr-only">
+        Stage {stageIndex + 1} of {STAGES.length}
+      </span>
+    </div>
+  );
+}
+
 export function PlatformOnboardingPanel({
   entries,
   selectedTenantId,
@@ -65,163 +100,123 @@ export function PlatformOnboardingPanel({
     null;
 
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-[#6B6860]">
-        {incomplete.length} tenant{incomplete.length === 1 ? "" : "s"} still onboarding. Click a
-        row to work that tenant — no second picker.
-      </p>
-
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-        <div className="overflow-x-auto border border-[#E2DFD9] bg-white">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-[#E2DFD9] text-xs uppercase tracking-wide text-[#A09D98]">
-                <th className="px-4 py-3">Tenant</th>
-                <th className="px-4 py-3">Stage</th>
-                <th className="px-4 py-3">Users</th>
-                <th className="px-4 py-3">Created</th>
-                <th className="px-4 py-3">Progress</th>
-              </tr>
-            </thead>
-            <tbody>
-              {entries.length === 0 ? (
-                <tr>
-                  <td className="px-4 py-8 text-[#A09D98]" colSpan={5}>
-                    No tenants in the onboarding funnel yet.
-                  </td>
+    <div className="flex flex-wrap gap-[var(--rail-gap)] min-[1100px]:grid min-[1100px]:grid-cols-[minmax(0,1fr)_340px]">
+      <div className={cn(TABLE_WRAP, "min-w-0 flex-1")}>
+        {entries.length === 0 ? (
+          <EmptyLine>No tenants in the onboarding funnel yet.</EmptyLine>
+        ) : (
+          <div className={TABLE_SCROLL}>
+            <table className={TABLE}>
+              <thead>
+                <tr className={THEAD_ROW}>
+                  <th className={TH} scope="col">Tenant</th>
+                  <th className={TH} scope="col">Stage</th>
+                  <th className={TH} scope="col">Users</th>
+                  <th className={TH} scope="col">Created</th>
+                  <th className={TH} scope="col">Progress</th>
                 </tr>
-              ) : (
-                entries.map((entry) => {
+              </thead>
+              <tbody>
+                {entries.map((entry) => {
                   const active = selected?.tenantId === entry.tenantId;
+                  const done = entry.stage === "first_activity";
                   return (
-                    <tr
-                      className={`cursor-pointer border-b border-[#f8fafc] ${
-                        active ? "bg-[#F0F7FF]" : "hover:bg-[#F9F8F6]"
-                      }`}
-                      key={entry.tenantId}
-                      onClick={() => onSelectTenant(entry.tenantId)}
-                    >
-                      <td className="px-4 py-3 font-medium text-[#0D0E12]">{entry.name}</td>
-                      <td className="px-4 py-3 text-[#6B6860]">
-                        {ONBOARDING_STAGE_LABELS[entry.stage]}
+                    <tr className={cn(TR, active && "bg-blue-soft")} key={entry.tenantId}>
+                      <td className={TD}>
+                        <button
+                          aria-pressed={active}
+                          className="link text-left"
+                          onClick={() => onSelectTenant(entry.tenantId)}
+                          type="button"
+                        >
+                          {entry.name}
+                        </button>
                       </td>
-                      <td className="px-4 py-3 text-[#6B6860]">{entry.userCount}</td>
-                      <td className="px-4 py-3 text-[#6B6860]">
-                        {new Date(entry.createdAt).toLocaleDateString()}
+                      <td className={TD}>
+                        <Tag tone={done ? "success" : "neutral"}>
+                          <span aria-hidden>{done ? "✓" : "•"}</span> {ONBOARDING_STAGE_LABELS[entry.stage]}
+                        </Tag>
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="flex gap-1">
-                          {STAGES.map((stage, index) => (
-                            <span
-                              className={`h-2 w-6 rounded-full ${
-                                index <= entry.stageIndex ? "bg-[#0071ce]" : "bg-[#E2DFD9]"
-                              }`}
-                              key={stage}
-                              title={ONBOARDING_STAGE_LABELS[stage]}
-                            />
-                          ))}
-                        </div>
+                      <td className={`${TD_MUTED} tabular-nums`}>{entry.userCount}</td>
+                      <td className={TD_MONO}>{formatDate(entry.createdAt)}</td>
+                      <td className={TD}>
+                        <StageRunway stageIndex={entry.stageIndex} />
                       </td>
                     </tr>
                   );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        <aside className="border border-[#E2DFD9] bg-white p-5">
-          {!selected ? (
-            <p className="text-sm text-[#A09D98]">Select a tenant from the list.</p>
-          ) : (
-            <div className="space-y-5">
-              <div>
-                <p className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#A09D98]">
-                  Onboarding detail
-                </p>
-                <h2 className="mt-1 text-lg font-bold text-[#0D0E12]">{selected.name}</h2>
-                <p className="mt-1 text-sm text-[#6B6860]">
-                  {selected.slug} · {selected.status} · {ONBOARDING_STAGE_LABELS[selected.stage]}
-                </p>
-              </div>
-
-              <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#A09D98]">
-                  Checklist
-                </p>
-                <ol className="space-y-2">
-                  {STAGES.map((stage, index) => {
-                    const done = index <= selected.stageIndex;
-                    const current = stage === selected.stage;
-                    return (
-                      <li
-                        className={`flex items-start gap-2.5 text-sm ${
-                          current ? "font-semibold text-[#0D0E12]" : "text-[#6B6860]"
-                        }`}
-                        key={stage}
-                      >
-                        <span
-                          className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] ${
-                            done ? "bg-[#0071ce] text-white" : "bg-[#E2DFD9] text-[#A09D98]"
-                          }`}
-                        >
-                          {done ? "✓" : index + 1}
-                        </span>
-                        <span>
-                          {ONBOARDING_STAGE_LABELS[stage]}
-                          {current ? (
-                            <span className="mt-0.5 block text-xs font-normal text-[#6B6860]">
-                              {STAGE_HINTS[stage]}
-                            </span>
-                          ) : null}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ol>
-              </div>
-
-              <div className="border border-[#E2DFD9] bg-[#F9F8F6] p-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-[#A09D98]">
-                  Next action
-                </p>
-                <p className="mt-1 text-sm text-[#0D0E12]">{nextActions(selected)}</p>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                <Button onClick={() => onOpenProvision(selected.tenantId)} type="button">
-                  <UserPlus className="h-4 w-4" />
-                  Open provision
-                </Button>
-                <Button
-                  onClick={() => onShadowAdmin(selected.tenantId)}
-                  type="button"
-                  variant="outline"
-                >
-                  <UserCog className="h-4 w-4" />
-                  Shadow as admin
-                </Button>
-                <Button
-                  onClick={() => onShadowSe(selected.tenantId)}
-                  type="button"
-                  variant="outline"
-                >
-                  <GraduationCap className="h-4 w-4" />
-                  Try as SE
-                </Button>
-                <Button
-                  onClick={() => onOpenTenant(selected.tenantId)}
-                  type="button"
-                  variant="outline"
-                >
-                  <Route className="h-4 w-4" />
-                  Full tenant record
-                </Button>
-              </div>
-            </div>
-          )}
-        </aside>
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
+
+      <aside className="w-full min-w-0 min-[1100px]:w-auto">
+        {!selected ? (
+          <p className="text-[15px] text-muted">Select a tenant from the list.</p>
+        ) : (
+          <div className="space-y-5 rounded-[14px] border-[1.5px] border-ink bg-white p-5">
+            <div>
+              <p className="label-mono">Onboarding detail</p>
+              <h2 className="mt-1 text-2xl leading-[1.15] font-extrabold tracking-[-0.015em] text-ink">
+                {selected.name}
+              </h2>
+              <p className="mt-1 font-mono text-xs text-muted">
+                {selected.slug} · {selected.status.toUpperCase()}
+              </p>
+            </div>
+
+            <ol className="space-y-2.5">
+              {STAGES.map((stage, index) => {
+                const done = index <= selected.stageIndex;
+                const current = stage === selected.stage;
+                return (
+                  <li className="flex items-start gap-3" key={stage}>
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full font-mono text-xs",
+                        done && !current && "bg-blue text-white",
+                        current && "border-[1.5px] border-ink bg-signal text-ink",
+                        !done && "border-2 border-line-strong text-muted",
+                      )}
+                    >
+                      {done && !current ? "✓" : index + 1}
+                    </span>
+                    <span className={cn("text-[15px]", current ? "font-bold text-ink" : "text-ink-2")}>
+                      {ONBOARDING_STAGE_LABELS[stage]}
+                      <span className="sr-only">{current ? " (current)" : done ? " (done)" : " (to do)"}</span>
+                      {current ? (
+                        <span className="mt-0.5 block text-sm font-normal text-muted">{STAGE_HINTS[stage]}</span>
+                      ) : null}
+                    </span>
+                  </li>
+                );
+              })}
+            </ol>
+
+            <div className="rounded-[10px] bg-signal-soft px-4 py-3">
+              <p className="label-mono text-ink">Next action</p>
+              <p className="mt-1 text-[15px] text-ink">{nextActions(selected)}</p>
+            </div>
+
+            <div className="flex flex-wrap gap-2.5">
+              <button className="btn-primary" onClick={() => onOpenProvision(selected.tenantId)} type="button">
+                Open provision
+              </button>
+              <button className="btn-secondary" onClick={() => onShadowAdmin(selected.tenantId)} type="button">
+                Shadow as admin
+              </button>
+              <button className="btn-secondary" onClick={() => onShadowSe(selected.tenantId)} type="button">
+                Try as SE
+              </button>
+            </div>
+            <button className="link text-sm" onClick={() => onOpenTenant(selected.tenantId)} type="button">
+              Full tenant record
+            </button>
+          </div>
+        )}
+      </aside>
     </div>
   );
 }

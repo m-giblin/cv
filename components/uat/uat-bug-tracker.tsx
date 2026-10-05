@@ -1,9 +1,13 @@
 "use client";
 
-import { Bug, ExternalLink, ImagePlus, Loader2, X } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
+import { SegmentedToggle } from "@/components/ui/segmented-toggle";
+import { Tag } from "@/components/ui/tag";
+import { Textarea } from "@/components/ui/textarea";
 import { openUatBugWindow } from "@/lib/uat/open-uat-bug-window";
 import { cn } from "@/lib/utils";
 
@@ -95,28 +99,26 @@ export function UatBugTracker({
  return null;
  }
 
+ // Bottom-right, clear of the sidebar user row, and raised above the sticky action bars
+ // (unsaved changes, bulk approve) so it never covers their primary button. Toasts sit bottom-centre.
  return (
- <div
- className={cn(
- "fixed z-[70]",
- "bottom-20 left-3 md:bottom-6",
- "lg:left-[232px]",
- )}
- >
  <button
- className="flex items-center gap-2 rounded-full border border-[#0071ce]/30 bg-[#00143a] px-4 py-2.5 text-sm font-semibold text-white /25 transition hover:bg-[#002855]"
+ className="fixed right-4 bottom-[84px] z-[60] inline-flex items-center gap-2 rounded-full border-[1.5px] border-ink bg-white px-4 py-2 text-sm font-bold text-ink hover:bg-blue-soft"
  onClick={() => openUatBugWindow()}
- title="Open UAT bug tracker in a separate window"
  type="button"
  >
- <Bug className="h-4 w-4 text-[#38bdf8]" aria-hidden />
- UAT Bugs
+ UAT bugs
  {backlogCount > 0 ? (
- <span className="rounded-full bg-[#0071ce] px-1.5 py-0.5 text-[10px] font-bold">{backlogCount}</span>
+ <span className="rounded-full bg-signal px-2 font-mono text-xs leading-[18px] font-medium text-ink">
+ {backlogCount}
+ <span className="sr-only"> in backlog</span>
+ </span>
  ) : null}
- <ExternalLink className="h-3.5 w-3.5 opacity-60" aria-hidden />
+ <span className="sr-only">(opens a new window)</span>
+ <span aria-hidden className="text-muted">
+ ↗
+ </span>
  </button>
- </div>
  );
 }
 
@@ -307,21 +309,21 @@ export function UatBugTrackerPanel({
 
  if (loadingMeta) {
  return (
- <div className="flex min-h-screen items-center justify-center bg-white">
- <Loader2 className="h-6 w-6 animate-spin text-[#0071ce]" />
- </div>
+ <main className="flex min-h-screen items-center justify-center bg-bg" id="main-content">
+ <Loader2 aria-hidden className="h-6 w-6 animate-spin text-blue" />
+ <span className="sr-only">Loading</span>
+ </main>
  );
  }
 
  if (!meta?.enabled) {
  return (
- <div className="flex min-h-screen items-center justify-center bg-white p-6 text-center text-sm text-slate-600">
+ <main className="flex min-h-screen items-center justify-center bg-bg p-6 text-center text-[15px] text-ink-2" id="main-content">
  UAT bug tracker is not configured for this environment.
- </div>
+ </main>
  );
  }
 
- const selected = issues.find((item) => item.id === selectedId) ?? null;
  const projectKey = meta?.projectKey ?? "SEENA";
  const assigneeName = meta?.assigneeName ?? "Matt Giblin";
  const assigneeEmail = meta?.assigneeEmail ?? "matt.j.giblin@gmail.com";
@@ -329,69 +331,55 @@ export function UatBugTrackerPanel({
  const priorities = meta?.priorities ?? ["critical", "high", "medium", "low"];
  const statuses = meta?.statuses ?? ["backlog", "todo", "in_progress", "in_review", "done"];
  const forgeUrl = meta?.forgeUrl ?? "https://forge-nu-ochre.vercel.app";
+ const selectClass =
+ "h-10 w-full rounded-[10px] border-[1.5px] border-ink bg-white px-3 text-[15px] text-ink focus:border-blue";
+ const labelClass = "mb-1.5 block text-sm font-semibold text-ink";
 
  return (
- <div className="flex min-h-screen flex-col bg-white">
- <header className="flex shrink-0 items-center justify-between border-b border-[#E2DFD9] bg-[#00143a] px-4 py-3 text-white">
- <div className="flex items-center gap-2">
- <Bug className="h-4 w-4 text-[#38bdf8]" aria-hidden />
+ <div className="flex min-h-screen flex-col bg-bg">
+ <header className="flex shrink-0 items-center justify-between gap-3 bg-blue px-5 py-3.5 text-white">
  <div>
- <p className="text-sm font-bold leading-tight">UAT Bug Tracker</p>
- <p className="text-[10px] text-white/60">Forge · {projectKey}</p>
+ <p className="text-base font-bold leading-tight">UAT bug tracker</p>
+ <p className="font-mono text-xs text-on-blue-muted">FORGE · {projectKey}</p>
  </div>
- </div>
- <div className="flex items-center gap-1">
- <a
- className="rounded p-1 text-white/70 hover:bg-white/10 hover:text-white"
- href={forgeUrl}
- rel="noreferrer"
- target="_blank"
- title="Open Forge"
- >
- <ExternalLink className="h-4 w-4" />
+ <div className="flex items-center gap-3">
+ <a className="text-sm font-bold text-white underline decoration-signal decoration-2 underline-offset-[3px]" href={forgeUrl} rel="noreferrer" target="_blank">
+ Open Forge<span className="sr-only"> (opens a new tab)</span>
  </a>
  <button
- className="rounded p-1 text-white/70 hover:bg-white/10 hover:text-white"
+ aria-label="Close window"
+ className="grid h-8 w-8 place-items-center rounded-full border border-blue-line text-white hover:bg-blue-2"
  onClick={() => window.close()}
  type="button"
- aria-label="Close window"
  >
- <X className="h-4 w-4" />
+ <X aria-hidden className="h-4 w-4" />
  </button>
  </div>
  </header>
 
- <div className="flex shrink-0 border-b border-[#E2DFD9] bg-[#f8fafc]">
- {(
- [
- ["report", "Report bug"],
- ["backlog", `Backlog (${issues.length})`],
- ] as const
- ).map(([key, label]) => (
- <button
- className={cn(
- "flex-1 px-3 py-2 text-xs font-semibold transition",
- tab === key ? "border-b-2 border-[#0071ce] text-[#0071ce] bg-white" : "text-slate-500",
- )}
- key={key}
- onClick={() => setTab(key)}
- type="button"
- >
- {label}
- </button>
- ))}
+ <div className="flex shrink-0 justify-center border-b border-line bg-white px-5 py-3">
+ <SegmentedToggle
+ label="Bug tracker view"
+ onChange={(id) => setTab(id as Tab)}
+ options={[
+ { id: "report", label: "Report bug" },
+ { id: "backlog", label: `Backlog · ${issues.length}` },
+ ]}
+ value={tab}
+ />
  </div>
 
- <div className="min-h-0 flex-1 overflow-y-auto p-4">
+ <main className="min-h-0 flex-1 overflow-y-auto p-5" id="main-content">
  {meta?.forgeReachable === false ? (
- <div className="mb-3 border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
- <strong>Forge connection issue.</strong> {meta.forgeError ?? "API unreachable."} You can still
- file bugs — submissions may fail until Forge is healthy.
- </div>
+ <p className="mb-4 rounded-[10px] border-[1.5px] border-warning bg-warning-soft px-3.5 py-2.5 text-sm text-warning" role="alert">
+ <span aria-hidden>▲ </span>
+ <strong>Forge connection issue.</strong> {meta.forgeError ?? "API unreachable."} You can still file bugs, but
+ submissions may fail until Forge is healthy.
+ </p>
  ) : null}
  {tab === "report" ? (
  <form
- className="space-y-3"
+ className="space-y-4"
  onPaste={(event) => {
  const items = event.clipboardData?.items;
  if (!items) return;
@@ -412,25 +400,25 @@ export function UatBugTrackerPanel({
  onSubmit={(event) => void handleSubmit(event)}
  >
  <div>
- <label className="mb-1 block text-xs font-semibold text-slate-600" htmlFor="uat-title">
- Title <span className="text-red-500">*</span>
+ <label className={labelClass} htmlFor="uat-title">
+ Title <span className="font-normal text-muted">(required)</span>
  </label>
- <input
- className="w-full border border-[#E2DFD9] px-3 py-2 text-sm outline-none focus:border-[#0071ce]"
+ <Input
  id="uat-title"
  onChange={(event) => setTitle(event.target.value)}
  placeholder="Short summary of the issue"
+ required
  value={title}
  />
  </div>
 
- <div className="grid grid-cols-2 gap-2">
+ <div className="grid grid-cols-2 gap-3">
  <div>
- <label className="mb-1 block text-xs font-semibold text-slate-600" htmlFor="uat-category">
+ <label className={labelClass} htmlFor="uat-category">
  Category
  </label>
  <select
- className="w-full border border-[#E2DFD9] px-2 py-2 text-sm outline-none focus:border-[#0071ce]"
+ className={selectClass}
  id="uat-category"
  onChange={(event) => setCategoryId(event.target.value)}
  value={categoryId}
@@ -447,11 +435,11 @@ export function UatBugTrackerPanel({
  </select>
  </div>
  <div>
- <label className="mb-1 block text-xs font-semibold text-slate-600" htmlFor="uat-severity">
+ <label className={labelClass} htmlFor="uat-severity">
  Severity
  </label>
  <select
- className="w-full border border-[#E2DFD9] px-2 py-2 text-sm outline-none focus:border-[#0071ce]"
+ className={selectClass}
  id="uat-severity"
  onChange={(event) => setPriority(event.target.value)}
  value={priority}
@@ -466,22 +454,22 @@ export function UatBugTrackerPanel({
  </div>
 
  <div>
- <label className="mb-1 block text-xs font-semibold text-slate-600" htmlFor="uat-comments">
- Comments / steps to reproduce
+ <label className={labelClass} htmlFor="uat-comments">
+ Comments and steps to reproduce
  </label>
- <textarea
- className="min-h-[88px] w-full resize-y border border-[#E2DFD9] px-3 py-2 text-sm outline-none focus:border-[#0071ce]"
+ <Textarea
+ className="min-h-[96px] resize-y"
  id="uat-comments"
  onChange={(event) => setComments(event.target.value)}
- placeholder="What happened? What did you expect? Steps to reproduce…"
+ placeholder="What happened? What did you expect? Steps to reproduce"
  value={comments}
  />
  </div>
 
  <div
  className={cn(
- "border-2 border-dashed px-3 py-4 text-center transition",
- dragOver ? "border-[#0071ce] bg-[#eff6ff]" : "border-[#B0ADA8] bg-[#f8fafc]",
+ "rounded-[14px] border-2 border-dashed px-4 py-5 text-center transition-colors",
+ dragOver ? "border-blue bg-blue-soft" : "border-dash bg-white",
  )}
  onDragEnter={(event) => {
  event.preventDefault();
@@ -495,18 +483,14 @@ export function UatBugTrackerPanel({
  if (event.dataTransfer.files.length) addFiles(event.dataTransfer.files);
  }}
  >
- <ImagePlus className="mx-auto mb-2 h-5 w-5 text-slate-400" />
- <p className="text-xs font-medium text-slate-600">Drag & drop screenshots here</p>
- <p className="mt-1 text-[10px] text-slate-400">PNG, JPG, GIF, WebP, PDF · max 10 MB each</p>
- <button
- className="mt-2 text-xs font-semibold text-[#0071ce] hover:underline"
- onClick={() => fileInputRef.current?.click()}
- type="button"
- >
+ <p className="text-sm font-semibold text-ink">Drop screenshots here, or paste with Ctrl/Cmd+V</p>
+ <p className="mt-1 font-mono text-xs text-muted">PNG, JPG, GIF, WEBP, PDF · MAX 10 MB EACH · UP TO 5</p>
+ <button className="link mt-2 text-sm" onClick={() => fileInputRef.current?.click()} type="button">
  Browse files
  </button>
  <input
  accept="image/*,application/pdf"
+ aria-label="Attach screenshots"
  className="hidden"
  multiple
  onChange={(event) => {
@@ -519,101 +503,94 @@ export function UatBugTrackerPanel({
  </div>
 
  {files.length > 0 ? (
- <ul className="space-y-1">
+ <ul className="overflow-hidden rounded-[10px] border border-line bg-white">
  {files.map((file) => (
  <li
- className="flex items-center justify-between rounded bg-[#ECEAE6] px-2 py-1 text-xs"
+ className="flex items-center justify-between gap-2 border-b border-divider px-3 py-2 text-sm last:border-b-0"
  key={`${file.name}-${file.size}`}
  >
- <span className="truncate">{file.name}</span>
+ <span className="truncate font-mono text-xs text-ink">{file.name}</span>
  <button
- className="ml-2 text-slate-400 hover:text-red-500"
+ aria-label={`Remove ${file.name}`}
+ className="grid h-7 w-7 place-items-center rounded-full text-muted hover:bg-danger-soft hover:text-danger"
  onClick={() => setFiles((current) => current.filter((f) => f !== file))}
  type="button"
  >
- <X className="h-3 w-3" />
+ <X aria-hidden className="h-3.5 w-3.5" />
  </button>
  </li>
  ))}
  </ul>
  ) : null}
 
- <p className="text-[10px] text-slate-400">
- Page URL captured automatically. Paste screenshots with Ctrl/Cmd+V. Attachments upload after the
- issue is created (Forge two-step flow). All bugs go to <strong>backlog</strong> and assign to{" "}
- {assigneeName} ({assigneeEmail}).
+ <p className="text-[13px] leading-[1.45] text-muted">
+ The page URL is captured automatically. Attachments upload after the issue is created. Every bug goes to the
+ backlog and is assigned to {assigneeName} ({assigneeEmail}).
  </p>
 
- <button
- className="flex w-full items-center justify-center gap-2 bg-[#0071ce] py-2.5 text-sm font-semibold text-white hover:bg-[#005fa8] disabled:opacity-60"
- disabled={submitting}
- type="submit"
- >
- {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+ <button className="btn-primary inline-flex w-full items-center justify-center gap-2" disabled={submitting} type="submit">
+ {submitting ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
  Submit to Forge
  </button>
  </form>
  ) : (
- <div className="space-y-2">
+ <div className="space-y-3">
  <div className="flex items-center justify-between">
- <p className="text-xs text-slate-500">Backlog — triage one at a time</p>
- <button
- className="text-xs font-semibold text-[#0071ce] hover:underline"
- onClick={() => void loadIssues()}
- type="button"
- >
+ <p className="label-mono">Backlog · triage one at a time</p>
+ <button className="link text-sm" onClick={() => void loadIssues()} type="button">
  Refresh
  </button>
  </div>
 
  {loadingIssues ? (
- <div className="flex justify-center py-8">
- <Loader2 className="h-5 w-5 animate-spin text-[#0071ce]" />
+ <div className="flex justify-center py-8" role="status">
+ <Loader2 aria-hidden className="h-5 w-5 animate-spin text-blue" />
+ <span className="sr-only">Loading backlog</span>
  </div>
  ) : issues.length === 0 ? (
- <p className="bg-[#f8fafc] px-3 py-6 text-center text-sm text-slate-500">
- No backlog bugs. Great job — or report the first one!
+ <p className="rounded-[14px] border border-line bg-white px-4 py-6 text-center text-[15px] text-ink-2">
+ No backlog bugs. Report the first one from the other tab.
  </p>
  ) : (
- <ul className="space-y-2">
- {issues.map((issue) => (
- <li key={issue.id}>
+ <ul className="overflow-hidden rounded-[14px] border border-line bg-white">
+ {issues.map((issue) => {
+ const open = selectedId === issue.id;
+ return (
+ <li className={cn("border-b border-divider last:border-b-0", open && "bg-blue-soft")} key={issue.id}>
  <button
- className={cn(
- "w-full border px-3 py-2 text-left transition",
- selectedId === issue.id
- ? "border-[#0071ce] bg-[#eff6ff]"
- : "border-[#E2DFD9] bg-white hover:border-[#93c5fd]",
- )}
- onClick={() => setSelectedId(selectedId === issue.id ? null : issue.id)}
+ aria-expanded={open}
+ className="w-full px-4 py-3 text-left"
+ onClick={() => setSelectedId(open ? null : issue.id)}
  type="button"
  >
- <div className="flex items-start justify-between gap-2">
- <span className="text-xs font-bold text-[#0071ce]">
+ <span className="flex items-start justify-between gap-2">
+ <span className="font-mono text-xs font-medium text-blue">
  {projectKey}-{issue.number}
  </span>
- <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-slate-600">
- {issue.priority}
+ <Tag tone={issue.priority === "critical" ? "danger" : issue.priority === "high" ? "warning" : "neutral"}>
+ {issue.priority === "critical" ? "▲" : issue.priority === "high" ? "●" : "•"}{" "}
+ {PRIORITY_LABELS[issue.priority] ?? issue.priority}
+ </Tag>
  </span>
- </div>
- <p className="mt-1 text-sm font-medium text-slate-800">{issue.title}</p>
+ <span className="mt-1 block text-[15px] font-semibold text-ink">{issue.title}</span>
  </button>
 
- {selectedId === issue.id ? (
- <div className="mt-2 space-y-2 border border-[#E2DFD9] bg-[#f8fafc] p-3">
+ {open ? (
+ <div className="space-y-3 px-4 pb-4">
  {issue.description ? (
- <pre className="max-h-32 overflow-auto whitespace-pre-wrap text-xs text-slate-600">
+ <pre className="max-h-32 overflow-auto rounded-[10px] bg-white p-3 font-mono text-xs whitespace-pre-wrap text-ink-2">
  {issue.description}
  </pre>
  ) : null}
- <div className="grid grid-cols-2 gap-2">
- <label className="text-[10px] font-semibold text-slate-500">
+ <div className="grid grid-cols-2 gap-3">
+ <div>
+ <label className={labelClass} htmlFor={`uat-status-${issue.id}`}>
  Status
+ </label>
  <select
- className="mt-1 w-full rounded border border-[#E2DFD9] px-2 py-1 text-xs"
- onChange={(event) =>
- void updateIssue(issue.id, { status: event.target.value })
- }
+ className={selectClass}
+ id={`uat-status-${issue.id}`}
+ onChange={(event) => void updateIssue(issue.id, { status: event.target.value })}
  value={issue.status}
  >
  {statuses.map((status) => (
@@ -622,14 +599,15 @@ export function UatBugTrackerPanel({
  </option>
  ))}
  </select>
- </label>
- <label className="text-[10px] font-semibold text-slate-500">
+ </div>
+ <div>
+ <label className={labelClass} htmlFor={`uat-priority-${issue.id}`}>
  Severity
+ </label>
  <select
- className="mt-1 w-full rounded border border-[#E2DFD9] px-2 py-1 text-xs"
- onChange={(event) =>
- void updateIssue(issue.id, { priority: event.target.value })
- }
+ className={selectClass}
+ id={`uat-priority-${issue.id}`}
+ onChange={(event) => void updateIssue(issue.id, { priority: event.target.value })}
  value={issue.priority}
  >
  {priorities.map((item) => (
@@ -638,17 +616,18 @@ export function UatBugTrackerPanel({
  </option>
  ))}
  </select>
- </label>
+ </div>
  </div>
  </div>
  ) : null}
  </li>
- ))}
+ );
+ })}
  </ul>
  )}
  </div>
  )}
- </div>
+ </main>
  </div>
  );
 }

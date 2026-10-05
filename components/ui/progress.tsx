@@ -1,20 +1,24 @@
 import { cn } from "@/lib/utils";
 
+/** 8px bar on the divider track, blue fill. */
 export function Progress({
- value,
- className,
+  value,
+  className,
 }: {
- value: number;
- className?: string;
+  value: number;
+  className?: string;
 }) {
- const clamped = Math.max(0, Math.min(100, value));
+  const clamped = Math.max(0, Math.min(100, value));
 
- return (
- <div className={cn("relative h-[3px] overflow-hidden bg-[#ECEAE6]", className)}>
- <div
- className="absolute left-0 top-0 h-full bg-sp-blue transition-all"
- style={{ width: `${clamped}%` }}
- />
- </div>
- );
+  return (
+    <div
+      aria-valuemax={100}
+      aria-valuemin={0}
+      aria-valuenow={Math.round(clamped)}
+      className={cn("relative h-2 overflow-hidden rounded-full bg-divider", className)}
+      role="progressbar"
+    >
+      <div className="absolute left-0 top-0 h-full rounded-full bg-blue transition-all" style={{ width: `${clamped}%` }} />
+    </div>
+  );
 }

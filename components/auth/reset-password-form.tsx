@@ -1,17 +1,18 @@
 "use client";
 
-import { Loader2, LockKeyhole } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
 import { createClient } from "@/lib/supabase/client";
 
 export function ResetPasswordForm() {
  const router = useRouter();
+ const passwordId = useId();
+ const confirmId = useId();
  const [password, setPassword] = useState("");
  const [confirmPassword, setConfirmPassword] = useState("");
  const [isReady, setIsReady] = useState(false);
@@ -79,49 +80,55 @@ export function ResetPasswordForm() {
 
  if (!isReady) {
  return (
- <div className="space-y-4 text-sm leading-6 text-sp-navy-muted">
+ <div className="space-y-4 text-[15px] leading-normal text-ink-2">
  <p>Open the reset link from your email to set a new password.</p>
- <Button asChild className="w-full" variant="outline">
- <Link href={AUTH_ROUTES.login}>Back to sign in</Link>
- </Button>
+ <Link className="btn-secondary inline-block no-underline" href={AUTH_ROUTES.login}>
+ Back to sign in
+ </Link>
  </div>
  );
  }
 
  return (
- <form className="space-y-4" onSubmit={handleSubmit}>
- <label className="block space-y-2 text-sm font-semibold text-sp-navy-muted">
+ <form className="space-y-5" onSubmit={handleSubmit}>
+ <div>
+ <label className="mb-1.5 block text-sm font-semibold text-ink" htmlFor={passwordId}>
  New password
- <div className="relative">
- <LockKeyhole className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-sp-blue/60" />
+ </label>
  <Input
+ aria-describedby={`${passwordId}-hint`}
  autoComplete="new-password"
- className="pl-10"
+ id={passwordId}
  minLength={8}
  onChange={(event) => setPassword(event.target.value)}
  required
  type="password"
  value={password}
  />
+ <p className="mt-1 text-[13px] text-muted" id={`${passwordId}-hint`}>
+ At least 8 characters.
+ </p>
  </div>
- </label>
 
- <label className="block space-y-2 text-sm font-semibold text-sp-navy-muted">
+ <div>
+ <label className="mb-1.5 block text-sm font-semibold text-ink" htmlFor={confirmId}>
  Confirm password
+ </label>
  <Input
  autoComplete="new-password"
+ id={confirmId}
  minLength={8}
  onChange={(event) => setConfirmPassword(event.target.value)}
  required
  type="password"
  value={confirmPassword}
  />
- </label>
+ </div>
 
- <Button className="w-full" disabled={isSubmitting} size="lg" type="submit">
- {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+ <button className="btn-primary inline-flex w-full items-center justify-center gap-2" disabled={isSubmitting} type="submit">
+ {isSubmitting ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
  Save new password
- </Button>
+ </button>
  </form>
  );
 }

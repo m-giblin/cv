@@ -18,14 +18,14 @@ export const WORKSPACE_HAT_LABELS: Record<WorkspaceHat, string> = {
   platform: "Super Admin",
   tenant_admin: "Tenant Admin",
   manager: "Manager",
-  se: "User",
+  se: "Sales engineer",
 };
 
 export const WORKSPACE_HAT_DESCRIPTIONS: Record<WorkspaceHat, string> = {
   platform: "Platform Console — tenants, support, global ops",
   tenant_admin: "Tenant Admin — users, plans, settings for this org",
   manager: "Manager — team coaching, program, readiness",
-  se: "User — personal ramp, practice, readiness",
+  se: "Sales engineer — personal ramp, practice, readiness",
 };
 
 const HAT_SET = new Set<string>(WORKSPACE_HAT_ORDER);

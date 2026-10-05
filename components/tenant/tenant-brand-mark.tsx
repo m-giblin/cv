@@ -1,60 +1,53 @@
 "use client";
 
-import { SailPointLogoMark } from "@/components/shell/sailpoint-logo-mark";
+import { SignalMark } from "@/components/shell/signal-mark";
 import { useTenantBranding } from "@/components/tenant/tenant-branding-provider";
 import { cn } from "@/lib/utils";
 
-export function TenantBrandMark({
- className,
- variant = "boxed",
-}: {
- className?: string;
- variant?: "boxed" | "flat" | "flat-white";
-}) {
- const branding = useTenantBranding();
+/** Tenant logo when one is set, otherwise the 26px signal "SE" mark. */
+export function TenantBrandMark({ className }: { className?: string }) {
+  const branding = useTenantBranding();
 
- if (branding.logoUrl) {
- return (
- // eslint-disable-next-line @next/next/no-img-element
-      <img alt="" className={cn("h-9 w-9 object-contain", className)} src={branding.logoUrl} />
- );
- }
+  if (branding.logoUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img alt="" className={cn("h-[26px] w-[26px] rounded-[8px] object-contain", className)} src={branding.logoUrl} />
+    );
+  }
 
- return <SailPointLogoMark className={className} variant={variant} />;
+  return <SignalMark className={className} />;
 }
 
 export function TenantBrandText({
- layout = "stacked",
- className,
- taglineClassName,
- titleClassName,
+  layout = "stacked",
+  className,
+  taglineClassName,
+  titleClassName,
 }: {
- layout?: "stacked" | "inline";
- className?: string;
- titleClassName?: string;
- taglineClassName?: string;
+  layout?: "stacked" | "inline";
+  className?: string;
+  titleClassName?: string;
+  taglineClassName?: string;
 }) {
- const branding = useTenantBranding();
+  const branding = useTenantBranding();
 
- if (layout === "inline") {
- return (
- <span className={className}>
- <span className={titleClassName}>{branding.productName}</span>
- {branding.productTagline ? (
- <span className={taglineClassName}> {branding.productTagline}</span>
- ) : null}
- </span>
- );
- }
+  if (layout === "inline") {
+    return (
+      <span className={className}>
+        <span className={titleClassName}>{branding.productName}</span>
+        {branding.productTagline ? <span className={taglineClassName}> {branding.productTagline}</span> : null}
+      </span>
+    );
+  }
 
- return (
- <span className={className}>
- <span className={cn("block font-display font-extrabold leading-tight tracking-tight", titleClassName)}>
- {branding.productName}
- </span>
- {branding.productTagline ? (
- <span className={cn("block font-medium tracking-wide", taglineClassName)}>{branding.productTagline}</span>
- ) : null}
- </span>
- );
+  return (
+    <span className={className}>
+      <span className={cn("block text-base leading-tight font-bold", titleClassName)}>{branding.productName}</span>
+      {branding.productTagline ? (
+        <span className={cn("block font-mono text-xs text-on-blue-muted", taglineClassName)}>
+          {branding.productTagline}
+        </span>
+      ) : null}
+    </span>
+  );
 }

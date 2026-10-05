@@ -1,27 +1,6 @@
 "use client";
 
-import {
-  Activity,
-  ArrowLeft,
-  Ban,
-  CheckCircle,
-  Eye,
-  GraduationCap,
-  Loader2,
-  Plus,
-  Route,
-  Save,
-  ScrollText,
-  Settings,
-  Ticket,
-  Trash2,
-  UserCog,
-  UserPlus,
-  Users,
-  Wrench,
-  Zap,
-  BarChart2,
-} from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -40,8 +19,24 @@ import { PlatformTenantEntitlements } from "@/components/platform/platform-tenan
 import { PlatformTenantTable } from "@/components/platform/platform-tenant-table";
 import { PlatformUnsavedBanner } from "@/components/platform/platform-unsaved-banner";
 import { PlatformUsagePanel } from "@/components/platform/platform-usage-panel";
-import { Button } from "@/components/ui/button";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { PlatformConfirmDialog } from "@/components/platform/platform-confirm-dialog";
+import {
+  BTN_ON_BLUE,
+  BillingStatusTag,
+  FIELD_HINT,
+  FIELD_LABEL,
+  KpiStrip,
+  LineCard,
+  Spinner,
+  TenantStatusTag,
+  formatDateTime,
+} from "@/components/platform/platform-ui";
+import { ActionBar } from "@/components/ui/action-bar";
+import { Chip } from "@/components/ui/chip";
+import { Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/ui/page-header";
+import { Tag } from "@/components/ui/tag";
+import { Textarea } from "@/components/ui/textarea";
 import { isFormDirty } from "@/lib/platform/use-dirty-form";
 import type { MissionControlBundle } from "@/lib/platform/mission-control-types";
 import {
@@ -116,14 +111,6 @@ function parseConsoleView(value: string | null): ConsoleView {
   }
   return "now";
 }
-
-const BILLING_STATUS_COLORS: Record<string, string> = {
-  trial: "bg-amber-100 text-amber-800",
-  active: "bg-emerald-100 text-emerald-800",
-  past_due: "bg-red-100 text-red-800",
-  canceled: "bg-neutral-100 text-neutral-600",
-  exempt: "bg-sky-100 text-sky-800",
-};
 
 export function PlatformConsole() {
   const router = useRouter();
@@ -200,6 +187,8 @@ export function PlatformConsole() {
   const [inviteName, setInviteName] = useState("");
   const [shadowing, setShadowing] = useState(false);
   const [statusUpdating, setStatusUpdating] = useState(false);
+  /** Unsaved edits inside the commercial / SSO panels, which own their own form state. */
+  const [childDirty, setChildDirty] = useState(false);
 
   const loadTenants = useCallback(async () => {
     setLoading(true);
@@ -579,7 +568,7 @@ export function PlatformConsole() {
 
     const body = (await response.json()) as { redirect?: string; tenantName?: string; mode?: string };
     const label =
-      mode === "admin" ? "Tenant Admin" : mode === "manager" ? "Manager" : "User";
+      mode === "admin" ? "Tenant Admin" : mode === "manager" ? "Manager" : "Sales engineer";
     toast.success(`Opened ${label} for ${body.tenantName ?? selected.name}.`);
     router.push(
       body.redirect ??
@@ -589,18 +578,6 @@ export function PlatformConsole() {
   }
 
   const selected = tenants.find((tenant) => tenant.id === selectedId) ?? selectedTenant;
-
-  const topNav: { id: ConsoleView; label: string; icon: React.ReactNode }[] = [
-    { id: "now", label: "Now", icon: <Zap className="h-3.5 w-3.5" /> },
-    { id: "onboarding", label: "Onboarding", icon: <Route className="h-3.5 w-3.5" /> },
-    { id: "support", label: "Support", icon: <Ticket className="h-3.5 w-3.5" /> },
-    { id: "shadow", label: "Shadow", icon: <Eye className="h-3.5 w-3.5" /> },
-    { id: "overview", label: "Health", icon: <Activity className="h-3.5 w-3.5" /> },
-    { id: "usage", label: "Usage", icon: <BarChart2 className="h-3.5 w-3.5" /> },
-    { id: "tenant", label: "Tenants", icon: <UserCog className="h-3.5 w-3.5" /> },
-    { id: "global-audit", label: "Audit", icon: <ScrollText className="h-3.5 w-3.5" /> },
-    { id: "settings", label: "Settings", icon: <Settings className="h-3.5 w-3.5" /> },
-  ];
 
   const tenantTabs: { id: TenantTab; label: string }[] = [
     { id: "entitlements", label: "Entitlements" },
@@ -614,81 +591,136 @@ export function PlatformConsole() {
     { id: "audit", label: "Audit" },
   ];
 
+  const brandingDirty = isFormDirty(branding, savedBranding);
+  const notesDirty = isFormDirty(operatorNotes, savedOperatorNotes);
+  const flagsDirty = JSON.stringify(featureFlags) !== JSON.stringify(savedFlags);
+  const showDetail = consoleView === "tenant" && Boolean(selected && detail);
+  // The unsaved bar carries the view's one primary; the header primary steps down while it shows.
+  const tabDirty =
+    showDetail &&
+    ((tab === "entitlements" && flagsDirty) ||
+      (tab === "branding" && brandingDirty) ||
+      (tab === "notes" && notesDirty) ||
+      ((tab === "commercial" || tab === "sso") && childDirty));
+
+  const closeCreate = useCallback(() => setCreateModalOpen(false), []);
+
   if (loading && tenants.length === 0) {
-    return (
-      <div className="flex justify-center py-20">
-        <Loader2 className="h-7 w-7 animate-spin text-[#0071ce]" />
-      </div>
-    );
+    return <Spinner label="Loading console" />;
+  }
+
+  const search = (
+    <PlatformGlobalSearch onSelectTenant={openTenant} onSelectTicket={() => setConsoleView("support")} />
+  );
+  const activeCount = tenants.filter((t) => t.status === "active").length;
+  const shadowBlocked = !selected || selected.status === "suspended" || selected.status === "offboarded";
+
+  let header: { eyebrow?: string; title: React.ReactNode; actions?: React.ReactNode };
+  switch (consoleView) {
+    case "now":
+      header = { eyebrow: "Platform · mission control", title: "Now", actions: search };
+      break;
+    case "onboarding":
+      header = {
+        eyebrow: mission
+          ? `${mission.onboarding.filter((e) => e.stage !== "first_activity").length} tenants still onboarding`
+          : "Tenants",
+        title: "Onboarding",
+        actions: search,
+      };
+      break;
+    case "shadow":
+      header = {
+        eyebrow: mission ? `${mission.shadowSessions.length} sessions` : "Support",
+        title: "Shadow log",
+        actions: search,
+      };
+      break;
+    case "overview":
+      header = { eyebrow: "Tenants", title: "Health", actions: search };
+      break;
+    case "support":
+      header = { eyebrow: "Platform · tickets", title: "Support", actions: search };
+      break;
+    case "global-audit":
+      header = { eyebrow: "Platform ops", title: "Global audit", actions: search };
+      break;
+    case "usage":
+      header = { eyebrow: "Fleet · last 30 days", title: "Usage", actions: search };
+      break;
+    case "settings":
+      header = { eyebrow: "Your operator preferences", title: "Settings", actions: search };
+      break;
+    case "tenant":
+      header =
+        showDetail && selected
+          ? {
+              eyebrow: `Tenants / ${selected.slug}`,
+              title: selected.name,
+              actions: (
+                <>
+                  <button
+                    className={`${tabDirty ? "btn-secondary" : "btn-primary"} inline-flex items-center gap-2`}
+                    disabled={shadowing || shadowBlocked}
+                    onClick={() => void handleShadowTenant("admin")}
+                    type="button"
+                  >
+                    {shadowing ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
+                    Open tenant admin
+                  </button>
+                  <button
+                    className="btn-secondary"
+                    disabled={shadowing || shadowBlocked}
+                    onClick={() => void handleShadowTenant("manager")}
+                    type="button"
+                  >
+                    Open as manager
+                  </button>
+                  <button
+                    className="btn-secondary"
+                    disabled={shadowing || shadowBlocked}
+                    onClick={() => void handleShadowTenant("se")}
+                    type="button"
+                  >
+                    Open as SE
+                  </button>
+                </>
+              ),
+            }
+          : {
+              eyebrow: `${tenants.length} tenants · ${activeCount} active`,
+              title: "Tenants",
+              actions: (
+                <>
+                  {search}
+                  <button className="btn-primary" onClick={() => setCreateModalOpen(true)} type="button">
+                    New tenant
+                  </button>
+                </>
+              ),
+            };
+      break;
   }
 
   return (
     <div className="flex min-h-0 flex-col">
-      {/* Compact console header */}
-      <div className="flex items-center justify-between border-b border-[#E2DFD9] bg-[#00143a] px-4 py-2">
-        <div className="flex items-baseline gap-2.5">
-          <span className="font-display text-sm font-bold tracking-tight text-white">Platform console</span>
-          <span className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#0071ce]">
-            Super Admin
-          </span>
-        </div>
-        <button
-          className="flex items-center gap-1.5 rounded border border-[#0033a1] bg-[#0033a1] px-2 py-1 text-xs font-medium text-white hover:bg-[#0071ce] transition"
-          onClick={() => setCreateModalOpen(true)}
-          type="button"
-        >
-          <Plus className="h-3 w-3" />
-          New tenant
-        </button>
-      </div>
+      <PageHeader actions={header.actions} eyebrow={header.eyebrow} title={header.title} />
 
-      {/* Slim toolbar: search + underline tabs */}
-      <div className="flex items-stretch border-b border-[#E2DFD9] bg-white">
-        <div className="flex items-center border-r border-[#E2DFD9] px-2">
-          <PlatformGlobalSearch
-            onSelectTenant={openTenant}
-            onSelectTicket={() => setConsoleView("support")}
-          />
-        </div>
-        <nav className="flex min-w-0 flex-1 overflow-x-auto" aria-label="Console navigation">
-          {topNav.map((item) => (
-            <button
-              className={`flex shrink-0 items-center gap-1.5 border-b-2 px-3 py-2.5 text-xs font-medium transition-colors ${
-                consoleView === item.id
-                  ? "border-[#0071ce] text-[#0033a1]"
-                  : "border-transparent text-[#6B6860] hover:border-[#C9C7C2] hover:text-[#3D3C38]"
-              }`}
-              key={item.id}
-              onClick={() => setConsoleView(item.id)}
-              type="button"
-            >
-              {item.icon}
-              {item.label}
-            </button>
-          ))}
-        </nav>
-      </div>
-
-      {/* Main content */}
-      <div className="min-h-0 flex-1 p-4">
+      <div className="min-h-0 flex-1 px-[var(--gutter)] pb-8 pt-2">
         {consoleView === "now" ? (
-          <div className="space-y-4">
-            <PlatformNowPanel
-              data={mission?.now ?? null}
-              loading={missionLoading}
-              onOpenShadow={() => setConsoleView("shadow")}
-              onOpenSupport={() => setConsoleView("support")}
-              onSelectTenant={openTenant}
-            />
-            {mission?.digest ? <PlatformOperatorDigest entries={mission.digest} /> : null}
-          </div>
+          <PlatformNowPanel
+            data={mission?.now ?? null}
+            loading={missionLoading}
+            onOpenShadow={() => setConsoleView("shadow")}
+            onOpenSupport={() => setConsoleView("support")}
+            onSelectTenant={openTenant}
+            rail={mission?.digest ? <PlatformOperatorDigest entries={mission.digest} /> : null}
+          />
         ) : null}
 
         {consoleView === "onboarding" ? (
           missionLoading || !mission ? (
-            <div className="flex justify-center py-16">
-              <Loader2 className="h-7 w-7 animate-spin text-[#0071ce]" />
-            </div>
+            <Spinner label="Loading onboarding" />
           ) : (
             <PlatformOnboardingPanel
               entries={mission.onboarding}
@@ -702,8 +734,12 @@ export function PlatformConsole() {
           )
         ) : null}
 
-        {consoleView === "shadow" && mission ? (
-          <PlatformShadowLog onSelectTenant={openTenant} sessions={mission.shadowSessions} />
+        {consoleView === "shadow" ? (
+          mission ? (
+            <PlatformShadowLog onSelectTenant={openTenant} sessions={mission.shadowSessions} />
+          ) : (
+            <Spinner label="Loading shadow log" />
+          )
         ) : null}
 
         {consoleView === "overview" ? (
@@ -726,511 +762,372 @@ export function PlatformConsole() {
 
         {consoleView === "global-audit" ? <PlatformGlobalAuditPanel /> : null}
 
-        {consoleView === "usage" ? (
-          <PlatformUsagePanel onSelectTenant={(id) => openTenant(id)} />
-        ) : null}
+        {consoleView === "usage" ? <PlatformUsagePanel onSelectTenant={(id) => openTenant(id)} /> : null}
 
         {consoleView === "settings" ? <PlatformOperatorSettings /> : null}
 
-        {consoleView === "tenant" ? (
-          <div className="space-y-4">
-            <CreateTenantModal
-              creating={creating}
-              onClose={() => setCreateModalOpen(false)}
-              onSubmit={handleCreateTenant}
-              open={createModalOpen}
+        {consoleView === "tenant" && !selectedId && !detailLoading ? (
+          <div className="space-y-6">
+            <KpiStrip
+              items={[
+                { label: "Tenants", value: tenants.length },
+                { label: "Active", value: activeCount },
+                {
+                  label: "Need attention",
+                  value: overview?.summary.tenantsNeedingAttention ?? "—",
+                  tone: (overview?.summary.tenantsNeedingAttention ?? 0) > 0 ? "danger" : "blue",
+                },
+                { label: "Open tickets", value: overview?.summary.totalOpenTickets ?? "—" },
+              ]}
             />
 
-            {/* Full-width: table when no tenant selected, detail when one is */}
-            <section className="min-w-0 space-y-3">
-              {/* Fleet summary + sortable tenant table — shown when no tenant selected */}
-              {!selectedId && !detailLoading ? (
-                <div className="space-y-3">
-                  {/* KPI strip */}
-                  <div className="grid gap-px bg-[#E2DFD9] sm:grid-cols-4">
-                    {[
-                      {
-                        label: "Tenants",
-                        value: tenants.length,
-                      },
-                      {
-                        label: "Open tickets",
-                        value: overview?.summary.totalOpenTickets ?? "—",
-                      },
-                      {
-                        label: "Need attention",
-                        value: overview?.summary.tenantsNeedingAttention ?? "—",
-                      },
-                      {
-                        label: "Active",
-                        value: tenants.filter((t) => t.status === "active").length,
-                      },
-                    ].map((kpi) => (
-                      <div className="bg-white px-4 py-3" key={kpi.label}>
-                        <p className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#A09D98]">
-                          {kpi.label}
-                        </p>
-                        <p className="mt-0.5 font-display text-2xl font-extrabold tracking-tight text-[#0D0E12]">
-                          {kpi.value}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                  {mission?.now?.summary ? (
-                    <div className="border border-[#E2DFD9] bg-white px-4 py-3 text-sm text-[#6B6860]">
-                      {mission.now.summary.tenantsNeedingAttention > 0 ? (
-                        <span className="font-medium text-amber-700">
-                          {mission.now.summary.tenantsNeedingAttention} tenant
-                          {mission.now.summary.tenantsNeedingAttention === 1 ? "" : "s"} need attention.{" "}
-                        </span>
-                      ) : (
-                        <span className="font-medium text-emerald-700">All tenants healthy. </span>
-                      )}
-                      {mission.now.summary.openTickets > 0
-                        ? `${mission.now.summary.openTickets} open support ticket${mission.now.summary.openTickets === 1 ? "" : "s"}.`
-                        : "No open tickets."}
-                    </div>
-                  ) : null}
-                  {bulkSelected.length > 0 ? (
-                    <div className="flex flex-wrap items-center gap-1.5 border border-[#E2DFD9] bg-white p-2">
-                      <span className="mr-1 text-xs text-[#6B6860]">{bulkSelected.length} selected</span>
-                      <Button onClick={() => void handleBulkAction("suspend")} size="sm" type="button" variant="outline">
+            <PlatformTenantTable
+              bulkSelected={bulkSelected}
+              onOpenTenant={(tenantId) => openTenant(tenantId, { tab })}
+              onToggleBulkSelect={(tenantId, checked) =>
+                setBulkSelected((current) =>
+                  checked ? [...current, tenantId] : current.filter((id) => id !== tenantId),
+                )
+              }
+              tenants={tenants}
+            />
+
+            {bulkSelected.length > 0 ? (
+              <div className="sticky bottom-0 z-10 -mx-[var(--gutter)]">
+                <ActionBar
+                  count={`${bulkSelected.length} selected`}
+                  primary={
+                    <div className="flex flex-wrap gap-2">
+                      <button className={BTN_ON_BLUE} onClick={() => void handleBulkAction("suspend")} type="button">
                         Suspend
-                      </Button>
-                      <Button onClick={() => void handleBulkAction("activate")} size="sm" type="button" variant="outline">
+                      </button>
+                      <button className={BTN_ON_BLUE} onClick={() => void handleBulkAction("activate")} type="button">
                         Activate
-                      </Button>
-                      <Button
+                      </button>
+                      <button
+                        className={BTN_ON_BLUE}
                         onClick={() => void handleBulkAction("apply_preset", "ae-pilot")}
-                        size="sm"
                         type="button"
-                        variant="outline"
                       >
-                        AE pilot
-                      </Button>
+                        Apply AE pilot package
+                      </button>
                     </div>
-                  ) : null}
+                  }
+                  secondary={
+                    <button
+                      className="text-sm font-bold text-white underline decoration-on-blue-muted decoration-2 underline-offset-[3px] hover:decoration-white"
+                      onClick={() => setBulkSelected([])}
+                      type="button"
+                    >
+                      Clear
+                    </button>
+                  }
+                  summary="Bulk tenant actions"
+                />
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
-                  <PlatformTenantTable
-                    bulkSelected={bulkSelected}
-                    onOpenTenant={(tenantId) => openTenant(tenantId, { tab })}
-                    onToggleBulkSelect={(tenantId, checked) =>
-                      setBulkSelected((current) =>
-                        checked ? [...current, tenantId] : current.filter((id) => id !== tenantId),
-                      )
-                    }
-                    tenants={tenants}
+        {consoleView === "tenant" && selectedId && detailLoading ? (
+          <Spinner label="Loading tenant" />
+        ) : null}
+
+        {showDetail && selected && detail ? (
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <TenantStatusTag status={selected.status} />
+                {selected.billingStatus ? <BillingStatusTag status={selected.billingStatus} /> : null}
+                {selected.seatQuota != null ? (
+                  <Tag>
+                    {detail.usage.activeUsers}/{selected.seatQuota} seats
+                  </Tag>
+                ) : null}
+                {selected.maintenanceMode ? <Tag tone="warning">▲ Maintenance</Tag> : null}
+                {detail.settings.updatedAt ? (
+                  <span className="font-mono text-xs text-muted">
+                    SETTINGS UPDATED {formatDateTime(detail.settings.updatedAt).toUpperCase()}
+                  </span>
+                ) : null}
+              </div>
+              <button
+                className="link inline-flex items-center gap-1 text-sm"
+                onClick={() => replaceConsoleUrl({ view: "tenant", tenant: null, tab: null })}
+                type="button"
+              >
+                <ArrowLeft aria-hidden className="h-4 w-4" />
+                All tenants
+              </button>
+            </div>
+
+            <KpiStrip
+              items={[
+                { label: "Users", value: detail.usage.activeUsers },
+                { label: "AI calls 30d", value: detail.usage.aiCalls },
+                { label: "Sim sessions 30d", value: detail.usage.simulationSessions },
+              ]}
+            />
+
+            <LineCard meta="Access for everyone in this tenant" title="Status and maintenance">
+              <div className="grid gap-5 p-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+                <div>
+                  <label className={FIELD_LABEL} htmlFor="platform-maintenance-message">
+                    Maintenance message
+                  </label>
+                  <Input
+                    id="platform-maintenance-message"
+                    onChange={(event) => setMaintenanceMessage(event.target.value)}
+                    placeholder="Shown to users while maintenance is on (optional)"
+                    value={maintenanceMessage}
                   />
+                  <p className={FIELD_HINT}>
+                    Maintenance is {selected.maintenanceMode ? "on" : "off"}. The message is saved when you switch it.
+                  </p>
                 </div>
-              ) : null}
-
-              {selected && detail ? (
-                <>
+                <div className="flex flex-wrap items-center gap-2.5">
                   <button
-                    className="flex items-center gap-1.5 text-xs font-semibold text-[#0071CE] hover:underline"
-                    onClick={() => replaceConsoleUrl({ view: "tenant", tenant: null, tab: null })}
+                    className="btn-secondary"
+                    disabled={saving}
+                    onClick={() => void handleMaintenanceToggle(!selected.maintenanceMode)}
                     type="button"
                   >
-                    <ArrowLeft className="h-3.5 w-3.5" />
-                    All tenants
+                    {selected.maintenanceMode ? "End maintenance" : "Start maintenance"}
                   </button>
-
-                  {/* Tenant header */}
-                  <div className="border border-[#E2DFD9] bg-white p-4 shadow-sm">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h2 className="text-lg font-bold text-[#0D0E12]">{selected.name}</h2>
-                          <span
-                            className={`rounded px-1.5 py-0.5 font-mono text-[11px] font-semibold uppercase tracking-wide ${
-                              selected.status === "offboarded"
-                                ? "bg-neutral-200 text-neutral-700"
-                                : selected.status === "suspended"
-                                  ? "bg-red-100 text-red-700"
-                                  : selected.status === "provisioning"
-                                    ? "bg-amber-100 text-amber-700"
-                                    : "bg-emerald-100 text-emerald-700"
-                            }`}
-                          >
-                            {selected.status}
-                          </span>
-                          {selected.billingStatus ? (
-                            <span
-                              className={`rounded px-1.5 py-0.5 font-mono text-[11px] font-semibold uppercase tracking-wide ${
-                                BILLING_STATUS_COLORS[selected.billingStatus] ?? "bg-neutral-100 text-neutral-600"
-                              }`}
-                            >
-                              {selected.billingStatus}
-                            </span>
-                          ) : null}
-                          {selected.seatQuota != null ? (
-                            <span className="rounded border border-[#E2DFD9] px-1.5 py-0.5 font-mono text-[11px] text-[#6B6860]">
-                              {detail.usage.activeUsers}/{selected.seatQuota} seats
-                            </span>
-                          ) : null}
-                          {selected.maintenanceMode ? (
-                            <span className="rounded bg-orange-100 px-1.5 py-0.5 font-mono text-[11px] font-semibold uppercase tracking-wide text-orange-700">
-                              maintenance
-                            </span>
-                          ) : null}
-                        </div>
-                        <p className="mt-0.5 font-mono text-[10px] text-[#A09D98]">
-                          {selected.slug}
-                          {detail.settings.updatedAt
-                            ? ` · settings ${new Date(detail.settings.updatedAt).toLocaleString()}`
-                            : null}
-                        </p>
-                      </div>
-
-                      <div className="flex flex-wrap gap-1.5">
-                        {selected.status === "offboarded" ? null : selected.status === "suspended" ? (
-                          <Button
-                            disabled={statusUpdating}
-                            onClick={() => setStatusConfirm("active")}
-                            size="sm"
-                            type="button"
-                            variant="outline"
-                          >
-                            {statusUpdating ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <CheckCircle className="h-3.5 w-3.5" />
-                            )}
-                            Reactivate
-                          </Button>
-                        ) : (
-                          <Button
-                            disabled={statusUpdating || selected.status === "provisioning"}
-                            onClick={() => setStatusConfirm("suspended")}
-                            size="sm"
-                            type="button"
-                            variant="outline"
-                          >
-                            {statusUpdating ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <Ban className="h-3.5 w-3.5" />
-                            )}
-                            Suspend
-                          </Button>
-                        )}
-                        {selected.status !== "offboarded" ? (
-                          <Button
-                            disabled={offboarding}
-                            onClick={() => setOffboardConfirm(true)}
-                            size="sm"
-                            type="button"
-                            variant="outline"
-                          >
-                            {offboarding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                            Offboard
-                          </Button>
-                        ) : null}
-                        <Button
-                          disabled={shadowing || selected.status === "suspended" || selected.status === "offboarded"}
-                          onClick={() => void handleShadowTenant("admin")}
-                          size="sm"
-                          type="button"
-                        >
-                          {shadowing ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <UserCog className="h-3.5 w-3.5" />
-                          )}
-                          Open Tenant Admin
-                        </Button>
-                        <Button
-                          disabled={shadowing || selected.status === "suspended" || selected.status === "offboarded"}
-                          onClick={() => void handleShadowTenant("manager")}
-                          size="sm"
-                          type="button"
-                          variant="outline"
-                        >
-                          {shadowing ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <Users className="h-3.5 w-3.5" />
-                          )}
-                          Open as Manager
-                        </Button>
-                        <Button
-                          disabled={shadowing || selected.status === "suspended" || selected.status === "offboarded"}
-                          onClick={() => void handleShadowTenant("se")}
-                          size="sm"
-                          type="button"
-                          variant="outline"
-                        >
-                          {shadowing ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <GraduationCap className="h-3.5 w-3.5" />
-                          )}
-                          Open as User
-                        </Button>
-                        <Button
-                          disabled={saving}
-                          onClick={() => void handleMaintenanceToggle(!selected.maintenanceMode)}
-                          size="sm"
-                          type="button"
-                          variant="outline"
-                        >
-                          <Wrench className="h-3.5 w-3.5" />
-                          {selected.maintenanceMode ? "End maint." : "Maintenance"}
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Maintenance message input */}
-                    <div className="mt-3">
-                      <input
-                        className="w-full border border-[#E2DFD9] px-3 py-1.5 text-xs"
-                        onChange={(event) => setMaintenanceMessage(event.target.value)}
-                        placeholder="Maintenance message shown to users (optional)"
-                        value={maintenanceMessage}
-                      />
-                    </div>
-
-                    {/* Dense KPI strip */}
-                    <div className="mt-3 grid gap-px bg-[#E2DFD9] sm:grid-cols-3">
-                      {[
-                        { label: "Users", value: detail.usage.activeUsers },
-                        { label: "AI calls 30d", value: detail.usage.aiCalls },
-                        { label: "Sim sessions 30d", value: detail.usage.simulationSessions },
-                      ].map((kpi) => (
-                        <div className="bg-[#F9F8F6] px-3 py-2" key={kpi.label}>
-                          <p className="font-mono text-[8px] uppercase tracking-[0.1em] text-[#A09D98]">
-                            {kpi.label}
-                          </p>
-                          <p className="mt-0.5 text-xl font-bold tabular-nums text-[#0D0E12]">{kpi.value}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Underline tenant tabs */}
-                  <div className="flex overflow-x-auto border-b border-[#E2DFD9]">
-                    {tenantTabs.map((item) => (
-                      <button
-                        className={`shrink-0 border-b-2 px-3 py-2 text-xs font-medium transition-colors ${
-                          tab === item.id
-                            ? "border-[#0071ce] text-[#0033a1]"
-                            : "border-transparent text-[#6B6860] hover:border-[#C9C7C2] hover:text-[#3D3C38]"
-                        }`}
-                        key={item.id}
-                        onClick={() => setTenantTab(item.id)}
-                        type="button"
-                      >
-                        {item.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {tab === "entitlements" ? (
-                    <PlatformTenantEntitlements
-                      billingPlan={selected?.billingPlan}
-                      featureFlags={featureFlags}
-                      onApplyPackage={handleApplyPackage}
-                      onChange={setFeatureFlags}
-                      onSave={() => void handleSaveFlags()}
-                      savedFlags={savedFlags}
-                      saving={saving}
-                    />
+                  {selected.status === "offboarded" ? null : selected.status === "suspended" ? (
+                    <button
+                      className="btn-secondary"
+                      disabled={statusUpdating}
+                      onClick={() => setStatusConfirm("active")}
+                      type="button"
+                    >
+                      Reactivate
+                    </button>
+                  ) : (
+                    <button
+                      className="btn-secondary"
+                      disabled={statusUpdating || selected.status === "provisioning"}
+                      onClick={() => setStatusConfirm("suspended")}
+                      type="button"
+                    >
+                      Suspend
+                    </button>
+                  )}
+                  {selected.status !== "offboarded" ? (
+                    <button
+                      className="rounded-full border-[1.5px] border-danger px-[18px] py-[9px] text-sm font-bold text-danger hover:bg-danger-soft disabled:opacity-60"
+                      disabled={offboarding}
+                      onClick={() => setOffboardConfirm(true)}
+                      type="button"
+                    >
+                      Offboard
+                    </button>
                   ) : null}
-
-                  {tab === "branding" ? (
-                    <div className="border border-[#E2DFD9] bg-white p-4 shadow-sm">
-                      <div className="mb-3 flex items-center justify-between gap-3">
-                        <div>
-                          <h3 className="text-sm font-bold text-[#0D0E12]">Branding &amp; access</h3>
-                          <p className="text-xs text-[#6B6860]">
-                            Tenant-specific look and allowed email domains.
-                          </p>
-                        </div>
-                        <Button
-                          disabled={saving || !isFormDirty(branding, savedBranding)}
-                          onClick={() => void handleSaveBranding()}
-                          size="sm"
-                          type="button"
-                        >
-                          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                          Save
-                        </Button>
-                      </div>
-                      <PlatformUnsavedBanner show={isFormDirty(branding, savedBranding)} />
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <label className="block text-xs">
-                          <span className="mb-1 block font-medium text-[#3D3C38]">Primary color</span>
-                          <input
-                            className="w-full border border-[#E2DFD9] px-3 py-1.5 text-sm"
-                            onChange={(event) =>
-                              setBranding((current) => ({ ...current, primaryColor: event.target.value }))
-                            }
-                            value={branding.primaryColor}
-                          />
-                        </label>
-                        <label className="block text-xs">
-                          <span className="mb-1 block font-medium text-[#3D3C38]">Logo URL</span>
-                          <input
-                            className="w-full border border-[#E2DFD9] px-3 py-1.5 text-sm"
-                            onChange={(event) =>
-                              setBranding((current) => ({ ...current, logoUrl: event.target.value }))
-                            }
-                            placeholder="https://..."
-                            value={branding.logoUrl}
-                          />
-                        </label>
-                        <label className="block text-xs sm:col-span-2">
-                          <span className="mb-1 block font-medium text-[#3D3C38]">Welcome message</span>
-                          <textarea
-                            className="min-h-[64px] w-full border border-[#E2DFD9] px-3 py-1.5 text-sm"
-                            onChange={(event) =>
-                              setBranding((current) => ({ ...current, welcomeMessage: event.target.value }))
-                            }
-                            value={branding.welcomeMessage}
-                          />
-                        </label>
-                        <label className="block text-xs sm:col-span-2">
-                          <span className="mb-1 block font-medium text-[#3D3C38]">Allowed email domains</span>
-                          <input
-                            className="w-full border border-[#E2DFD9] px-3 py-1.5 text-sm"
-                            onChange={(event) =>
-                              setBranding((current) => ({
-                                ...current,
-                                allowedEmailDomains: event.target.value,
-                              }))
-                            }
-                            placeholder="acme.com, acme.io"
-                            value={branding.allowedEmailDomains}
-                          />
-                        </label>
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {tab === "provision" ? (
-                    <div className="space-y-3">
-                      <div className="border border-[#E2DFD9] bg-white p-4 shadow-sm">
-                        <div className="mb-3 flex items-center gap-2">
-                          <UserPlus className="h-3.5 w-3.5 text-[#0071ce]" />
-                          <h3 className="text-sm font-bold text-[#0D0E12]">Invite tenant admin</h3>
-                        </div>
-                        <div className="grid gap-2 sm:grid-cols-2">
-                          <input
-                            className="border border-[#E2DFD9] px-3 py-1.5 text-sm"
-                            onChange={(event) => setInviteEmail(event.target.value)}
-                            placeholder="admin@tenant.com"
-                            value={inviteEmail}
-                          />
-                          <input
-                            className="border border-[#E2DFD9] px-3 py-1.5 text-sm"
-                            onChange={(event) => setInviteName(event.target.value)}
-                            placeholder="Full name"
-                            value={inviteName}
-                          />
-                        </div>
-                        <Button
-                          className="mt-2"
-                          disabled={inviting}
-                          onClick={() => void handleInviteAdmin()}
-                          size="sm"
-                          type="button"
-                        >
-                          {inviting ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <UserPlus className="h-3.5 w-3.5" />
-                          )}
-                          Send invite
-                        </Button>
-                      </div>
-                      <div className="border border-[#E2DFD9] bg-white p-4">
-                        <h3 className="mb-3 text-sm font-bold text-[#0D0E12]">Invite history</h3>
-                        <PlatformInviteList
-                          invites={invites}
-                          onChanged={() => selectedId && void loadDetail(selectedId)}
-                        />
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {tab === "commercial" && selected ? (
-                    <PlatformCommercialPanel
-                      tenant={selected}
-                      onSaved={(updated) => {
-                        setSelectedTenant(updated);
-                        setTenants((current) =>
-                          current.map((t) => (t.id === updated.id ? updated : t)),
-                        );
-                      }}
-                    />
-                  ) : null}
-
-                  {tab === "sso" && selectedId ? (
-                    <PlatformSsoPanel tenantId={selectedId} />
-                  ) : null}
-
-                  {tab === "webhooks" && selectedId ? (
-                    <PlatformWebhooksPanel tenantId={selectedId} />
-                  ) : null}
-
-                  {tab === "support" && selectedId ? (
-                    <PlatformSupportQueue
-                      onSelectTenant={openTenant}
-                      onShadowTenant={(tenantId) => void shadowTenantById(tenantId)}
-                      operators={mission?.operators ?? []}
-                      tenantId={selectedId}
-                    />
-                  ) : null}
-
-                  {tab === "notes" ? (
-                    <div className="border border-[#E2DFD9] bg-white p-4 shadow-sm">
-                      <div className="mb-3 flex items-center justify-between gap-3">
-                        <div>
-                          <h3 className="text-sm font-bold text-[#0D0E12]">Operator notes</h3>
-                          <p className="text-xs text-[#6B6860]">
-                            Internal notes visible only to platform operators.
-                          </p>
-                        </div>
-                        <Button
-                          disabled={saving || !isFormDirty(operatorNotes, savedOperatorNotes)}
-                          onClick={() => void handleSaveOperatorNotes()}
-                          size="sm"
-                          type="button"
-                        >
-                          {saving ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <Save className="h-3.5 w-3.5" />
-                          )}
-                          Save
-                        </Button>
-                      </div>
-                      <PlatformUnsavedBanner show={isFormDirty(operatorNotes, savedOperatorNotes)} />
-                      <textarea
-                        className="min-h-[140px] w-full border border-[#E2DFD9] px-3 py-2 text-sm"
-                        onChange={(event) => setOperatorNotes(event.target.value)}
-                        placeholder="Onboarding context, escalation history, contract notes..."
-                        value={operatorNotes}
-                      />
-                    </div>
-                  ) : null}
-
-                  {tab === "audit" && selectedId ? (
-                    <PlatformGlobalAuditPanel tenantId={selectedId} />
-                  ) : null}
-                </>
-              ) : selectedId && detailLoading ? (
-                <div className="flex flex-col items-center justify-center gap-3 py-20">
-                  <Loader2 className="h-7 w-7 animate-spin text-[#0071ce]" />
-                  <p className="text-sm text-[#6B6860]">Loading tenant…</p>
                 </div>
-              ) : null}
-            </section>
+              </div>
+            </LineCard>
+
+            <div aria-label="Tenant sections" className="flex flex-wrap gap-1.5" role="group">
+              {tenantTabs.map((item) => (
+                <Chip active={tab === item.id} key={item.id} onClick={() => setTenantTab(item.id)}>
+                  {item.label}
+                </Chip>
+              ))}
+            </div>
+
+            {tab === "entitlements" ? (
+              <PlatformTenantEntitlements
+                billingPlan={selected?.billingPlan}
+                featureFlags={featureFlags}
+                onApplyPackage={handleApplyPackage}
+                onChange={setFeatureFlags}
+                onDiscard={() => {
+                  setFeatureFlags(savedFlags);
+                  // Applying a package optimistically set the tenant's plan; reload to put it back.
+                  void loadTenants();
+                }}
+                onSave={() => void handleSaveFlags()}
+                savedFlags={savedFlags}
+                saving={saving}
+              />
+            ) : null}
+
+            {tab === "branding" ? (
+              <div>
+                <LineCard meta="Tenant look and allowed sign-in domains" title="Branding and access">
+                  <div className="grid gap-4 p-5 sm:grid-cols-2">
+                    <div>
+                      <label className={FIELD_LABEL} htmlFor="platform-branding-color">
+                        Primary colour
+                      </label>
+                      <Input
+                        className="font-mono text-sm"
+                        id="platform-branding-color"
+                        onChange={(event) =>
+                          setBranding((current) => ({ ...current, primaryColor: event.target.value }))
+                        }
+                        value={branding.primaryColor}
+                      />
+                    </div>
+                    <div>
+                      <label className={FIELD_LABEL} htmlFor="platform-branding-logo">
+                        Logo URL
+                      </label>
+                      <Input
+                        id="platform-branding-logo"
+                        onChange={(event) => setBranding((current) => ({ ...current, logoUrl: event.target.value }))}
+                        placeholder="https://…"
+                        value={branding.logoUrl}
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className={FIELD_LABEL} htmlFor="platform-branding-welcome">
+                        Welcome message
+                      </label>
+                      <Textarea
+                        className="min-h-[88px]"
+                        id="platform-branding-welcome"
+                        onChange={(event) =>
+                          setBranding((current) => ({ ...current, welcomeMessage: event.target.value }))
+                        }
+                        value={branding.welcomeMessage}
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className={FIELD_LABEL} htmlFor="platform-branding-domains">
+                        Allowed email domains
+                      </label>
+                      <Input
+                        id="platform-branding-domains"
+                        onChange={(event) =>
+                          setBranding((current) => ({ ...current, allowedEmailDomains: event.target.value }))
+                        }
+                        placeholder="acme.com, acme.io"
+                        value={branding.allowedEmailDomains}
+                      />
+                      <p className={FIELD_HINT}>Comma-separated.</p>
+                    </div>
+                  </div>
+                </LineCard>
+                <PlatformUnsavedBanner
+                  count={
+                    (Object.keys(branding) as (keyof typeof branding)[]).filter(
+                      (key) => branding[key] !== savedBranding[key],
+                    ).length
+                  }
+                  onDiscard={() => setBranding(savedBranding)}
+                  onSave={() => void handleSaveBranding()}
+                  saveLabel="Save branding"
+                  saving={saving}
+                  show={brandingDirty}
+                  summary="Branding and access"
+                />
+              </div>
+            ) : null}
+
+            {tab === "provision" ? (
+              <div className="space-y-6">
+                <LineCard title="Invite tenant admin">
+                  <div className="grid gap-4 p-5 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
+                    <div>
+                      <label className={FIELD_LABEL} htmlFor="platform-invite-email">
+                        Email
+                      </label>
+                      <Input
+                        id="platform-invite-email"
+                        onChange={(event) => setInviteEmail(event.target.value)}
+                        placeholder="admin@tenant.com"
+                        type="email"
+                        value={inviteEmail}
+                      />
+                    </div>
+                    <div>
+                      <label className={FIELD_LABEL} htmlFor="platform-invite-name">
+                        Full name
+                      </label>
+                      <Input
+                        id="platform-invite-name"
+                        onChange={(event) => setInviteName(event.target.value)}
+                        placeholder="Jane Smith"
+                        value={inviteName}
+                      />
+                    </div>
+                    <button
+                      className="btn-secondary inline-flex h-10 items-center gap-2"
+                      disabled={inviting}
+                      onClick={() => void handleInviteAdmin()}
+                      type="button"
+                    >
+                      {inviting ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
+                      Send invite
+                    </button>
+                  </div>
+                </LineCard>
+                <LineCard meta={`${invites.length} invites`} title="Invite history">
+                  <PlatformInviteList invites={invites} onChanged={() => selectedId && void loadDetail(selectedId)} />
+                </LineCard>
+              </div>
+            ) : null}
+
+            {tab === "commercial" && selected ? (
+              <PlatformCommercialPanel
+                onDirtyChange={setChildDirty}
+                onSaved={(updated) => {
+                  setSelectedTenant(updated);
+                  setTenants((current) => current.map((t) => (t.id === updated.id ? updated : t)));
+                }}
+                tenant={selected}
+              />
+            ) : null}
+
+            {tab === "sso" && selectedId ? <PlatformSsoPanel onDirtyChange={setChildDirty} tenantId={selectedId} /> : null}
+
+            {tab === "webhooks" && selectedId ? <PlatformWebhooksPanel tenantId={selectedId} /> : null}
+
+            {tab === "support" && selectedId ? (
+              <PlatformSupportQueue
+                onSelectTenant={openTenant}
+                onShadowTenant={(tenantId) => void shadowTenantById(tenantId)}
+                operators={mission?.operators ?? []}
+                tenantId={selectedId}
+              />
+            ) : null}
+
+            {tab === "notes" ? (
+              <div>
+                <LineCard meta="Visible only to platform operators" title="Operator notes">
+                  <div className="p-5">
+                    <label className="sr-only" htmlFor="platform-operator-notes">
+                      Operator notes
+                    </label>
+                    <Textarea
+                      className="min-h-[160px]"
+                      id="platform-operator-notes"
+                      onChange={(event) => setOperatorNotes(event.target.value)}
+                      placeholder="Onboarding context, escalation history, contract notes"
+                      value={operatorNotes}
+                    />
+                  </div>
+                </LineCard>
+                <PlatformUnsavedBanner
+                  onDiscard={() => setOperatorNotes(savedOperatorNotes)}
+                  onSave={() => void handleSaveOperatorNotes()}
+                  saveLabel="Save notes"
+                  saving={saving}
+                  show={notesDirty}
+                  summary="Operator notes"
+                />
+              </div>
+            ) : null}
+
+            {tab === "audit" && selectedId ? <PlatformGlobalAuditPanel tenantId={selectedId} /> : null}
           </div>
         ) : null}
       </div>
 
-      <ConfirmDialog
+      <CreateTenantModal creating={creating} onClose={closeCreate} onSubmit={handleCreateTenant} open={createModalOpen} />
+
+      <PlatformConfirmDialog
         busy={statusUpdating}
         confirmLabel={statusConfirm === "suspended" ? "Suspend" : "Reactivate"}
         description={
@@ -1245,10 +1142,10 @@ export function PlatformConsole() {
         title={statusConfirm === "suspended" ? "Suspend this tenant?" : "Reactivate this tenant?"}
       />
 
-      <ConfirmDialog
+      <PlatformConfirmDialog
         busy={offboarding}
         confirmLabel="Offboard"
-        description={`This deactivates ${selected?.name ?? "this tenant"} and marks it offboarded — distinct from a suspend, and not something you'd casually undo. All its users lose access immediately.`}
+        description={`This deactivates ${selected?.name ?? "this tenant"} and marks it offboarded. It is not a suspend, and not something you'd casually undo. All its users lose access immediately.`}
         destructive
         onCancel={() => setOffboardConfirm(false)}
         onConfirm={() => void handleOffboard()}

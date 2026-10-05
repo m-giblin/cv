@@ -1,5 +1,8 @@
 import { DEFAULT_TENANT_ID } from "@/lib/tenant/types";
 
+/** The product's name, kept in one place so it can change in one place. */
+export const PRODUCT_NAME = "SE Enablement";
+
 export type TenantShellBranding = {
   tenantId: string | null;
   productName: string;
@@ -25,7 +28,7 @@ export function normalizeTenantPrimaryColor(color: string | null | undefined, fa
 
 export const DEFAULT_SHELL_BRANDING: TenantShellBranding = {
   tenantId: DEFAULT_TENANT_ID,
-  productName: "Enablement",
+  productName: PRODUCT_NAME,
   productTagline: "PLATFORM",
   primaryColor: "#0071ce",
   logoUrl: null,

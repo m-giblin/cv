@@ -1,14 +1,15 @@
 "use client";
 
-import { Loader2, LockKeyhole, Shield } from "lucide-react";
-import { useState } from "react";
+import { Loader2 } from "lucide-react";
+import { useId, useState } from "react";
 import { toast } from "sonner";
 import { MfaReauthGate } from "@/components/auth/mfa-reauth-gate";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
 
 export function ChangePasswordForm() {
+ const passwordId = useId();
+ const confirmId = useId();
  const [mfaVerified, setMfaVerified] = useState(false);
  const [password, setPassword] = useState("");
  const [confirmPassword, setConfirmPassword] = useState("");
@@ -63,10 +64,8 @@ export function ChangePasswordForm() {
  return (
  <div className="space-y-4">
  <div>
- <p className="text-[12.5px] font-bold text-[#0D0E12]">Step 1 — Verify MFA</p>
- <p className="mt-[2px] text-[11px] text-[#6B6860]">
- Confirm your authenticator code before setting a new password.
- </p>
+ <p className="label-mono">Step 1 of 2</p>
+ <h2 className="mt-1 text-lg leading-[1.3] font-extrabold text-ink">Verify MFA</h2>
  </div>
  <MfaReauthGate onVerified={() => setMfaVerified(true)} purpose="changing your password" />
  </div>
@@ -74,24 +73,24 @@ export function ChangePasswordForm() {
  }
 
  return (
- <form className="space-y-4" onSubmit={handleSubmit}>
+ <form className="space-y-5" onSubmit={handleSubmit}>
  <div>
- <p className="text-[12.5px] font-bold text-[#0D0E12]">Step 2 — New password</p>
- <p className="mt-[2px] text-[11px] text-[#6B6860]">Minimum 8 characters. Use a unique passphrase you do not reuse elsewhere.</p>
+ <p className="label-mono">Step 2 of 2</p>
+ <h2 className="mt-1 text-lg leading-[1.3] font-extrabold text-ink">New password</h2>
+ <p className="mt-1 text-sm text-muted">At least 8 characters. Use a passphrase you don&apos;t use anywhere else.</p>
  </div>
 
- <div className="flex items-center gap-2 border border-[#bbf7d0] bg-[#f0fdf4] px-3 py-2.5 text-[11.5px] text-[#15803d]">
- <Shield className="h-4 w-4 shrink-0" />
- Identity verified — enter your new password below.
- </div>
+ <p className="rounded-[10px] border-[1.5px] border-success bg-success-soft px-3.5 py-2.5 text-sm text-success" role="status">
+ <span aria-hidden>✓ </span>Identity verified. Enter your new password.
+ </p>
 
- <label className="block space-y-1.5 text-[12px] font-semibold text-[#3D3C38]">
+ <div>
+ <label className="mb-1.5 block text-sm font-semibold text-ink" htmlFor={passwordId}>
  New password
- <div className="relative">
- <LockKeyhole className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#A09D98]" />
+ </label>
  <Input
  autoComplete="new-password"
- className="border-[#E2DFD9] pl-10"
+ id={passwordId}
  minLength={8}
  onChange={(event) => setPassword(event.target.value)}
  required
@@ -99,25 +98,26 @@ export function ChangePasswordForm() {
  value={password}
  />
  </div>
- </label>
 
- <label className="block space-y-1.5 text-[12px] font-semibold text-[#3D3C38]">
+ <div>
+ <label className="mb-1.5 block text-sm font-semibold text-ink" htmlFor={confirmId}>
  Confirm new password
+ </label>
  <Input
  autoComplete="new-password"
- className="border-[#E2DFD9]"
+ id={confirmId}
  minLength={8}
  onChange={(event) => setConfirmPassword(event.target.value)}
  required
  type="password"
  value={confirmPassword}
  />
- </label>
+ </div>
 
- <Button className="bg-[#0071ce] hover:bg-[#0057a8]" disabled={isSubmitting} type="submit">
- {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+ <button className="btn-primary inline-flex items-center gap-2" disabled={isSubmitting} type="submit">
+ {isSubmitting ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
  Update password
- </Button>
+ </button>
  </form>
  );
 }

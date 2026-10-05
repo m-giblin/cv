@@ -2,25 +2,30 @@
 
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import { useMemo, useState } from "react";
+import {
+  BillingStatusTag,
+  TABLE,
+  TD,
+  TD_MONO,
+  TD_MUTED,
+  TH,
+  THEAD_ROW,
+  TR,
+  TenantStatusTag,
+  formatDate,
+} from "@/components/platform/platform-ui";
 import { DataTablePagination, DataTableShell, DataTableToolbar, paginate } from "@/components/ui/data-table";
 import type { Tenant } from "@/lib/tenant/types";
+import { cn } from "@/lib/utils";
 
 type SortKey = "name" | "billingPlan" | "seatQuota" | "billingStatus" | "updatedAt";
 type SortDir = "asc" | "desc";
-
-const BILLING_STATUS_COLORS: Record<string, string> = {
-  trial: "bg-amber-100 text-amber-800",
-  active: "bg-emerald-100 text-emerald-800",
-  past_due: "bg-red-100 text-red-800",
-  canceled: "bg-neutral-100 text-neutral-600",
-  exempt: "bg-sky-100 text-sky-800",
-};
 
 const COLUMNS: { key: SortKey; label: string }[] = [
   { key: "name", label: "Name" },
   { key: "billingPlan", label: "Plan" },
   { key: "seatQuota", label: "Seats" },
-  { key: "billingStatus", label: "Billing status" },
+  { key: "billingStatus", label: "Billing" },
   { key: "updatedAt", label: "Last updated" },
 ];
 
@@ -104,85 +109,78 @@ export function PlatformTenantTable({
         total={tenants.length}
       />
       <DataTableShell>
-        <table className="min-w-full text-left text-sm">
-          <thead className="border-b border-[#E2DFD9] bg-[#F9F8F6] text-[10px] uppercase tracking-wide text-[#6B6860]">
-            <tr>
-              <th className="w-10 px-3 py-2" />
-              {COLUMNS.map((column) => (
-                <th className="px-3 py-2 font-semibold" key={column.key}>
-                  <button
-                    className="flex items-center gap-1 hover:text-[#0071CE]"
-                    onClick={() => toggleSort(column.key)}
-                    type="button"
+        <table className={TABLE}>
+          <thead>
+            <tr className={THEAD_ROW}>
+              <th className={cn(TH, "w-12")} scope="col">
+                <span className="sr-only">Select</span>
+              </th>
+              {COLUMNS.map((column) => {
+                const active = sortKey === column.key;
+                return (
+                  <th
+                    aria-sort={active ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
+                    className={TH}
+                    key={column.key}
+                    scope="col"
                   >
-                    {column.label}
-                    {sortKey === column.key ? (
-                      sortDir === "asc" ? (
-                        <ArrowUp className="h-3 w-3" />
+                    <button
+                      className="inline-flex items-center gap-1 font-mono text-xs uppercase hover:text-on-blue"
+                      onClick={() => toggleSort(column.key)}
+                      type="button"
+                    >
+                      {column.label}
+                      {active ? (
+                        sortDir === "asc" ? (
+                          <ArrowUp aria-hidden className="h-3.5 w-3.5 text-signal" />
+                        ) : (
+                          <ArrowDown aria-hidden className="h-3.5 w-3.5 text-signal" />
+                        )
                       ) : (
-                        <ArrowDown className="h-3 w-3" />
-                      )
-                    ) : (
-                      <ArrowUpDown className="h-3 w-3 text-[#D4D1CB]" />
-                    )}
-                  </button>
-                </th>
-              ))}
+                        <ArrowUpDown aria-hidden className="h-3.5 w-3.5 text-on-blue-muted" />
+                      )}
+                    </button>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#F0EFEB]">
-            {rows.map((tenant) => (
-              <tr className="hover:bg-[#F0F7FF]" key={tenant.id}>
-                <td className="px-3 py-2.5">
-                  <input
-                    checked={bulkSelected.includes(tenant.id)}
-                    onChange={(event) => onToggleBulkSelect(tenant.id, event.target.checked)}
-                    onClick={(event) => event.stopPropagation()}
-                    type="checkbox"
-                  />
-                </td>
-                <td className="px-3 py-2.5">
-                  <button className="text-left" onClick={() => onOpenTenant(tenant.id)} type="button">
-                    <p className="text-sm font-semibold text-[#0D0E12]">{tenant.name}</p>
-                    <p className="font-mono text-[10px] text-[#A09D98]">
-                      {tenant.slug}
-                      {" · "}
-                      <span
-                        className={
-                          tenant.status === "offboarded"
-                            ? "text-neutral-500"
-                            : tenant.status === "suspended"
-                              ? "text-red-600"
-                              : tenant.status === "provisioning"
-                                ? "text-amber-600"
-                                : ""
-                        }
-                      >
-                        {tenant.status}
-                      </span>
-                      {tenant.maintenanceMode ? " · maint" : ""}
-                    </p>
-                  </button>
-                </td>
-                <td className="px-3 py-2.5 text-[#3D3C38]">{tenant.billingPlan ?? "—"}</td>
-                <td className="px-3 py-2.5 tabular-nums text-[#3D3C38]">{tenant.seatQuota ?? "—"}</td>
-                <td className="px-3 py-2.5">
-                  <span
-                    className={`inline-flex rounded px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-wide ${
-                      BILLING_STATUS_COLORS[tenant.billingStatus] ?? "bg-neutral-100 text-neutral-600"
-                    }`}
-                  >
-                    {tenant.billingStatus}
-                  </span>
-                </td>
-                <td className="px-3 py-2.5 text-xs text-[#6B6860]">
-                  {tenant.updatedAt ? new Date(tenant.updatedAt).toLocaleDateString() : "—"}
-                </td>
-              </tr>
-            ))}
+          <tbody>
+            {rows.map((tenant) => {
+              const checked = bulkSelected.includes(tenant.id);
+              return (
+                <tr className={cn(TR, checked && "bg-blue-soft")} key={tenant.id}>
+                  <td className="py-3 pl-[18px]">
+                    <input
+                      aria-label={`Select ${tenant.name}`}
+                      checked={checked}
+                      className="h-4 w-4 accent-[var(--color-blue)]"
+                      onChange={(event) => onToggleBulkSelect(tenant.id, event.target.checked)}
+                      type="checkbox"
+                    />
+                  </td>
+                  <td className={TD}>
+                    <button className="link text-left" onClick={() => onOpenTenant(tenant.id)} type="button">
+                      {tenant.name}
+                    </button>
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                      <span className="font-mono text-xs text-muted">{tenant.slug}</span>
+                      {tenant.status !== "active" ? <TenantStatusTag status={tenant.status} /> : null}
+                      {tenant.maintenanceMode ? <span className="font-mono text-xs text-warning">▲ MAINTENANCE</span> : null}
+                    </div>
+                  </td>
+                  <td className={TD_MUTED}>{tenant.billingPlan ?? "—"}</td>
+                  <td className={`${TD_MUTED} tabular-nums`}>{tenant.seatQuota ?? "—"}</td>
+                  <td className={TD}>
+                    <BillingStatusTag status={tenant.billingStatus} />
+                  </td>
+                  <td className={TD_MONO}>{formatDate(tenant.updatedAt)}</td>
+                </tr>
+              );
+            })}
             {rows.length === 0 ? (
               <tr>
-                <td className="px-3 py-8 text-center text-sm text-[#A09D98]" colSpan={COLUMNS.length + 1}>
+                <td className="px-[18px] py-8 text-center text-sm text-muted" colSpan={COLUMNS.length + 1}>
                   No tenants match “{search}”.
                 </td>
               </tr>

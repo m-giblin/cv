@@ -1,10 +1,23 @@
 "use client";
 
-import { Download, Loader2, RefreshCw, Save, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
+import { useCallback, useEffect, useId, useState } from "react";
 import { toast } from "sonner";
 import { PlatformUnsavedBanner } from "@/components/platform/platform-unsaved-banner";
-import { Button } from "@/components/ui/button";
+import {
+  EmptyLine,
+  FIELD_HINT,
+  FIELD_LABEL,
+  LineCard,
+  SELECT,
+  Spinner,
+  Toggle,
+  formatDate,
+  formatDateTime,
+} from "@/components/platform/platform-ui";
+import { Input } from "@/components/ui/input";
+import { Tag } from "@/components/ui/tag";
+import { Textarea } from "@/components/ui/textarea";
 import { isFormDirty } from "@/lib/platform/use-dirty-form";
 import type {
   Tenant,
@@ -39,73 +52,77 @@ export function PlatformInviteList({
   }
 
   if (invites.length === 0) {
-    return <p className="text-sm text-[#6B6860]">No admin invites yet.</p>;
+    return <EmptyLine>No admin invites yet.</EmptyLine>;
   }
 
   return (
-    <div className="space-y-2">
+    <ul>
       {invites.map((invite) => (
-        <div
-          className="flex flex-wrap items-center justify-between gap-2 border border-[#ECEAE6] px-3 py-2 text-sm"
+        <li
+          className="flex flex-wrap items-center justify-between gap-3 border-b border-divider px-5 py-3 last:border-b-0"
           key={invite.id}
         >
-          <div>
-            <p className="font-medium text-[#0D0E12]">{invite.fullName}</p>
-            <p className="text-xs text-[#A09D98]">
+          <div className="min-w-0">
+            <p className="text-[15px] font-semibold text-ink">{invite.fullName}</p>
+            <p className="font-mono text-xs text-muted">
               {invite.email}
-              {invite.lastSentAt
-                ? ` · sent ${new Date(invite.lastSentAt).toLocaleDateString()}`
-                : ""}
-              {invite.expiresAt
-                ? ` · expires ${new Date(invite.expiresAt).toLocaleDateString()}`
-                : ""}
+              {invite.lastSentAt ? ` · sent ${formatDate(invite.lastSentAt)}` : ""}
+              {invite.expiresAt ? ` · expires ${formatDate(invite.expiresAt)}` : ""}
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-[9px] uppercase tracking-wide text-[#6B6860]">
-              {invite.status}
-            </span>
+          <div className="flex flex-wrap items-center gap-2">
+            {invite.status === "pending" ? (
+              <Tag tone="warning">• Pending</Tag>
+            ) : invite.status === "accepted" ? (
+              <Tag tone="success">✓ Accepted</Tag>
+            ) : (
+              <Tag>○ {invite.status}</Tag>
+            )}
             {invite.status === "pending" ? (
               <>
-                <Button
+                <button
+                  className="btn-secondary inline-flex items-center gap-2"
                   disabled={busyId === invite.id}
                   onClick={() => void runAction(invite.id, invite.tenantId, "resend")}
-                  size="sm"
                   type="button"
-                  variant="outline"
                 >
-                  {busyId === invite.id ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-3.5 w-3.5" />
-                  )}
+                  {busyId === invite.id ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
                   Resend
-                </Button>
-                <Button
+                </button>
+                <button
+                  className="link text-sm"
                   disabled={busyId === invite.id}
                   onClick={() => void runAction(invite.id, invite.tenantId, "revoke")}
-                  size="sm"
                   type="button"
-                  variant="outline"
                 >
                   Revoke
-                </Button>
+                </button>
               </>
             ) : null}
           </div>
-        </div>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }
 
 export function PlatformCommercialPanel({
   tenant,
   onSaved,
+  onDirtyChange,
 }: {
   tenant: Tenant;
   onSaved: (tenant: Tenant) => void;
+  /** Lets the console demote its header primary while the unsaved bar shows. */
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
+  const ids = {
+    billingStatus: useId(),
+    billingPlan: useId(),
+    seatQuota: useId(),
+    customDomain: useId(),
+    customDomainStatus: useId(),
+  };
   const snapshotOf = (t: Tenant) => ({
     billingStatus: t.billingStatus,
     billingPlan: t.billingPlan ?? "",
@@ -127,6 +144,23 @@ export function PlatformCommercialPanel({
 
   const current = { billingStatus, billingPlan, seatQuota, customDomain, customDomainStatus };
   const dirty = isFormDirty(current, saved);
+  const changedCount = (Object.keys(current) as (keyof typeof current)[]).filter(
+    (key) => current[key] !== saved[key],
+  ).length;
+
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
+
+  useEffect(() => () => onDirtyChange?.(false), [onDirtyChange]);
+
+  function discard() {
+    setBillingStatus(saved.billingStatus);
+    setBillingPlan(saved.billingPlan);
+    setSeatQuota(saved.seatQuota);
+    setCustomDomain(saved.customDomain);
+    setCustomDomainStatus(saved.customDomainStatus);
+  }
 
   useEffect(() => {
     setBillingStatus(tenant.billingStatus);
@@ -191,66 +225,67 @@ export function PlatformCommercialPanel({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="border border-[#E2DFD9] bg-white p-5 shadow-sm">
-        <div className="mb-4 flex items-center justify-between gap-3">
+    <div className="space-y-6">
+      <LineCard meta="Billing, plan, seats, domain" title="Commercial">
+        <div className="grid gap-4 p-5 sm:grid-cols-2">
           <div>
-            <h3 className="font-display text-base font-bold text-[#0D0E12]">Commercial</h3>
-            <p className="text-sm text-[#6B6860]">Billing status, plan, and seat quota.</p>
-          </div>
-          <Button disabled={saving || !dirty} onClick={() => void save()} type="button">
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Save
-          </Button>
-        </div>
-        <PlatformUnsavedBanner show={dirty} />
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="block text-sm">
-            <span className="mb-1 block text-xs font-medium text-[#6B6860]">Billing status</span>
+            <label className={FIELD_LABEL} htmlFor={ids.billingStatus}>
+              Billing status
+            </label>
             <select
-              className="w-full border border-[#E2DFD9] px-3 py-2"
+              className={SELECT}
+              id={ids.billingStatus}
               onChange={(e) => setBillingStatus(e.target.value as TenantBillingStatus)}
               value={billingStatus}
             >
               {["trial", "active", "past_due", "canceled", "exempt"].map((value) => (
                 <option key={value} value={value}>
-                  {value}
+                  {value.replace("_", " ")}
                 </option>
               ))}
             </select>
-          </label>
-          <label className="block text-sm">
-            <span className="mb-1 block text-xs font-medium text-[#6B6860]">Plan</span>
-            <input
-              className="w-full border border-[#E2DFD9] px-3 py-2"
+          </div>
+          <div>
+            <label className={FIELD_LABEL} htmlFor={ids.billingPlan}>
+              Plan
+            </label>
+            <Input
+              id={ids.billingPlan}
               onChange={(e) => setBillingPlan(e.target.value)}
-              placeholder="enterprise / ae-pilot / …"
+              placeholder="enterprise, ae-pilot…"
               value={billingPlan}
             />
-          </label>
-          <label className="block text-sm">
-            <span className="mb-1 block text-xs font-medium text-[#6B6860]">Seat quota</span>
-            <input
-              className="w-full border border-[#E2DFD9] px-3 py-2"
+          </div>
+          <div>
+            <label className={FIELD_LABEL} htmlFor={ids.seatQuota}>
+              Seat quota
+            </label>
+            <Input
+              id={ids.seatQuota}
               onChange={(e) => setSeatQuota(e.target.value)}
               placeholder="Unlimited"
               type="number"
               value={seatQuota}
             />
-          </label>
-          <label className="block text-sm">
-            <span className="mb-1 block text-xs font-medium text-[#6B6860]">Custom domain</span>
-            <input
-              className="w-full border border-[#E2DFD9] px-3 py-2"
+          </div>
+          <div>
+            <label className={FIELD_LABEL} htmlFor={ids.customDomain}>
+              Custom domain
+            </label>
+            <Input
+              id={ids.customDomain}
               onChange={(e) => setCustomDomain(e.target.value)}
               placeholder="enablement.acme.com"
               value={customDomain}
             />
-          </label>
-          <label className="block text-sm sm:col-span-2">
-            <span className="mb-1 block text-xs font-medium text-[#6B6860]">Domain status</span>
+          </div>
+          <div>
+            <label className={FIELD_LABEL} htmlFor={ids.customDomainStatus}>
+              Domain status
+            </label>
             <select
-              className="w-full border border-[#E2DFD9] px-3 py-2 sm:max-w-xs"
+              className={SELECT}
+              id={ids.customDomainStatus}
               onChange={(e) => setCustomDomainStatus(e.target.value as TenantCustomDomainStatus)}
               value={customDomainStatus}
             >
@@ -260,30 +295,53 @@ export function PlatformCommercialPanel({
                 </option>
               ))}
             </select>
-          </label>
+          </div>
         </div>
-      </div>
+      </LineCard>
 
-      <div className="flex flex-wrap gap-2 border border-[#E2DFD9] bg-white p-4">
-        <Button disabled={exporting} onClick={() => void runExport()} type="button" variant="outline">
-          {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-          Export tenant JSON
-        </Button>
-        <p className="w-full text-xs text-[#A09D98]">
-          Export status: {tenant.exportStatus}
-          {tenant.exportCompletedAt
-            ? ` · ${new Date(tenant.exportCompletedAt).toLocaleString()}`
-            : ""}
-        </p>
-        <p className="w-full text-xs text-[#A09D98]">
-          Offboarding now lives on the tenant header, next to Suspend.
-        </p>
-      </div>
+      <LineCard title="Data export">
+        <div className="flex flex-wrap items-center justify-between gap-4 p-5">
+          <div>
+            <p className="font-mono text-xs text-muted uppercase">
+              Status {tenant.exportStatus}
+              {tenant.exportCompletedAt ? ` · ${formatDateTime(tenant.exportCompletedAt)}` : ""}
+            </p>
+            <p className="mt-1 text-sm text-ink-2">Offboarding lives in the tenant header, next to Suspend.</p>
+          </div>
+          <button
+            className="btn-secondary inline-flex items-center gap-2"
+            disabled={exporting}
+            onClick={() => void runExport()}
+            type="button"
+          >
+            {exporting ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
+            Export tenant JSON
+          </button>
+        </div>
+      </LineCard>
+
+      <PlatformUnsavedBanner
+        count={changedCount}
+        onDiscard={discard}
+        onSave={() => void save()}
+        saving={saving}
+        show={dirty}
+        summary="Commercial settings"
+      />
     </div>
   );
 }
 
-export function PlatformSsoPanel({ tenantId }: { tenantId: string }) {
+export function PlatformSsoPanel({
+  tenantId,
+  onDirtyChange,
+}: {
+  tenantId: string;
+  onDirtyChange?: (dirty: boolean) => void;
+}) {
+  const providerId = useId();
+  const domainId = useId();
+  const metadataId = useId();
   const [enabled, setEnabled] = useState(false);
   const [provider, setProvider] = useState<"saml" | "oidc">("saml");
   const [ssoDomain, setSsoDomain] = useState("");
@@ -294,6 +352,22 @@ export function PlatformSsoPanel({ tenantId }: { tenantId: string }) {
 
   const current = { enabled, provider, ssoDomain, metadataJson };
   const dirty = isFormDirty(current, saved);
+  const changedCount = (Object.keys(current) as (keyof typeof current)[]).filter(
+    (key) => current[key] !== saved[key],
+  ).length;
+
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
+
+  useEffect(() => () => onDirtyChange?.(false), [onDirtyChange]);
+
+  function discard() {
+    setEnabled(saved.enabled);
+    setProvider(saved.provider);
+    setSsoDomain(saved.ssoDomain);
+    setMetadataJson(saved.metadataJson);
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -350,68 +424,72 @@ export function PlatformSsoPanel({ tenantId }: { tenantId: string }) {
     setSaved(current);
   }
 
-  if (loading) {
-    return (
-      <div className="flex justify-center py-10">
-        <Loader2 className="h-5 w-5 animate-spin text-[#0071CE]" />
-      </div>
-    );
-  }
+  if (loading) return <Spinner label="Loading SSO config" />;
 
   return (
-    <div className="border border-[#E2DFD9] bg-white p-5 shadow-sm">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div>
-          <h3 className="font-display text-base font-bold text-[#0D0E12]">Tenant SSO</h3>
-          <p className="text-sm text-[#6B6860]">
-            Per-tenant SAML/OIDC config. Platform-wide SSO remains the fallback.
-          </p>
+    <div>
+      <LineCard meta="Platform SSO stays the fallback" title="Tenant SSO">
+        <div className="space-y-4 p-5">
+          <div className={`flex items-center justify-between gap-4 rounded-[10px] px-4 py-3 ${enabled !== saved.enabled ? "bg-signal-soft" : "bg-surface-2"}`}>
+            <div>
+              <p className="text-[15px] font-bold text-ink">SSO for this tenant</p>
+              <p className="text-sm text-muted">{enabled ? "On: users sign in through the provider below." : "Off: users sign in with password and MFA."}</p>
+            </div>
+            <Toggle changed={enabled !== saved.enabled} checked={enabled} label="SSO enabled for this tenant" onChange={setEnabled} />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className={FIELD_LABEL} htmlFor={providerId}>
+                Provider
+              </label>
+              <select
+                className={SELECT}
+                id={providerId}
+                onChange={(e) => setProvider(e.target.value as "saml" | "oidc")}
+                value={provider}
+              >
+                <option value="saml">SAML</option>
+                <option value="oidc">OIDC</option>
+              </select>
+            </div>
+            <div>
+              <label className={FIELD_LABEL} htmlFor={domainId}>
+                SSO email domain
+              </label>
+              <Input id={domainId} onChange={(e) => setSsoDomain(e.target.value)} placeholder="acme.com" value={ssoDomain} />
+            </div>
+          </div>
+          <div>
+            <label className={FIELD_LABEL} htmlFor={metadataId}>
+              Provider metadata (JSON)
+            </label>
+            <Textarea
+              className="min-h-[160px] font-mono text-xs"
+              id={metadataId}
+              onChange={(e) => setMetadataJson(e.target.value)}
+              value={metadataJson}
+            />
+            <p className={FIELD_HINT}>Must be valid JSON. Checked when you save.</p>
+          </div>
         </div>
-        <Button disabled={saving || !dirty} onClick={() => void save()} type="button">
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          Save SSO
-        </Button>
-      </div>
-      <PlatformUnsavedBanner show={dirty} />
-      <div className="space-y-3 text-sm">
-        <label className="flex items-center gap-2">
-          <input checked={enabled} onChange={(e) => setEnabled(e.target.checked)} type="checkbox" />
-          SSO enabled for this tenant
-        </label>
-        <label className="block">
-          <span className="mb-1 block text-xs font-medium text-[#6B6860]">Provider</span>
-          <select
-            className="w-full max-w-xs border border-[#E2DFD9] px-3 py-2"
-            onChange={(e) => setProvider(e.target.value as "saml" | "oidc")}
-            value={provider}
-          >
-            <option value="saml">SAML</option>
-            <option value="oidc">OIDC</option>
-          </select>
-        </label>
-        <label className="block">
-          <span className="mb-1 block text-xs font-medium text-[#6B6860]">SSO email domain</span>
-          <input
-            className="w-full max-w-md border border-[#E2DFD9] px-3 py-2"
-            onChange={(e) => setSsoDomain(e.target.value)}
-            placeholder="acme.com"
-            value={ssoDomain}
-          />
-        </label>
-        <label className="block">
-          <span className="mb-1 block text-xs font-medium text-[#6B6860]">Provider metadata (JSON)</span>
-          <textarea
-            className="min-h-[140px] w-full border border-[#E2DFD9] px-3 py-2 font-mono text-xs"
-            onChange={(e) => setMetadataJson(e.target.value)}
-            value={metadataJson}
-          />
-        </label>
-      </div>
+      </LineCard>
+
+      <PlatformUnsavedBanner
+        count={changedCount}
+        onDiscard={discard}
+        onSave={() => void save()}
+        saveLabel="Save SSO"
+        saving={saving}
+        show={dirty}
+        summary="Tenant SSO"
+      />
     </div>
   );
 }
 
 export function PlatformWebhooksPanel({ tenantId }: { tenantId: string }) {
+  const urlId = useId();
+  const eventsId = useId();
   const [hooks, setHooks] = useState<
     Array<{ id: string; url: string; events: string[]; enabled: boolean }>
   >([]);
@@ -472,62 +550,67 @@ export function PlatformWebhooksPanel({ tenantId }: { tenantId: string }) {
     void load();
   }
 
-  if (loading) {
-    return (
-      <div className="flex justify-center py-10">
-        <Loader2 className="h-5 w-5 animate-spin text-[#0071CE]" />
-      </div>
-    );
-  }
+  if (loading) return <Spinner label="Loading webhooks" />;
 
   return (
-    <div className="space-y-4">
-      <div className="border border-[#E2DFD9] bg-white p-5 shadow-sm">
-        <h3 className="font-display text-base font-bold text-[#0D0E12]">Outbound webhooks</h3>
-        <p className="mt-1 text-sm text-[#6B6860]">
-          Push tenant events to an external endpoint. Secrets are stored encrypted.
-        </p>
-        <div className="mt-4 grid gap-3">
-          <input
-            className="border border-[#E2DFD9] px-3 py-2 text-sm"
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder="https://hooks.example.com/se-enablement"
-            value={url}
-          />
-          <input
-            className="border border-[#E2DFD9] px-3 py-2 text-sm"
-            onChange={(e) => setEvents(e.target.value)}
-            placeholder="events, comma-separated"
-            value={events}
-          />
-          <Button className="w-fit" disabled={saving || !url} onClick={() => void addHook()} type="button">
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+    <div className="space-y-6">
+      <LineCard meta="Secrets are stored encrypted" title="Add a webhook">
+        <div className="grid gap-4 p-5 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_auto] sm:items-end">
+          <div>
+            <label className={FIELD_LABEL} htmlFor={urlId}>
+              Endpoint URL
+            </label>
+            <Input
+              id={urlId}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://hooks.example.com/se-enablement"
+              type="url"
+              value={url}
+            />
+          </div>
+          <div>
+            <label className={FIELD_LABEL} htmlFor={eventsId}>
+              Events <span className="font-normal text-muted">(comma-separated)</span>
+            </label>
+            <Input id={eventsId} onChange={(e) => setEvents(e.target.value)} value={events} />
+          </div>
+          <button
+            className="btn-secondary inline-flex h-10 items-center gap-2"
+            disabled={saving || !url}
+            onClick={() => void addHook()}
+            type="button"
+          >
+            {saving ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
             Add webhook
-          </Button>
+          </button>
         </div>
-      </div>
-      <div className="space-y-2">
+      </LineCard>
+
+      <LineCard meta={`${hooks.length} configured`} title="Outbound webhooks">
         {hooks.length === 0 ? (
-          <p className="text-sm text-[#A09D98]">No webhooks configured.</p>
+          <EmptyLine>No webhooks configured.</EmptyLine>
         ) : (
-          hooks.map((hook) => (
-            <div
-              className="flex items-center justify-between gap-3 border border-[#E2DFD9] bg-white px-3 py-2 text-sm"
-              key={hook.id}
-            >
-              <div className="min-w-0">
-                <p className="truncate font-medium text-[#0D0E12]">{hook.url}</p>
-                <p className="text-xs text-[#A09D98]">
-                  {hook.enabled ? "enabled" : "disabled"} · {hook.events.join(", ") || "no events"}
-                </p>
-              </div>
-              <Button onClick={() => void removeHook(hook.id)} size="sm" type="button" variant="outline">
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          ))
+          <ul>
+            {hooks.map((hook) => (
+              <li
+                className="flex items-center justify-between gap-3 border-b border-divider px-5 py-3 last:border-b-0"
+                key={hook.id}
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-mono text-sm text-ink">{hook.url}</p>
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    {hook.enabled ? <Tag tone="success">✓ Enabled</Tag> : <Tag>○ Disabled</Tag>}
+                    <span className="font-mono text-xs text-muted">{hook.events.join(", ") || "no events"}</span>
+                  </div>
+                </div>
+                <button className="link text-sm" onClick={() => void removeHook(hook.id)} type="button">
+                  Remove<span className="sr-only"> webhook {hook.url}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
         )}
-      </div>
+      </LineCard>
     </div>
   );
 }
