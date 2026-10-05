@@ -7,6 +7,7 @@ export type AdminTabId =
   | "overview"
   | "users"
   | "plans"
+  | "assign"
   | "competencies"
   | "content-portal"
   | "reviews"
@@ -27,6 +28,7 @@ export const ADMIN_ROUTES: AdminRoute[] = [
   { path: "/admin", tab: "overview" },
   { path: "/admin/people", tab: "users" },
   { path: "/admin/programs", tab: "plans" },
+  { path: "/admin/programs/assign", tab: "assign" },
   { path: "/admin/programs/competencies", tab: "competencies" },
   { path: "/admin/content", tab: "content-portal" },
   { path: "/admin/content/corpus", tab: "corpus" },

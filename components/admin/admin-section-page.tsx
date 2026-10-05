@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { AppShell } from "@/components/app-shell";
 import { AdminConsole } from "@/components/admin/admin-console";
-import { ReadinessOutcomeCorrelation } from "@/components/admin/readiness-outcome-correlation";
+import { LoadingState } from "@/components/admin/admin-ui";
 import { loadAiUsageSummary } from "@/lib/ai/settings";
 import { getAccessTier } from "@/lib/auth/rbac";
 import { requireAdminPageAccess } from "@/lib/auth/require-access";
@@ -14,7 +14,7 @@ import {
 import { getDemoDashboardData } from "@/lib/demo-data";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export async function AdminSectionPage({ showCorrelation = false }: { showCorrelation?: boolean }) {
+export async function AdminSectionPage() {
  const adminClient = createAdminClient();
  const { data, source, tenantId } = await requireAdminPageAccess();
  const aiUsage = adminClient
@@ -58,7 +58,7 @@ export async function AdminSectionPage({ showCorrelation = false }: { showCorrel
 
  return (
  <AppShell contentWidth="wide" currentUser={data.currentUser} notifications={data.notifications}>
- <Suspense fallback={<div className="text-sm text-[#6B6860]">Loading admin console…</div>}>
+ <Suspense fallback={<LoadingState label="Loading admin console…" />}>
  <AdminConsole
  activity={data.activity}
  aiUsage={aiUsage}
@@ -71,11 +71,6 @@ export async function AdminSectionPage({ showCorrelation = false }: { showCorrel
  profiles={data.profiles}
  />
  </Suspense>
- {showCorrelation ? (
- <div className="mt-6">
- <ReadinessOutcomeCorrelation />
- </div>
- ) : null}
  </AppShell>
  );
 }

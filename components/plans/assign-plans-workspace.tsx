@@ -5,6 +5,13 @@ import { GripVertical, Loader2, Lock, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import {
+  builderStepsToPayload,
+  dbStepToBuilder,
+  emptyBuilderStep,
+  type BuilderStep,
+  type DbTemplateStep,
+} from "@/lib/admin/plan-builder";
 import { parsePlanStepMetadata } from "@/lib/corpus/parse-step-metadata";
 import {
   addDaysToIsoDate,
@@ -23,14 +30,7 @@ import { avatarGradientForId } from "@/lib/se/avatar-gradients";
 import type { PlanStepType, Profile, ProfileRole, UserPlan } from "@/lib/types";
 import { initials } from "@/lib/utils";
 
-type TemplateStep = {
-  id: string;
-  title: string;
-  description: string | null;
-  step_type: PlanStepType;
-  sort_order: number;
-  metadata: Record<string, unknown> | null;
-};
+type TemplateStep = DbTemplateStep;
 
 type PlanTemplate = {
   id: string;
@@ -41,6 +41,8 @@ type PlanTemplate = {
 };
 
 type PreviewStep = {
+  /** Full builder step so a PATCH never drops description, links or builder metadata. */
+  source?: BuilderStep;
   id: string;
   title: string;
   stepType: PlanStepType;
@@ -92,6 +94,7 @@ function stepsToPreview(steps: TemplateStep[]): PreviewStep[] {
     .map((step) => {
       const meta = parsePlanStepMetadata(step.metadata, step.sort_order);
       return {
+        source: dbStepToBuilder(step),
         id: step.id,
         title: step.title,
         stepType: step.step_type,
@@ -103,14 +106,17 @@ function stepsToPreview(steps: TemplateStep[]): PreviewStep[] {
 }
 
 function previewToPayload(steps: PreviewStep[]) {
-  return steps.map((step) => ({
-    id: step.id.startsWith("new-") ? undefined : step.id,
-    title: step.title,
-    stepType: step.stepType,
-    dueOffsetDays: step.dueOffset,
-    segmentIndex: step.segment ? Number.parseInt(step.segment.replace(/\D/g, ""), 10) : null,
-    isSegmentGate: step.isGate,
-  }));
+  return builderStepsToPayload(
+    steps.map((step) => ({
+      ...(step.source ?? emptyBuilderStep({ criteria: [] })),
+      id: step.id.startsWith("new-") ? undefined : step.id,
+      title: step.title,
+      stepType: step.stepType,
+      dueOffsetDays: step.dueOffset,
+      segmentIndex: step.segment ? Number.parseInt(step.segment.replace(/\D/g, ""), 10) : null,
+      isSegmentGate: step.isGate,
+    })),
+  );
 }
 
 export function AssignPlansWorkspace({

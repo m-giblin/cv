@@ -51,11 +51,19 @@ describe("feature flag presets", () => {
 });
 
 describe("tenant admin feature flag policy", () => {
-  it("documents platform-only flag management in admin API", async () => {
+  it("rejects tenant changes to plan-locked features in the admin API", async () => {
     const fs = await import("fs/promises");
     const source = await fs.readFile("app/api/admin/platform-settings/route.ts", "utf8");
-    expect(source).toContain("Feature flags are managed by the platform operator");
+    expect(source).toContain("managed by the platform operator");
+    expect(source).toContain("lockedFeatureIds");
     expect(source).toContain("status: 403");
+  });
+
+  it("locks every feature for tenant admins while the operator-managed policy is on", async () => {
+    const { TENANT_ADMINS_CAN_EDIT_FEATURES, lockedFeatureIds } = await import("@/lib/admin/feature-settings");
+    const { PLATFORM_FEATURE_FLAG_DEFS } = await import("@/lib/platform/settings-shared");
+    expect(TENANT_ADMINS_CAN_EDIT_FEATURES).toBe(false);
+    expect(lockedFeatureIds("enterprise").sort()).toEqual(PLATFORM_FEATURE_FLAG_DEFS.map((d) => d.id).sort());
   });
 });
 

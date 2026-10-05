@@ -1,388 +1,442 @@
 "use client";
 
-import { Loader2, Plus, Trash2, Upload } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
- DataTablePagination,
- DataTableToolbar,
- paginate,
-} from "@/components/ui/data-table";
-import { Input } from "@/components/ui/input";
+  AdminTable,
+  EmptyState,
+  Field,
+  LinkButton,
+  LoadingState,
+  Mono,
+  SecondaryButton,
+  SelectInput,
+  Td,
+  TextInput,
+  Th,
+} from "@/components/admin/admin-ui";
+import { Chip } from "@/components/ui/chip";
+import { Drawer } from "@/components/ui/drawer";
+import { Tag } from "@/components/ui/tag";
+import { cn } from "@/lib/utils";
 
 type ContentAsset = {
- id: string;
- title: string;
- category: string;
- url: string;
- contentType: string | null;
- assetType: string;
- projectTags: string[];
- moduleTags: string[];
- updatedAt: string;
+  id: string;
+  title: string;
+  category: string;
+  url: string;
+  contentType: string | null;
+  assetType: string;
+  projectTags: string[];
+  moduleTags: string[];
+  updatedAt: string;
 };
 
+type AssetType = "link" | "video" | "doc" | "podcast" | "file";
+
 function parseTags(value: string): string[] {
- return value
- .split(",")
- .map((tag) => tag.trim())
- .filter(Boolean);
+  return value
+    .split(",")
+    .map((tag) => tag.trim())
+    .filter(Boolean);
 }
 
-const CORPUS_COLS = "1fr 100px 160px 90px 60px 80px 120px";
+function humanize(value: string) {
+  const text = value.replaceAll("_", " ").trim();
+  return text ? text.charAt(0).toUpperCase() + text.slice(1) : "—";
+}
 
-function typeBadge(category: string, assetType: string) {
- const lower = `${category} ${assetType}`.toLowerCase();
- if (lower.includes("battle")) return { bg: "#fee2e2", color: "#dc2626", label: "Battle card" };
- if (lower.includes("playbook") || lower.includes("pitch")) return { bg: "#cffafe", color: "#0e7490", label: "Playbook" };
- if (lower.includes("demo")) return { bg: "#dbeafe", color: "#1d4ed8", label: "Demo guide" };
- if (lower.includes("brief") || lower.includes("one")) return { bg: "#ede9fe", color: "#5b21b6", label: "One-pager" };
- return { bg: "#e8f2fc", color: "#0057a8", label: assetType.replaceAll("_", " ") };
+function formatDate(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? "—"
+    : date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+function paginate<T>(items: T[], page: number, pageSize: number) {
+  const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
+  const safePage = Math.min(Math.max(1, page), pageCount);
+  const start = (safePage - 1) * pageSize;
+  return { page: safePage, pageCount, rows: items.slice(start, start + pageSize) };
 }
 
 const PAGE_SIZE = 20;
 
 const emptyForm = {
- title: "",
- url: "",
- category: "solution_brief",
- assetType: "link" as const,
- projectTags: "",
- moduleTags: "",
+  title: "",
+  url: "",
+  category: "solution_brief",
+  assetType: "link" as AssetType,
+  projectTags: "",
+  moduleTags: "",
 };
 
 export function ContentAssetManagement() {
- const [assets, setAssets] = useState<ContentAsset[]>([]);
- const [search, setSearch] = useState("");
- const [page, setPage] = useState(1);
- const [isLoading, setIsLoading] = useState(true);
- const [isSaving, setIsSaving] = useState(false);
- const [editingId, setEditingId] = useState<string | null>(null);
- const [showForm, setShowForm] = useState(false);
- const [form, setForm] = useState(emptyForm);
- const [file, setFile] = useState<File | null>(null);
+  const formId = useId();
+  const [assets, setAssets] = useState<ContentAsset[]>([]);
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState(emptyForm);
+  const [file, setFile] = useState<File | null>(null);
 
- const load = useCallback(async () => {
- setIsLoading(true);
- const response = await fetch("/api/admin/content-assets");
- if (!response.ok) {
- toast.error("Failed to load content.");
- setIsLoading(false);
- return;
- }
- const body = (await response.json()) as { assets: ContentAsset[] };
- setAssets(body.assets);
- setIsLoading(false);
- }, []);
+  const load = useCallback(async () => {
+    setIsLoading(true);
+    const response = await fetch("/api/admin/content-assets");
+    if (!response.ok) {
+      toast.error("Failed to load content.");
+      setIsLoading(false);
+      return;
+    }
+    const body = (await response.json()) as { assets: ContentAsset[] };
+    setAssets(body.assets);
+    setIsLoading(false);
+  }, []);
 
- useEffect(() => {
- void load();
- }, [load]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
- const filtered = useMemo(() => {
- const q = search.trim().toLowerCase();
- if (!q) return assets;
- return assets.filter((asset) =>
- [asset.title, asset.category, asset.url, asset.assetType, ...asset.projectTags, ...asset.moduleTags]
- .join(" ")
- .toLowerCase()
- .includes(q),
- );
- }, [assets, search]);
+  const assetTypes = useMemo(
+    () => [...new Set(assets.map((asset) => asset.assetType).filter(Boolean))].sort(),
+    [assets],
+  );
 
- const { rows, page: safePage, pageCount } = paginate(filtered, page, PAGE_SIZE);
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return assets.filter((asset) => {
+      if (typeFilter && asset.assetType !== typeFilter) return false;
+      if (!q) return true;
+      return [asset.title, asset.category, asset.url, asset.assetType, ...asset.projectTags, ...asset.moduleTags]
+        .join(" ")
+        .toLowerCase()
+        .includes(q);
+    });
+  }, [assets, search, typeFilter]);
 
- useEffect(() => setPage(1), [search]);
+  const { rows, page: safePage, pageCount } = paginate(filtered, page, PAGE_SIZE);
 
- async function suggestTags() {
- const response = await fetch("/api/corpus/suggest-tags", {
- method: "POST",
- headers: { "Content-Type": "application/json" },
- body: JSON.stringify({ title: form.title, url: form.url, description: form.category }),
- });
- if (!response.ok) {
- toast.error("Could not suggest tags.");
- return;
- }
- const body = (await response.json()) as {
- assetType: typeof form.assetType;
- projectTags: string[];
- moduleTags: string[];
- };
- setForm((current) => ({
- ...current,
- assetType: body.assetType,
- projectTags: body.projectTags.join(", "),
- moduleTags: body.moduleTags.join(", "),
- }));
- toast.success("Tags suggested — review before saving.");
- }
+  useEffect(() => setPage(1), [search, typeFilter]);
 
- async function saveAsset(event: React.FormEvent) {
- event.preventDefault();
- setIsSaving(true);
+  function openCreate() {
+    setEditingId(null);
+    setForm(emptyForm);
+    setFile(null);
+    setShowForm(true);
+  }
 
- if (file && !editingId) {
- const formData = new FormData();
- formData.set("title", form.title || file.name);
- formData.set("category", form.category);
- formData.set("assetType", form.assetType);
- formData.set("projectTags", form.projectTags);
- formData.set("moduleTags", form.moduleTags);
- formData.set("file", file);
- const response = await fetch("/api/admin/content-assets/upload", { method: "POST", body: formData });
- if (!response.ok) {
- toast.error("Upload failed.");
- setIsSaving(false);
- return;
- }
- } else {
- const endpoint = editingId ? `/api/admin/content-assets/${editingId}` : "/api/admin/content-assets";
- const response = await fetch(endpoint, {
- method: editingId ? "PATCH" : "POST",
- headers: { "Content-Type": "application/json" },
- body: JSON.stringify({
- title: form.title,
- url: form.url,
- category: form.category,
- assetType: form.assetType,
- projectTags: parseTags(form.projectTags),
- moduleTags: parseTags(form.moduleTags),
- }),
- });
- if (!response.ok) {
- toast.error("Save failed.");
- setIsSaving(false);
- return;
- }
- }
+  function openEdit(asset: ContentAsset) {
+    setEditingId(asset.id);
+    setForm({
+      title: asset.title,
+      url: asset.url,
+      category: asset.category,
+      assetType: (asset.assetType as AssetType) ?? "link",
+      projectTags: asset.projectTags.join(", "),
+      moduleTags: asset.moduleTags.join(", "),
+    });
+    setShowForm(true);
+  }
 
- toast.success(editingId ? "Content updated." : "Content saved.");
- setShowForm(false);
- setEditingId(null);
- setForm(emptyForm);
- setFile(null);
- await load();
- setIsSaving(false);
- }
+  async function suggestTags() {
+    const response = await fetch("/api/corpus/suggest-tags", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: form.title, url: form.url, description: form.category }),
+    });
+    if (!response.ok) {
+      toast.error("Could not suggest tags.");
+      return;
+    }
+    const body = (await response.json()) as {
+      assetType: AssetType;
+      projectTags: string[];
+      moduleTags: string[];
+    };
+    setForm((current) => ({
+      ...current,
+      assetType: body.assetType,
+      projectTags: body.projectTags.join(", "),
+      moduleTags: body.moduleTags.join(", "),
+    }));
+    toast.success("Tags suggested. Review before saving.");
+  }
 
- async function removeAsset(asset: ContentAsset) {
- if (!confirm(`Delete "${asset.title}"?`)) return;
- const response = await fetch(`/api/admin/content-assets/${asset.id}`, { method: "DELETE" });
- if (!response.ok) {
- toast.error("Delete failed.");
- return;
- }
- toast.success("Deleted.");
- await load();
- }
+  async function saveAsset(event: React.FormEvent) {
+    event.preventDefault();
+    setIsSaving(true);
 
- function copyUrl(url: string) {
- void navigator.clipboard.writeText(url);
- toast.success("Link copied.");
- }
+    if (file && !editingId) {
+      const formData = new FormData();
+      formData.set("title", form.title || file.name);
+      formData.set("category", form.category);
+      formData.set("assetType", form.assetType);
+      formData.set("projectTags", form.projectTags);
+      formData.set("moduleTags", form.moduleTags);
+      formData.set("file", file);
+      const response = await fetch("/api/admin/content-assets/upload", { method: "POST", body: formData });
+      if (!response.ok) {
+        toast.error("Upload failed.");
+        setIsSaving(false);
+        return;
+      }
+    } else {
+      const endpoint = editingId ? `/api/admin/content-assets/${editingId}` : "/api/admin/content-assets";
+      const response = await fetch(endpoint, {
+        method: editingId ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: form.title,
+          url: form.url,
+          category: form.category,
+          assetType: form.assetType,
+          projectTags: parseTags(form.projectTags),
+          moduleTags: parseTags(form.moduleTags),
+        }),
+      });
+      if (!response.ok) {
+        toast.error("Save failed.");
+        setIsSaving(false);
+        return;
+      }
+    }
 
- if (isLoading) {
- return (
- <div className="flex justify-center py-12">
- <Loader2 className="h-6 w-6 animate-spin text-sp-blue" />
- </div>
- );
- }
+    toast.success(editingId ? "Content updated." : "Content saved.");
+    setShowForm(false);
+    setEditingId(null);
+    setForm(emptyForm);
+    setFile(null);
+    await load();
+    setIsSaving(false);
+  }
 
- return (
- <div className="space-y-4">
- <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
- <div>
- <h2 className="text-lg font-bold text-sp-navy">Content library</h2>
- <p className="text-sm text-sp-navy-muted">
- Assets appear in plan steps and on the SE Resources page. Managers pick them when building onboarding plans.
- </p>
- </div>
- <Button
- onClick={() => {
- setEditingId(null);
- setForm(emptyForm);
- setShowForm(true);
- }}
- size="sm"
- >
- <Plus className="h-4 w-4" />
- Add content
- </Button>
- </div>
+  async function removeAsset(asset: ContentAsset) {
+    if (!confirm(`Delete "${asset.title}"?`)) return;
+    const response = await fetch(`/api/admin/content-assets/${asset.id}`, { method: "DELETE" });
+    if (!response.ok) {
+      toast.error("Delete failed.");
+      return;
+    }
+    toast.success("Deleted.");
+    await load();
+  }
 
- <DataTableToolbar
- filtered={filtered.length}
- onSearchChange={setSearch}
- placeholder="Search title, category, URL…"
- search={search}
- total={assets.length}
- />
+  function copyUrl(url: string) {
+    void navigator.clipboard.writeText(url);
+    toast.success("Link copied.");
+  }
 
- <div className="overflow-hidden border border-[#E2DFD9] bg-white">
- <div
- className="grid border-b border-[#ECEAE6] bg-[#F9F8F6] px-[18px] py-[9px]"
- style={{ gridTemplateColumns: CORPUS_COLS }}
- >
- {["Asset", "Type", "Tags", "Health", "Ver", "Updated", ""].map((header) => (
- <span className="text-[9.5px] font-bold uppercase tracking-[0.07em] text-[#A09D98]" key={header}>
- {header}
- </span>
- ))}
- </div>
- {rows.length === 0 ? (
- <p className="px-4 py-8 text-center text-[#A09D98]">No content yet — add your first asset above.</p>
- ) : (
- rows.map((asset) => {
- const type = typeBadge(asset.category, asset.assetType);
- const tags = [...asset.projectTags, ...asset.moduleTags].join(" · ");
- return (
- <div
- className="grid cursor-pointer items-center border-b border-[#f9fafb] px-[18px] py-[10px] transition hover:bg-[#f7fafd] last:border-b-0"
- key={asset.id}
- style={{ gridTemplateColumns: CORPUS_COLS }}
- >
- <div className="min-w-0">
- <p className="text-[12px] font-semibold text-[#3D3C38]">{asset.title}</p>
- <p className="mt-[1px] truncate text-[10px] text-[#A09D98]">{asset.url}</p>
- </div>
- <span
- className="w-fit font-mono text-[8px] uppercase tracking-[0.08em] px-[8px] py-[2px] text-[9.5px] font-bold"
- style={{ background: type.bg, color: type.color }}
- >
- {type.label}
- </span>
- <span className="truncate text-[11px] text-[#6B6860]">{tags || "—"}</span>
- <span
- className="w-fit rounded-full bg-[#dcfce7] px-[8px] py-[2px] text-[9.5px] font-bold text-[#15803d]"
- >
- Healthy
- </span>
- <span className="text-[11.5px] text-[#3D3C38]">v1</span>
- <span className="text-[11.5px] text-[#A09D98]">{new Date(asset.updatedAt).toLocaleDateString()}</span>
- <div className="flex gap-[6px]">
- <button
- className="inline-flex items-center border border-[#E2DFD9] bg-white px-[10px] py-[5px] text-[11px] font-semibold text-[#3D3C38]"
- onClick={() => copyUrl(asset.url)}
- type="button"
- >
- Copy
- </button>
- <button
- className="inline-flex items-center border border-[#E2DFD9] bg-white px-[10px] py-[5px] text-[11px] font-semibold text-[#3D3C38]"
- onClick={() => {
- setEditingId(asset.id);
- setForm({
- title: asset.title,
- url: asset.url,
- category: asset.category,
- assetType: (asset.assetType as typeof emptyForm.assetType) ?? "link",
- projectTags: asset.projectTags.join(", "),
- moduleTags: asset.moduleTags.join(", "),
- });
- setShowForm(true);
- }}
- type="button"
- >
- Edit
- </button>
- <button
- className="inline-flex items-center bg-[#e8f2fc] px-[10px] py-[5px] text-[11px] font-semibold text-[#0057a8]"
- onClick={() => void suggestTags()}
- type="button"
- >
- AI tag
- </button>
- </div>
- </div>
- );
- })
- )}
- </div>
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <p className="max-w-2xl text-sm text-muted">
+          Assets appear in plan steps and on the SE Resources page. Managers pick them when building onboarding plans.
+        </p>
+        <button className="btn-primary" onClick={openCreate} type="button">
+          + Add content
+        </button>
+      </div>
 
- <DataTablePagination onPageChange={setPage} page={safePage} pageCount={pageCount} />
+      {isLoading ? (
+        <LoadingState label="Loading content…" />
+      ) : (
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <TextInput
+              aria-label="Search content"
+              className="max-w-sm"
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search title, category, URL, tags…"
+              type="search"
+              value={search}
+            />
+            <span className="label-mono">
+              {filtered.length} of {assets.length}
+            </span>
+          </div>
 
- {showForm ? (
- <Card>
- <CardHeader>
- <CardTitle>{editingId ? "Edit content" : "Add content"}</CardTitle>
- <CardDescription>Paste a URL or upload a file to the content bucket.</CardDescription>
- </CardHeader>
- <form className="space-y-3" onSubmit={saveAsset}>
- <Input
- onChange={(e) => setForm((c) => ({ ...c, title: e.target.value }))}
- placeholder="Title"
- required
- value={form.title}
- />
- <Input
- onChange={(e) => setForm((c) => ({ ...c, url: e.target.value }))}
- placeholder="URL"
- required={!file || Boolean(editingId)}
- type="url"
- value={form.url}
- />
- {!editingId ? (
- <label className="flex items-center gap-2 text-sm text-sp-navy-muted">
- <Upload className="h-4 w-4" />
- Upload file (optional)
- <input
- accept=".pdf,.ppt,.pptx,.doc,.docx,.mp4,.mov"
- className="text-xs"
- onChange={(e) => setFile(e.target.files?.[0] ?? null)}
- type="file"
- />
- </label>
- ) : null}
- <select
- className="h-10 w-full border border-sp-blue/15 bg-white px-3 text-sm"
- onChange={(e) => setForm((c) => ({ ...c, assetType: e.target.value as typeof form.assetType }))}
- value={form.assetType}
- >
- <option value="link">Link</option>
- <option value="video">Video</option>
- <option value="doc">Document</option>
- <option value="podcast">Podcast</option>
- <option value="file">File</option>
- </select>
- <Input
- onChange={(e) => setForm((c) => ({ ...c, projectTags: e.target.value }))}
- placeholder="Project tags (comma-separated, e.g. ISC, AIS)"
- value={form.projectTags}
- />
- <Input
- onChange={(e) => setForm((c) => ({ ...c, moduleTags: e.target.value }))}
- placeholder="Module tags (comma-separated, e.g. Provisioning)"
- value={form.moduleTags}
- />
- <select
- className="h-10 w-full border border-sp-blue/15 bg-white px-3 text-sm"
- onChange={(e) => setForm((c) => ({ ...c, category: e.target.value }))}
- value={form.category}
- >
- <option value="solution_brief">Solution brief</option>
- <option value="pitch_deck">Pitch deck</option>
- <option value="demo_recording">Demo recording</option>
- <option value="reference">Reference</option>
- </select>
- <div className="flex gap-2">
- <Button onClick={() => void suggestTags()} size="sm" type="button" variant="outline">
- AI suggest tags
- </Button>
- <Button disabled={isSaving} type="submit">
- {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
- Save
- </Button>
- <Button onClick={() => setShowForm(false)} type="button" variant="outline">
- Cancel
- </Button>
- </div>
- </form>
- </Card>
- ) : null}
- </div>
- );
+          {assetTypes.length > 1 ? (
+            <div aria-label="Filter by type" className="flex flex-wrap gap-2" role="group">
+              <Chip active={typeFilter === null} onClick={() => setTypeFilter(null)}>
+                All
+              </Chip>
+              {assetTypes.map((type) => (
+                <Chip active={typeFilter === type} key={type} onClick={() => setTypeFilter(type)}>
+                  {humanize(type)}
+                </Chip>
+              ))}
+            </div>
+          ) : null}
+
+          <AdminTable caption="Content library">
+            <thead>
+              <tr>
+                <Th>Title</Th>
+                <Th>Type</Th>
+                <Th>Category</Th>
+                <Th>Updated</Th>
+                <Th>
+                  <span className="sr-only">Actions</span>
+                </Th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.length === 0 ? (
+                <tr>
+                  <td colSpan={5}>
+                    <EmptyState>
+                      {assets.length === 0 ? "No content yet. Add your first asset." : "No content matches your filters."}
+                    </EmptyState>
+                  </td>
+                </tr>
+              ) : (
+                rows.map((asset) => {
+                  const tags = [...asset.projectTags, ...asset.moduleTags].join(" · ");
+                  return (
+                    <tr className={cn(showForm && editingId === asset.id && "bg-blue-soft")} key={asset.id}>
+                      <Td className="max-w-[420px]">
+                        <p className="font-bold text-ink">{asset.title}</p>
+                        <p className="mt-0.5 truncate text-[13px] text-muted" title={asset.url}>
+                          {asset.url}
+                        </p>
+                        {tags ? <p className="mt-0.5 truncate text-[13px] text-ink-2">{tags}</p> : null}
+                      </Td>
+                      <Td>
+                        <Tag tone="blue">{humanize(asset.assetType)}</Tag>
+                      </Td>
+                      <Td className="text-ink-2">{humanize(asset.category)}</Td>
+                      <Td>
+                        <Mono>{formatDate(asset.updatedAt)}</Mono>
+                      </Td>
+                      <Td className="text-right whitespace-nowrap">
+                        <div className="inline-flex gap-4">
+                          <LinkButton onClick={() => copyUrl(asset.url)}>Copy link</LinkButton>
+                          <LinkButton onClick={() => openEdit(asset)}>Edit</LinkButton>
+                          <LinkButton onClick={() => void removeAsset(asset)} tone="danger">
+                            Delete
+                          </LinkButton>
+                        </div>
+                      </Td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </AdminTable>
+
+          {pageCount > 1 ? (
+            <div className="flex items-center justify-end gap-3">
+              <span className="label-mono">
+                Page {safePage} of {pageCount}
+              </span>
+              <SecondaryButton disabled={safePage <= 1} onClick={() => setPage(safePage - 1)}>
+                Previous
+              </SecondaryButton>
+              <SecondaryButton disabled={safePage >= pageCount} onClick={() => setPage(safePage + 1)}>
+                Next
+              </SecondaryButton>
+            </div>
+          ) : null}
+        </div>
+      )}
+
+      <Drawer
+        footer={
+          <>
+            <button className="btn-primary" disabled={isSaving} form={formId} type="submit">
+              {isSaving ? "Saving…" : "Save"}
+            </button>
+            <SecondaryButton onClick={() => setShowForm(false)}>Cancel</SecondaryButton>
+          </>
+        }
+        onClose={() => setShowForm(false)}
+        open={showForm}
+        title={editingId ? "Edit content" : "Add content"}
+      >
+        <form className="flex flex-col gap-4" id={formId} onSubmit={(event) => void saveAsset(event)}>
+          <p className="text-sm text-muted">Paste a URL or upload a file to the content bucket.</p>
+          <Field htmlFor={`${formId}-title`} label="Title">
+            <TextInput
+              id={`${formId}-title`}
+              onChange={(e) => setForm((c) => ({ ...c, title: e.target.value }))}
+              required
+              value={form.title}
+            />
+          </Field>
+          <Field htmlFor={`${formId}-url`} label="URL">
+            <TextInput
+              id={`${formId}-url`}
+              onChange={(e) => setForm((c) => ({ ...c, url: e.target.value }))}
+              placeholder="https://"
+              required={!file || Boolean(editingId)}
+              type="url"
+              value={form.url}
+            />
+          </Field>
+          {!editingId ? (
+            <Field hint="Optional. If chosen, the file is uploaded and used instead of the URL." htmlFor={`${formId}-file`} label="Upload file">
+              <input
+                accept=".pdf,.ppt,.pptx,.doc,.docx,.mp4,.mov"
+                className="text-sm text-ink-2 file:mr-3 file:rounded-full file:border-[1.5px] file:border-line-strong file:bg-white file:px-3 file:py-1.5 file:text-sm file:font-bold file:text-ink"
+                id={`${formId}-file`}
+                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                type="file"
+              />
+            </Field>
+          ) : null}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field htmlFor={`${formId}-type`} label="Type">
+              <SelectInput
+                id={`${formId}-type`}
+                onChange={(e) => setForm((c) => ({ ...c, assetType: e.target.value as AssetType }))}
+                value={form.assetType}
+              >
+                <option value="link">Link</option>
+                <option value="video">Video</option>
+                <option value="doc">Document</option>
+                <option value="podcast">Podcast</option>
+                <option value="file">File</option>
+              </SelectInput>
+            </Field>
+            <Field htmlFor={`${formId}-category`} label="Category">
+              <SelectInput
+                id={`${formId}-category`}
+                onChange={(e) => setForm((c) => ({ ...c, category: e.target.value }))}
+                value={form.category}
+              >
+                <option value="solution_brief">Solution brief</option>
+                <option value="pitch_deck">Pitch deck</option>
+                <option value="demo_recording">Demo recording</option>
+                <option value="reference">Reference</option>
+                {["solution_brief", "pitch_deck", "demo_recording", "reference"].includes(form.category) ? null : (
+                  <option value={form.category}>{humanize(form.category)}</option>
+                )}
+              </SelectInput>
+            </Field>
+          </div>
+          <Field hint="Comma-separated, e.g. ISC, AIS." htmlFor={`${formId}-project-tags`} label="Project tags">
+            <TextInput
+              id={`${formId}-project-tags`}
+              onChange={(e) => setForm((c) => ({ ...c, projectTags: e.target.value }))}
+              value={form.projectTags}
+            />
+          </Field>
+          <Field hint="Comma-separated, e.g. Provisioning." htmlFor={`${formId}-module-tags`} label="Module tags">
+            <TextInput
+              id={`${formId}-module-tags`}
+              onChange={(e) => setForm((c) => ({ ...c, moduleTags: e.target.value }))}
+              value={form.moduleTags}
+            />
+          </Field>
+          <div>
+            <SecondaryButton onClick={() => void suggestTags()}>AI suggest tags</SecondaryButton>
+          </div>
+        </form>
+      </Drawer>
+    </div>
+  );
 }

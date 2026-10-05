@@ -1,7 +1,8 @@
 "use client";
 
-import { AlertTriangle, Loader2, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
+import { EmptyState, LineCard, LoadingState, Mono, Notice } from "@/components/admin/admin-ui";
+import { Tag } from "@/components/ui/tag";
 import type { AdminSecurityData } from "@/app/api/admin/security/route";
 
 /**
@@ -23,88 +24,92 @@ export function AdminSecurityPanel() {
   }, []);
 
   if (loading) {
-    return (
-      <div className="flex justify-center py-16">
-        <Loader2 className="h-6 w-6 animate-spin text-[#0071CE]" />
-      </div>
-    );
+    return <LoadingState label="Loading security posture…" />;
   }
 
   if (!data) {
-    return <p className="text-sm text-[#6B6860]">Could not load security data.</p>;
+    return <Notice className="border-danger bg-danger-soft text-danger">Could not load security data.</Notice>;
   }
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="border border-[#E2DFD9] bg-white p-4">
-          <div className="mb-2 flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4 text-[#0071CE]" />
-            <h3 className="text-sm font-bold text-[#0D0E12]">Single sign-on</h3>
-          </div>
+    <div className="flex flex-col gap-6">
+      <div className="grid gap-6 sm:grid-cols-2">
+        <LineCard title="Single sign-on">
           {data.sso?.enabled ? (
-            <div>
-              <p className="text-sm font-semibold text-[#0A6E45]">Enabled — {data.sso.provider?.toUpperCase()}</p>
-              <p className="mt-1 text-xs text-[#6B6860]">
+            <div className="flex flex-col gap-2">
+              <div>
+                <Tag tone="success">✓ Enabled · {data.sso.provider?.toUpperCase()}</Tag>
+              </div>
+              <p className="text-sm text-ink-2">
                 {data.sso.ssoDomain ? `Enforced for @${data.sso.ssoDomain}` : "No domain restriction set."}
               </p>
             </div>
           ) : (
-            <div>
-              <p className="text-sm font-semibold text-[#D4810A]">Not enabled</p>
-              <p className="mt-1 text-xs text-[#6B6860]">
+            <div className="flex flex-col gap-2">
+              <div>
+                <Tag tone="warning">▲ Not enabled</Tag>
+              </div>
+              <p className="text-sm text-ink-2">
                 Users are authenticating with email/password only. SSO configuration is managed by your platform
                 operator.
               </p>
             </div>
           )}
-        </div>
+        </LineCard>
 
-        <div className="border border-[#E2DFD9] bg-white p-4">
-          <div className="mb-2 flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-[#D4810A]" />
-            <h3 className="text-sm font-bold text-[#0D0E12]">Dormant accounts</h3>
-          </div>
-          <p className="text-2xl font-bold text-[#0D0E12]">{data.inactiveAccounts.length}</p>
-          <p className="mt-1 text-xs text-[#6B6860]">
+        <LineCard title="Dormant accounts">
+          <p
+            className={
+              data.inactiveAccounts.length > 0
+                ? "text-4xl leading-none font-extrabold tracking-[-0.03em] text-danger"
+                : "text-4xl leading-none font-extrabold tracking-[-0.03em] text-blue"
+            }
+          >
+            {data.inactiveAccounts.length}
+          </p>
+          <p className="mt-2 text-sm text-ink-2">
             No recorded activity in the last {data.inactiveThresholdDays} days — not a login-based signal, this
             counts accounts with no entries in the activity feed. Worth a periodic access review.
           </p>
-        </div>
+        </LineCard>
       </div>
 
       {data.inactiveAccounts.length > 0 ? (
-        <div className="border border-[#E2DFD9] bg-white p-4">
-          <h3 className="mb-3 text-sm font-bold text-[#0D0E12]">Accounts with no recent activity</h3>
-          <div className="divide-y divide-[#F0EFEB]">
+        <LineCard bodyClassName="p-0" meta={`${data.inactiveAccounts.length}`} title="Accounts with no recent activity">
+          <ul>
             {data.inactiveAccounts.map((account) => (
-              <div className="flex items-center justify-between py-2 text-sm" key={account.id}>
-                <div>
-                  <p className="font-medium text-[#0D0E12]">{account.fullName}</p>
-                  <p className="text-xs text-[#A09D98]">{account.email}</p>
+              <li
+                className="flex items-center justify-between gap-4 border-b border-divider px-5 py-3 last:border-b-0"
+                key={account.id}
+              >
+                <div className="min-w-0">
+                  <p className="text-[15px] font-bold text-ink">{account.fullName}</p>
+                  <p className="truncate text-[13px] text-muted">{account.email}</p>
                 </div>
-                <span className="font-mono text-[9px] uppercase tracking-wide text-[#6B6860]">{account.role}</span>
-              </div>
+                <Mono>{account.role.replaceAll("_", " ")}</Mono>
+              </li>
             ))}
-          </div>
-        </div>
+          </ul>
+        </LineCard>
       ) : null}
 
-      <div className="border border-[#E2DFD9] bg-white p-4">
-        <h3 className="mb-3 text-sm font-bold text-[#0D0E12]">Recent admin actions</h3>
+      <LineCard bodyClassName="p-0" title="Recent admin actions">
         {data.recentActions.length === 0 ? (
-          <p className="text-sm text-[#6B6860]">No admin actions recorded yet.</p>
+          <EmptyState>No admin actions recorded yet.</EmptyState>
         ) : (
-          <div className="divide-y divide-[#F0EFEB]">
+          <ul>
             {data.recentActions.map((action) => (
-              <div className="flex items-center justify-between py-2 text-sm" key={action.id}>
-                <span className="font-mono text-xs text-[#3D3C38]">{action.action}</span>
-                <span className="text-xs text-[#A09D98]">{new Date(action.createdAt).toLocaleString()}</span>
-              </div>
+              <li
+                className="flex flex-wrap items-center justify-between gap-3 border-b border-divider px-5 py-3 last:border-b-0"
+                key={action.id}
+              >
+                <span className="font-mono text-[13px] text-ink">{action.action}</span>
+                <Mono className="text-muted">{new Date(action.createdAt).toLocaleString()}</Mono>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
-      </div>
+      </LineCard>
     </div>
   );
 }

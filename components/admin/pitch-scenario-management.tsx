@@ -1,12 +1,25 @@
 "use client";
 
-import { Loader2, Pencil, Plus } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { DataTablePagination, DataTableToolbar, paginate } from "@/components/ui/data-table";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import {
+  AdminTable,
+  EmptyState,
+  Field,
+  LinkButton,
+  LoadingState,
+  Mono,
+  SecondaryButton,
+  SectionHeading,
+  SelectInput,
+  Td,
+  TextArea,
+  TextInput,
+  Th,
+} from "@/components/admin/admin-ui";
+import { Drawer } from "@/components/ui/drawer";
+import { Tag } from "@/components/ui/tag";
+import { cn } from "@/lib/utils";
 
 type ScenarioRow = {
   id: string;
@@ -25,9 +38,11 @@ type ScenarioRow = {
   passingGrade: number;
 };
 
+type Track = "elevator" | "discovery" | "competitive" | "executive" | "governance";
+
 const emptyForm = {
   slug: "",
-  track: "elevator" as const,
+  track: "elevator" as Track,
   shortLabel: "",
   label: "",
   promptLabel: "",
@@ -42,7 +57,15 @@ const emptyForm = {
 
 const PAGE_SIZE = 12;
 
+function paginate<T>(items: T[], page: number, pageSize: number) {
+  const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
+  const safePage = Math.min(Math.max(1, page), pageCount);
+  const start = (safePage - 1) * pageSize;
+  return { page: safePage, pageCount, rows: items.slice(start, start + pageSize) };
+}
+
 export function PitchScenarioManagement() {
+  const formId = useId();
   const [scenarios, setScenarios] = useState<ScenarioRow[]>([]);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -93,7 +116,7 @@ export function PitchScenarioManagement() {
     setEditingId(row.id);
     setForm({
       slug: row.slug,
-      track: row.track as typeof emptyForm.track,
+      track: row.track as Track,
       shortLabel: row.shortLabel,
       label: row.label,
       promptLabel: row.promptLabel,
@@ -106,6 +129,10 @@ export function PitchScenarioManagement() {
       passingGrade: row.passingGrade,
     });
     setShowEditor(true);
+  }
+
+  function closeEditor() {
+    setShowEditor(false);
   }
 
   async function saveScenario(event: React.FormEvent) {
@@ -162,103 +189,202 @@ export function PitchScenarioManagement() {
     await load();
   }
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin text-sp-blue" />
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
-        <div>
-          <h2 className="text-lg font-bold text-sp-navy">Pitch scenario library</h2>
-          <p className="text-sm text-sp-navy-muted">
-            Elevator pitches per ISC solution and situational drills. SEs receive four active slots from this pool;
-            aligned to the SLED eBook v6 chapter library (18 elevator scenarios).
-          </p>
-        </div>
-        <Button onClick={openCreate} size="sm" type="button">
-          <Plus className="mr-1 h-4 w-4" />
-          Add scenario
-        </Button>
-      </div>
-
-      {showEditor ? (
-        <form className="space-y-3 border border-[#E2DFD9] bg-white p-4" onSubmit={(e) => void saveScenario(e)}>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Input onChange={(e) => setForm((c) => ({ ...c, slug: e.target.value }))} placeholder="slug (elevator-isc)" required value={form.slug} />
-            <select
-              className="border border-[#E2DFD9] px-3 py-2 text-sm"
-              onChange={(e) => setForm((c) => ({ ...c, track: e.target.value as typeof form.track }))}
-              value={form.track}
-            >
-              <option value="elevator">Elevator</option>
-              <option value="discovery">Discovery</option>
-              <option value="competitive">Competitive</option>
-              <option value="executive">Executive</option>
-              <option value="governance">Governance</option>
-            </select>
-            <Input onChange={(e) => setForm((c) => ({ ...c, shortLabel: e.target.value }))} placeholder="Short label" required value={form.shortLabel} />
-            <Input onChange={(e) => setForm((c) => ({ ...c, label: e.target.value }))} placeholder="Full label" required value={form.label} />
-            <Input onChange={(e) => setForm((c) => ({ ...c, promptLabel: e.target.value }))} placeholder="Prompt label" required value={form.promptLabel} />
-            <Input onChange={(e) => setForm((c) => ({ ...c, linkedSolution: e.target.value }))} placeholder="Linked solution (optional)" value={form.linkedSolution} />
-          </div>
-          <Textarea onChange={(e) => setForm((c) => ({ ...c, prompt: e.target.value }))} placeholder="Pitch prompt" required rows={3} value={form.prompt} />
-          <Textarea onChange={(e) => setForm((c) => ({ ...c, description: e.target.value }))} placeholder="Coaching description" required rows={2} value={form.description} />
-          <Input onChange={(e) => setForm((c) => ({ ...c, competencies: e.target.value }))} placeholder="Competencies (comma-separated)" value={form.competencies} />
-          <div className="flex flex-wrap gap-2">
-            <Button disabled={isSaving} type="submit">{isSaving ? "Saving…" : "Save scenario"}</Button>
-            <Button onClick={() => setShowEditor(false)} type="button" variant="outline">Cancel</Button>
-          </div>
-        </form>
-      ) : null}
-
-      <DataTableToolbar
-        filtered={filtered.length}
-        onSearchChange={setSearch}
-        placeholder="Search scenarios…"
-        search={search}
-        total={scenarios.length}
+    <section aria-labelledby={`${formId}-heading`} className="flex flex-col gap-4">
+      <SectionHeading
+        actions={<SecondaryButton onClick={openCreate}>+ Add scenario</SecondaryButton>}
+        meta={isLoading ? undefined : `${scenarios.length} scenarios`}
+        title={<span id={`${formId}-heading`}>Pitch scenario library</span>}
       />
+      <p className="text-sm text-muted">
+        Elevator pitches per solution and situational drills. SEs receive four active slots from this pool.
+      </p>
 
-      <div className="overflow-x-auto border border-[#E2DFD9] bg-white">
-        <table className="w-full min-w-[720px] text-left text-sm">
-          <thead className="border-b border-[#E2DFD9] bg-[#F9F8F6] text-[11px] uppercase tracking-wide text-[#6B6860]">
-            <tr>
-              <th className="px-3 py-2">Label</th>
-              <th className="px-3 py-2">Track</th>
-              <th className="px-3 py-2">Solution</th>
-              <th className="px-3 py-2">Pass</th>
-              <th className="px-3 py-2" />
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr className="border-b border-[#ECEAE6] last:border-0" key={row.id}>
-                <td className="px-3 py-2 font-medium text-sp-navy">{row.label}</td>
-                <td className="px-3 py-2 capitalize text-sp-navy-muted">{row.track}</td>
-                <td className="px-3 py-2 text-sp-navy-muted">{row.linkedSolution ?? "—"}</td>
-                <td className="px-3 py-2">{row.passingGrade}+</td>
-                <td className="px-3 py-2 text-right">
-                  <Button onClick={() => openEdit(row)} size="sm" type="button" variant="ghost">
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  {row.active ? (
-                    <Button onClick={() => void deactivate(row)} size="sm" type="button" variant="ghost">
-                      Deactivate
-                    </Button>
-                  ) : null}
-                </td>
+      {isLoading ? (
+        <LoadingState label="Loading scenarios…" />
+      ) : (
+        <>
+          <div className="flex flex-wrap items-center gap-3">
+            <TextInput
+              aria-label="Search scenarios"
+              className="max-w-sm"
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search scenarios…"
+              type="search"
+              value={search}
+            />
+            <span className="label-mono">
+              {filtered.length} of {scenarios.length}
+            </span>
+          </div>
+
+          <AdminTable caption="Pitch scenarios">
+            <thead>
+              <tr>
+                <Th>Scenario</Th>
+                <Th>Track</Th>
+                <Th>Solution</Th>
+                <Th>Pass</Th>
+                <Th>Status</Th>
+                <Th>
+                  <span className="sr-only">Actions</span>
+                </Th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {rows.length === 0 ? (
+                <tr>
+                  <td colSpan={6}>
+                    <EmptyState>
+                      {scenarios.length === 0 ? "No scenarios yet." : "No scenarios match your search."}
+                    </EmptyState>
+                  </td>
+                </tr>
+              ) : (
+                rows.map((row) => (
+                  <tr className={cn(showEditor && editingId === row.id && "bg-blue-soft")} key={row.id}>
+                    <Td>
+                      <p className="font-bold text-ink">{row.label}</p>
+                      <Mono className="normal-case">{row.slug}</Mono>
+                    </Td>
+                    <Td>
+                      <Mono>{row.track}</Mono>
+                    </Td>
+                    <Td className="text-ink-2">{row.linkedSolution ?? "—"}</Td>
+                    <Td>
+                      <Mono>{row.passingGrade}+</Mono>
+                    </Td>
+                    <Td>
+                      {row.active ? <Tag tone="success">● Active</Tag> : <Tag tone="neutral">• Inactive</Tag>}
+                    </Td>
+                    <Td className="text-right whitespace-nowrap">
+                      <div className="inline-flex gap-4">
+                        <LinkButton onClick={() => openEdit(row)}>Edit</LinkButton>
+                        {row.active ? (
+                          <LinkButton onClick={() => void deactivate(row)} tone="danger">
+                            Deactivate
+                          </LinkButton>
+                        ) : null}
+                      </div>
+                    </Td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </AdminTable>
 
-      <DataTablePagination onPageChange={setPage} page={safePage} pageCount={pageCount} />
-    </div>
+          {pageCount > 1 ? (
+            <div className="flex items-center justify-end gap-3">
+              <span className="label-mono">
+                Page {safePage} of {pageCount}
+              </span>
+              <SecondaryButton disabled={safePage <= 1} onClick={() => setPage(safePage - 1)}>
+                Previous
+              </SecondaryButton>
+              <SecondaryButton disabled={safePage >= pageCount} onClick={() => setPage(safePage + 1)}>
+                Next
+              </SecondaryButton>
+            </div>
+          ) : null}
+        </>
+      )}
+
+      <Drawer
+        footer={
+          <>
+            <button className="btn-primary" disabled={isSaving} form={formId} type="submit">
+              {isSaving ? "Saving…" : "Save scenario"}
+            </button>
+            <SecondaryButton onClick={closeEditor}>Cancel</SecondaryButton>
+          </>
+        }
+        onClose={closeEditor}
+        open={showEditor}
+        title={editingId ? "Edit scenario" : "Add scenario"}
+      >
+        <form className="flex flex-col gap-4" id={formId} onSubmit={(event) => void saveScenario(event)}>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field htmlFor={`${formId}-slug`} label="Slug">
+              <TextInput
+                id={`${formId}-slug`}
+                onChange={(e) => setForm((c) => ({ ...c, slug: e.target.value }))}
+                placeholder="elevator-isc"
+                required
+                value={form.slug}
+              />
+            </Field>
+            <Field htmlFor={`${formId}-track`} label="Track">
+              <SelectInput
+                id={`${formId}-track`}
+                onChange={(e) => setForm((c) => ({ ...c, track: e.target.value as Track }))}
+                value={form.track}
+              >
+                <option value="elevator">Elevator</option>
+                <option value="discovery">Discovery</option>
+                <option value="competitive">Competitive</option>
+                <option value="executive">Executive</option>
+                <option value="governance">Governance</option>
+              </SelectInput>
+            </Field>
+          </div>
+          <Field htmlFor={`${formId}-short`} label="Short label">
+            <TextInput
+              id={`${formId}-short`}
+              onChange={(e) => setForm((c) => ({ ...c, shortLabel: e.target.value }))}
+              required
+              value={form.shortLabel}
+            />
+          </Field>
+          <Field htmlFor={`${formId}-label`} label="Full label">
+            <TextInput
+              id={`${formId}-label`}
+              onChange={(e) => setForm((c) => ({ ...c, label: e.target.value }))}
+              required
+              value={form.label}
+            />
+          </Field>
+          <Field htmlFor={`${formId}-prompt-label`} label="Prompt label">
+            <TextInput
+              id={`${formId}-prompt-label`}
+              onChange={(e) => setForm((c) => ({ ...c, promptLabel: e.target.value }))}
+              required
+              value={form.promptLabel}
+            />
+          </Field>
+          <Field htmlFor={`${formId}-solution`} hint="Optional." label="Linked solution">
+            <TextInput
+              id={`${formId}-solution`}
+              onChange={(e) => setForm((c) => ({ ...c, linkedSolution: e.target.value }))}
+              value={form.linkedSolution}
+            />
+          </Field>
+          <Field htmlFor={`${formId}-prompt`} label="Pitch prompt">
+            <TextArea
+              id={`${formId}-prompt`}
+              onChange={(e) => setForm((c) => ({ ...c, prompt: e.target.value }))}
+              required
+              rows={3}
+              value={form.prompt}
+            />
+          </Field>
+          <Field htmlFor={`${formId}-description`} label="Coaching description">
+            <TextArea
+              id={`${formId}-description`}
+              onChange={(e) => setForm((c) => ({ ...c, description: e.target.value }))}
+              required
+              rows={2}
+              value={form.description}
+            />
+          </Field>
+          <Field hint="Comma-separated." htmlFor={`${formId}-competencies`} label="Competencies">
+            <TextInput
+              id={`${formId}-competencies`}
+              onChange={(e) => setForm((c) => ({ ...c, competencies: e.target.value }))}
+              value={form.competencies}
+            />
+          </Field>
+        </form>
+      </Drawer>
+    </section>
   );
 }

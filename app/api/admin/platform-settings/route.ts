@@ -11,6 +11,13 @@ import {
 import { loadPlatformSettings, savePlatformSettings } from "@/lib/platform/settings";
 import { requireAdminSession } from "@/lib/auth/require-admin";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { changedFeatureIds, lockedFeatureIds } from "@/lib/admin/feature-settings";
+import { getTenantById } from "@/lib/tenant/tenants";
+
+async function tenantLockedFeatures(tenantId: string): Promise<string[]> {
+ const tenant = await getTenantById(tenantId).catch(() => null);
+ return lockedFeatureIds(tenant?.billingPlan ?? null);
+}
 
 const updateSchema = z.object({
  sessionIdleMinutes: z.number().int().min(MIN_SESSION_IDLE_MINUTES).max(MAX_SESSION_IDLE_MINUTES).optional(),
@@ -26,8 +33,11 @@ export async function GET() {
  return session;
  }
 
- const settings = await loadPlatformSettings(session.tenantId);
- return NextResponse.json({ settings });
+ const [settings, lockedFeatures] = await Promise.all([
+ loadPlatformSettings(session.tenantId),
+ tenantLockedFeatures(session.tenantId),
+ ]);
+ return NextResponse.json({ settings, lockedFeatures });
 }
 
 export async function PATCH(request: Request) {
@@ -42,10 +52,20 @@ export async function PATCH(request: Request) {
  }
 
  if (parsed.data.featureFlags !== undefined) {
+ // Feature flags are operator-managed (see TENANT_ADMINS_CAN_EDIT_FEATURES); locked features are rejected.
+ const [current, locked] = await Promise.all([
+ loadPlatformSettings(session.tenantId),
+ tenantLockedFeatures(session.tenantId),
+ ]);
+ const lockedChanges = changedFeatureIds(current.featureFlags, parsed.data.featureFlags).filter((id) =>
+ locked.includes(id),
+ );
+ if (lockedChanges.length > 0) {
  return NextResponse.json(
- { error: "Feature flags are managed by the platform operator. Contact support to request changes." },
+ { error: "Feature flags are managed by the platform operator. Contact support to request changes.", lockedChanges },
  { status: 403 },
  );
+ }
  }
 
  try {

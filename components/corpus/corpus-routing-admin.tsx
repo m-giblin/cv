@@ -1,304 +1,281 @@
 "use client";
 
-import { Loader2, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { HandoffCard } from "@/components/dashboard/handoff-practice-layout";
-import { HandoffMetricStrip } from "@/components/dashboard/handoff-section-page";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import {
+  AdminTable,
+  EmptyState,
+  Field,
+  KpiStrip,
+  LineCard,
+  LineRow,
+  LinkButton,
+  LoadingState,
+  Mono,
+  SecondaryButton,
+  SectionHeading,
+  SelectInput,
+  Td,
+  TextInput,
+  Th,
+} from "@/components/admin/admin-ui";
+import { Tag } from "@/components/ui/tag";
+import { cn } from "@/lib/utils";
 
 type Rule = {
- id: string;
- tag: string;
- destination_type: string;
- destination_address: string;
- label: string | null;
+  id: string;
+  tag: string;
+  destination_type: string;
+  destination_address: string;
+  label: string | null;
 };
 
 type QaInquiry = {
- id: string;
- question: string;
- created_at: string;
- routed_destination_type: string | null;
- routed_destination_address: string | null;
- escalated_at: string | null;
- profiles: { full_name: string; email: string } | null;
- sla: { label: string; bg?: string; color?: string; className?: string };
- elapsedHours: number;
+  id: string;
+  question: string;
+  created_at: string;
+  routed_destination_type: string | null;
+  routed_destination_address: string | null;
+  escalated_at: string | null;
+  profiles: { full_name: string; email: string } | null;
+  sla: { label: string; bg?: string; color?: string; className?: string };
+  elapsedHours: number;
 };
 
-const ROUTING_COLS = "160px 1fr 120px 70px 70px 140px";
-
-function elapsedColor(hours: number) {
- if (hours > 36) return "#ef4444";
- if (hours >= 24) return "#f59e0b";
- return "#6B6860";
+function elapsedClass(hours: number) {
+  if (hours > 36) return "text-danger";
+  if (hours >= 24) return "text-warning";
+  return "text-ink-2";
 }
 
 export function CorpusRoutingAdmin() {
- const [rules, setRules] = useState<Rule[]>([]);
- const [inquiries, setInquiries] = useState<QaInquiry[]>([]);
- const [stats, setStats] = useState({
- withinSlaPct: 100,
- pendingCount: 0,
- activeRules: 0,
- smeCount: 0,
- });
- const [loading, setLoading] = useState(true);
- const [tag, setTag] = useState("");
- const [address, setAddress] = useState("");
- const [label, setLabel] = useState("");
- const [destType, setDestType] = useState<"slack" | "email">("slack");
- const [showAddForm, setShowAddForm] = useState(false);
+  const [rules, setRules] = useState<Rule[]>([]);
+  const [inquiries, setInquiries] = useState<QaInquiry[]>([]);
+  const [stats, setStats] = useState({
+    withinSlaPct: 100,
+    pendingCount: 0,
+    activeRules: 0,
+    smeCount: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const [tag, setTag] = useState("");
+  const [address, setAddress] = useState("");
+  const [label, setLabel] = useState("");
+  const [destType, setDestType] = useState<"slack" | "email">("slack");
+  const [showAddForm, setShowAddForm] = useState(false);
 
- const load = useCallback(async () => {
- setLoading(true);
- const [rulesRes, qaRes] = await Promise.all([
- fetch("/api/corpus/routing-rules"),
- fetch("/api/corpus/qa-inquiries"),
- ]);
+  const load = useCallback(async () => {
+    setLoading(true);
+    const [rulesRes, qaRes] = await Promise.all([
+      fetch("/api/corpus/routing-rules"),
+      fetch("/api/corpus/qa-inquiries"),
+    ]);
 
- if (rulesRes.ok) {
- const body = (await rulesRes.json()) as { rules: Rule[] };
- setRules(body.rules ?? []);
- }
- if (qaRes.ok) {
- const body = (await qaRes.json()) as {
- inquiries: QaInquiry[];
- stats: typeof stats;
- };
- setInquiries(body.inquiries ?? []);
- setStats(body.stats);
- }
- setLoading(false);
- }, []);
+    if (rulesRes.ok) {
+      const body = (await rulesRes.json()) as { rules: Rule[] };
+      setRules(body.rules ?? []);
+    }
+    if (qaRes.ok) {
+      const body = (await qaRes.json()) as {
+        inquiries: QaInquiry[];
+        stats: typeof stats;
+      };
+      setInquiries(body.inquiries ?? []);
+      setStats(body.stats);
+    }
+    setLoading(false);
+  }, []);
 
- useEffect(() => {
- void load();
- }, [load]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
- async function addRule(event: React.FormEvent) {
- event.preventDefault();
- const response = await fetch("/api/corpus/routing-rules", {
- method: "POST",
- headers: { "Content-Type": "application/json" },
- body: JSON.stringify({
- tag,
- destinationType: destType,
- destinationAddress: address,
- label: label || undefined,
- }),
- });
- if (!response.ok) {
- toast.error("Could not save routing rule.");
- return;
- }
- toast.success("Routing rule added.");
- setTag("");
- setAddress("");
- setLabel("");
- setShowAddForm(false);
- void load();
- }
+  async function addRule(event: React.FormEvent) {
+    event.preventDefault();
+    const response = await fetch("/api/corpus/routing-rules", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        tag,
+        destinationType: destType,
+        destinationAddress: address,
+        label: label || undefined,
+      }),
+    });
+    if (!response.ok) {
+      toast.error("Could not save routing rule.");
+      return;
+    }
+    toast.success("Routing rule added.");
+    setTag("");
+    setAddress("");
+    setLabel("");
+    setShowAddForm(false);
+    void load();
+  }
 
- async function removeRule(ruleId: string) {
- if (!confirm("Delete this routing rule?")) return;
- const response = await fetch(`/api/corpus/routing-rules/${ruleId}`, { method: "DELETE" });
- if (!response.ok) {
- toast.error("Could not delete rule.");
- return;
- }
- toast.success("Rule deleted.");
- void load();
- }
+  async function removeRule(ruleId: string) {
+    if (!confirm("Delete this routing rule?")) return;
+    const response = await fetch(`/api/corpus/routing-rules/${ruleId}`, { method: "DELETE" });
+    if (!response.ok) {
+      toast.error("Could not delete rule.");
+      return;
+    }
+    toast.success("Rule deleted.");
+    void load();
+  }
 
- return (
- <div className="handoff-page-enter space-y-5">
- <header className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
- <div>
- <h1 className="font-display text-xl font-extrabold text-[#0D0E12]">Q&A Routing</h1>
- <p className="mt-1 text-xs text-[#6B6860]">
- Tag-based rules that route SE questions to Slack channels or SME email with 48-hour SLA tracking
- </p>
- </div>
- <Button onClick={() => setShowAddForm((open) => !open)} size="sm" type="button">
- <Plus className="mr-2 h-4 w-4" />
- Add rule
- </Button>
- </header>
+  return (
+    <div className="flex flex-col gap-6">
+      <SectionHeading
+        actions={
+          <SecondaryButton aria-expanded={showAddForm} onClick={() => setShowAddForm((open) => !open)}>
+            <Plus aria-hidden className="h-4 w-4" />
+            {showAddForm ? "Close" : "Add rule"}
+          </SecondaryButton>
+        }
+        meta="Tag rules · 48h SLA"
+        title="Q&A routing"
+      />
 
- <HandoffMetricStrip
- metrics={[
- {
- label: "Within SLA",
- value: `${stats.withinSlaPct}%`,
- sub: "48h SLA · pending queue",
- accent: "#10b981",
- valueClassName: "text-[#10b981]",
- },
- {
- label: "Pending response",
- value: String(stats.pendingCount),
- sub: "Open inquiries",
- accent: "#f59e0b",
- valueClassName: stats.pendingCount > 0 ? "text-[#f59e0b]" : undefined,
- },
- {
- label: "Active rules",
- value: String(stats.activeRules),
- sub: "Tag → destination mappings",
- accent: "#0071ce",
- },
- {
- label: "SMEs assigned",
- value: String(stats.smeCount),
- sub: "Unique destinations",
- accent: "#cc27b0",
- },
- ]}
- />
+      <KpiStrip
+        items={[
+          { label: "Within SLA", value: loading ? "—" : stats.withinSlaPct, suffix: loading ? undefined : "%" },
+          { label: "Pending", value: loading ? "—" : stats.pendingCount },
+          { label: "Active rules", value: loading ? "—" : stats.activeRules },
+          { label: "SMEs assigned", value: loading ? "—" : stats.smeCount },
+        ]}
+      />
 
- {showAddForm ? (
- <HandoffCard className="p-4">
- <form className="grid gap-2 md:grid-cols-2" onSubmit={addRule}>
- <Input onChange={(e) => setTag(e.target.value)} placeholder="Tag (e.g. Agentic AI)" required value={tag} />
- <select
- className="h-10 border border-[#E2DFD9] px-3 text-sm"
- onChange={(e) => setDestType(e.target.value as "slack" | "email")}
- value={destType}
- >
- <option value="slack">Slack channel</option>
- <option value="email">Email</option>
- </select>
- <Input
- onChange={(e) => setAddress(e.target.value)}
- placeholder={destType === "slack" ? "#channel or ID" : "sme@company.com"}
- required
- value={address}
- />
- <Input onChange={(e) => setLabel(e.target.value)} placeholder="SME label (optional)" value={label} />
- <Button className="md:col-span-2" type="submit">
- Save rule
- </Button>
- </form>
- </HandoffCard>
- ) : null}
+      {showAddForm ? (
+        <LineCard title="New routing rule">
+          <form className="grid gap-4 md:grid-cols-2" onSubmit={addRule}>
+            <Field htmlFor="routing-rule-tag" label="Tag match">
+              <TextInput
+                id="routing-rule-tag"
+                onChange={(e) => setTag(e.target.value)}
+                placeholder="e.g. Agentic AI"
+                required
+                value={tag}
+              />
+            </Field>
+            <Field htmlFor="routing-rule-type" label="Destination type">
+              <SelectInput
+                id="routing-rule-type"
+                onChange={(e) => setDestType(e.target.value as "slack" | "email")}
+                value={destType}
+              >
+                <option value="slack">Slack channel</option>
+                <option value="email">Email</option>
+              </SelectInput>
+            </Field>
+            <Field htmlFor="routing-rule-address" label={destType === "slack" ? "Channel" : "Email address"}>
+              <TextInput
+                id="routing-rule-address"
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder={destType === "slack" ? "#channel or ID" : "sme@company.com"}
+                required
+                type={destType === "email" ? "email" : "text"}
+                value={address}
+              />
+            </Field>
+            <Field htmlFor="routing-rule-label" label="SME label (optional)">
+              <TextInput id="routing-rule-label" onChange={(e) => setLabel(e.target.value)} value={label} />
+            </Field>
+            <div className="flex items-center gap-4 md:col-span-2">
+              <SecondaryButton type="submit">Save rule</SecondaryButton>
+              <LinkButton onClick={() => setShowAddForm(false)}>Cancel</LinkButton>
+            </div>
+          </form>
+        </LineCard>
+      ) : null}
 
- <HandoffCard className="overflow-hidden">
- <div className="flex items-center justify-between border-b border-[#ECEAE6] px-[18px] py-3">
- <p className="text-[12.5px] font-bold text-[#0D0E12]">Routing rules</p>
- <p className="text-[10.5px] text-[#6B6860]">Tag match → destination channel/person</p>
- </div>
- <div
- className="grid border-b border-[#ECEAE6] bg-[#F9F8F6] px-[18px] py-[9px]"
- style={{ gridTemplateColumns: ROUTING_COLS }}
- >
- {["Tag match", "Channel", "SME", "SLA", "Hits", ""].map((header) => (
- <span className="text-[9.5px] font-bold uppercase tracking-[0.07em] text-[#A09D98]" key={header}>
- {header}
- </span>
- ))}
- </div>
- {loading ? (
- <div className="flex justify-center py-8">
- <Loader2 className="h-6 w-6 animate-spin text-[#A09D98]" />
- </div>
- ) : rules.length === 0 ? (
- <p className="px-5 py-8 text-center text-sm text-[#A09D98]">No routing rules yet.</p>
- ) : (
- rules.map((rule) => (
- <div
- className="grid items-center border-b border-[#f9fafb] px-[18px] py-[10px] transition hover:bg-[#f7fafd] last:border-b-0"
- key={rule.id}
- style={{ gridTemplateColumns: ROUTING_COLS }}
- >
- <div className="flex flex-wrap gap-[5px]">
- <span className="rounded-full bg-[#e8f2fc] px-[8px] py-[2px] text-[10px] font-bold text-[#0057a8]">
- {rule.tag}
- </span>
- <span className="rounded-full bg-[#dbeafe] px-[8px] py-[2px] text-[10px] font-bold text-[#1d4ed8]">
- {rule.label ?? rule.destination_type}
- </span>
- </div>
- <span className="truncate text-[12px] font-semibold text-[#3D3C38]">
- {rule.destination_type}:{rule.destination_address}
- </span>
- <span className="truncate text-[12px] text-[#3D3C38]">{rule.label ?? "—"}</span>
- <span className="w-fit rounded-full bg-[#dcfce7] px-[8px] py-[2px] text-[9.5px] font-bold text-[#15803d]">
- 48h
- </span>
- <span className="font-display text-[14px] font-extrabold text-[#0D0E12]">0</span>
- <div className="flex gap-[6px]">
- <button
- className="inline-flex items-center border border-[#E2DFD9] bg-white px-[10px] py-[5px] text-[11px] font-semibold text-[#3D3C38]"
- type="button"
- >
- Edit
- </button>
- <button
- className="inline-flex items-center px-[10px] py-[5px] text-[11px] font-semibold"
- onClick={() => void removeRule(rule.id)}
- style={{ background: "#fee2e2", border: "1.5px solid #fecaca", color: "#dc2626" }}
- type="button"
- >
- Disable
- </button>
- </div>
- </div>
- ))
- )}
- </HandoffCard>
+      <div className="flex flex-col gap-3">
+        <SectionHeading as="h3" meta="Tag match → destination" title="Routing rules" />
+        {loading ? (
+          <div className="rounded-[14px] border border-line bg-white">
+            <LoadingState label="Loading rules…" />
+          </div>
+        ) : rules.length === 0 ? (
+          <div className="rounded-[14px] border border-line bg-white">
+            <EmptyState>No routing rules yet.</EmptyState>
+          </div>
+        ) : (
+          <AdminTable caption="Q&A routing rules">
+            <thead>
+              <tr>
+                <Th>Tag match</Th>
+                <Th>Destination</Th>
+                <Th>SME</Th>
+                <Th>SLA</Th>
+                <Th>
+                  <span className="sr-only">Actions</span>
+                </Th>
+              </tr>
+            </thead>
+            <tbody>
+              {rules.map((rule) => (
+                <tr className="hover:bg-blue-soft" key={rule.id}>
+                  <Td>
+                    <Tag tone="blue">{rule.tag}</Tag>
+                  </Td>
+                  <Td className="max-w-[280px]">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <Mono className="shrink-0 text-muted">{rule.destination_type}</Mono>
+                      <span className="truncate font-bold">{rule.destination_address}</span>
+                    </span>
+                  </Td>
+                  <Td className="text-ink-2">{rule.label ?? "—"}</Td>
+                  <Td>
+                    <Mono>48h</Mono>
+                  </Td>
+                  <Td className="text-right">
+                    <LinkButton
+                      aria-label={`Delete routing rule for ${rule.tag}`}
+                      onClick={() => void removeRule(rule.id)}
+                      tone="danger"
+                    >
+                      Delete
+                    </LinkButton>
+                  </Td>
+                </tr>
+              ))}
+            </tbody>
+          </AdminTable>
+        )}
+      </div>
 
- <HandoffCard className="overflow-hidden">
- <div className="flex items-center justify-between border-b border-[#ECEAE6] px-[18px] py-3">
- <div>
- <p className="text-[12.5px] font-bold text-[#0D0E12]">Active escalations</p>
- <p className="text-[10.5px] text-[#A09D98]">Questions routed from ISC Lab awaiting SME response</p>
- </div>
- <span className="rounded-full bg-[#fdf0fa] px-2.5 py-1 text-[9.5px] font-bold text-[#a51e8e]">
- {inquiries.length} pending · 48h SLA
- </span>
- </div>
- {inquiries.length === 0 ? (
- <p className="px-5 py-8 text-center text-sm text-[#A09D98]">No active escalations.</p>
- ) : (
- inquiries.map((row) => (
- <div
- className="flex items-start gap-[12px] border-b border-[#f9fafb] px-[18px] py-[11px] transition hover:bg-[#f7fafd] last:border-b-0"
- key={row.id}
- >
- <div className="min-w-0 flex-1">
- <p className="mb-[3px] text-[12px] font-semibold text-[#3D3C38]">{row.question}</p>
- <p className="text-[10.5px] text-[#A09D98]">
- {row.profiles?.full_name ?? "SE"} · Routed to {row.routed_destination_address ?? "unrouted"} ·{" "}
- {row.routed_destination_type ?? "—"}
- </p>
- </div>
- <div className="mr-[8px] flex-shrink-0 text-right">
- <p className="text-[11px] font-bold" style={{ color: elapsedColor(row.elapsedHours) }}>
- {row.elapsedHours}h elapsed
- </p>
- <p className="mt-[2px] text-[9.5px] text-[#A09D98]">{row.sla.label}</p>
- </div>
- <div className="flex flex-shrink-0 gap-[6px]">
- <button
- className="inline-flex items-center bg-[#0071ce] px-[10px] py-[5px] text-[11px] font-semibold text-white"
- type="button"
- >
- Mark answered
- </button>
- <button
- className="inline-flex items-center border border-[#E2DFD9] bg-white px-[10px] py-[5px] text-[11px] font-semibold text-[#3D3C38]"
- type="button"
- >
- Re-route
- </button>
- </div>
- </div>
- ))
- )}
- </HandoffCard>
- </div>
- );
+      <LineCard
+        actions={
+          <Tag tone={inquiries.length > 0 ? "signal" : "neutral"}>{inquiries.length} pending · 48h SLA</Tag>
+        }
+        bodyClassName="p-0"
+        meta="Lab questions awaiting an SME"
+        title="Active escalations"
+      >
+        {inquiries.length === 0 ? (
+          <EmptyState>{loading ? "Loading escalations…" : "No active escalations."}</EmptyState>
+        ) : (
+          inquiries.map((row) => (
+            <LineRow className="flex flex-wrap items-start justify-between gap-3" key={row.id}>
+              <div className="min-w-0 flex-1">
+                <p className="font-bold text-ink">{row.question}</p>
+                <p className="mt-0.5 text-[13px] text-muted">
+                  {row.profiles?.full_name ?? "SE"} · Routed to {row.routed_destination_address ?? "unrouted"} ·{" "}
+                  {row.routed_destination_type ?? "—"}
+                </p>
+              </div>
+              <div className="shrink-0 text-right">
+                <p className={cn("font-mono text-xs uppercase", elapsedClass(row.elapsedHours))}>
+                  {row.elapsedHours}h elapsed
+                </p>
+                <p className="mt-0.5 text-[13px] text-muted">{row.sla.label}</p>
+              </div>
+            </LineRow>
+          ))
+        )}
+      </LineCard>
+    </div>
+  );
 }

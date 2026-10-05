@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { LineCard, LoadingState } from "@/components/admin/admin-ui";
 
 type Bucket = { outcome: "won" | "lost" | "pending"; avgComposite: number | null; sampleSize: number };
 
@@ -32,37 +32,29 @@ export function ReadinessOutcomeCorrelation() {
   }, []);
 
   if (!buckets) {
-    return (
-      <div className="flex justify-center py-6">
-        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <LoadingState label="Loading readiness outcomes…" />;
   }
 
   return (
-    <div className="border border-border bg-white p-5">
-      <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
-        Readiness vs. deal outcomes
-      </p>
-      <p className="mt-1 text-xs text-muted-foreground">
+    <LineCard meta="Directional" title="Readiness vs. deal outcomes">
+      <p className="text-sm leading-[1.5] text-ink-2">
         Directional only — {totalTagged} won/lost outcomes tagged so far in Deal Prep. This strengthens as more
         outcomes get tagged; treat it as a hypothesis to watch, not a proven correlation yet.
       </p>
-      <div className="mt-4 grid grid-cols-3 gap-3">
+      <dl className="mt-4 grid grid-cols-1 overflow-hidden rounded-[10px] border border-line sm:grid-cols-3">
         {buckets.map((bucket) => (
-          <div className="border border-border p-3 text-center" key={bucket.outcome}>
-            <p className="font-mono text-[9px] uppercase tracking-[0.07em] text-muted-foreground">
-              {OUTCOME_LABEL[bucket.outcome]}
-            </p>
-            <p className="mt-1 text-2xl font-bold">
+          <div
+            className="flex flex-col gap-1 border-b border-divider px-[18px] py-4 last:border-b-0 sm:border-r sm:border-b-0 sm:last:border-r-0"
+            key={bucket.outcome}
+          >
+            <dt className="label-mono">{OUTCOME_LABEL[bucket.outcome]}</dt>
+            <dd className="text-4xl leading-none font-extrabold tracking-[-0.03em] text-blue">
               {bucket.avgComposite != null ? bucket.avgComposite : "—"}
-            </p>
-            <p className="text-[10px] text-muted-foreground">
-              avg composite · n={bucket.sampleSize}
-            </p>
+            </dd>
+            <dd className="font-mono text-xs text-muted uppercase">avg composite · n={bucket.sampleSize}</dd>
           </div>
         ))}
-      </div>
-    </div>
+      </dl>
+    </LineCard>
   );
 }
