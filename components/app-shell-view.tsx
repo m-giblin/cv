@@ -143,10 +143,6 @@ export function AppShellView({
           <DocumentTitle workspace={workspace} />
         </Suspense>
 
-        {shadowTenantName && shadowMode ? (
-          <ShadowTenantBanner mode={shadowMode} tenantName={shadowTenantName} />
-        ) : null}
-
         <header className="flex items-center justify-between gap-3 bg-blue px-4 py-3 lg:hidden">
           <button
             aria-expanded={drawerOpen}
@@ -173,6 +169,9 @@ export function AppShellView({
         </aside>
 
         <div className="lg:pl-[var(--rail-width)]">
+          {shadowTenantName && shadowMode ? (
+            <ShadowTenantBanner mode={shadowMode} tenantName={shadowTenantName} />
+          ) : null}
           <Suspense fallback={null}>
             <SectionTabs flags={flags} workspace={workspace} />
           </Suspense>
