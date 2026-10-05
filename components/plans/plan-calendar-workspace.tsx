@@ -259,11 +259,11 @@ export function PlanCalendarWorkspace({
 
   const applyConflictAction = (conflict: (typeof conflicts)[number]) => {
     if (conflict.id.startsWith("no-mentor")) {
-      router.push(`/manager?section=roster&userId=${conflict.seId}`);
+      router.push(`/manager/team?userId=${conflict.seId}`);
       return;
     }
     if (conflict.id.startsWith("pace-")) {
-      router.push(`/manager?section=program&userId=${conflict.seId}`);
+      router.push(`/manager/programs?userId=${conflict.seId}`);
       return;
     }
     if (conflict.barId) {

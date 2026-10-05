@@ -103,7 +103,7 @@ export function ManagerPriorityDigest({
               <p className="text-[12px] font-medium text-[#0D0E12]">{row.profile.fullName}</p>
               <p className="truncate text-[11px] text-[#6B6860]">{row.reason}</p>
             </div>
-            <ManagerOutlineBtn href={`/manager?section=inbox`}>Review →</ManagerOutlineBtn>
+            <ManagerOutlineBtn href={`/manager/inbox`}>Review →</ManagerOutlineBtn>
           </button>
         ))}
       </div>

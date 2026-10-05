@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useMemo, type ReactNode } from "react";
 import type { CertReviewItem } from "@/components/manager/cert-review-item";
 import type { DealPrepReviewItem } from "@/components/manager/deal-prep-review-item";
@@ -118,6 +118,7 @@ export function ManagerPageShell({
  viewerRole?: import("@/lib/types").ProfileRole;
 }) {
  const router = useRouter();
+ const pathname = usePathname();
  const searchParams = useSearchParams();
  const selectedProfileId = searchParams.get("profile");
 
@@ -130,17 +131,17 @@ export function ManagerPageShell({
  (profileId: string) => {
  const params = new URLSearchParams(searchParams.toString());
  params.set("profile", profileId);
- router.push(`/manager?${params.toString()}`, { scroll: false });
+ router.push(`${pathname}?${params.toString()}`, { scroll: false });
  },
- [router, searchParams],
+ [pathname, router, searchParams],
  );
 
  const closeProfile = useCallback(() => {
  const params = new URLSearchParams(searchParams.toString());
  params.delete("profile");
  const query = params.toString();
- router.push(query ? `/manager?${query}` : "/manager", { scroll: false });
- }, [router, searchParams]);
+ router.push(query ? `${pathname}?${query}` : pathname, { scroll: false });
+ }, [pathname, router, searchParams]);
 
  let content: ReactNode;
 

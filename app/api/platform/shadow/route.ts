@@ -126,7 +126,7 @@ export async function POST(request: Request) {
  const workspaceHat =
  cookieMode === "admin" ? "tenant_admin" : cookieMode === "manager" ? "manager" : "se";
  const redirect =
- cookieMode === "admin" ? "/admin" : cookieMode === "manager" ? "/manager?section=command" : "/dashboard";
+ cookieMode === "admin" ? "/admin" : cookieMode === "manager" ? "/manager" : "/dashboard";
 
  const shadowSessionId = crypto.randomUUID();
 

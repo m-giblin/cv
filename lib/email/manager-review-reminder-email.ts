@@ -10,7 +10,7 @@ export type ManagerReviewReminderEmailInput = {
 };
 
 export function buildManagerReviewReminderEmail(input: ManagerReviewReminderEmailInput) {
-  const inboxUrl = `${appBaseUrl()}/manager?section=inbox`;
+  const inboxUrl = `${appBaseUrl()}/manager/inbox`;
   const kindLabel = input.itemKind === "challenge" ? "Challenge submission" : "Simulation coaching card";
   const subject = `Review needed — ${input.seName}: ${input.itemTitle}`;
 

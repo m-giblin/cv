@@ -376,9 +376,9 @@ export function ManagerProgramTrackerPanel({
                     className="px-2 py-0.5 text-[9px] font-semibold text-white"
                     onClick={() => {
                       if (item.actionStyle === "amber") {
-                        router.push("/manager?section=inbox");
+                        router.push("/manager/inbox");
                       } else {
-                        router.push("/manager?section=inbox");
+                        router.push("/manager/inbox");
                       }
                     }}
                     style={{
@@ -764,7 +764,7 @@ export function ManagerProgramTrackerPanel({
                           <span className="text-[9px] text-[#A09D98]">Due {program.due}</span>
                           <Link
                             className="border border-[#D4D1CB] px-2 py-0.5 text-[9px] font-semibold text-[#3D3C38] hover:border-[#0071CE] hover:text-[#0071CE]"
-                            href={`/manager?section=roster&profile=${se.userId}`}
+                            href={`/manager/team?profile=${se.userId}`}
                           >
                             Open →
                           </Link>
@@ -849,14 +849,14 @@ export function ManagerProgramTrackerPanel({
                       <div className="flex gap-1.5">
                         <button
                           className="border border-[rgba(10,110,69,.2)] bg-[#EDFAF3] px-2 py-1 text-[9px] font-semibold text-[#0A6E45]"
-                          onClick={() => router.push("/manager?section=inbox")}
+                          onClick={() => router.push("/manager/inbox")}
                           type="button"
                         >
                           Approve ✓
                         </button>
                         <button
                           className="border border-[#D4D1CB] px-2 py-1 text-[9px] font-semibold text-[#3D3C38]"
-                          onClick={() => router.push("/manager?section=inbox")}
+                          onClick={() => router.push("/manager/inbox")}
                           type="button"
                         >
                           Review
@@ -1110,7 +1110,7 @@ function MilestoneSection({
                   </button>
                   <Link
                     className="border border-[#D4D1CB] px-2 py-1 text-[9px] font-semibold text-[#3D3C38]"
-                    href={`/manager?section=roster&profile=${item.userId}`}
+                    href={`/manager/team?profile=${item.userId}`}
                   >
                     View step
                   </Link>

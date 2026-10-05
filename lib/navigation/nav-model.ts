@@ -70,36 +70,36 @@ export const NAV: Record<WorkspaceHat, NavItem[]> = {
     },
   ],
   manager: [
-    { id: "today", label: "Today", href: "/manager?section=command" },
-    { id: "inbox", label: "Inbox", href: "/manager?section=inbox" },
+    { id: "today", label: "Today", href: "/manager" },
+    { id: "inbox", label: "Inbox", href: "/manager/inbox" },
     {
       id: "team",
       label: "Team",
-      href: "/manager?section=roster",
+      href: "/manager/team",
       children: [
-        { id: "roster", label: "Roster", href: "/manager?section=roster" },
-        { id: "readiness", label: "Readiness", href: "/manager?section=readiness" },
-        { id: "leaderboard", label: "Leaderboard", href: "/manager?section=leaderboard" },
-        { id: "mentees", label: "Mentees", href: "/manager?section=mentees" },
+        { id: "roster", label: "Roster", href: "/manager/team" },
+        { id: "readiness", label: "Readiness", href: "/manager/team/readiness" },
+        { id: "leaderboard", label: "Leaderboard", href: "/manager/team/leaderboard" },
+        { id: "mentees", label: "Mentees", href: "/manager/team/mentees" },
       ],
     },
     {
       id: "coaching",
       label: "Coaching",
-      href: "/manager?section=cadence",
+      href: "/manager/coaching",
       children: [
-        { id: "cadence", label: "Cadence", href: "/manager?section=cadence" },
-        { id: "history", label: "Review history", href: "/manager?section=history" },
-        { id: "development", label: "Development", href: "/manager?section=dev" },
+        { id: "cadence", label: "Cadence", href: "/manager/coaching" },
+        { id: "history", label: "Review history", href: "/manager/coaching/history" },
+        { id: "development", label: "Development", href: "/manager/coaching/development" },
       ],
     },
     {
       id: "programs",
       label: "Programs",
-      href: "/manager?section=program",
+      href: "/manager/programs",
       match: ["/plans"],
       children: [
-        { id: "tracker", label: "Tracker", href: "/manager?section=program" },
+        { id: "tracker", label: "Tracker", href: "/manager/programs" },
         { id: "assign", label: "Assign", href: "/plans" },
         { id: "calendar", label: "Calendar", href: "/plan-calendar" },
         { id: "certifications", label: "Certifications", href: "/certifications" },
@@ -196,7 +196,6 @@ export const NAV: Record<WorkspaceHat, NavItem[]> = {
 
 /** Query params that default when absent, so "/manager" counts as "?section=command". */
 const QUERY_DEFAULTS: Record<string, Record<string, string>> = {
-  "/manager": { section: "command" },
   "/platform": { view: "now" },
   "/admin": { tab: "overview", section: "flags" },
 };

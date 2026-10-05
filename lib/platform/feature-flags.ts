@@ -1,3 +1,4 @@
+import { sectionFromManagerPath } from "@/lib/manager/manager-routes";
 import {
   PLATFORM_FEATURE_FLAG_DEFS,
   isFlagEffectivelyEnabled,
@@ -55,9 +56,9 @@ export function isManagerSectionAllowed(section: string, flags: PlatformFeatureF
 export function filterNavHref(href: string, flags: PlatformFeatureFlags): boolean {
   const base = href.split("?")[0] ?? href;
 
-  if (base === "/manager" || href.startsWith("/manager?")) {
+  if (base === "/manager" || base.startsWith("/manager/")) {
     const params = new URLSearchParams(href.split("?")[1] ?? "");
-    const section = params.get("section") ?? "command";
+    const section = params.get("section") ?? sectionFromManagerPath(base) ?? "command";
     return isManagerSectionAllowed(section, flags);
   }
 
@@ -76,10 +77,10 @@ export function previewEntitledSurfaces(flags: PlatformFeatureFlags): Array<{
     { id: "learn", label: "Learn", href: "/learn" },
     { id: "challenges", label: "Challenges", href: "/challenges" },
     { id: "simulations", label: "Simulations", href: "/simulations" },
-    { id: "manager-command", label: "Manager · Command", href: "/manager?section=command" },
-    { id: "manager-cadence", label: "Manager · Cadence", href: "/manager?section=cadence" },
-    { id: "manager-readiness", label: "Manager · Readiness", href: "/manager?section=readiness" },
-    { id: "manager-program", label: "Manager · Program", href: "/manager?section=program" },
+    { id: "manager-command", label: "Manager · Command", href: "/manager" },
+    { id: "manager-cadence", label: "Manager · Cadence", href: "/manager/coaching" },
+    { id: "manager-readiness", label: "Manager · Readiness", href: "/manager/team/readiness" },
+    { id: "manager-program", label: "Manager · Program", href: "/manager/programs" },
     { id: "manager-assign", label: "Manager · Assign", href: "/manager?section=assign" },
     { id: "plan-calendar", label: "Plan calendar", href: "/plan-calendar" },
     { id: "admin", label: "Tenant admin", href: "/admin" },

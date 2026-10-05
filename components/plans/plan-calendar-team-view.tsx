@@ -162,7 +162,7 @@ export function PlanCalendarTeamView({
                   </span>
                   <Link
                     className="inline-flex items-center border border-[#D4D1CB] px-2 py-1 text-[9.5px] font-semibold text-[#3D3C38] hover:border-[#0071CE] hover:text-[#0071CE]"
-                    href={`/manager?section=program&userId=${se.userId}`}
+                    href={`/manager/programs?userId=${se.userId}`}
                   >
                     Open plan →
                   </Link>

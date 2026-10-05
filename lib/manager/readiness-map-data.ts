@@ -236,7 +236,7 @@ function rampCell(planProgress: number, tenureDays: number, firstName: string): 
     actions: [
       { title: "Open Assign Plans", description: "Review or adjust ramp plan steps", href: "/plans" },
       { title: "Plan Calendar", description: "Shift step dates on the timeline", href: "/plan-calendar" },
-      { title: "Program Tracker", description: "See segment and milestone progress", href: "/manager?section=program" },
+      { title: "Program Tracker", description: "See segment and milestone progress", href: "/manager/programs" },
     ],
     confidence: "high",
   };
@@ -268,9 +268,9 @@ function simsCell(simAvg: number | null, firstName: string): ReadinessMapCell {
     segmentUnlocked: null,
     segmentTotal: null,
     actions: [
-      { title: "Action Inbox", description: "Review pending sim coaching cards", href: "/manager?section=inbox" },
+      { title: "Action Inbox", description: "Review pending sim coaching cards", href: "/manager/inbox" },
       { title: "Assign simulation", description: "Queue a new roleplay scenario", href: "/simulations" },
-      { title: "Coaching Cadence", description: "Check sim trend and touchpoints", href: "/manager?section=cadence" },
+      { title: "Coaching Cadence", description: "Check sim trend and touchpoints", href: "/manager/coaching" },
     ],
     confidence: "high",
   };
@@ -297,9 +297,9 @@ function segmentsCell(unlocked: number, tenureDays: number, firstName: string): 
     segmentUnlocked: unlocked,
     segmentTotal: SEGMENT_TOTAL,
     actions: [
-      { title: "Program Tracker", description: "View segment gates and milestones", href: "/manager?section=program" },
+      { title: "Program Tracker", description: "View segment gates and milestones", href: "/manager/programs" },
       { title: "Plan Calendar", description: "Align segment timing on the calendar", href: "/plan-calendar" },
-      { title: "Team Roster", description: "Open full SE coaching profile", href: "/manager?section=roster" },
+      { title: "Team Roster", description: "Open full SE coaching profile", href: "/manager/team" },
     ],
     confidence: "high",
   };
@@ -333,7 +333,7 @@ function certsCell(approved: number, tenureDays: number, firstName: string): Rea
     segmentTotal: null,
     actions: [
       { title: "Certifications", description: "Review evidence and sign off gates", href: "/certifications" },
-      { title: "Action Inbox", description: "Pending cert reviews", href: "/manager?section=inbox" },
+      { title: "Action Inbox", description: "Pending cert reviews", href: "/manager/inbox" },
       { title: "Development", description: "Long-term career cert path", href: "/development" },
     ],
     confidence: "high",
@@ -362,7 +362,7 @@ function labCell(hours: number, firstName: string): ReadinessMapCell {
     actions: [
       { title: "ISC Lab", description: "Open lab environment and modules", href: "/lab" },
       { title: "Assign challenge", description: "Add a structured lab exercise", href: "/challenges" },
-      { title: "Coaching Cadence", description: "Discuss lab habits in 1:1", href: "/manager?section=cadence" },
+      { title: "Coaching Cadence", description: "Discuss lab habits in 1:1", href: "/manager/coaching" },
     ],
     confidence: "high",
   };
@@ -396,7 +396,7 @@ function pitchCell(pitchScore: number, firstName: string): ReadinessMapCell {
     segmentTotal: null,
     actions: [
       { title: "Pitch Studio", description: "Review or assign pitch scenarios", href: "/pitch" },
-      { title: "Action Inbox", description: "Grade pending pitch submissions", href: "/manager?section=inbox" },
+      { title: "Action Inbox", description: "Grade pending pitch submissions", href: "/manager/inbox" },
       { title: "Free practice", description: "Encourage elevator pitch reps", href: "/pitch" },
     ],
     confidence: "high",
@@ -416,7 +416,7 @@ function challengesCell(signals: ChallengeSubmissionSignal[], firstName: string)
       segmentTotal: null,
       actions: [
         { title: "Challenges", description: "Browse the challenge library", href: "/challenges" },
-        { title: "Action Inbox", description: "Review pending challenge submissions", href: "/manager?section=inbox" },
+        { title: "Action Inbox", description: "Review pending challenge submissions", href: "/manager/inbox" },
       ],
       confidence: "high",
     };
@@ -442,7 +442,7 @@ function challengesCell(signals: ChallengeSubmissionSignal[], firstName: string)
     segmentUnlocked: null,
     segmentTotal: null,
     actions: [
-      { title: "Action Inbox", description: "Review pending challenge submissions", href: "/manager?section=inbox" },
+      { title: "Action Inbox", description: "Review pending challenge submissions", href: "/manager/inbox" },
       { title: "Challenges", description: "Assign a targeted challenge", href: "/challenges" },
     ],
     confidence,

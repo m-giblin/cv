@@ -134,7 +134,7 @@ export async function POST(request: Request) {
  userId: profile.manager_id,
  title: "Video pitch submitted",
  body: `Review ${parsed.data.title} from your SE.`,
- actionUrl: "/manager?section=inbox",
+ actionUrl: "/manager/inbox",
  });
  }
 

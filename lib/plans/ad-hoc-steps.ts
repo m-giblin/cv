@@ -107,7 +107,7 @@ export async function submitAdHocStep(
       userId: assignee.manager_id,
       title: "Custom ramp task ready for sign-off",
       body: "An employee submitted a manager-assigned task for live validation.",
-      actionUrl: "/manager?section=inbox",
+      actionUrl: "/manager/inbox",
     });
   }
 

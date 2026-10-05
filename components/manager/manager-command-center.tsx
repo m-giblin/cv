@@ -147,7 +147,7 @@ function ReadinessHeatmapGrid({
             Click row · open profile
           </span>
         </div>
-        <ManagerOutlineBtn href="/manager?section=readiness">Full map →</ManagerOutlineBtn>
+        <ManagerOutlineBtn href="/manager/team/readiness">Full map →</ManagerOutlineBtn>
       </div>
       <div
         className="grid border-b border-[#ECEAE6] bg-[#F9F8F6] px-4 py-1.5"
@@ -306,7 +306,7 @@ export function ManagerCommandCenter({
               name: person?.fullName ?? "Team member",
               quarter: review.quarter,
               days,
-              href: `/manager?section=dev&profile=${plan.userId}`,
+              href: `/manager/coaching/development?profile=${plan.userId}`,
             };
           }
         }
@@ -347,7 +347,7 @@ export function ManagerCommandCenter({
                 {cadenceRows.length} SE{cadenceRows.length === 1 ? "" : "s"}
               </span>
             </div>
-            <ManagerOutlineBtn href="/manager?section=cadence">Schedule all</ManagerOutlineBtn>
+            <ManagerOutlineBtn href="/manager/coaching">Schedule all</ManagerOutlineBtn>
           </div>
           <div
             className="grid border-b border-[#ECEAE6] bg-[#F9F8F6] px-4 py-1.5"
@@ -435,7 +435,7 @@ export function ManagerCommandCenter({
             inboxMini.map((item) => (
               <Link
                 className="block border-b border-[#F2F0EC] px-[14px] py-2.5 transition hover:bg-[#F0EFEB]"
-                href="/manager?section=inbox"
+                href="/manager/inbox"
                 key={item.id}
                 style={{ borderLeft: `2px solid ${item.accentColor}` }}
               >
@@ -453,7 +453,7 @@ export function ManagerCommandCenter({
             ))
           )}
           <div className="p-[9px_14px]">
-            <ManagerOutlineBtn className="w-full justify-center" href="/manager?section=inbox">
+            <ManagerOutlineBtn className="w-full justify-center" href="/manager/inbox">
               All {reviewCount} items →
             </ManagerOutlineBtn>
           </div>
@@ -477,7 +477,7 @@ export function ManagerCommandCenter({
           />
           <ManagerStatColumn
             highlight={atRiskRows.length > 0}
-            href={atRiskRow ? `/manager?profile=${atRiskRow.profileId}` : "/manager?section=roster"}
+            href={atRiskRow ? `/manager?profile=${atRiskRow.profileId}` : "/manager/team"}
             label="At risk"
             sub={atRiskRow ? `${atRiskRow.fullName.split(" ")[0]} →` : "None"}
             subColor="#B83128"
@@ -485,7 +485,7 @@ export function ManagerCommandCenter({
             valueColor="#B83128"
           />
           <ManagerStatColumn
-            href="/manager?section=inbox"
+            href="/manager/inbox"
             label="Cert sign-offs"
             sub="awaiting sign-off"
             subColor="#CC27B0"

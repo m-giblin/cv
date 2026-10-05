@@ -12,7 +12,7 @@ export default async function DashboardPage() {
  const { data, source, tier } = await requireDashboardPageAccess();
 
  if (tier === "manager") {
- redirect("/manager?section=command");
+ redirect("/manager");
  }
 
  if (tier === "admin") {

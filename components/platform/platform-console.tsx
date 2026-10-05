@@ -577,7 +577,7 @@ export function PlatformConsole() {
     toast.success(`Opened ${label} for ${body.tenantName ?? selected.name}.`);
     router.push(
       body.redirect ??
-        (mode === "se" ? "/dashboard" : mode === "manager" ? "/manager?section=command" : "/admin"),
+        (mode === "se" ? "/dashboard" : mode === "manager" ? "/manager" : "/admin"),
     );
     router.refresh();
   }

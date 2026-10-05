@@ -119,7 +119,7 @@ export function getWorkspaceHome(hat: WorkspaceHat): string {
     case "tenant_admin":
       return "/admin";
     case "manager":
-      return "/manager?section=command";
+      return "/manager";
     case "se":
       return "/dashboard";
     default: {

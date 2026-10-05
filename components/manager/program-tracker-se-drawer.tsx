@@ -91,7 +91,7 @@ export function ProgramTrackerSeDrawer({
           <div className="mt-2.5 flex gap-1.5">
             <Link
               className="flex flex-1 items-center justify-center bg-[#0071CE] px-2.5 py-1.5 text-[10px] font-semibold text-white"
-              href={`/manager?section=cadence&profile=${profile.userId}`}
+              href={`/manager/coaching?profile=${profile.userId}`}
             >
               Schedule 1:1
             </Link>
@@ -103,7 +103,7 @@ export function ProgramTrackerSeDrawer({
             </button>
             <Link
               className="flex flex-1 items-center justify-center border border-white/20 px-2.5 py-1.5 text-[10px] font-semibold text-white/70"
-              href={`/manager?section=roster&profile=${profile.userId}`}
+              href={`/manager/team?profile=${profile.userId}`}
             >
               View plan →
             </Link>

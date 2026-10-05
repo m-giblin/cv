@@ -370,7 +370,7 @@ export function ReadinessMap({ onOpenProfile }: { onOpenProfile?: (userId: strin
         </div>
         <Link
           className="inline-flex items-center border border-[#D4D1CB] px-2.5 py-1 text-[10px] font-semibold text-[#3D3C38] hover:border-[#0071CE] hover:text-[#0071CE]"
-          href="/manager?section=cadence"
+          href="/manager/coaching"
         >
           + New coaching card
         </Link>
@@ -429,7 +429,7 @@ export function ReadinessMap({ onOpenProfile }: { onOpenProfile?: (userId: strin
         <div className="shrink-0">
           <Link
             className="inline-flex items-center whitespace-nowrap border border-white/40 px-3 py-1.5 text-[10px] font-semibold text-white hover:bg-white/10"
-            href="/manager?section=cadence"
+            href="/manager/coaching"
           >
             Open all coaching plans
           </Link>

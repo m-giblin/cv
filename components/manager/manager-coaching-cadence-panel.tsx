@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
 import { CoachingCadence } from "@/components/manager/coaching-cadence/CoachingCadence";
 import { mockProfiles } from "@/components/manager/coaching-cadence/data";
@@ -10,6 +10,7 @@ import { uniqueProfiles } from "@/lib/utils";
 
 export function ManagerCoachingCadencePanel({ org = [] }: { org?: Profile[] }) {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
 
   const seParam = searchParams.get("se");
@@ -22,11 +23,10 @@ export function ManagerCoachingCadencePanel({ org = [] }: { org?: Profile[] }) {
   const handleSelectSe = useCallback(
     (key: string) => {
       const params = new URLSearchParams(searchParams.toString());
-      params.set("section", "cadence");
       params.set("se", key);
-      router.push(`/manager?${params.toString()}`, { scroll: false });
+      router.push(`${pathname}?${params.toString()}`, { scroll: false });
     },
-    [router, searchParams],
+    [pathname, router, searchParams],
   );
 
   return (

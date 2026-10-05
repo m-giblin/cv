@@ -241,7 +241,7 @@ export function ManagerTeamRoster({
     label: "Inbox",
     value: rosterStats.inboxTotal,
     valueColor: rosterStats.inboxTotal > 0 ? "#D4810A" : "#0D0E12",
-    href: rosterStats.inboxTotal > 0 ? "/manager?section=inbox" : undefined,
+    href: rosterStats.inboxTotal > 0 ? "/manager/inbox" : undefined,
    },
   ]}
  />
