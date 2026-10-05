@@ -223,10 +223,11 @@ export function resolveActive(
   let best = { score: -1, itemId: null as string | null, childId: null as string | null };
 
   for (const item of NAV[workspace]) {
+    // Children first so a child sharing its parent's href wins the tie and gets highlighted.
     const candidates: { href: string; childId: string | null }[] = [
+      ...(item.children ?? []).map((child) => ({ href: child.href, childId: child.id })),
       { href: item.href, childId: null },
       ...(item.match ?? []).map((href) => ({ href, childId: null })),
-      ...(item.children ?? []).map((child) => ({ href: child.href, childId: child.id })),
     ];
     for (const candidate of candidates) {
       const score = hrefScore(candidate.href, pathname, params);
