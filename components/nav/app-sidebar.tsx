@@ -19,13 +19,6 @@ import type { PlatformFeatureFlags } from "@/lib/platform/settings-shared";
 import type { Notification, Profile } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const ROLE_LABELS: Record<WorkspaceHat, string> = {
-  se: "Basic SE",
-  manager: "Manager",
-  tenant_admin: "Tenant admin",
-  platform: "Platform",
-};
-
 function unreadFor(notifications: Notification[], hrefs: string[]) {
   return notifications.filter(
     (item) =>
@@ -128,9 +121,6 @@ export function SidebarContent({
       <div className="flex items-center gap-2.5 border-t border-blue-line pt-3">
         <UserAccountMenu appearance="sidebar-dark" currentUser={currentUser} />
         <NotificationFlyout align="sidebar" appearance="sidebar-dark" notifications={mine} />
-        <span className="ml-auto font-mono text-xs uppercase text-on-blue-muted">
-          {ROLE_LABELS[workspace]}
-        </span>
       </div>
     </div>
   );
