@@ -59,6 +59,11 @@ export const ADMIN_TAB_HEADERS: Record<
   ai: { eyebrow: "Platform", eyebrowColor: "#cc27b0", title: "AI & Sims", subtitle: "Provider config, templates, and usage" },
   corpus: { eyebrow: "Knowledge", title: "Corpus", subtitle: "Master corpus and routing rules" },
   routing: { eyebrow: "Knowledge", title: "Corpus routing", subtitle: "Segment and solution routing" },
+  security: {
+    eyebrow: "Compliance",
+    title: "Security & Compliance",
+    subtitle: "SSO status, recent admin actions, and dormant accounts for your tenant",
+  },
   audit: { eyebrow: "Compliance", title: "Audit log", subtitle: "Administrative actions and platform events" },
   help: { eyebrow: "Support", title: "Help", subtitle: "Operator guidance and escalation paths" },
   settings: { eyebrow: "Configuration", title: "Platform Settings", subtitle: "Feature flags, integrations, and retention" },

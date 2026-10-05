@@ -33,11 +33,12 @@ export function PlatformUsagePanel({
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-px bg-[#E2DFD9] sm:grid-cols-4">
+      <div className="grid gap-px bg-[#E2DFD9] sm:grid-cols-5">
         {[
           { label: "Tenants", value: data.totals.tenantCount },
           { label: "Active users", value: data.totals.totalUsers },
           { label: "AI calls (30d)", value: data.totals.aiCalls30d },
+          { label: "AI tokens (30d)", value: data.totals.aiTokens30d },
           { label: "Sim sessions (30d)", value: data.totals.simulationSessions30d },
         ].map((stat) => (
           <div className="bg-white px-4 py-4" key={stat.label}>
@@ -59,7 +60,8 @@ export function PlatformUsagePanel({
               <th className="px-4 py-2.5">Billing</th>
               <th className="px-4 py-2.5">Users</th>
               <th className="px-4 py-2.5">Seat quota</th>
-              <th className="px-4 py-2.5">AI (30d)</th>
+              <th className="px-4 py-2.5">AI calls (30d)</th>
+              <th className="px-4 py-2.5">AI tokens (30d)</th>
               <th className="px-4 py-2.5">Sims (30d)</th>
             </tr>
           </thead>
@@ -88,6 +90,7 @@ export function PlatformUsagePanel({
                     {overQuota ? " · over" : ""}
                   </td>
                   <td className="px-4 py-2.5 text-[#3D3C38]">{row.aiCalls30d}</td>
+                  <td className="px-4 py-2.5 text-[#3D3C38]">{row.aiTokens30d.toLocaleString()}</td>
                   <td className="px-4 py-2.5 text-[#3D3C38]">{row.simulationSessions30d}</td>
                 </tr>
               );

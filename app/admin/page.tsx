@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { AppShell } from "@/components/app-shell";
 import { AdminConsole } from "@/components/admin/admin-console";
+import { ReadinessOutcomeCorrelation } from "@/components/admin/readiness-outcome-correlation";
 import { loadAiUsageSummary } from "@/lib/ai/settings";
 import { getAccessTier } from "@/lib/auth/rbac";
 import { requireAdminPageAccess } from "@/lib/auth/require-access";
@@ -70,6 +71,9 @@ export default async function AdminPage() {
  profiles={data.profiles}
  />
  </Suspense>
+ <div className="mt-6">
+ <ReadinessOutcomeCorrelation />
+ </div>
  </AppShell>
  );
 }

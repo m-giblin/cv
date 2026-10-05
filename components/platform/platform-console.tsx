@@ -2,6 +2,7 @@
 
 import {
   Activity,
+  ArrowLeft,
   Ban,
   CheckCircle,
   Eye,
@@ -11,9 +12,9 @@ import {
   Route,
   Save,
   ScrollText,
-  Search,
   Settings,
   Ticket,
+  Trash2,
   UserCog,
   UserPlus,
   Users,
@@ -22,7 +23,7 @@ import {
   BarChart2,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { CreateTenantModal, type CreateTenantFormValues } from "@/components/platform/create-tenant-modal";
 import { PlatformCommercialPanel, PlatformInviteList, PlatformSsoPanel, PlatformWebhooksPanel } from "@/components/platform/platform-tenant-ops-panels";
@@ -36,8 +37,12 @@ import { PlatformOverviewPanel } from "@/components/platform/platform-overview-p
 import { PlatformShadowLog } from "@/components/platform/platform-shadow-log";
 import { PlatformSupportQueue } from "@/components/platform/platform-support-queue";
 import { PlatformTenantEntitlements } from "@/components/platform/platform-tenant-entitlements";
+import { PlatformTenantTable } from "@/components/platform/platform-tenant-table";
+import { PlatformUnsavedBanner } from "@/components/platform/platform-unsaved-banner";
 import { PlatformUsagePanel } from "@/components/platform/platform-usage-panel";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { isFormDirty } from "@/lib/platform/use-dirty-form";
 import type { MissionControlBundle } from "@/lib/platform/mission-control-types";
 import {
   billingPlanForPreset,
@@ -156,20 +161,25 @@ export function PlatformConsole() {
     tabParam && TENANT_TABS.includes(tabParam as TenantTab) ? (tabParam as TenantTab) : "entitlements";
 
   const [tenants, setTenants] = useState<Tenant[]>([]);
-  const [search, setSearch] = useState("");
   const [detail, setDetail] = useState<TenantDetail | null>(null);
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
   const [invites, setInvites] = useState<TenantAdminInvite[]>([]);
   const [featureFlags, setFeatureFlags] = useState<PlatformFeatureFlags>({});
   const [savedFlags, setSavedFlags] = useState<PlatformFeatureFlags>({});
-  const [branding, setBranding] = useState({
+  const emptyBranding = {
     primaryColor: "#0071ce",
     logoUrl: "",
     welcomeMessage: "",
     allowedEmailDomains: "",
-  });
+  };
+  const [branding, setBranding] = useState(emptyBranding);
+  const [savedBranding, setSavedBranding] = useState(emptyBranding);
   const [operatorNotes, setOperatorNotes] = useState("");
+  const [savedOperatorNotes, setSavedOperatorNotes] = useState("");
   const [maintenanceMessage, setMaintenanceMessage] = useState("");
+  const [statusConfirm, setStatusConfirm] = useState<"active" | "suspended" | null>(null);
+  const [offboardConfirm, setOffboardConfirm] = useState(false);
+  const [offboarding, setOffboarding] = useState(false);
   const [bulkSelected, setBulkSelected] = useState<string[]>([]);
   const [detailLoading, setDetailLoading] = useState(false);
   const [mission, setMission] = useState<MissionControlBundle | null>(null);
@@ -184,17 +194,6 @@ export function PlatformConsole() {
   const [inviteName, setInviteName] = useState("");
   const [shadowing, setShadowing] = useState(false);
   const [statusUpdating, setStatusUpdating] = useState(false);
-
-  const filteredTenants = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (!query) return tenants;
-    return tenants.filter(
-      (tenant) =>
-        tenant.name.toLowerCase().includes(query) ||
-        tenant.slug.toLowerCase().includes(query) ||
-        tenant.status.toLowerCase().includes(query),
-    );
-  }, [search, tenants]);
 
   const loadTenants = useCallback(async () => {
     setLoading(true);
@@ -255,13 +254,16 @@ export function PlatformConsole() {
         };
         setSelectedTenant(tenantBody.tenant);
         setInvites(tenantBody.invites ?? []);
-        setBranding({
+        const loadedBranding = {
           primaryColor: tenantBody.tenant.branding.primaryColor,
           logoUrl: tenantBody.tenant.branding.logoUrl ?? "",
           welcomeMessage: tenantBody.tenant.branding.welcomeMessage ?? "",
           allowedEmailDomains: tenantBody.tenant.branding.allowedEmailDomains.join(", "),
-        });
+        };
+        setBranding(loadedBranding);
+        setSavedBranding(loadedBranding);
         setOperatorNotes(tenantBody.tenant.operatorNotes ?? "");
+        setSavedOperatorNotes(tenantBody.tenant.operatorNotes ?? "");
         setMaintenanceMessage(tenantBody.tenant.maintenanceMessage ?? "");
       }
     } finally {
@@ -273,13 +275,6 @@ export function PlatformConsole() {
     void loadTenants();
     void loadMission();
   }, [loadTenants, loadMission]);
-
-  // Auto-select first tenant when in tenant view with no selection
-  useEffect(() => {
-    if (consoleView === "tenant" && !selectedId && !loading && tenants.length > 0) {
-      replaceConsoleUrl({ view: "tenant", tenant: tenants[0].id, tab: "entitlements" });
-    }
-  }, [consoleView, selectedId, loading, tenants, replaceConsoleUrl]);
 
   useEffect(() => {
     if (selectedId && consoleView === "tenant") void loadDetail(selectedId);
@@ -479,6 +474,7 @@ export function PlatformConsole() {
       return;
     }
     toast.success("Tenant branding saved.");
+    setSavedBranding(branding);
     void loadDetail(selectedId);
   }
 
@@ -496,13 +492,13 @@ export function PlatformConsole() {
       return;
     }
     toast.success("Operator notes saved.");
+    setSavedOperatorNotes(operatorNotes);
     void loadDetail(selectedId);
   }
 
   async function handleStatusChange(next: "active" | "suspended") {
     if (!selectedId || !selected) return;
     const label = next === "suspended" ? "suspend" : "reactivate";
-    if (!window.confirm(`Are you sure you want to ${label} ${selected.name}?`)) return;
     setStatusUpdating(true);
     const response = await fetch(`/api/platform/tenants/${selectedId}`, {
       method: "PATCH",
@@ -510,11 +506,29 @@ export function PlatformConsole() {
       body: JSON.stringify({ status: next }),
     });
     setStatusUpdating(false);
+    setStatusConfirm(null);
     if (!response.ok) {
       toast.error(`Could not ${label} tenant.`);
       return;
     }
     toast.success(next === "suspended" ? "Tenant suspended." : "Tenant reactivated.");
+    await Promise.all([loadTenants(), loadMission(), loadDetail(selectedId)]);
+  }
+
+  async function handleOffboard() {
+    if (!selectedId) return;
+    setOffboarding(true);
+    const response = await fetch(`/api/platform/tenants/${selectedId}`, {
+      method: "DELETE",
+      headers: { "x-requested-with": "XMLHttpRequest" },
+    });
+    setOffboarding(false);
+    setOffboardConfirm(false);
+    if (!response.ok) {
+      toast.error("Could not offboard tenant.");
+      return;
+    }
+    toast.success("Tenant offboarded.");
     await Promise.all([loadTenants(), loadMission(), loadDetail(selectedId)]);
   }
 
@@ -713,100 +727,7 @@ export function PlatformConsole() {
         {consoleView === "settings" ? <PlatformOperatorSettings /> : null}
 
         {consoleView === "tenant" ? (
-          <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
-            {/* Tenant list sidebar */}
-            <aside className="flex flex-col gap-0 border border-[#E2DFD9] bg-white">
-              {/* Sidebar header with counts */}
-              <div className="flex items-center justify-between border-b border-[#E2DFD9] px-3 py-2">
-                <span className="font-mono text-[9px] uppercase tracking-widest text-[#6B6860]">
-                  {tenants.length} tenant{tenants.length === 1 ? "" : "s"}
-                </span>
-                <div className="relative">
-                  <Search className="pointer-events-none absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-[#A09D98]" />
-                  <input
-                    className="w-36 border border-[#E2DFD9] py-1 pl-6 pr-2 text-xs"
-                    onChange={(event) => setSearch(event.target.value)}
-                    placeholder="Filter…"
-                    value={search}
-                  />
-                </div>
-              </div>
-
-              {/* Tenant rows */}
-              <div className="flex-1 overflow-y-auto">
-                {filteredTenants.map((tenant) => {
-                  const isSelected = tenant.id === selectedId;
-                  return (
-                    <div
-                      className={`flex items-center gap-1.5 border-b border-[#F0EFEB] px-2 py-0 transition ${
-                        isSelected ? "bg-[#00143a]" : "hover:bg-[#F0F7FF]"
-                      }`}
-                      key={tenant.id}
-                    >
-                      <input
-                        checked={bulkSelected.includes(tenant.id)}
-                        className="shrink-0"
-                        onChange={(event) =>
-                          setBulkSelected((current) =>
-                            event.target.checked
-                              ? [...current, tenant.id]
-                              : current.filter((id) => id !== tenant.id),
-                          )
-                        }
-                        type="checkbox"
-                      />
-                      <button
-                        className="flex-1 py-2 text-left"
-                        onClick={() => openTenant(tenant.id, { tab })}
-                        type="button"
-                      >
-                        <p className={`text-xs font-semibold leading-tight ${isSelected ? "text-white" : "text-[#0D0E12]"}`}>
-                          {tenant.name}
-                        </p>
-                        <p className={`mt-0.5 font-mono text-[10px] leading-tight ${isSelected ? "text-white/60" : "text-[#A09D98]"}`}>
-                          {tenant.slug}
-                          {" · "}
-                          <span className={
-                            tenant.status === "suspended"
-                              ? isSelected ? "text-red-300" : "text-red-600"
-                              : tenant.status === "provisioning"
-                                ? isSelected ? "text-amber-300" : "text-amber-600"
-                                : ""
-                          }>
-                            {tenant.status}
-                          </span>
-                          {tenant.billingStatus && tenant.billingStatus !== "active"
-                            ? ` · ${tenant.billingStatus}`
-                            : ""}
-                          {tenant.maintenanceMode ? " · maint" : ""}
-                        </p>
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Bulk actions */}
-              {bulkSelected.length > 0 ? (
-                <div className="flex flex-wrap gap-1.5 border-t border-[#E2DFD9] p-2">
-                  <Button onClick={() => void handleBulkAction("suspend")} size="sm" type="button" variant="outline">
-                    Suspend ({bulkSelected.length})
-                  </Button>
-                  <Button onClick={() => void handleBulkAction("activate")} size="sm" type="button" variant="outline">
-                    Activate
-                  </Button>
-                  <Button
-                    onClick={() => void handleBulkAction("apply_preset", "ae-pilot")}
-                    size="sm"
-                    type="button"
-                    variant="outline"
-                  >
-                    AE pilot
-                  </Button>
-                </div>
-              ) : null}
-            </aside>
-
+          <div className="space-y-4">
             <CreateTenantModal
               creating={creating}
               onClose={() => setCreateModalOpen(false)}
@@ -814,9 +735,9 @@ export function PlatformConsole() {
               open={createModalOpen}
             />
 
-            {/* Tenant detail */}
+            {/* Full-width: table when no tenant selected, detail when one is */}
             <section className="min-w-0 space-y-3">
-              {/* Fleet summary strip — shown when no tenant selected */}
+              {/* Fleet summary + sortable tenant table — shown when no tenant selected */}
               {!selectedId && !detailLoading ? (
                 <div className="space-y-3">
                   {/* KPI strip */}
@@ -864,32 +785,72 @@ export function PlatformConsole() {
                         : "No open tickets."}
                     </div>
                   ) : null}
-                  <p className="text-xs text-[#A09D98]">Select a tenant to manage it.</p>
+                  {bulkSelected.length > 0 ? (
+                    <div className="flex flex-wrap items-center gap-1.5 border border-[#E2DFD9] bg-white p-2">
+                      <span className="mr-1 text-xs text-[#6B6860]">{bulkSelected.length} selected</span>
+                      <Button onClick={() => void handleBulkAction("suspend")} size="sm" type="button" variant="outline">
+                        Suspend
+                      </Button>
+                      <Button onClick={() => void handleBulkAction("activate")} size="sm" type="button" variant="outline">
+                        Activate
+                      </Button>
+                      <Button
+                        onClick={() => void handleBulkAction("apply_preset", "ae-pilot")}
+                        size="sm"
+                        type="button"
+                        variant="outline"
+                      >
+                        AE pilot
+                      </Button>
+                    </div>
+                  ) : null}
+
+                  <PlatformTenantTable
+                    bulkSelected={bulkSelected}
+                    onOpenTenant={(tenantId) => openTenant(tenantId, { tab })}
+                    onToggleBulkSelect={(tenantId, checked) =>
+                      setBulkSelected((current) =>
+                        checked ? [...current, tenantId] : current.filter((id) => id !== tenantId),
+                      )
+                    }
+                    tenants={tenants}
+                  />
                 </div>
               ) : null}
 
               {selected && detail ? (
                 <>
+                  <button
+                    className="flex items-center gap-1.5 text-xs font-semibold text-[#0071CE] hover:underline"
+                    onClick={() => replaceConsoleUrl({ view: "tenant", tenant: null, tab: null })}
+                    type="button"
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    All tenants
+                  </button>
+
                   {/* Tenant header */}
-                  <div className="border border-[#E2DFD9] bg-white p-4">
+                  <div className="border border-[#E2DFD9] bg-white p-4 shadow-sm">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                          <h2 className="text-base font-bold text-[#0D0E12]">{selected.name}</h2>
+                          <h2 className="text-lg font-bold text-[#0D0E12]">{selected.name}</h2>
                           <span
-                            className={`rounded px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-wide ${
-                              selected.status === "suspended"
-                                ? "bg-red-100 text-red-700"
-                                : selected.status === "provisioning"
-                                  ? "bg-amber-100 text-amber-700"
-                                  : "bg-emerald-100 text-emerald-700"
+                            className={`rounded px-1.5 py-0.5 font-mono text-[11px] font-semibold uppercase tracking-wide ${
+                              selected.status === "offboarded"
+                                ? "bg-neutral-200 text-neutral-700"
+                                : selected.status === "suspended"
+                                  ? "bg-red-100 text-red-700"
+                                  : selected.status === "provisioning"
+                                    ? "bg-amber-100 text-amber-700"
+                                    : "bg-emerald-100 text-emerald-700"
                             }`}
                           >
                             {selected.status}
                           </span>
                           {selected.billingStatus ? (
                             <span
-                              className={`rounded px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-wide ${
+                              className={`rounded px-1.5 py-0.5 font-mono text-[11px] font-semibold uppercase tracking-wide ${
                                 BILLING_STATUS_COLORS[selected.billingStatus] ?? "bg-neutral-100 text-neutral-600"
                               }`}
                             >
@@ -897,12 +858,12 @@ export function PlatformConsole() {
                             </span>
                           ) : null}
                           {selected.seatQuota != null ? (
-                            <span className="rounded border border-[#E2DFD9] px-1.5 py-0.5 font-mono text-[9px] text-[#6B6860]">
+                            <span className="rounded border border-[#E2DFD9] px-1.5 py-0.5 font-mono text-[11px] text-[#6B6860]">
                               {detail.usage.activeUsers}/{selected.seatQuota} seats
                             </span>
                           ) : null}
                           {selected.maintenanceMode ? (
-                            <span className="rounded bg-orange-100 px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-wide text-orange-700">
+                            <span className="rounded bg-orange-100 px-1.5 py-0.5 font-mono text-[11px] font-semibold uppercase tracking-wide text-orange-700">
                               maintenance
                             </span>
                           ) : null}
@@ -916,10 +877,10 @@ export function PlatformConsole() {
                       </div>
 
                       <div className="flex flex-wrap gap-1.5">
-                        {selected.status === "suspended" ? (
+                        {selected.status === "offboarded" ? null : selected.status === "suspended" ? (
                           <Button
                             disabled={statusUpdating}
-                            onClick={() => void handleStatusChange("active")}
+                            onClick={() => setStatusConfirm("active")}
                             size="sm"
                             type="button"
                             variant="outline"
@@ -934,7 +895,7 @@ export function PlatformConsole() {
                         ) : (
                           <Button
                             disabled={statusUpdating || selected.status === "provisioning"}
-                            onClick={() => void handleStatusChange("suspended")}
+                            onClick={() => setStatusConfirm("suspended")}
                             size="sm"
                             type="button"
                             variant="outline"
@@ -947,8 +908,20 @@ export function PlatformConsole() {
                             Suspend
                           </Button>
                         )}
+                        {selected.status !== "offboarded" ? (
+                          <Button
+                            disabled={offboarding}
+                            onClick={() => setOffboardConfirm(true)}
+                            size="sm"
+                            type="button"
+                            variant="outline"
+                          >
+                            {offboarding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                            Offboard
+                          </Button>
+                        ) : null}
                         <Button
-                          disabled={shadowing || selected.status === "suspended"}
+                          disabled={shadowing || selected.status === "suspended" || selected.status === "offboarded"}
                           onClick={() => void handleShadowTenant("admin")}
                           size="sm"
                           type="button"
@@ -961,7 +934,7 @@ export function PlatformConsole() {
                           Open Tenant Admin
                         </Button>
                         <Button
-                          disabled={shadowing || selected.status === "suspended"}
+                          disabled={shadowing || selected.status === "suspended" || selected.status === "offboarded"}
                           onClick={() => void handleShadowTenant("manager")}
                           size="sm"
                           type="button"
@@ -975,7 +948,7 @@ export function PlatformConsole() {
                           Open as Manager
                         </Button>
                         <Button
-                          disabled={shadowing || selected.status === "suspended"}
+                          disabled={shadowing || selected.status === "suspended" || selected.status === "offboarded"}
                           onClick={() => void handleShadowTenant("se")}
                           size="sm"
                           type="button"
@@ -1059,7 +1032,7 @@ export function PlatformConsole() {
                   ) : null}
 
                   {tab === "branding" ? (
-                    <div className="border border-[#E2DFD9] bg-white p-4">
+                    <div className="border border-[#E2DFD9] bg-white p-4 shadow-sm">
                       <div className="mb-3 flex items-center justify-between gap-3">
                         <div>
                           <h3 className="text-sm font-bold text-[#0D0E12]">Branding &amp; access</h3>
@@ -1067,11 +1040,17 @@ export function PlatformConsole() {
                             Tenant-specific look and allowed email domains.
                           </p>
                         </div>
-                        <Button disabled={saving} onClick={() => void handleSaveBranding()} size="sm" type="button">
+                        <Button
+                          disabled={saving || !isFormDirty(branding, savedBranding)}
+                          onClick={() => void handleSaveBranding()}
+                          size="sm"
+                          type="button"
+                        >
                           {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                           Save
                         </Button>
                       </div>
+                      <PlatformUnsavedBanner show={isFormDirty(branding, savedBranding)} />
                       <div className="grid gap-3 sm:grid-cols-2">
                         <label className="block text-xs">
                           <span className="mb-1 block font-medium text-[#3D3C38]">Primary color</span>
@@ -1124,7 +1103,7 @@ export function PlatformConsole() {
 
                   {tab === "provision" ? (
                     <div className="space-y-3">
-                      <div className="border border-[#E2DFD9] bg-white p-4">
+                      <div className="border border-[#E2DFD9] bg-white p-4 shadow-sm">
                         <div className="mb-3 flex items-center gap-2">
                           <UserPlus className="h-3.5 w-3.5 text-[#0071ce]" />
                           <h3 className="text-sm font-bold text-[#0D0E12]">Invite tenant admin</h3>
@@ -1198,7 +1177,7 @@ export function PlatformConsole() {
                   ) : null}
 
                   {tab === "notes" ? (
-                    <div className="border border-[#E2DFD9] bg-white p-4">
+                    <div className="border border-[#E2DFD9] bg-white p-4 shadow-sm">
                       <div className="mb-3 flex items-center justify-between gap-3">
                         <div>
                           <h3 className="text-sm font-bold text-[#0D0E12]">Operator notes</h3>
@@ -1207,7 +1186,7 @@ export function PlatformConsole() {
                           </p>
                         </div>
                         <Button
-                          disabled={saving}
+                          disabled={saving || !isFormDirty(operatorNotes, savedOperatorNotes)}
                           onClick={() => void handleSaveOperatorNotes()}
                           size="sm"
                           type="button"
@@ -1220,6 +1199,7 @@ export function PlatformConsole() {
                           Save
                         </Button>
                       </div>
+                      <PlatformUnsavedBanner show={isFormDirty(operatorNotes, savedOperatorNotes)} />
                       <textarea
                         className="min-h-[140px] w-full border border-[#E2DFD9] px-3 py-2 text-sm"
                         onChange={(event) => setOperatorNotes(event.target.value)}
@@ -1243,6 +1223,32 @@ export function PlatformConsole() {
           </div>
         ) : null}
       </div>
+
+      <ConfirmDialog
+        busy={statusUpdating}
+        confirmLabel={statusConfirm === "suspended" ? "Suspend" : "Reactivate"}
+        description={
+          statusConfirm === "suspended"
+            ? `${selected?.name ?? "This tenant"} and all its users will lose access immediately. You can reactivate later.`
+            : `${selected?.name ?? "This tenant"} and its users will regain access immediately.`
+        }
+        destructive={statusConfirm === "suspended"}
+        onCancel={() => setStatusConfirm(null)}
+        onConfirm={() => statusConfirm && void handleStatusChange(statusConfirm)}
+        open={statusConfirm != null}
+        title={statusConfirm === "suspended" ? "Suspend this tenant?" : "Reactivate this tenant?"}
+      />
+
+      <ConfirmDialog
+        busy={offboarding}
+        confirmLabel="Offboard"
+        description={`This deactivates ${selected?.name ?? "this tenant"} and marks it offboarded — distinct from a suspend, and not something you'd casually undo. All its users lose access immediately.`}
+        destructive
+        onCancel={() => setOffboardConfirm(false)}
+        onConfirm={() => void handleOffboard()}
+        open={offboardConfirm}
+        title={`Offboard ${selected?.name ?? "this tenant"}?`}
+      />
     </div>
   );
 }

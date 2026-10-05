@@ -33,6 +33,7 @@ export const ADMIN_PORTAL_NAV_GROUPS: AdminPortalNavGroup[] = [
       { id: "platform-ai", href: "/admin?tab=ai", label: "AI & Sims", tab: "ai" },
       { id: "corpus", href: "/admin?tab=corpus", label: "Corpus", tab: "corpus" },
       { id: "analytics", href: "/admin?tab=analytics", label: "Analytics", tab: "analytics" },
+      { id: "security", href: "/admin?tab=security", label: "Security & Compliance", tab: "security" },
       { id: "audit", href: "/admin?tab=audit", label: "Audit log", tab: "audit" },
     ],
   },

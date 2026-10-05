@@ -48,6 +48,9 @@ const MasterCorpusAdmin = dynamic(() =>
   import("@/components/corpus/master-corpus-admin").then((mod) => mod.MasterCorpusAdmin),
 );
 const AuditLogPanel = dynamic(() => import("@/components/admin/audit-log-panel").then((mod) => mod.AuditLogPanel));
+const AdminSecurityPanel = dynamic(() =>
+  import("@/components/admin/admin-security-panel").then((mod) => mod.AdminSecurityPanel),
+);
 const AnalyticsDashboard = dynamic(() =>
   import("@/components/admin/analytics-dashboard").then((mod) => mod.AnalyticsDashboard),
 );
@@ -78,6 +81,7 @@ const TAB_IDS = [
   "ai",
   "corpus",
   "routing",
+  "security",
   "audit",
   "help",
   "settings",
@@ -272,6 +276,10 @@ export function AdminConsole({
 
         <AdminTabPanel active={tab} tab="routing">
           <CorpusRoutingAdmin />
+        </AdminTabPanel>
+
+        <AdminTabPanel active={tab} tab="security">
+          <AdminSecurityPanel />
         </AdminTabPanel>
 
         <AdminTabPanel active={tab} tab="audit">

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { z } from "zod";
 import { requireAuditEvent } from "@/lib/audit/log-admin-action";
 import { getEffectiveAccess } from "@/lib/auth/effective-access";
@@ -12,6 +13,7 @@ import {
  SHADOW_CEILING_COOKIE,
  SHADOW_IMPERSONATE_USER_COOKIE,
  SHADOW_MODE_COOKIE,
+ SHADOW_SESSION_COOKIE,
  SHADOW_TENANT_COOKIE,
  SHADOW_TENANT_NAME_COOKIE,
  type ShadowMode,
@@ -126,12 +128,15 @@ export async function POST(request: Request) {
  const redirect =
  cookieMode === "admin" ? "/admin" : cookieMode === "manager" ? "/manager?section=command" : "/dashboard";
 
+ const shadowSessionId = crypto.randomUUID();
+
  await requireAuditEvent(session.user.id, {
  action: "tenant.shadow_started",
  targetType: "tenant",
  targetId: tenant.id,
  tenantId: tenant.id,
  details: {
+ shadowSessionId,
  tenantName: tenant.name,
  tenantSlug: tenant.slug,
  mode: requestedMode,
@@ -147,6 +152,7 @@ export async function POST(request: Request) {
  targetId: impersonateUserId,
  tenantId: tenant.id,
  details: {
+ shadowSessionId,
  tenantName: tenant.name,
  tenantSlug: tenant.slug,
  shadowMode: cookieMode,
@@ -167,6 +173,7 @@ export async function POST(request: Request) {
  response.cookies.set(SHADOW_TENANT_NAME_COOKIE, tenant.name, options);
  response.cookies.set(SHADOW_MODE_COOKIE, cookieMode, options);
  response.cookies.set(SHADOW_CEILING_COOKIE, cookieMode, options);
+ response.cookies.set(SHADOW_SESSION_COOKIE, shadowSessionId, options);
  response.cookies.set(WORKSPACE_HAT_COOKIE, workspaceHat, {
  path: "/",
  httpOnly: true,
@@ -193,12 +200,16 @@ export async function DELETE() {
  const access = await getEffectiveAccess(session.role, null);
 
  if (access.isShadowing && access.tenantId) {
+ const cookieStore = await cookies();
+ const shadowSessionId = cookieStore.get(SHADOW_SESSION_COOKIE)?.value ?? null;
+
  await requireAuditEvent(session.user.id, {
  action: "tenant.shadow_ended",
  targetType: "tenant",
  targetId: access.tenantId,
  tenantId: access.tenantId,
  details: {
+ shadowSessionId,
  tenantName: access.shadowTenantName,
  mode: access.shadowMode,
  impersonateUserId: access.impersonateUserId,

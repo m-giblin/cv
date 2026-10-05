@@ -1,6 +1,6 @@
 export const DEFAULT_TENANT_ID = "00000000-0000-4000-8000-000000000001";
 
-export type TenantStatus = "active" | "suspended" | "provisioning";
+export type TenantStatus = "active" | "suspended" | "provisioning" | "offboarded";
 
 export type TenantBillingStatus = "trial" | "active" | "past_due" | "canceled" | "exempt";
 export type TenantCustomDomainStatus = "none" | "pending" | "verified" | "failed";
@@ -22,6 +22,7 @@ export type Tenant = {
   operatorNotes: string | null;
   maintenanceMode: boolean;
   maintenanceMessage: string | null;
+  offboardedAt: string | null;
   billingStatus: TenantBillingStatus;
   billingPlan: string | null;
   seatQuota: number | null;
@@ -135,6 +136,7 @@ export type TenantUsageFleetRow = {
   status: TenantStatus;
   activeUsers: number;
   aiCalls30d: number;
+  aiTokens30d: number;
   simulationSessions30d: number;
   seatQuota: number | null;
   billingStatus: TenantBillingStatus;
@@ -145,6 +147,7 @@ export type TenantUsageFleet = {
     tenantCount: number;
     totalUsers: number;
     aiCalls30d: number;
+    aiTokens30d: number;
     simulationSessions30d: number;
   };
   tenants: TenantUsageFleetRow[];

@@ -3,7 +3,9 @@
 import { Download, Loader2, RefreshCw, Save, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { PlatformUnsavedBanner } from "@/components/platform/platform-unsaved-banner";
 import { Button } from "@/components/ui/button";
+import { isFormDirty } from "@/lib/platform/use-dirty-form";
 import type {
   Tenant,
   TenantAdminInvite,
@@ -104,6 +106,14 @@ export function PlatformCommercialPanel({
   tenant: Tenant;
   onSaved: (tenant: Tenant) => void;
 }) {
+  const snapshotOf = (t: Tenant) => ({
+    billingStatus: t.billingStatus,
+    billingPlan: t.billingPlan ?? "",
+    seatQuota: t.seatQuota?.toString() ?? "",
+    customDomain: t.customDomain ?? "",
+    customDomainStatus: t.customDomainStatus,
+  });
+
   const [billingStatus, setBillingStatus] = useState<TenantBillingStatus>(tenant.billingStatus);
   const [billingPlan, setBillingPlan] = useState(tenant.billingPlan ?? "");
   const [seatQuota, setSeatQuota] = useState(tenant.seatQuota?.toString() ?? "");
@@ -111,8 +121,12 @@ export function PlatformCommercialPanel({
   const [customDomainStatus, setCustomDomainStatus] = useState<TenantCustomDomainStatus>(
     tenant.customDomainStatus,
   );
+  const [saved, setSaved] = useState(snapshotOf(tenant));
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
+
+  const current = { billingStatus, billingPlan, seatQuota, customDomain, customDomainStatus };
+  const dirty = isFormDirty(current, saved);
 
   useEffect(() => {
     setBillingStatus(tenant.billingStatus);
@@ -120,6 +134,7 @@ export function PlatformCommercialPanel({
     setSeatQuota(tenant.seatQuota?.toString() ?? "");
     setCustomDomain(tenant.customDomain ?? "");
     setCustomDomainStatus(tenant.customDomainStatus);
+    setSaved(snapshotOf(tenant));
   }, [tenant]);
 
   async function save() {
@@ -128,11 +143,13 @@ export function PlatformCommercialPanel({
       method: "PATCH",
       headers: { "Content-Type": "application/json", "x-requested-with": "XMLHttpRequest" },
       body: JSON.stringify({
-        billingStatus,
-        billingPlan: billingPlan || null,
-        seatQuota: seatQuota === "" ? null : Number(seatQuota),
-        customDomain: customDomain || null,
-        customDomainStatus,
+        commercial: {
+          billingStatus,
+          billingPlan: billingPlan || null,
+          seatQuota: seatQuota === "" ? null : Number(seatQuota),
+          customDomain: customDomain || null,
+          customDomainStatus,
+        },
       }),
     });
     setSaving(false);
@@ -142,6 +159,7 @@ export function PlatformCommercialPanel({
     }
     const body = (await response.json()) as { tenant: Tenant };
     onSaved(body.tenant);
+    setSaved(current);
     toast.success("Commercial settings saved.");
   }
 
@@ -172,36 +190,20 @@ export function PlatformCommercialPanel({
     toast.success("Tenant export downloaded.");
   }
 
-  async function softDelete() {
-    if (!window.confirm(`Suspend and offboard ${tenant.name}? This soft-deletes the tenant.`)) {
-      return;
-    }
-    const response = await fetch(`/api/platform/tenants/${tenant.id}`, {
-      method: "DELETE",
-      headers: { "x-requested-with": "XMLHttpRequest" },
-    });
-    if (!response.ok) {
-      toast.error("Could not offboard tenant.");
-      return;
-    }
-    toast.success("Tenant suspended (soft delete).");
-    const body = (await response.json().catch(() => null)) as { tenant?: Tenant } | null;
-    if (body?.tenant) onSaved(body.tenant);
-  }
-
   return (
     <div className="space-y-4">
-      <div className="border border-[#E2DFD9] bg-white p-5">
+      <div className="border border-[#E2DFD9] bg-white p-5 shadow-sm">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
             <h3 className="font-display text-base font-bold text-[#0D0E12]">Commercial</h3>
             <p className="text-sm text-[#6B6860]">Billing status, plan, and seat quota.</p>
           </div>
-          <Button disabled={saving} onClick={() => void save()} type="button">
+          <Button disabled={saving || !dirty} onClick={() => void save()} type="button">
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Save
           </Button>
         </div>
+        <PlatformUnsavedBanner show={dirty} />
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="block text-sm">
             <span className="mb-1 block text-xs font-medium text-[#6B6860]">Billing status</span>
@@ -267,15 +269,14 @@ export function PlatformCommercialPanel({
           {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
           Export tenant JSON
         </Button>
-        <Button onClick={() => void softDelete()} type="button" variant="outline">
-          <Trash2 className="h-4 w-4" />
-          Offboard (suspend)
-        </Button>
         <p className="w-full text-xs text-[#A09D98]">
           Export status: {tenant.exportStatus}
           {tenant.exportCompletedAt
             ? ` · ${new Date(tenant.exportCompletedAt).toLocaleString()}`
             : ""}
+        </p>
+        <p className="w-full text-xs text-[#A09D98]">
+          Offboarding now lives on the tenant header, next to Suspend.
         </p>
       </div>
     </div>
@@ -287,8 +288,12 @@ export function PlatformSsoPanel({ tenantId }: { tenantId: string }) {
   const [provider, setProvider] = useState<"saml" | "oidc">("saml");
   const [ssoDomain, setSsoDomain] = useState("");
   const [metadataJson, setMetadataJson] = useState("{}");
+  const [saved, setSaved] = useState({ enabled: false, provider: "saml" as "saml" | "oidc", ssoDomain: "", metadataJson: "{}" });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  const current = { enabled, provider, ssoDomain, metadataJson };
+  const dirty = isFormDirty(current, saved);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -304,10 +309,17 @@ export function PlatformSsoPanel({ tenantId }: { tenantId: string }) {
       } | null;
     };
     if (body.config) {
-      setEnabled(body.config.enabled);
-      setProvider(body.config.provider);
-      setSsoDomain(body.config.ssoDomain ?? "");
-      setMetadataJson(JSON.stringify(body.config.metadata ?? {}, null, 2));
+      const loaded = {
+        enabled: body.config.enabled,
+        provider: body.config.provider,
+        ssoDomain: body.config.ssoDomain ?? "",
+        metadataJson: JSON.stringify(body.config.metadata ?? {}, null, 2),
+      };
+      setEnabled(loaded.enabled);
+      setProvider(loaded.provider);
+      setSsoDomain(loaded.ssoDomain);
+      setMetadataJson(loaded.metadataJson);
+      setSaved(loaded);
     }
   }, [tenantId]);
 
@@ -335,6 +347,7 @@ export function PlatformSsoPanel({ tenantId }: { tenantId: string }) {
       return;
     }
     toast.success("SSO config saved.");
+    setSaved(current);
   }
 
   if (loading) {
@@ -346,7 +359,7 @@ export function PlatformSsoPanel({ tenantId }: { tenantId: string }) {
   }
 
   return (
-    <div className="border border-[#E2DFD9] bg-white p-5">
+    <div className="border border-[#E2DFD9] bg-white p-5 shadow-sm">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <h3 className="font-display text-base font-bold text-[#0D0E12]">Tenant SSO</h3>
@@ -354,11 +367,12 @@ export function PlatformSsoPanel({ tenantId }: { tenantId: string }) {
             Per-tenant SAML/OIDC config. Platform-wide SSO remains the fallback.
           </p>
         </div>
-        <Button disabled={saving} onClick={() => void save()} type="button">
+        <Button disabled={saving || !dirty} onClick={() => void save()} type="button">
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           Save SSO
         </Button>
       </div>
+      <PlatformUnsavedBanner show={dirty} />
       <div className="space-y-3 text-sm">
         <label className="flex items-center gap-2">
           <input checked={enabled} onChange={(e) => setEnabled(e.target.checked)} type="checkbox" />
@@ -468,7 +482,7 @@ export function PlatformWebhooksPanel({ tenantId }: { tenantId: string }) {
 
   return (
     <div className="space-y-4">
-      <div className="border border-[#E2DFD9] bg-white p-5">
+      <div className="border border-[#E2DFD9] bg-white p-5 shadow-sm">
         <h3 className="font-display text-base font-bold text-[#0D0E12]">Outbound webhooks</h3>
         <p className="mt-1 text-sm text-[#6B6860]">
           Push tenant events to an external endpoint. Secrets are stored encrypted.

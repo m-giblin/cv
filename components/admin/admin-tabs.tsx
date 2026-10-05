@@ -11,6 +11,7 @@ const TABS = [
  { id: "ai", label: "AI & Sims" },
  { id: "corpus", label: "Corpus" },
  { id: "routing", label: "Q&A Routing" },
+ { id: "security", label: "Security & Compliance" },
  { id: "audit", label: "Audit Log" },
  { id: "help", label: "Help" },
  { id: "settings", label: "Settings" },

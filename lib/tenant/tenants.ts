@@ -35,6 +35,7 @@ type DbTenant = {
   operator_notes?: string | null;
   maintenance_mode?: boolean;
   maintenance_message?: string | null;
+  offboarded_at?: string | null;
   billing_status?: TenantBillingStatus | null;
   billing_plan?: string | null;
   seat_quota?: number | null;
@@ -66,6 +67,7 @@ function mapTenant(row: DbTenant): Tenant {
     operatorNotes: row.operator_notes ?? null,
     maintenanceMode: row.maintenance_mode ?? false,
     maintenanceMessage: row.maintenance_message ?? null,
+    offboardedAt: row.offboarded_at ?? null,
     billingStatus: row.billing_status ?? "trial",
     billingPlan: row.billing_plan ?? null,
     seatQuota: row.seat_quota ?? null,
@@ -364,26 +366,28 @@ export async function softDeleteTenant(tenantId: string, actorId: string): Promi
   const admin = createAdminClient();
   if (!admin) throw new Error("Supabase admin client unavailable");
 
+  const offboardedAt = new Date().toISOString();
   const { data, error } = await admin
     .from("tenants")
     .update({
-      status: "suspended",
+      status: "offboarded",
       maintenance_mode: true,
-      maintenance_message: "This tenant has been deactivated by a platform operator.",
-      updated_at: new Date().toISOString(),
+      maintenance_message: "This tenant has been offboarded by a platform operator.",
+      offboarded_at: offboardedAt,
+      updated_at: offboardedAt,
     })
     .eq("id", tenantId)
     .select("*")
     .single();
 
-  if (error || !data) throw new Error(error?.message ?? "Failed to deactivate tenant");
+  if (error || !data) throw new Error(error?.message ?? "Failed to offboard tenant");
 
   await requireAuditEvent(actorId, {
     action: "tenant.soft_deleted",
     targetType: "tenant",
     targetId: tenantId,
     tenantId,
-    details: {},
+    details: { offboardedAt },
   });
 
   return mapTenant(data as DbTenant);
@@ -586,17 +590,22 @@ export async function updateTenantFeatureFlags(
 export async function getTenantUsageSummary(tenantId: string) {
   const admin = createAdminClient();
   if (!admin) {
-    return { activeUsers: 0, aiCalls: 0, simulationSessions: 0 };
+    return { activeUsers: 0, aiCalls: 0, aiTokens: 0, simulationSessions: 0 };
   }
 
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  const [profiles, aiUsage, sims] = await Promise.all([
+  const [profiles, aiUsage, aiTokens, sims] = await Promise.all([
     admin.from("profiles").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId),
     admin
       .from("ai_usage_logs")
       .select("id", { count: "exact", head: true })
+      .eq("tenant_id", tenantId)
+      .gte("created_at", thirtyDaysAgo.toISOString()),
+    admin
+      .from("ai_usage_logs")
+      .select("total_tokens")
       .eq("tenant_id", tenantId)
       .gte("created_at", thirtyDaysAgo.toISOString()),
     admin
@@ -606,9 +615,12 @@ export async function getTenantUsageSummary(tenantId: string) {
       .gte("created_at", thirtyDaysAgo.toISOString()),
   ]);
 
+  const tokens30d = (aiTokens.data ?? []).reduce((sum, row) => sum + (row.total_tokens ?? 0), 0);
+
   return {
     activeUsers: profiles.count ?? 0,
     aiCalls: aiUsage.count ?? 0,
+    aiTokens: tokens30d,
     simulationSessions: sims.count ?? 0,
   };
 }
