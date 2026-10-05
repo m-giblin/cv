@@ -7,7 +7,12 @@ create type public.profile_role as enum (
   'mentor',
   'manager',
   'director',
-  'admin'
+  'admin',
+  -- Declared here (not only in 20260808110000_add_super_admin_role.sql) because migrations
+  -- from 20260710190000 onward reference this value. Postgres cannot use an enum value
+  -- added by ALTER TYPE inside the same transaction, so it must exist from CREATE TYPE for
+  -- a from-scratch run. The later `add value if not exists` stays a no-op for existing DBs.
+  'super_admin'
 );
 
 create type public.se_level as enum ('Basic', 'Senior', 'Advisory');
@@ -18,7 +23,13 @@ create type public.plan_step_type as enum (
   'simulation',
   'shadow_meeting_log',
   'mentor_review',
-  'custom'
+  'custom',
+  -- Declared here (not only in 20260712120000_deal_prep_enhancements.sql) because
+  -- 20260705160000 and 20260707120000 seed plan steps with this value. Postgres cannot
+  -- use an enum value added by ALTER TYPE inside the same transaction, so the value has
+  -- to exist from the initial CREATE TYPE for a from-scratch migration run to succeed.
+  -- The later `add value if not exists` remains a no-op for already-migrated databases.
+  'deal_prep'
 );
 
 create type public.assignment_status as enum (

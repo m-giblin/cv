@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { fetchGongCallIntel, gongAccountKey } from "@/lib/integrations/gong-api";
 import { requireAuthenticatedSession } from "@/lib/auth/require-authenticated";
+import { openOAuthToken } from "@/lib/integrations/oauth-tokens";
 import { createClient } from "@/lib/supabase/server";
 
 const schema = z.object({
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
 
  if (connection?.access_token) {
  const expired = connection.expires_at && new Date(connection.expires_at) < new Date();
- if (!expired) oauthToken = connection.access_token;
+ if (!expired) oauthToken = openOAuthToken(connection.access_token);
  }
  }
 

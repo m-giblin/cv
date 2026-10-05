@@ -273,12 +273,14 @@ export function workspaceCanAccessPath(hat: WorkspaceHat, pathname: string): boo
 export function pathRequiresWorkspaceHat(pathname: string): WorkspaceHat | null {
   if (pathname.startsWith("/platform")) return "platform";
   if (pathname.startsWith("/admin")) return "tenant_admin";
+  // /plan-calendar is deliberately not listed. NAV_ITEMS renders it for SEs and
+  // canAccessRoute() grants them access, so demanding the manager hat here made the sidebar
+  // link 307 every SE straight back to /dashboard. /plans — the assignment workspace — is a
+  // genuinely manager-only surface and stays gated.
   if (
     pathname.startsWith("/manager") ||
     pathname === "/plans" ||
-    pathname.startsWith("/plans/") ||
-    pathname === "/plan-calendar" ||
-    pathname.startsWith("/plan-calendar/")
+    pathname.startsWith("/plans/")
   ) {
     return "manager";
   }

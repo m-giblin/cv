@@ -75,26 +75,40 @@ end;
 $$;
 
 -- Repair rows created before tenant_id was stamped on insert.
-alter table public.coaching_cards disable trigger guard_coaching_cards_update;
+--
+-- These columns are only introduced by 20260808120000_multi_tenant_foundation.sql, which
+-- sorts *after* this migration. On a from-scratch run they do not exist yet, so the repair
+-- is guarded and simply skipped (there are no rows to repair on a fresh database). On an
+-- already-multi-tenant database the guard passes and the backfill runs exactly as before.
+do $$
+declare
+  target text;
+begin
+  if not public.has_tenant_id_column('profiles') then
+    raise notice 'skipping tenant_id backfill: profiles.tenant_id not present yet';
+    return;
+  end if;
 
-update public.coaching_cards cc
-set tenant_id = p.tenant_id
-from public.profiles p
-where p.id = cc.user_id and cc.tenant_id is null;
+  foreach target in array array['coaching_cards', 'activity_logs', 'challenge_submissions', 'deal_prep_sessions']
+  loop
+    if not public.has_tenant_id_column(target) then
+      raise notice 'skipping tenant_id backfill for %: column not present yet', target;
+      continue;
+    end if;
 
-alter table public.coaching_cards enable trigger guard_coaching_cards_update;
+    if target = 'coaching_cards' then
+      execute 'alter table public.coaching_cards disable trigger guard_coaching_cards_update';
+    end if;
 
-update public.activity_logs al
-set tenant_id = p.tenant_id
-from public.profiles p
-where p.id = al.user_id and al.tenant_id is null;
+    execute format(
+      'update public.%I t set tenant_id = p.tenant_id from public.profiles p '
+      || 'where p.id = t.user_id and t.tenant_id is null',
+      target
+    );
 
-update public.challenge_submissions cs
-set tenant_id = p.tenant_id
-from public.profiles p
-where p.id = cs.user_id and cs.tenant_id is null;
-
-update public.deal_prep_sessions d
-set tenant_id = p.tenant_id
-from public.profiles p
-where p.id = d.user_id and d.tenant_id is null;
+    if target = 'coaching_cards' then
+      execute 'alter table public.coaching_cards enable trigger guard_coaching_cards_update';
+    end if;
+  end loop;
+end
+$$;
