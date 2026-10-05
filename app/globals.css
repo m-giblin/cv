@@ -79,10 +79,8 @@
 
 :root {
  color-scheme: light;
- --background: #f5f4f0;
- --foreground: #0d0e12;
- --gradient-brand: linear-gradient(135deg, #0033a1 0%, #0071ce 45%, #cc27b0 100%);
- --gradient-accent-line: linear-gradient(90deg, #0033a1, #0071ce, #cc27b0);
+ --background: #f2f4f8;
+ --foreground: #0a1a3f;
 }
 
 * {
@@ -137,13 +135,6 @@ body {
 
 .handoff-dot-blue {
  background: #0071ce;
-}
-
-.sp-gradient-text {
- background: var(--gradient-brand);
- -webkit-background-clip: text;
- background-clip: text;
- color: transparent;
 }
 
 /* ── Sidebar navigation (design handoff) ── */

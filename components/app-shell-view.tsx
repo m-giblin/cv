@@ -8,26 +8,22 @@ import { SectionTabs } from "@/components/nav/section-tabs";
 import { useNavFlags } from "@/components/nav/use-nav-flags";
 import { NotificationFlyout } from "@/components/notifications/notification-flyout";
 import { ShadowTenantBanner } from "@/components/platform/shadow-tenant-banner";
-import {
-  TenantBrandingProvider,
-  useTenantBranding,
-} from "@/components/tenant/tenant-branding-provider";
+import { TenantBrandingProvider } from "@/components/tenant/tenant-branding-provider";
 import { UatBugTracker } from "@/components/uat/uat-bug-tracker";
 import type { AccessTier } from "@/lib/auth/rbac";
 import type { WorkspaceHat } from "@/lib/auth/workspace";
 import { pageTitle, paletteEntries } from "@/lib/navigation/nav-model";
 import type { TenantShellBranding } from "@/lib/tenant/shell-branding";
+import { PRODUCT_NAME } from "@/lib/tenant/shell-branding-shared";
 import { Notification, Profile } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 function DocumentTitle({ workspace }: { workspace: WorkspaceHat }) {
   const pathname = usePathname();
   const params = useSearchParams();
-  const { productName } = useTenantBranding();
-
   useEffect(() => {
-    document.title = pageTitle(workspace, pathname, params, productName);
-  }, [workspace, pathname, params, productName]);
+    document.title = pageTitle(workspace, pathname, params, PRODUCT_NAME);
+  }, [workspace, pathname, params]);
 
   return null;
 }

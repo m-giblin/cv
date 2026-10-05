@@ -9,19 +9,16 @@ type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 
 const variants = {
  primary: "btn-primary",
- default:
- "bg-sp-blue text-white shadow-sp-blue/20 hover:bg-sp-blue-deep focus-visible:ring-sp-blue",
- secondary: "bg-sp-blue-soft text-sp-blue-deep hover:bg-[#d4e8f9]",
- outline:
- "border border-sp-blue/20 bg-white text-sp-navy hover:border-sp-blue/40 hover:bg-sp-blue-soft/50",
- ghost: "text-sp-navy-muted hover:bg-sp-blue-soft/60 hover:text-sp-navy",
- destructive: "bg-red-600 text-white hover:bg-red-700",
- magenta:
- "border border-sp-magenta/25 bg-sp-magenta-soft text-sp-magenta hover:border-sp-magenta/40 hover:bg-[#fce8f8]",
+ default: "rounded-full bg-blue text-white hover:bg-blue-2",
+ secondary: "rounded-full bg-blue-soft text-blue hover:bg-[#D3DEF6]",
+ outline: "rounded-full border-[1.5px] border-ink bg-white text-ink hover:bg-blue-soft",
+ ghost: "rounded-full text-ink-2 hover:bg-blue-soft hover:text-ink",
+ destructive: "rounded-full bg-danger text-white hover:bg-[#912018]",
+ magenta: "rounded-full border-[1.5px] border-ink bg-white text-ink hover:bg-blue-soft",
 };
 
 const sizes = {
- sm: "h-8 px-3 text-xs",
+ sm: "h-9 px-3.5 text-sm",
  md: "h-10 px-4 text-sm",
  lg: "h-12 px-5 text-base",
 };
@@ -40,8 +37,7 @@ export function Button({
  ? cn("btn-primary inline-flex items-center justify-center gap-2", className)
  : cn(
  "inline-flex items-center justify-center gap-2 font-semibold transition disabled:pointer-events-none disabled:opacity-50",
- "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
- variants[variant],
+  variants[variant],
  sizes[size],
  className,
  );

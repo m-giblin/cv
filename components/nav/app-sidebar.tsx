@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { NotificationFlyout } from "@/components/notifications/notification-flyout";
 import { UserAccountMenu } from "@/components/nav/user-account-menu";
-import { useTenantBranding } from "@/components/tenant/tenant-branding-provider";
 import { WorkspaceSwitcher } from "@/components/workspace-switcher";
 import {
   WORKSPACE_HAT_LABELS,
@@ -15,6 +14,7 @@ import { canonicalAdminHref } from "@/lib/admin/admin-routes";
 import { canonicalHref } from "@/lib/manager/manager-routes";
 import { canonicalPlatformHref } from "@/lib/platform/platform-routes";
 import { resolveActive, visibleNav } from "@/lib/navigation/nav-model";
+import { PRODUCT_NAME } from "@/lib/tenant/shell-branding-shared";
 import type { PlatformFeatureFlags } from "@/lib/platform/settings-shared";
 import type { Notification, Profile } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -33,24 +33,18 @@ function unreadFor(notifications: Notification[], hrefs: string[]) {
 }
 
 export function SidebarBrand({ workspace }: { workspace: WorkspaceHat }) {
-  const branding = useTenantBranding();
   return (
     <Link
       className="flex items-center gap-2.5 text-white no-underline"
       href={getWorkspaceHome(workspace)}
     >
-      {branding.logoUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img alt="" className="h-[26px] w-[26px] rounded-[8px] object-contain" src={branding.logoUrl} />
-      ) : (
-        <span
-          aria-hidden
-          className="grid h-[26px] w-[26px] place-items-center rounded-[8px] bg-signal font-mono text-xs font-medium text-ink"
-        >
-          SE
-        </span>
-      )}
-      <span className="truncate text-base font-bold">{branding.productName}</span>
+      <span
+        aria-hidden
+        className="grid h-[26px] w-[26px] place-items-center rounded-[8px] bg-signal font-mono text-xs font-medium text-ink"
+      >
+        SE
+      </span>
+      <span className="truncate text-base font-bold">{PRODUCT_NAME}</span>
     </Link>
   );
 }
