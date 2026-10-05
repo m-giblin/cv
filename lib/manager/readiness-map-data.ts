@@ -1,11 +1,49 @@
 import { computeSeReadinessScore } from "@/lib/readiness/compute-score";
 import { coachingCardScore } from "@/lib/coaching/card-score";
 import { avatarGradientForId } from "@/lib/se/avatar-gradients";
+import { resolveCanonicalCompetency } from "@/lib/competencies/canonical";
 import type { CoachingCard, Profile, UserPlan } from "@/lib/types";
 import { initials, uniqueProfiles } from "@/lib/utils";
 
-export type ReadinessDimName = "Ramp" | "Sims" | "Segments" | "Certs" | "Lab" | "Pitch";
-export type ReadinessStatusLevel = "critical" | "risk" | "good";
+export type ReadinessDimName =
+  | "Ramp"
+  | "Sims"
+  | "Segments"
+  | "Certs"
+  | "Lab"
+  | "Pitch"
+  | "Challenges"
+  | "FlightCheck"
+  | "MarketPulse";
+
+export type ChallengeSubmissionSignal = {
+  userId: string;
+  challengeId: string | null;
+  aiSuggestedScore: number | null;
+  managerGrade: number | null;
+  source: "ai" | "template" | null;
+};
+
+export type FlightCheckSignal = {
+  userId: string;
+  fieldSignalScore: number;
+  competencyScores: Record<string, number>;
+};
+
+export type MarketPulseSignal = {
+  userId: string;
+  score: number;
+  total: number;
+};
+
+export type DealPrepActivity = {
+  briefsThisWeek: number;
+  sharedWithManager: number;
+};
+
+/** "unknown" = no signal yet — distinct from "critical" so new hires aren't scored as failing. */
+export type ReadinessStatusLevel = "critical" | "risk" | "good" | "unknown";
+export type ReadinessConfidence = "high" | "medium" | "low";
 export type ReadinessViewMode = "weekly" | "monthly";
 
 export type ReadinessMapAction = {
@@ -24,6 +62,8 @@ export type ReadinessMapCell = {
   segmentUnlocked: number | null;
   segmentTotal: number | null;
   actions: ReadinessMapAction[];
+  /** How much to trust this cell's score — low when it's a heuristic fallback or a single thin sample. */
+  confidence: ReadinessConfidence;
 };
 
 export type ReadinessMapSeRow = {
@@ -40,6 +80,14 @@ export type ReadinessMapSeRow = {
   sparklineWeekly: { pts: string; endY: number; delta: string };
   sparklineMonthly: { pts: string; endY: number; delta: string };
   priorityDim: ReadinessDimName;
+  /** Cross-feature competency averages, resolved via lib/competencies/canonical. */
+  competencySummary: Record<string, number>;
+  /** Deal Prep has no score today — surfaced as activity, not a scored dimension. */
+  dealPrepActivity: DealPrepActivity;
+  /** Top dims pulling the composite above/below the team average. Set by buildReadinessMapPayload. */
+  compositeDrivers: { positive: string[]; negative: string[] };
+  /** Cohort (same-level, same-tenant) percentile — set by the API layer from readiness_score_snapshots; null until enough cohort data exists. */
+  percentileRank: number | null;
 };
 
 export type ReadinessMapPriority = {
@@ -59,22 +107,54 @@ export type ReadinessMapPayload = {
     label: string;
     value: string;
     badge: string;
-    badgeTone: "critical" | "risk" | "good";
+    badgeTone: ReadinessStatusLevel;
   }>;
   priorities: ReadinessMapPriority[];
   rows: ReadinessMapSeRow[];
   teamAverages: Record<ReadinessDimName, string>;
 };
 
-const DIM_NAMES: ReadinessDimName[] = ["Ramp", "Sims", "Segments", "Certs", "Lab", "Pitch"];
+const DIM_NAMES: ReadinessDimName[] = [
+  "Ramp",
+  "Sims",
+  "Segments",
+  "Certs",
+  "Lab",
+  "Pitch",
+  "Challenges",
+  "FlightCheck",
+  "MarketPulse",
+];
 const CERT_TOTAL = 8;
 const SEGMENT_TOTAL = 4;
 const LAB_WEEKLY_TARGET_HOURS = 5;
 
+const DIM_DISPLAY_LABEL: Record<ReadinessDimName, string> = {
+  Ramp: "Ramp",
+  Sims: "Sims",
+  Segments: "Segments",
+  Certs: "Certs",
+  Lab: "Lab",
+  Pitch: "Pitch",
+  Challenges: "Challenges",
+  FlightCheck: "Flight Check",
+  MarketPulse: "Market Pulse",
+};
+
 function levelColor(level: ReadinessStatusLevel) {
   if (level === "good") return "#0A6E45";
   if (level === "risk") return "#D4810A";
+  if (level === "unknown") return "#7A7772";
   return "#B83128";
+}
+
+/** More recent signal counts more. Half-life-ish decay, floors at 0.25 so old data still counts a little. */
+function recencyWeight(dateIso: string | null | undefined): number {
+  if (!dateIso) return 0.5;
+  const parsed = new Date(dateIso).getTime();
+  if (Number.isNaN(parsed)) return 0.5;
+  const days = Math.max(0, (Date.now() - parsed) / (24 * 60 * 60 * 1000));
+  return Math.max(0.25, 1 - days / 180);
 }
 
 export function statusLevelForScore(score: number): ReadinessStatusLevel {
@@ -158,12 +238,13 @@ function rampCell(planProgress: number, tenureDays: number, firstName: string): 
       { title: "Plan Calendar", description: "Shift step dates on the timeline", href: "/plan-calendar" },
       { title: "Program Tracker", description: "See segment and milestone progress", href: "/manager?section=program" },
     ],
+    confidence: "high",
   };
 }
 
 function simsCell(simAvg: number | null, firstName: string): ReadinessMapCell {
   const score = simAvg ?? 0;
-  const level = simAvg == null || simAvg === 0 ? "critical" : statusLevelForScore(simAvg);
+  const level = simAvg == null || simAvg === 0 ? "unknown" : statusLevelForScore(simAvg);
   const status =
     simAvg == null || simAvg === 0
       ? "No sims completed"
@@ -191,6 +272,7 @@ function simsCell(simAvg: number | null, firstName: string): ReadinessMapCell {
       { title: "Assign simulation", description: "Queue a new roleplay scenario", href: "/simulations" },
       { title: "Coaching Cadence", description: "Check sim trend and touchpoints", href: "/manager?section=cadence" },
     ],
+    confidence: "high",
   };
 }
 
@@ -219,6 +301,7 @@ function segmentsCell(unlocked: number, tenureDays: number, firstName: string): 
       { title: "Plan Calendar", description: "Align segment timing on the calendar", href: "/plan-calendar" },
       { title: "Team Roster", description: "Open full SE coaching profile", href: "/manager?section=roster" },
     ],
+    confidence: "high",
   };
 }
 
@@ -253,6 +336,7 @@ function certsCell(approved: number, tenureDays: number, firstName: string): Rea
       { title: "Action Inbox", description: "Pending cert reviews", href: "/manager?section=inbox" },
       { title: "Development", description: "Long-term career cert path", href: "/development" },
     ],
+    confidence: "high",
   };
 }
 
@@ -280,11 +364,12 @@ function labCell(hours: number, firstName: string): ReadinessMapCell {
       { title: "Assign challenge", description: "Add a structured lab exercise", href: "/challenges" },
       { title: "Coaching Cadence", description: "Discuss lab habits in 1:1", href: "/manager?section=cadence" },
     ],
+    confidence: "high",
   };
 }
 
 function pitchCell(pitchScore: number, firstName: string): ReadinessMapCell {
-  const level = pitchScore === 0 ? "critical" : statusLevelForScore(pitchScore);
+  const level = pitchScore === 0 ? "unknown" : statusLevelForScore(pitchScore);
   const status =
     pitchScore === 0
       ? "No pitch scored"
@@ -314,7 +399,186 @@ function pitchCell(pitchScore: number, firstName: string): ReadinessMapCell {
       { title: "Action Inbox", description: "Grade pending pitch submissions", href: "/manager?section=inbox" },
       { title: "Free practice", description: "Encourage elevator pitch reps", href: "/pitch" },
     ],
+    confidence: "high",
   };
+}
+
+function challengesCell(signals: ChallengeSubmissionSignal[], firstName: string): ReadinessMapCell {
+  if (signals.length === 0) {
+    return {
+      score: "0",
+      status: "No challenges submitted",
+      insight: `${firstName} has no scored challenge submissions yet. Assign a challenge from the library.`,
+      level: "unknown",
+      numericScore: 0,
+      progressPct: 0,
+      segmentUnlocked: null,
+      segmentTotal: null,
+      actions: [
+        { title: "Challenges", description: "Browse the challenge library", href: "/challenges" },
+        { title: "Action Inbox", description: "Review pending challenge submissions", href: "/manager?section=inbox" },
+      ],
+      confidence: "high",
+    };
+  }
+
+  const scores = signals.map((s) => s.aiSuggestedScore ?? (s.managerGrade != null ? s.managerGrade * 20 : 0));
+  const avgScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+  const hasTemplateFallback = signals.some((s) => s.source === "template");
+  const level = statusLevelForScore(avgScore);
+  const status = avgScore >= 70 ? "Strong performer" : "Needs coaching";
+  const insight = hasTemplateFallback
+    ? `${firstName}'s challenge average is ${avgScore}, based on limited AI review for at least one submission — confirm with a manual read before coaching on it.`
+    : `${firstName}'s challenge average is ${avgScore} across ${signals.length} submission${signals.length === 1 ? "" : "s"}.`;
+  const confidence: ReadinessConfidence = hasTemplateFallback ? "low" : signals.length === 1 ? "medium" : "high";
+
+  return {
+    score: String(avgScore),
+    status,
+    insight,
+    level,
+    numericScore: avgScore,
+    progressPct: avgScore,
+    segmentUnlocked: null,
+    segmentTotal: null,
+    actions: [
+      { title: "Action Inbox", description: "Review pending challenge submissions", href: "/manager?section=inbox" },
+      { title: "Challenges", description: "Assign a targeted challenge", href: "/challenges" },
+    ],
+    confidence,
+  };
+}
+
+function flightCheckCell(signal: FlightCheckSignal | null, firstName: string): ReadinessMapCell {
+  if (!signal) {
+    return {
+      score: "0",
+      status: "No flight check completed",
+      insight: `${firstName} hasn't completed a Flight Check yet. Encourage a run to surface real competency gaps.`,
+      level: "unknown",
+      numericScore: 0,
+      progressPct: 0,
+      segmentUnlocked: null,
+      segmentTotal: null,
+      actions: [{ title: "Flight Check", description: "Start an adaptive competency probe", href: "/flight-check" }],
+      confidence: "high",
+    };
+  }
+
+  const score = signal.fieldSignalScore;
+  const level = statusLevelForScore(score);
+  const status = score >= 70 ? "Strong signal" : "Gaps detected";
+  const insight =
+    score >= 70
+      ? `${firstName}'s field signal score is ${score} — solid across recent probes.`
+      : `${firstName}'s field signal score is ${score}. Review flagged competencies and assign reinforcement practice.`;
+
+  return {
+    score: String(score),
+    status,
+    insight,
+    level,
+    numericScore: score,
+    progressPct: score,
+    segmentUnlocked: null,
+    segmentTotal: null,
+    actions: [{ title: "Flight Check", description: "Re-run or review adaptive probe", href: "/flight-check" }],
+    confidence: "high",
+  };
+}
+
+function marketPulseCell(signals: MarketPulseSignal[], firstName: string): ReadinessMapCell {
+  if (signals.length === 0) {
+    return {
+      score: "0",
+      status: "No weekly pulse taken",
+      insight: `${firstName} hasn't taken a Market Pulse quiz recently.`,
+      level: "unknown",
+      numericScore: 0,
+      progressPct: 0,
+      segmentUnlocked: null,
+      segmentTotal: null,
+      actions: [{ title: "Market Pulse", description: "Take this week's competitive quiz", href: "/market-pulse" }],
+      confidence: "high",
+    };
+  }
+
+  const pct = Math.round(
+    (signals.reduce((sum, s) => sum + s.score / Math.max(1, s.total), 0) / signals.length) * 100,
+  );
+  const level = statusLevelForScore(pct);
+  const status = pct >= 70 ? "Sharp on competitive intel" : "Needs reinforcement";
+  const insight = `${firstName}'s recent Market Pulse average is ${pct}% across ${signals.length} week${signals.length === 1 ? "" : "s"}.`;
+
+  return {
+    score: `${pct}%`,
+    status,
+    insight,
+    level,
+    numericScore: pct,
+    progressPct: pct,
+    segmentUnlocked: null,
+    segmentTotal: null,
+    actions: [{ title: "Market Pulse", description: "Review this week's quiz", href: "/market-pulse" }],
+    confidence: signals.length === 1 ? "medium" : "high",
+  };
+}
+
+type WeightedCompetencySignal = { competency: string; score: number; weight: number };
+
+/**
+ * Weighted (not plain) average: recency + source-confidence weighting so a
+ * fresh, high-confidence signal outweighs a stale or heuristic-fallback one
+ * instead of counting equally toward the cross-feature picture.
+ */
+function competencySummaryFromSources(input: {
+  coachingCardCompetencies: WeightedCompetencySignal[];
+  challengeCompetencies: WeightedCompetencySignal[];
+  flightCheckCompetencyScores: Record<string, number>;
+  pitchCompetencies: WeightedCompetencySignal[];
+}): Record<string, number> {
+  const buckets: Record<string, WeightedCompetencySignal[]> = {};
+  const add = (raw: string, score: number, weight: number) => {
+    const canonical = resolveCanonicalCompetency(raw);
+    if (!canonical) return;
+    buckets[canonical] ??= [];
+    buckets[canonical].push({ competency: canonical, score, weight });
+  };
+
+  for (const { competency, score, weight } of input.coachingCardCompetencies) add(competency, score, weight);
+  for (const { competency, score, weight } of input.challengeCompetencies) add(competency, score, weight);
+  for (const { competency, score, weight } of input.pitchCompetencies) add(competency, score, weight);
+  // Flight Check always reflects the single most recent completed probe, so
+  // it's already "the freshest" signal by construction — full weight.
+  for (const [competency, score] of Object.entries(input.flightCheckCompetencyScores)) add(competency, score, 1);
+
+  const summary: Record<string, number> = {};
+  for (const [key, values] of Object.entries(buckets)) {
+    const totalWeight = values.reduce((sum, v) => sum + v.weight, 0);
+    summary[key] =
+      totalWeight > 0
+        ? Math.round(values.reduce((sum, v) => sum + v.score * v.weight, 0) / totalWeight)
+        : Math.round(values.reduce((sum, v) => sum + v.score, 0) / values.length);
+  }
+  return summary;
+}
+
+function compositeDriversFor(
+  dims: Record<ReadinessDimName, ReadinessMapCell>,
+  teamAvgByDim: Record<ReadinessDimName, number>,
+): { positive: string[]; negative: string[] } {
+  const diffs = DIM_NAMES.map((dim) => ({ dim, delta: dims[dim].numericScore - teamAvgByDim[dim] }));
+  const positive = diffs
+    .filter((d) => d.delta > 5)
+    .sort((a, b) => b.delta - a.delta)
+    .slice(0, 2)
+    .map((d) => `${DIM_DISPLAY_LABEL[d.dim]} +${Math.round(d.delta)} vs team avg`);
+  const negative = diffs
+    .filter((d) => d.delta < -5)
+    .sort((a, b) => a.delta - b.delta)
+    .slice(0, 2)
+    .map((d) => `${DIM_DISPLAY_LABEL[d.dim]} ${Math.round(d.delta)} vs team avg`);
+  return { positive, negative };
 }
 
 function lowestDim(dims: Record<ReadinessDimName, ReadinessMapCell>): ReadinessDimName {
@@ -353,7 +617,18 @@ export function buildReadinessMapPayload(input: {
   approvedCertCountByUser: Record<string, number>;
   labSessions30dByUser: Record<string, number>;
   pitchGradeByUser: Record<string, number | null>;
+  challengeSignalsByUser?: Record<string, ChallengeSubmissionSignal[]>;
+  flightCheckByUser?: Record<string, FlightCheckSignal>;
+  marketPulseSignalsByUser?: Record<string, MarketPulseSignal[]>;
+  dealPrepActivityByUser?: Record<string, DealPrepActivity>;
+  /** challenge_id -> competency names, from the challenge_competencies join. */
+  challengeCompetenciesByChallengeId?: Record<string, string[]>;
 }): ReadinessMapPayload {
+  const challengeSignalsByUser = input.challengeSignalsByUser ?? {};
+  const flightCheckByUser = input.flightCheckByUser ?? {};
+  const marketPulseSignalsByUser = input.marketPulseSignalsByUser ?? {};
+  const dealPrepActivityByUser = input.dealPrepActivityByUser ?? {};
+  const challengeCompetenciesByChallengeId = input.challengeCompetenciesByChallengeId ?? {};
   const seProfiles = uniqueProfiles(
     input.profiles.filter((p) =>
       ["basic_se", "senior_se", "advisory_solutions_consultant"].includes(p.role),
@@ -392,6 +667,10 @@ export function buildReadinessMapPayload(input: {
     });
 
     const firstName = profile.fullName.split(" ")[0] ?? profile.fullName;
+    const challengeSignals = challengeSignalsByUser[profile.id] ?? [];
+    const flightCheckSignal = flightCheckByUser[profile.id] ?? null;
+    const marketPulseSignals = marketPulseSignalsByUser[profile.id] ?? [];
+
     const dims: Record<ReadinessDimName, ReadinessMapCell> = {
       Ramp: rampCell(breakdown.planProgress, tenureDays, firstName),
       Sims: simsCell(breakdown.simulationAvg, firstName),
@@ -399,10 +678,31 @@ export function buildReadinessMapPayload(input: {
       Certs: certsCell(approvedCerts, tenureDays, firstName),
       Lab: labCell(labHours, firstName),
       Pitch: pitchCell(pitchScore, firstName),
+      Challenges: challengesCell(challengeSignals, firstName),
+      FlightCheck: flightCheckCell(flightCheckSignal, firstName),
+      MarketPulse: marketPulseCell(marketPulseSignals, firstName),
     };
 
     const composite = breakdown.score;
     const priorityDim = lowestDim(dims);
+
+    const competencySummary = competencySummaryFromSources({
+      coachingCardCompetencies: userCards.flatMap((c) =>
+        c.linkedCompetencies.map((competency) => ({
+          competency,
+          score: c.score,
+          weight: recencyWeight(c.sentToManagerAt),
+        })),
+      ),
+      challengeCompetencies: challengeSignals.flatMap((s) => {
+        const names = challengeCompetenciesByChallengeId[s.challengeId ?? ""] ?? [];
+        const score = s.aiSuggestedScore ?? (s.managerGrade != null ? s.managerGrade * 20 : 0);
+        const weight = s.source === "template" ? 0.5 : 1;
+        return names.map((competency) => ({ competency, score, weight }));
+      }),
+      flightCheckCompetencyScores: flightCheckSignal?.competencyScores ?? {},
+      pitchCompetencies: [],
+    });
 
     return {
       userId: profile.id,
@@ -418,6 +718,10 @@ export function buildReadinessMapPayload(input: {
       sparklineWeekly: buildSparkline(composite, trend, "weekly"),
       sparklineMonthly: buildSparkline(composite, trend, "monthly"),
       priorityDim,
+      competencySummary,
+      dealPrepActivity: dealPrepActivityByUser[profile.id] ?? { briefsThisWeek: 0, sharedWithManager: 0 },
+      compositeDrivers: { positive: [], negative: [] },
+      percentileRank: null,
     };
   });
 
@@ -429,6 +733,13 @@ export function buildReadinessMapPayload(input: {
   const avg = (values: number[]) =>
     values.length ? Math.round(values.reduce((a, b) => a + b, 0) / values.length) : 0;
 
+  const teamAvgByDim: Record<ReadinessDimName, number> = Object.fromEntries(
+    DIM_NAMES.map((dim) => [dim, avg(rows.map((r) => r.dims[dim].numericScore))]),
+  ) as Record<ReadinessDimName, number>;
+  for (const row of rows) {
+    row.compositeDrivers = compositeDriversFor(row.dims, teamAvgByDim);
+  }
+
   const rampAvg = avg(rows.map((r) => r.dims.Ramp.numericScore));
   const simAvg = avg(rows.map((r) => r.dims.Sims.numericScore));
   const segAvg = rows.length
@@ -439,6 +750,9 @@ export function buildReadinessMapPayload(input: {
     rows.reduce((sum, r) => sum + parseFloat(r.dims.Lab.score), 0) / Math.max(rows.length, 1)
   ).toFixed(1);
   const pitchAvg = avg(rows.map((r) => r.dims.Pitch.numericScore));
+  const challengesAvg = avg(rows.map((r) => r.dims.Challenges.numericScore));
+  const flightCheckAvg = avg(rows.map((r) => r.dims.FlightCheck.numericScore));
+  const marketPulseAvg = avg(rows.map((r) => r.dims.MarketPulse.numericScore));
 
   const dimensionPillars = [
     { label: "RAMP", value: `${rampAvg}%`, badge: pillarBadge(rampAvg).badge, badgeTone: pillarBadge(rampAvg).tone },
@@ -462,6 +776,24 @@ export function buildReadinessMapPayload(input: {
       badgeTone: pillarBadge((parseFloat(labAvg) / LAB_WEEKLY_TARGET_HOURS) * 100).tone,
     },
     { label: "PITCH", value: String(pitchAvg), badge: pillarBadge(pitchAvg).badge, badgeTone: pillarBadge(pitchAvg).tone },
+    {
+      label: "CHALLENGES",
+      value: String(challengesAvg),
+      badge: pillarBadge(challengesAvg).badge,
+      badgeTone: pillarBadge(challengesAvg).tone,
+    },
+    {
+      label: "FLIGHT CHECK",
+      value: String(flightCheckAvg),
+      badge: pillarBadge(flightCheckAvg).badge,
+      badgeTone: pillarBadge(flightCheckAvg).tone,
+    },
+    {
+      label: "MARKET PULSE",
+      value: `${marketPulseAvg}%`,
+      badge: pillarBadge(marketPulseAvg).badge,
+      badgeTone: pillarBadge(marketPulseAvg).tone,
+    },
   ];
 
   const priorities: ReadinessMapPriority[] = [...rows]
@@ -491,12 +823,27 @@ export function buildReadinessMapPayload(input: {
       Certs: `${Math.round(certAvg)}/${CERT_TOTAL}`,
       Lab: `${labAvg}h`,
       Pitch: String(pitchAvg),
+      Challenges: String(challengesAvg),
+      FlightCheck: String(flightCheckAvg),
+      MarketPulse: `${marketPulseAvg}%`,
     },
   };
 }
 
+function linkedCompetenciesFromStructuredOutput(structuredOutput: unknown): string[] {
+  if (!structuredOutput || typeof structuredOutput !== "object" || Array.isArray(structuredOutput)) return [];
+  const output = structuredOutput as Record<string, unknown>;
+  const value = output.linkedCompetencies ?? output.linked_competencies;
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
+
 export function coachingCardsFromDb(
-  rows: Array<{ user_id: string; structured_output: unknown; is_practice: boolean | null }>,
+  rows: Array<{
+    user_id: string;
+    structured_output: unknown;
+    is_practice: boolean | null;
+    created_at?: string | null;
+  }>,
 ): CoachingCard[] {
   return rows.map((row) => ({
     id: "",
@@ -506,14 +853,14 @@ export function coachingCardsFromDb(
     gaps: [],
     recommendedImprovements: [],
     score: coachingCardScore(row.structured_output),
-    linkedCompetencies: [],
+    linkedCompetencies: linkedCompetenciesFromStructuredOutput(row.structured_output),
     managerSummary: "",
     seReflection: null,
     managerReviewStatus: "pending",
     isPractice: Boolean(row.is_practice),
     managerComments: null,
     managerGrade: null,
-    sentToManagerAt: "",
+    sentToManagerAt: row.created_at ?? "",
     reviewedAt: null,
   }));
 }

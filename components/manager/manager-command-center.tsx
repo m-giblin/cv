@@ -4,6 +4,10 @@ import Link from "next/link";
 import { useMemo } from "react";
 import type { CertReviewItem } from "@/components/manager/cert-review-item";
 import type { ReviewItem } from "@/components/manager/review-queue";
+import { ManagerAccountabilityDashboard } from "@/components/manager/accountability-dashboard";
+import { ManagerBuyerEngagementPanel } from "@/components/manager/manager-buyer-engagement-panel";
+import { IscLabActivityPanel } from "@/components/manager/isc-lab-activity-panel";
+import { ManagerPriorityDigest } from "@/components/manager/manager-priority-digest";
 import { ManagerRecentActivity } from "@/components/manager/manager-recent-activity";
 import { TeamLeaderboard } from "@/components/gamification/team-leaderboard";
 import {
@@ -209,7 +213,9 @@ function ReadinessHeatmapGrid({
               {reviewedChallenges}/{challengeTotal}
             </p>
             <p className="text-center font-mono text-[11px] text-[#4A4845]">{approvedCerts}/5</p>
-            <p className="text-center font-mono text-[11px] text-[#4A4845]">{devGoals}</p>
+            <p className={`text-center font-mono text-[11px] ${devGoals === "—" ? "text-[#B0ADA8]" : "text-[#4A4845]"}`}>
+              {devGoals}
+            </p>
             <div className="flex justify-center">
               <span
                 className="font-mono text-[8px] uppercase tracking-[0.08em] px-2 py-0.5"
@@ -326,6 +332,10 @@ export function ManagerCommandCenter({
           }
         />
       ) : null}
+
+      <div className="mb-3">
+        <ManagerPriorityDigest coachingByUser={coachingByUser} onSelectProfile={onSelectProfile} org={org} />
+      </div>
 
       <ManagerBentoGrid columns="55fr 27fr 18fr">
         {/* Zone 1: Coaching queue */}
@@ -506,6 +516,15 @@ export function ManagerCommandCenter({
           <TeamLeaderboard embedded entries={leaderboardEntries} />
         </div>
         <ManagerRecentActivity activity={activity} profiles={profiles.length ? profiles : org} />
+      </div>
+
+      <div className="mt-3 border border-[#E2DFD9] bg-white p-5">
+        <ManagerAccountabilityDashboard />
+      </div>
+
+      <div className="mt-3 grid gap-3" style={{ gridTemplateColumns: "1fr 1fr" }}>
+        <IscLabActivityPanel />
+        <ManagerBuyerEngagementPanel />
       </div>
     </div>
   );

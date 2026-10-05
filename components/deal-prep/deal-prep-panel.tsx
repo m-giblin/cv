@@ -23,6 +23,7 @@ type SessionRecord = {
   competitors: string | null;
   debrief_notes: string | null;
   shared_with_manager: boolean;
+  outcome: "pending" | "won" | "lost";
   prep_output: DealPrepOutput;
 };
 
@@ -47,6 +48,7 @@ export function DealPrepPanel({
   const [parentSessionId, setParentSessionId] = useState<string | null>(null);
   const [sharedWithManager, setSharedWithManager] = useState(false);
   const [debriefNotes, setDebriefNotes] = useState("");
+  const [outcome, setOutcome] = useState<"pending" | "won" | "lost">("pending");
   const [isLoading, setIsLoading] = useState(false);
   const [historyRefresh, setHistoryRefresh] = useState(0);
   const [practiceObjection, setPracticeObjection] = useState<string | null>(null);
@@ -137,6 +139,7 @@ export function DealPrepPanel({
         setParentSessionId(saved.id);
         setSharedWithManager(false);
         setDebriefNotes("");
+        setOutcome("pending");
         if (assignmentStepId) {
           toast.success("Deal prep saved and submitted for plan review.");
         }
@@ -175,6 +178,7 @@ export function DealPrepPanel({
     setParentSessionId(session.id);
     setSharedWithManager(session.shared_with_manager);
     setDebriefNotes(session.debrief_notes ?? "");
+    setOutcome(session.outcome ?? "pending");
     onCloseHistory?.();
   }, [onCloseHistory]);
 
@@ -225,8 +229,10 @@ export function DealPrepPanel({
               debriefNotes={debriefNotes}
               formContext={form}
               isRegenerating={isLoading}
+              onOutcomeChange={setOutcome}
               onPracticeObjection={setPracticeObjection}
               onRegenerate={(focus) => void generatePrep(focus)}
+              outcome={outcome}
               result={result}
               sessionId={activeSessionId}
               sharedWithManager={sharedWithManager}

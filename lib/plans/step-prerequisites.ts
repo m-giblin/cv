@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { isStepLockedForSegment, parsePlanStepMetadata } from "@/lib/corpus/parse-step-metadata";
+import { StepSegmentLockedError } from "@/lib/plans/segment-lock";
 
 export async function isAssignmentStepBlockedByPrerequisites(
   supabase: SupabaseClient<Database>,
@@ -62,7 +63,10 @@ export async function assertStepAccessible(
 
   const { segmentIndex } = parsePlanStepMetadata(planStep.metadata, planStep.sort_order);
   if (isStepLockedForSegment(segmentIndex, assignment.unlocked_segment_max ?? 1)) {
-    throw new Error("This step is locked until the prior segment gate is approved.");
+    // Typed so callers map this to 403 like every other segment-lock path. Throwing a bare
+    // Error here made the same condition surface as 400 from PATCH /api/plans/steps/[id],
+    // which the client cannot distinguish from a malformed request.
+    throw new StepSegmentLockedError(segmentIndex ?? 0, assignment.unlocked_segment_max ?? 1);
   }
 
   const blocked = await isAssignmentStepBlockedByPrerequisites(supabase, assignmentStepId);

@@ -109,12 +109,20 @@ export function ManagerTeamTable({
  {formatPercent(plan?.progress ?? 0)}
  </td>
  <td className="px-4 py-2.5 font-semibold text-sp-navy">
- {coaching?.devGoalsTotal
- ? `${coaching.devGoalsOnTrack}/${coaching.devGoalsTotal}`
- : "—"}
+ {coaching?.devGoalsTotal ? (
+ `${coaching.devGoalsOnTrack}/${coaching.devGoalsTotal}`
+ ) : (
+ <span className="font-normal text-sp-navy-muted/60" title="No development goals set yet">
+ —
+ </span>
+ )}
  </td>
  <td className="px-4 py-2.5 font-semibold text-sp-navy">
- {coaching?.latestSimScore ?? coaching?.avgSimScore ?? "—"}
+ {coaching?.latestSimScore ?? coaching?.avgSimScore ?? (
+ <span className="font-normal text-sp-navy-muted/60" title="No simulations completed yet">
+ —
+ </span>
+ )}
  </td>
  <td className="px-4 py-2.5 text-xs text-sp-navy-muted">
  {[
@@ -123,7 +131,7 @@ export function ManagerTeamTable({
  coaching?.quarterlyChip,
  ]
  .filter(Boolean)
- .join(" · ") || "—"}
+ .join(" · ") || <span className="text-sp-navy-muted/60">Nothing flagged</span>}
  </td>
  <td className="px-4 py-2.5">
  <ChevronRight className="h-4 w-4 text-sp-navy-muted" />

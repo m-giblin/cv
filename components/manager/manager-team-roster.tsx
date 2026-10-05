@@ -107,7 +107,7 @@ function RosterRow({
  <span className="text-[12px] font-bold" style={{ color: simScoreColor(sim) }}>
  {sim ?? "—"}
  </span>
- <span className="text-[12px] text-[#3D3C38]">{devGoals}</span>
+ <span className={`text-[12px] ${devGoals === "—" ? "text-[#B0ADA8]" : "text-[#3D3C38]"}`}>{devGoals}</span>
  <span className="text-[11px] font-semibold" style={{ color: inboxColor(inboxCount) }}>
  {inboxCount > 0 ? inboxCount : "—"}
  </span>
@@ -224,8 +224,9 @@ export function ManagerTeamRoster({
    {
     label: "Avg sim",
     value: rosterStats.avgSim ?? "—",
-    sub: rosterStats.avgSim != null ? "Team average" : undefined,
-    subColor: "#0A6E45",
+    valueColor: rosterStats.avgSim == null ? "#B0ADA8" : undefined,
+    sub: rosterStats.avgSim != null ? "Team average" : "No sims yet",
+    subColor: rosterStats.avgSim != null ? "#0A6E45" : "#B0ADA8",
    },
    {
     label: "At risk",

@@ -48,13 +48,28 @@ const LEVEL_STYLES: Record<
     border: "rgba(10,110,69,.2)",
     cellBg: "rgba(10,110,69,.10)",
   },
+  unknown: {
+    bg: "rgba(122,119,114,.06)",
+    text: "#7A7772",
+    border: "rgba(122,119,114,.2)",
+    cellBg: "rgba(122,119,114,.10)",
+  },
 };
 
-const DIM_NAMES: ReadinessDimName[] = ["Ramp", "Sims", "Segments", "Certs", "Lab", "Pitch"];
+const DIM_NAMES: ReadinessDimName[] = [
+  "Ramp",
+  "Sims",
+  "Segments",
+  "Certs",
+  "Lab",
+  "Pitch",
+  "Challenges",
+  "FlightCheck",
+  "MarketPulse",
+];
 
-/** SE | 4 core dims | Lab | Pitch (narrow) | Trend (wider) */
-const HEATMAP_GRID_COLS =
-  "minmax(156px, 172px) repeat(4, minmax(0, 1fr)) minmax(52px, 0.88fr) minmax(42px, 0.62fr) minmax(108px, 128px)";
+/** SE | 9 dims, each with a real minimum width so they scroll instead of squishing illegibly | Trend */
+const HEATMAP_GRID_COLS = "minmax(156px, 172px) repeat(9, minmax(86px, 1fr)) minmax(108px, 128px)";
 const ACTION_COLORS = ["#0071CE", "#CC27B0", "#0A6E45"];
 
 const DIM_SUBTITLES: Record<ReadinessDimName, string> = {
@@ -64,6 +79,9 @@ const DIM_SUBTITLES: Record<ReadinessDimName, string> = {
   Certs: "approved /8",
   Lab: "hours this week",
   Pitch: "last score /100",
+  Challenges: "avg score /100",
+  FlightCheck: "field signal /100",
+  MarketPulse: "avg % correct",
 };
 
 const PILLAR_BADGE_STYLES: Record<
@@ -87,6 +105,12 @@ const PILLAR_BADGE_STYLES: Record<
     bg: "rgba(10,110,69,.2)",
     border: "rgba(10,110,69,.45)",
     dot: "#0A6E45",
+  },
+  unknown: {
+    color: "#B0ADA8",
+    bg: "rgba(122,119,114,.18)",
+    border: "rgba(122,119,114,.4)",
+    dot: "#7A7772",
   },
 };
 
@@ -182,8 +206,15 @@ function HeatCell({
       }}
       type="button"
     >
-      <div className="font-mono text-[13px] font-medium" style={{ color: style.text }}>
+      <div className="flex items-center gap-1 font-mono text-[13px] font-medium" style={{ color: style.text }}>
         {data.score}
+        {data.confidence !== "high" ? (
+          <span
+            className="h-1.5 w-1.5 shrink-0 rounded-full"
+            style={{ background: data.confidence === "low" ? "#B83128" : "#D4810A" }}
+            title={data.confidence === "low" ? "Low-confidence score" : "Thin sample"}
+          />
+        ) : null}
       </div>
       {data.progressPct != null && dim !== "Sims" && dim !== "Lab" ? (
         <ProgressBar pct={data.progressPct} color={style.text} />
@@ -195,6 +226,60 @@ function HeatCell({
         {data.status}
       </div>
     </button>
+  );
+}
+
+type FlagRow = { id: string; userId: string; dimName: string; reason: string; createdAt: string };
+
+/** Score disputes SEs have raised — resolve moves them out of the open list. */
+function ReadinessFlagsPanel({ rows }: { rows: ReadinessMapSeRow[] }) {
+  const [flags, setFlags] = useState<FlagRow[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  const load = useCallback(async () => {
+    const response = await fetch("/api/manager/readiness-flags");
+    if (response.ok) {
+      const body = (await response.json()) as { flags: FlagRow[] };
+      setFlags(body.flags);
+    }
+    setLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const resolve = async (id: string) => {
+    setFlags((prev) => prev.filter((f) => f.id !== id));
+    await fetch(`/api/manager/readiness-flags/${id}`, { method: "PATCH" });
+  };
+
+  if (!loaded || flags.length === 0) return null;
+
+  const nameFor = (userId: string) => rows.find((r) => r.userId === userId)?.firstName ?? "Someone";
+
+  return (
+    <div className="mb-3 w-full border border-[#D4810A]/40 bg-[#D4810A]/5 px-4 py-3">
+      <p className="mb-2 font-mono text-[9px] uppercase tracking-[0.1em] text-[#D4810A]">
+        {flags.length} flagged score{flags.length === 1 ? "" : "s"} awaiting review
+      </p>
+      <div className="flex flex-col gap-2">
+        {flags.map((flag) => (
+          <div className="flex items-start justify-between gap-3" key={flag.id}>
+            <p className="text-[11px] text-[#3D3C38]">
+              <span className="font-medium">{nameFor(flag.userId)}</span> flagged {flag.dimName}: &ldquo;{flag.reason}&rdquo;
+            </p>
+            <button
+              className="shrink-0 border border-[#D4D1CB] px-2 py-1 text-[9.5px] font-semibold text-[#3D3C38] hover:border-[#0071CE]"
+              onClick={() => void resolve(flag.id)}
+              type="button"
+            >
+              Resolve
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -261,7 +346,9 @@ export function ReadinessMap({ onOpenProfile }: { onOpenProfile?: (userId: strin
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-14rem)] w-full flex-col overflow-hidden rounded-sm border border-[#E2DFD9] bg-white shadow-[0_1px_2px_rgba(0,0,0,.04)]">
+    <>
+      <ReadinessFlagsPanel rows={data.rows} />
+      <div className="flex min-h-[calc(100vh-14rem)] w-full flex-col overflow-hidden rounded-sm border border-[#E2DFD9] bg-white shadow-[0_1px_2px_rgba(0,0,0,.04)]">
       {/* Toolbar */}
       <div className="flex w-full shrink-0 items-center justify-end gap-2 border-b border-[#E2DFD9] bg-white px-5 py-2">
         <div className="flex overflow-hidden border border-[#D4D1CB]">
@@ -289,9 +376,9 @@ export function ReadinessMap({ onOpenProfile }: { onOpenProfile?: (userId: strin
         </Link>
       </div>
 
-      {/* Intel strip */}
-      <div className="flex w-full shrink-0 items-center bg-[#00143A] px-5 py-2.5">
-        <div className="border-r border-white/10 pr-5">
+      {/* Intel strip — Team Readiness and the CTA stay pinned; pillars scroll if they don't fit. */}
+      <div className="flex w-full shrink-0 items-center gap-3 bg-[#00143A] px-5 py-2.5">
+        <div className="shrink-0 border-r border-white/10 pr-5">
           <p className="mb-0.5 font-mono text-[7.5px] uppercase tracking-[0.13em] text-white">
             Team Readiness
           </p>
@@ -306,38 +393,42 @@ export function ReadinessMap({ onOpenProfile }: { onOpenProfile?: (userId: strin
           </div>
         </div>
 
-        {data.dimensionPillars.map((pillar, index) => {
-          const badgeStyle = PILLAR_BADGE_STYLES[pillar.badgeTone];
-          return (
-            <div
-              className={`flex flex-col gap-0.5 px-4 ${index < data.dimensionPillars.length - 1 ? "border-r border-white/6" : ""}`}
-              key={pillar.label}
-            >
-              <span className="font-mono text-[7.5px] tracking-[0.1em] text-white">{pillar.label}</span>
-              <div className="flex items-center gap-1.5">
-                <span className="text-sm font-semibold text-white">{pillar.value}</span>
-                <span
-                  className="inline-flex items-center gap-1 border px-1.5 py-0.5 font-mono text-[7px] font-semibold uppercase tracking-[0.06em]"
-                  style={{
-                    color: badgeStyle.color,
-                    background: badgeStyle.bg,
-                    borderColor: badgeStyle.border,
-                  }}
-                >
-                  <span
-                    className="h-1.5 w-1.5 shrink-0 rounded-full"
-                    style={{ background: badgeStyle.dot }}
-                  />
-                  {pillar.badge}
+        <div className="flex min-w-0 flex-1 items-center overflow-x-auto">
+          {data.dimensionPillars.map((pillar, index) => {
+            const badgeStyle = PILLAR_BADGE_STYLES[pillar.badgeTone];
+            return (
+              <div
+                className={`flex shrink-0 flex-col gap-0.5 px-3.5 ${index < data.dimensionPillars.length - 1 ? "border-r border-white/6" : ""}`}
+                key={pillar.label}
+              >
+                <span className="whitespace-nowrap font-mono text-[7.5px] tracking-[0.1em] text-white">
+                  {pillar.label}
                 </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm font-semibold text-white">{pillar.value}</span>
+                  <span
+                    className="inline-flex shrink-0 items-center gap-1 border px-1.5 py-0.5 font-mono text-[7px] font-semibold uppercase tracking-[0.06em]"
+                    style={{
+                      color: badgeStyle.color,
+                      background: badgeStyle.bg,
+                      borderColor: badgeStyle.border,
+                    }}
+                  >
+                    <span
+                      className="h-1.5 w-1.5 shrink-0 rounded-full"
+                      style={{ background: badgeStyle.dot }}
+                    />
+                    {pillar.badge}
+                  </span>
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
 
-        <div className="ml-auto">
+        <div className="shrink-0">
           <Link
-            className="inline-flex items-center border border-white/40 px-3 py-1.5 text-[10px] font-semibold text-white hover:bg-white/10"
+            className="inline-flex items-center whitespace-nowrap border border-white/40 px-3 py-1.5 text-[10px] font-semibold text-white hover:bg-white/10"
             href="/manager?section=cadence"
           >
             Open all coaching plans
@@ -385,10 +476,10 @@ export function ReadinessMap({ onOpenProfile }: { onOpenProfile?: (userId: strin
         <div
           className={`min-h-0 w-full flex-1 overflow-y-auto transition-[padding] duration-200 ${panelOpen ? "px-5 py-5" : "py-5"}`}
         >
-          <div className="w-full overflow-hidden border border-[#E2DFD9] bg-white">
+          <div className="w-full overflow-x-auto border border-[#E2DFD9] bg-white">
             <div
               className="grid border-b border-[#E2DFD9] bg-[#F9F8F6]"
-              style={{ gridTemplateColumns: HEATMAP_GRID_COLS }}
+              style={{ gridTemplateColumns: HEATMAP_GRID_COLS, minWidth: 1100 }}
             >
               <div className="flex items-center justify-between px-3.5 py-2.5">
                 <span className="font-mono text-[8px] uppercase tracking-[0.1em] text-[#A09D98]">SE</span>
@@ -412,7 +503,7 @@ export function ReadinessMap({ onOpenProfile }: { onOpenProfile?: (userId: strin
               <div
                 className={rowIndex < data.rows.length - 1 ? "border-b border-[#E2DFD9]" : ""}
                 key={row.userId}
-                style={{ display: "grid", gridTemplateColumns: HEATMAP_GRID_COLS }}
+                style={{ display: "grid", gridTemplateColumns: HEATMAP_GRID_COLS, minWidth: 1100 }}
               >
                 <button
                   className="flex items-center gap-2.5 px-3.5 py-3 text-left hover:bg-[#F9F8F6]"
@@ -422,14 +513,21 @@ export function ReadinessMap({ onOpenProfile }: { onOpenProfile?: (userId: strin
                   <Avatar initial={row.initial} gradient={row.avatarGradient} />
                   <div className="min-w-0">
                     <p className="truncate text-[12px] font-medium text-[#0D0E12]">{row.firstName}</p>
-                    <p className="font-mono text-[8px] text-[#A09D98]">{row.tenure}</p>
+                    <p className="font-mono text-[8px] text-[#A09D98]">
+                      {row.tenure}
+                      {row.dealPrepActivity.briefsThisWeek > 0
+                        ? ` · ${row.dealPrepActivity.briefsThisWeek} prep${row.dealPrepActivity.briefsThisWeek === 1 ? "" : "s"} this wk`
+                        : ""}
+                    </p>
                   </div>
-                  <span
-                    className="ml-auto font-display text-base font-bold"
-                    style={{ color: row.compositeColor }}
-                  >
-                    {row.composite}
-                  </span>
+                  <div className="ml-auto flex flex-col items-end">
+                    <span className="font-display text-base font-bold" style={{ color: row.compositeColor }}>
+                      {row.composite}
+                    </span>
+                    {row.percentileRank != null ? (
+                      <span className="font-mono text-[7.5px] text-[#A09D98]">p{row.percentileRank}</span>
+                    ) : null}
+                  </div>
                 </button>
 
                 {DIM_NAMES.map((dim) => (
@@ -450,7 +548,7 @@ export function ReadinessMap({ onOpenProfile }: { onOpenProfile?: (userId: strin
 
             <div
               className="grid border-t-2 border-[#E2DFD9] bg-[#F9F8F6]"
-              style={{ gridTemplateColumns: HEATMAP_GRID_COLS }}
+              style={{ gridTemplateColumns: HEATMAP_GRID_COLS, minWidth: 1100 }}
             >
               <div className="flex items-center px-3.5 py-2">
                 <span className="font-mono text-[8px] uppercase tracking-[0.08em] text-[#A09D98]">Team avg</span>
@@ -526,7 +624,22 @@ export function ReadinessMap({ onOpenProfile }: { onOpenProfile?: (userId: strin
                     {dimData.status}
                   </p>
                   <p className="mt-0.5 text-[10.5px] leading-snug text-[#5A5855]">{dimData.insight}</p>
+                  {dimData.confidence !== "high" ? (
+                    <p className="mt-1 font-mono text-[8.5px] uppercase tracking-[0.05em] text-[#B0803A]">
+                      {dimData.confidence === "low" ? "Low-confidence score" : "Thin sample"}
+                    </p>
+                  ) : null}
                 </div>
+                {selectedRow.compositeDrivers.positive.length > 0 || selectedRow.compositeDrivers.negative.length > 0 ? (
+                  <p className="mt-2 text-[10.5px] leading-snug text-[#7A7772]">
+                    {selectedRow.compositeDrivers.positive.length > 0
+                      ? `Ahead: ${selectedRow.compositeDrivers.positive.join(", ")}. `
+                      : ""}
+                    {selectedRow.compositeDrivers.negative.length > 0
+                      ? `Behind: ${selectedRow.compositeDrivers.negative.join(", ")}.`
+                      : ""}
+                  </p>
+                ) : null}
               </div>
 
               <div className="flex-1 px-4 py-3.5">
@@ -573,6 +686,7 @@ export function ReadinessMap({ onOpenProfile }: { onOpenProfile?: (userId: strin
           </div>
         ) : null}
       </div>
-    </div>
+      </div>
+    </>
   );
 }

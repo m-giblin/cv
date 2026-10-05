@@ -49,7 +49,7 @@ type InboxItem =
  | ({ inboxType: "deal_prep" } & DealPrepReviewItem)
  | ({ inboxType: "pitch" } & PitchItem);
 
-type Filter = "all" | "submission" | "coaching" | "plan_step" | "cert";
+type Filter = "all" | "submission" | "coaching" | "plan_step" | "cert" | "mentor" | "deal_prep" | "pitch";
 
 const FILTER_LABELS: Record<Filter, string> = {
  all: "All",
@@ -57,9 +57,21 @@ const FILTER_LABELS: Record<Filter, string> = {
  coaching: "Sim cards",
  plan_step: "Plan steps",
  cert: "Cert sign-offs",
+ mentor: "Mentor notes",
+ deal_prep: "Deal preps",
+ pitch: "Pitches",
 };
 
-const SPEC_FILTERS: Filter[] = ["all", "submission", "coaching", "plan_step", "cert"];
+const SPEC_FILTERS: Filter[] = [
+ "all",
+ "submission",
+ "coaching",
+ "plan_step",
+ "cert",
+ "mentor",
+ "deal_prep",
+ "pitch",
+];
 
 type InboxVisualConfig = {
  type: string;
@@ -366,24 +378,19 @@ export function ManagerActionInbox({
  const counts = useMemo(
  () => ({
  all: allItems.length,
- submission: allItems.filter(
- (item) => item.inboxType === "submission" || item.inboxType === "mentor" || item.inboxType === "pitch",
- ).length,
+ submission: allItems.filter((item) => item.inboxType === "submission").length,
  coaching: allItems.filter((item) => item.inboxType === "coaching").length,
  plan_step: allItems.filter((item) => item.inboxType === "plan_step").length,
  cert: allItems.filter((item) => item.inboxType === "cert").length,
+ mentor: allItems.filter((item) => item.inboxType === "mentor").length,
+ deal_prep: allItems.filter((item) => item.inboxType === "deal_prep").length,
+ pitch: allItems.filter((item) => item.inboxType === "pitch").length,
  }),
  [allItems],
  );
 
  const visible = allItems.filter((item) => {
  if (filter === "all") return true;
- if (filter === "submission") {
- return item.inboxType === "submission" || item.inboxType === "mentor" || item.inboxType === "pitch";
- }
- if (filter === "coaching") {
- return item.inboxType === "coaching" || item.inboxType === "deal_prep";
- }
  return item.inboxType === filter;
  });
 

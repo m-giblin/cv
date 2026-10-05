@@ -7,10 +7,13 @@ import type { DealPrepReviewItem } from "@/components/manager/deal-prep-review-i
 import { ManagerMenteesPanel } from "@/components/manager/manager-mentees-panel";
 import { ManagerActionInbox } from "@/components/manager/manager-action-inbox";
 import { ManagerCoachingCadencePanel } from "@/components/manager/manager-coaching-cadence-panel";
+import { ManagerCohortView } from "@/components/manager/cohort-view";
 import { ManagerDevelopmentPlansPanel } from "@/components/manager/manager-development-plans-panel";
 import { ManagerCommandCenter } from "@/components/manager/manager-command-center";
 import { ManagerAssignPlansSection } from "@/components/manager/manager-assign-plans-section";
 import { ManagerProgramTrackerPanel } from "@/components/manager/manager-program-tracker-panel";
+import { ManagerTeamTable } from "@/components/manager/manager-team-table";
+import { QuarterlyReviewQueue } from "@/components/manager/quarterly-review-queue";
 import { ReadinessMap } from "@/components/manager/readiness-map";
 import {
  ManagerSeDetailPanel,
@@ -156,8 +159,15 @@ export function ManagerPageShell({
  break;
  case "roster":
  content = (
- <div className="animate-[fadeUp_0.2s_ease-out]">
+ <div className="animate-[fadeUp_0.2s_ease-out] space-y-4">
  <ManagerTeamRoster
+ coachingByUser={coachingByUser}
+ onSelectProfile={openProfile}
+ org={org}
+ plans={plans}
+ selectedProfileId={selectedProfileId}
+ />
+ <ManagerTeamTable
  coachingByUser={coachingByUser}
  onSelectProfile={openProfile}
  org={org}
@@ -197,14 +207,15 @@ export function ManagerPageShell({
  break;
  case "dev":
  content = (
- <div className="animate-[fadeUp_0.2s_ease-out]">
+ <div className="animate-[fadeUp_0.2s_ease-out] space-y-4">
  <ManagerDevelopmentPlansPanel />
+ <QuarterlyReviewQueue developmentPlans={developmentPlans} />
  </div>
  );
  break;
  case "program":
  content = (
- <div className="animate-[fadeUp_0.2s_ease-out]">
+ <div className="animate-[fadeUp_0.2s_ease-out] space-y-4">
  <ManagerProgramTrackerPanel
  org={org}
  plans={plans}
@@ -215,6 +226,7 @@ export function ManagerPageShell({
  planSteps={planSteps}
  certReviewItems={certReviewItems}
  />
+ <ManagerCohortView org={org} plans={plans} />
  </div>
  );
  break;

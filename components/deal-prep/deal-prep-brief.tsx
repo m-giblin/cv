@@ -43,6 +43,8 @@ export function DealPrepBrief({
  sessionId,
  sharedWithManager,
  debriefNotes: initialDebrief,
+ outcome: initialOutcome,
+ onOutcomeChange,
  onRegenerate,
  isRegenerating,
  onPracticeObjection,
@@ -53,6 +55,8 @@ export function DealPrepBrief({
  sessionId: string | null;
  sharedWithManager: boolean;
  debriefNotes: string;
+ outcome?: "pending" | "won" | "lost";
+ onOutcomeChange?: (outcome: "pending" | "won" | "lost") => void;
  onRegenerate: (focus: string) => void;
  isRegenerating: boolean;
  onPracticeObjection: (objection: string) => void;
@@ -66,12 +70,14 @@ export function DealPrepBrief({
  const [assets, setAssets] = useState<ContentAsset[]>([]);
  const [debriefNotes, setDebriefNotes] = useState(initialDebrief);
  const [shared, setShared] = useState(sharedWithManager);
+ const [outcome, setOutcome] = useState(initialOutcome ?? "pending");
  const [savingMeta, setSavingMeta] = useState(false);
 
  useEffect(() => {
  setDebriefNotes(initialDebrief);
  setShared(sharedWithManager);
- }, [initialDebrief, sharedWithManager, sessionId]);
+ setOutcome(initialOutcome ?? "pending");
+ }, [initialDebrief, sharedWithManager, initialOutcome, sessionId]);
 
  useEffect(() => {
  void fetch("/api/content")
@@ -115,6 +121,7 @@ export function DealPrepBrief({
  async function saveSessionMeta(updates: {
  debriefNotes?: string;
  sharedWithManager?: boolean;
+ outcome?: "pending" | "won" | "lost";
  }) {
  if (!sessionId) return;
 
@@ -125,6 +132,7 @@ export function DealPrepBrief({
  body: JSON.stringify({
  debriefNotes: updates.debriefNotes,
  sharedWithManager: updates.sharedWithManager,
+ outcome: updates.outcome,
  }),
  });
  setSavingMeta(false);
@@ -249,6 +257,33 @@ export function DealPrepBrief({
  />
  Share brief with manager for review
  </label>
+ <div>
+ <p className="mb-1 font-mono text-[8px] uppercase tracking-[0.1em] text-[#B0ADA8]">Deal outcome</p>
+ <p className="mb-1.5 text-[10px] text-[#7A7772]">
+ Tagging real outcomes lets us check whether readiness scores actually track deal results.
+ </p>
+ <div className="flex gap-1.5">
+ {(["pending", "won", "lost"] as const).map((option) => (
+ <button
+ className={cn(
+ "border px-2.5 py-1 text-[10.5px] font-semibold capitalize",
+ outcome === option
+ ? "border-[#0071CE] bg-[#0071CE] text-white"
+ : "border-[#D4D1CB] bg-white text-[#3D3C38]",
+ )}
+ key={option}
+ onClick={() => {
+ setOutcome(option);
+ onOutcomeChange?.(option);
+ void saveSessionMeta({ outcome: option });
+ }}
+ type="button"
+ >
+ {option}
+ </button>
+ ))}
+ </div>
+ </div>
  <div>
  <p className="mb-1 font-mono text-[8px] uppercase tracking-[0.1em] text-[#B0ADA8]">Post-call debrief</p>
  <Textarea
