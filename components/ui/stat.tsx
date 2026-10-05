@@ -5,11 +5,12 @@ type StatProps = {
  label: string;
  value: React.ReactNode;
  note?: React.ReactNode;
+ noteTone?: "danger" | "muted";
  tone?: "blue" | "danger";
  className?: string;
 };
 
-export function Stat({ label, value, note, tone = "blue", className }: StatProps) {
+export function Stat({ label, value, note, noteTone = "danger", tone = "blue", className }: StatProps) {
  return (
  <div className={cn("flex flex-col", className)}>
  <span className="label-mono">{label}</span>
@@ -21,7 +22,9 @@ export function Stat({ label, value, note, tone = "blue", className }: StatProps
  >
  {value}
  </span>
- {note ? <span className="font-mono text-xs text-danger">{note}</span> : null}
+ {note ? (
+ <span className={cn("font-mono text-xs uppercase", noteTone === "danger" ? "text-danger" : "text-muted")}>{note}</span>
+ ) : null}
  </div>
  );
 }

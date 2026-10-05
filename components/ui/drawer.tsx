@@ -21,6 +21,8 @@ export function Drawer({
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     if (!open) return;
@@ -31,7 +33,7 @@ export function Drawer({
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (event.key !== "Tab" || !panel) return;
@@ -52,13 +54,13 @@ export function Drawer({
       document.removeEventListener("keydown", onKey);
       trigger?.focus();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-40">
-      <div aria-hidden className="absolute inset-0 bg-[rgba(10,26,63,0.25)]" onClick={onClose} />
+      <div aria-hidden className="absolute inset-0 bg-scrim" onClick={onClose} />
       <div
         aria-labelledby={titleId}
         aria-modal="true"
@@ -80,7 +82,7 @@ export function Drawer({
           </button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">{children}</div>
-        {footer ? <div className="flex gap-3 border-t border-divider px-6 py-4">{footer}</div> : null}
+        {footer ? <div className="flex flex-wrap gap-3 border-t border-divider px-6 py-4">{footer}</div> : null}
       </div>
     </div>
   );

@@ -61,7 +61,7 @@ function MobileDrawer({
 
   return (
     <div className="fixed inset-0 z-40 lg:hidden">
-      <div aria-hidden className="absolute inset-0 bg-[rgba(10,26,63,0.25)]" onClick={onClose} />
+      <div aria-hidden className="absolute inset-0 bg-scrim" onClick={onClose} />
       <div
         aria-label="Navigation"
         aria-modal="true"
