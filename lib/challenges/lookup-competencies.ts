@@ -7,10 +7,10 @@ export function competencyNamesForChallenge(challenge: Pick<Challenge, "id" | "c
 export function certificationHrefForCompetency(competencyName: string) {
   const normalized = competencyName.toLowerCase();
   if (normalized.includes("agentic") || normalized.includes("ais")) {
-    return "/certifications#agentic";
+    return "/readiness/certification";
   }
   if (normalized.includes("executive") || normalized.includes("demo")) {
-    return "/certifications";
+    return "/readiness/certification";
   }
-  return "/growth";
+  return "/readiness";
 }

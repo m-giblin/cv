@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Sparkles } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { H2_CLS, LINE_CARD_CLS } from "@/components/se/form-classes";
+import { Tag } from "@/components/ui/tag";
 import type { GapChallengeRecommendation } from "@/lib/challenges/gap-recommendations";
 
 export function GapChallengeRecommendations({
@@ -14,38 +13,34 @@ export function GapChallengeRecommendations({
  if (recommendations.length === 0) return null;
 
  return (
- <Card className="border-sp-blue/15">
- <CardHeader>
- <CardTitle className="flex items-center gap-2 text-lg">
- <Sparkles className="h-5 w-5 text-sp-blue" />
- AI gap recommendations
- </CardTitle>
- <CardDescription>
- Challenges matched to your competency focus areas from coaching cards and plan steps.
- </CardDescription>
- </CardHeader>
- <div className="space-y-2">
+ <section aria-labelledby="gap-recs-heading" className="flex flex-col gap-2">
+ <div>
+ <h2 className={H2_CLS} id="gap-recs-heading">
+ Challenges for your gaps
+ </h2>
+ <p className="text-sm text-muted">
+ Matched to your competency focus areas from coaching cards and plan steps.
+ </p>
+ </div>
+ <ul className={`${LINE_CARD_CLS} overflow-hidden`}>
  {recommendations.map((rec) => (
- <div
- className="flex flex-wrap items-center justify-between gap-2 border border-sp-blue/10 bg-sp-blue-soft/15 px-3 py-2"
+ <li
+ className="flex flex-wrap items-center justify-between gap-3 border-b border-divider px-5 py-3.5 last:border-b-0"
  key={rec.challenge.id}
  >
  <div className="min-w-0">
- <p className="font-semibold text-sp-navy">{rec.challenge.title}</p>
- <p className="text-xs text-sp-navy-muted">{rec.reason}</p>
+ <p className="text-[15px] font-bold text-ink">{rec.challenge.title}</p>
+ <p className="text-[13px] text-muted">{rec.reason}</p>
  </div>
- <div className="flex items-center gap-2">
- {rec.challenge.targetLevel ? <Badge tone="blue">{rec.challenge.targetLevel}</Badge> : null}
- <Link
- className="text-sm font-semibold text-sp-blue hover:text-sp-blue-deep"
- href={`/challenges?challenge=${rec.challenge.id}`}
- >
+ <div className="flex items-center gap-3">
+ {rec.challenge.targetLevel ? <Tag tone="blue">{rec.challenge.targetLevel}</Tag> : null}
+ <Link className="link text-sm" href={`/practice/challenges?challenge=${rec.challenge.id}`}>
  Start →
  </Link>
  </div>
- </div>
+ </li>
  ))}
- </div>
- </Card>
+ </ul>
+ </section>
  );
 }

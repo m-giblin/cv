@@ -1,7 +1,16 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useId, useState } from "react";
+import { Chip } from "@/components/ui/chip";
+import {
+  CARD_CLS,
+  FIELD_CLS,
+  H2_CLS,
+  LABEL_CLS,
+  SELECT_CLS,
+  TEXTAREA_CLS,
+} from "@/components/se/form-classes";
 import {
   DEAL_PREP_PRIMARY_TEMPLATES,
   DEAL_STAGES,
@@ -36,10 +45,7 @@ export const EMPTY_FORM: DealPrepFormValues = {
   crmAccountId: "",
 };
 
-const FIELD_LABEL_CLS =
-  "mb-1 block font-mono text-[8px] uppercase tracking-[0.1em] text-[#B0ADA8]";
-const FIELD_INPUT_CLS =
-  "w-full border border-[#E2DFD9] bg-white px-2.5 py-1.5 text-[11.5px] text-[#0D0E12] outline-none placeholder:text-[#B0ADA8] focus:border-[#D4810A]/50";
+const FIELD_WRAP_CLS = "flex flex-col gap-1.5";
 
 export function DealPrepForm({
   values,
@@ -53,6 +59,19 @@ export function DealPrepForm({
   isLoading: boolean;
 }) {
   const [activeTemplateId, setActiveTemplateId] = useState<string>("first-discovery");
+  const uid = useId();
+  const ids = {
+    heading: `${uid}-heading`,
+    templates: `${uid}-templates`,
+    account: `${uid}-account`,
+    industry: `${uid}-industry`,
+    solutions: `${uid}-solutions`,
+    stage: `${uid}-stage`,
+    meeting: `${uid}-meeting`,
+    attendees: `${uid}-attendees`,
+    competitors: `${uid}-competitors`,
+    context: `${uid}-context`,
+  };
 
   function applyTemplate(templateId: string) {
     const template = PREP_TEMPLATES.find((item) => item.id === templateId);
@@ -72,133 +91,152 @@ export function DealPrepForm({
   );
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto bg-[#F9F8F6] p-4">
-      <p className="mb-3.5 font-display text-[13px] font-bold text-[#0D0E12]">Build your brief</p>
+    <section aria-labelledby={ids.heading} className={cn(CARD_CLS, "flex flex-col gap-5 px-6 py-[22px]")}>
+      <div className="flex flex-col gap-1">
+        <span className="font-mono text-xs font-medium uppercase tracking-[0.03em] text-blue">Pre-flight</span>
+        <h2 className={H2_CLS} id={ids.heading}>
+          Build your brief
+        </h2>
+      </div>
 
-      <div className="mb-3.5">
-        <p className={FIELD_LABEL_CLS}>Template</p>
-        <div className="flex flex-col gap-1">
-          {primaryTemplates.map((template) => {
-            const active = activeTemplateId === template.id;
-            return (
-              <button
-                className={cn(
-                  "flex items-center justify-between border px-2.5 py-1.5 text-left transition",
-                  active
-                    ? "border-[#00143A] bg-[#00143A] text-white"
-                    : "border-[#E2DFD9] bg-white text-[#0D0E12] hover:border-[#B0ADA8]",
-                )}
-                key={template.id}
-                onClick={() => applyTemplate(template.id)}
-                type="button"
-              >
-                <span className={cn("text-[11.5px]", active ? "font-semibold text-white" : "font-medium")}>
-                  {template.displayLabel ?? template.label}
-                </span>
-                {active ? (
-                  <span className="bg-[#D4810A] px-1.5 py-0.5 font-mono text-[8px] font-medium uppercase tracking-[0.06em] text-white">
-                    Active
-                  </span>
-                ) : null}
-              </button>
-            );
-          })}
+      <div className="flex flex-col gap-2">
+        <span className={LABEL_CLS} id={ids.templates}>
+          Template
+        </span>
+        <div aria-labelledby={ids.templates} className="flex flex-wrap gap-2" role="group">
+          {primaryTemplates.map((template) => (
+            <Chip
+              active={activeTemplateId === template.id}
+              className="normal-case"
+              key={template.id}
+              onClick={() => applyTemplate(template.id)}
+            >
+              {activeTemplateId === template.id ? "✓ " : ""}
+              {template.displayLabel ?? template.label}
+            </Chip>
+          ))}
         </div>
       </div>
 
       <form
-        className="flex flex-col gap-2.5"
+        className="flex flex-col gap-4"
         onSubmit={(event) => {
           event.preventDefault();
           onSubmit();
         }}
       >
-        <label>
-          <span className={FIELD_LABEL_CLS}>Account name</span>
+        <div className={FIELD_WRAP_CLS}>
+          <label className={LABEL_CLS} htmlFor={ids.account}>
+            Account name
+          </label>
           <input
-            className={FIELD_INPUT_CLS}
+            className={FIELD_CLS}
+            id={ids.account}
             onChange={(e) => onChange({ ...values, accountName: e.target.value })}
             placeholder="Northside Health"
             required
             value={values.accountName}
           />
-        </label>
-        <label>
-          <span className={FIELD_LABEL_CLS}>Industry</span>
+        </div>
+        <div className={FIELD_WRAP_CLS}>
+          <label className={LABEL_CLS} htmlFor={ids.industry}>
+            Industry
+          </label>
           <input
-            className={FIELD_INPUT_CLS}
+            className={FIELD_CLS}
+            id={ids.industry}
             onChange={(e) => onChange({ ...values, industry: e.target.value })}
             placeholder="Healthcare — 3,200 beds"
             required
             value={values.industry}
           />
-        </label>
-        <label>
-          <span className={FIELD_LABEL_CLS}>Solutions</span>
+        </div>
+        <div className={FIELD_WRAP_CLS}>
+          <label className={LABEL_CLS} htmlFor={ids.solutions}>
+            Solutions
+          </label>
           <input
-            className={FIELD_INPUT_CLS}
+            className={FIELD_CLS}
+            id={ids.solutions}
             onChange={(e) => onChange({ ...values, solutions: e.target.value })}
             placeholder="ISC, NHI, Agentic Fabric"
             value={values.solutions}
           />
-        </label>
-        <label>
-          <span className={FIELD_LABEL_CLS}>Deal stage</span>
-          <select
-            className={FIELD_INPUT_CLS}
-            onChange={(e) => onChange({ ...values, dealStage: e.target.value })}
-            value={values.dealStage}
-          >
-            {DEAL_STAGES.map((stage) => (
-              <option key={stage.value} value={stage.value}>
-                {stage.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span className={FIELD_LABEL_CLS}>Meeting type</span>
-          <select
-            className={FIELD_INPUT_CLS}
-            onChange={(e) => onChange({ ...values, meetingType: e.target.value })}
-            value={values.meetingType}
-          >
-            {MEETING_TYPES.map((type) => (
-              <option key={type.value} value={type.value}>
-                {type.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span className={FIELD_LABEL_CLS}>Attendees</span>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+          <div className={FIELD_WRAP_CLS}>
+            <label className={LABEL_CLS} htmlFor={ids.stage}>
+              Deal stage
+            </label>
+            <select
+              className={SELECT_CLS}
+              id={ids.stage}
+              onChange={(e) => onChange({ ...values, dealStage: e.target.value })}
+              value={values.dealStage}
+            >
+              {DEAL_STAGES.map((stage) => (
+                <option key={stage.value} value={stage.value}>
+                  {stage.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className={FIELD_WRAP_CLS}>
+            <label className={LABEL_CLS} htmlFor={ids.meeting}>
+              Meeting type
+            </label>
+            <select
+              className={SELECT_CLS}
+              id={ids.meeting}
+              onChange={(e) => onChange({ ...values, meetingType: e.target.value })}
+              value={values.meetingType}
+            >
+              {MEETING_TYPES.map((type) => (
+                <option key={type.value} value={type.value}>
+                  {type.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className={FIELD_WRAP_CLS}>
+          <label className={LABEL_CLS} htmlFor={ids.attendees}>
+            Who you&apos;re meeting
+          </label>
           <input
-            className={FIELD_INPUT_CLS}
+            className={FIELD_CLS}
+            id={ids.attendees}
             onChange={(e) => onChange({ ...values, attendees: e.target.value })}
             placeholder="Director IT Security, VP Infra"
             value={values.attendees}
           />
-        </label>
-        <label>
-          <span className={FIELD_LABEL_CLS}>Competitors</span>
+        </div>
+        <div className={FIELD_WRAP_CLS}>
+          <label className={LABEL_CLS} htmlFor={ids.competitors}>
+            Competitors
+          </label>
           <input
-            className={FIELD_INPUT_CLS}
+            className={FIELD_CLS}
+            id={ids.competitors}
             onChange={(e) => onChange({ ...values, competitors: e.target.value })}
             placeholder="Microsoft Entra"
             value={values.competitors}
           />
-        </label>
-        <label>
-          <span className={FIELD_LABEL_CLS}>Context</span>
+        </div>
+        <div className={FIELD_WRAP_CLS}>
+          <label className={LABEL_CLS} htmlFor={ids.context}>
+            Context
+          </label>
           <textarea
-            className={cn(FIELD_INPUT_CLS, "min-h-[72px] resize-none leading-relaxed")}
+            className={cn(TEXTAREA_CLS, "min-h-[96px]")}
+            id={ids.context}
             onChange={(e) => onChange({ ...values, accountContext: e.target.value })}
             placeholder="Recent ransomware scare — access controls flagged by board"
             required
-            rows={3}
+            rows={4}
             value={values.accountContext}
           />
-        </label>
+        </div>
         <input
           className="sr-only"
           onChange={(e) => onChange({ ...values, crmAccountId: e.target.value })}
@@ -208,14 +246,14 @@ export function DealPrepForm({
         />
 
         <button
-          className="mt-3 inline-flex w-full items-center justify-center gap-1.5 bg-[#D4810A] px-3 py-2.5 text-[11.5px] font-semibold text-white hover:bg-[#b86d08] disabled:opacity-50"
+          className="btn-primary mt-1 inline-flex items-center justify-center gap-2 self-start"
           disabled={isLoading}
           type="submit"
         >
-          {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-          Generate brief →
+          {isLoading ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
+          {isLoading ? "Generating brief…" : "Generate brief →"}
         </button>
       </form>
-    </div>
+    </section>
   );
 }

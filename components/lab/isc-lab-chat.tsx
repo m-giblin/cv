@@ -1,11 +1,12 @@
 "use client";
 
-import { CalendarClock, ExternalLink, Loader2, RotateCcw, Save, Send } from "lucide-react";
-import { useEffect, useState } from "react";
+import { CalendarClock, ExternalLink, Loader2, RotateCcw, Save } from "lucide-react";
+import { useEffect, useId, useState } from "react";
 import { toast } from "sonner";
 import { SimulationSpeechInput } from "@/components/simulation/speech-input";
-import { SP_BLUE_BTN, SP_OUTLINE_BTN } from "@/components/se/sp-form-primitives";
-import { Input } from "@/components/ui/input";
+import { FIELD_CLS, LABEL_CLS, LINE_CARD_CLS, TEXTAREA_CLS } from "@/components/se/form-classes";
+import { Chip } from "@/components/ui/chip";
+import { Tag } from "@/components/ui/tag";
 import { ISC_LAB_STARTER_PROMPTS } from "@/lib/isc-lab/knowledge-base";
 import type { IscLabMode } from "@/lib/isc-lab/session-log";
 import { cn } from "@/lib/utils";
@@ -41,16 +42,15 @@ type ChatTurn = {
 
 type LabMode = Exclude<IscLabMode, "pre_call_brief">;
 
-const MODES: Array<{ id: LabMode; label: string; emoji: string; hint: string }> = [
- { id: "chat", label: "Ask ISC", emoji: "💡", hint: "General ISC, AIS, and Agentic Fabric coaching" },
+const MODES: Array<{ id: LabMode; label: string; hint: string }> = [
+ { id: "chat", label: "Ask ISC", hint: "General ISC, AIS, and Agentic Fabric coaching" },
  {
  id: "account_prep",
  label: "Account prep",
- emoji: "📋",
  hint: "Deal prep + Gong context for a named account",
  },
- { id: "battlecard", label: "Battlecard", emoji: "🛡️", hint: "Competitive positioning vs Entra, Okta, DIY" },
- { id: "voice_objection", label: "Voice objection", emoji: "🎤", hint: "Speak an objection — get coached phrasing" },
+ { id: "battlecard", label: "Battlecard", hint: "Competitive positioning vs Entra, Okta, DIY" },
+ { id: "voice_objection", label: "Voice objection", hint: "Speak an objection — get coached phrasing" },
 ];
 
 const BATTLECARD_PROMPTS = [
@@ -62,7 +62,7 @@ const BATTLECARD_PROMPTS = [
 const SOURCE_LABELS: Record<string, string> = {
  documentation: "Docs",
  developer: "Developer",
- marketing: "SailPoint.com",
+ marketing: "Website",
  platform: "Platform",
  battlecard: "Battlecard",
 };
@@ -85,6 +85,10 @@ export function IscLabChat() {
  const [loadingLabel, setLoadingLabel] = useState("Thinking…");
  const [savingPrep, setSavingPrep] = useState(false);
  const [briefLoading, setBriefLoading] = useState(false);
+ const uid = useId();
+ const accountInputId = `${uid}-account`;
+ const composerId = `${uid}-composer`;
+ const modeHintId = `${uid}-mode-hint`;
  const [pendingBriefs, setPendingBriefs] = useState<
  Array<{ accountName: string; sessionId: string; meetingDate: string | null }>
  >([]);
@@ -106,7 +110,7 @@ export function IscLabChat() {
  }
 
  setLoading(true);
- setLoadingLabel("Searching SailPoint docs & battlecards…");
+ setLoadingLabel("Searching docs and battlecards…");
  const nextHistory: ChatTurn[] = [...history, { role: "user", content: userMessage.trim() }];
  setHistory(nextHistory);
  setMessage("");
@@ -131,7 +135,7 @@ export function IscLabChat() {
  return;
  }
 
- setLoadingLabel("Drafting with Grok…");
+ setLoadingLabel("Drafting answer…");
 
  const body = (await response.json()) as {
  reply: string;
@@ -233,265 +237,291 @@ export function IscLabChat() {
 
  const starterPrompts = mode === "battlecard" ? BATTLECARD_PROMPTS : ISC_LAB_STARTER_PROMPTS;
 
- return (
- <div className="animate-[fadeUp_0.2s_ease-out] space-y-3.5">
- {pendingBriefs.length > 0 ? (
- <div className="flex flex-wrap items-center gap-2.5 border border-[rgba(0,113,206,0.15)] bg-[#f0f7ff] px-3.5 py-2.5">
- <CalendarClock className="h-3.5 w-3.5 shrink-0 text-[#0071ce]" />
- <span className="flex-1 text-[11.5px] text-[#374151]">
- Tomorrow&apos;s meetings without a pre-call brief:
- </span>
- <div className="flex flex-wrap gap-1.5">
- {pendingBriefs.map((row) => (
- <button
- className="rounded-full border border-[rgba(0,113,206,0.25)] bg-[#e8f2fc] px-2.5 py-1 text-[11px] font-semibold text-[#0057a8] hover:bg-[#dbeafe]"
- key={row.sessionId}
- onClick={() => {
- setAccountName(row.accountName);
- setMode("account_prep");
- void generatePreCallBrief(row.accountName, row.sessionId);
- }}
- type="button"
- >
- {row.accountName}
- </button>
- ))}
- </div>
- </div>
- ) : null}
+  const activeMode = MODES.find((item) => item.id === mode);
 
- <div className="flex flex-wrap gap-2">
- {MODES.map((item) => {
- const active = mode === item.id;
- return (
- <button
- className={cn(
- "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition",
- active
- ? "border-[1.5px] border-[#0071ce] bg-[#e8f2fc] text-[#0057a8]"
- : "border border-[#E2DFD9] bg-white text-[#3D3C38] hover:bg-slate-50",
- )}
- key={item.id}
- onClick={() => setMode(item.id)}
- title={item.hint}
- type="button"
- >
- <span>{item.emoji}</span>
- {item.label}
- </button>
- );
- })}
- </div>
+  return (
+    <div className="flex flex-col gap-4">
+      {pendingBriefs.length > 0 ? (
+        <section
+          aria-label="Meetings without a pre-call brief"
+          className="flex flex-wrap items-center gap-3 rounded-[14px] bg-blue px-5 py-3.5 text-white"
+        >
+          <CalendarClock aria-hidden className="h-4 w-4 shrink-0 text-signal" />
+          <span className="flex-1 text-[15px] font-semibold">Tomorrow&apos;s meetings without a pre-call brief</span>
+          <div className="flex flex-wrap gap-2">
+            {pendingBriefs.map((row) => (
+              <button
+                className="rounded-full border-[1.5px] border-white bg-white px-3 py-1 text-sm font-bold text-ink hover:bg-blue-soft disabled:opacity-60"
+                disabled={briefLoading}
+                key={row.sessionId}
+                onClick={() => {
+                  setAccountName(row.accountName);
+                  setMode("account_prep");
+                  void generatePreCallBrief(row.accountName, row.sessionId);
+                }}
+                type="button"
+              >
+                {row.accountName} →
+              </button>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
- {mode === "account_prep" ? (
- <div className="flex flex-wrap items-end gap-2">
- <div className="min-w-[200px] flex-1 max-w-xs">
- <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[#6B6860]">
- Account name
- </label>
- <Input
- onChange={(event) => setAccountName(event.target.value)}
- placeholder="e.g. Acme Corp"
- value={accountName}
- />
- </div>
- <button
- className={SP_OUTLINE_BTN}
- disabled={briefLoading || !accountName.trim()}
- onClick={() => void generatePreCallBrief()}
- type="button"
- >
- {briefLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CalendarClock className="h-4 w-4" />}
- Pre-call brief
- </button>
- {history.length > 0 ? (
- <button className={SP_OUTLINE_BTN} disabled={loading} onClick={clearChat} type="button">
- <RotateCcw className="h-3.5 w-3.5" />
- Clear chat
- </button>
- ) : null}
- </div>
- ) : null}
+      <div className="flex flex-col gap-2">
+        <div aria-label="Lab mode" className="flex flex-wrap gap-2" role="group">
+          {MODES.map((item) => (
+            <Chip
+              active={mode === item.id}
+              aria-describedby={mode === item.id ? modeHintId : undefined}
+              key={item.id}
+              onClick={() => setMode(item.id)}
+            >
+              {item.label}
+            </Chip>
+          ))}
+        </div>
+        <p className="text-sm text-muted" id={modeHintId}>
+          {activeMode?.hint}
+        </p>
+      </div>
 
- <div className="overflow-hidden border-[1.5px] border-[#E2DFD9] bg-white ">
- <div className="h-[340px] space-y-3 overflow-y-auto px-[18px] py-4">
- {history.length === 0 ? (
- <div className="space-y-3">
- <p className="text-[12.5px] leading-relaxed text-[#6B6860]">
- {MODES.find((item) => item.id === mode)?.hint}. ISC Lab searches{" "}
- <strong>documentation.sailpoint.com</strong>, <strong>developer.sailpoint.com</strong>, curated
- battlecards, peer golden pitches, and your enablement profile — every answer cites what was consulted.
- </p>
- <div className="flex flex-wrap gap-2">
- {starterPrompts.map((prompt) => (
- <button
- className="rounded-full border border-[rgba(0,113,206,0.2)] bg-[#e8f2fc]/80 px-3 py-1.5 text-left text-[11.5px] font-semibold text-[#0057a8] hover:bg-[#e8f2fc]"
- key={prompt}
- onClick={() => void send(prompt)}
- type="button"
- >
- {prompt}
- </button>
- ))}
- </div>
- </div>
- ) : (
- history.map((turn, index) => (
- <div
- className={turn.role === "user" ? "flex items-start justify-end gap-[9px]" : "flex items-start gap-[9px]"}
- key={`${turn.role}-${index}`}
- >
- <div
- className={cn(
- "flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white",
- turn.role === "user" ? "order-2" : "",
- )}
- style={{
- background:
- turn.role === "user"
- ? "linear-gradient(135deg,#0033a1,#cc27b0)"
- : "linear-gradient(135deg,#0033a1,#0071ce)",
- }}
- >
- {turn.role === "user" ? "SE" : "ISC"}
- </div>
- <div
- className={cn(
- "max-w-[84%] border px-[11px] py-[10px] text-[12.5px] leading-[1.65]",
- turn.role === "user"
- ? "order-1 border-[#E2DFD9] bg-white text-[#3D3C38]"
- : "border-[#E2DFD9] bg-[#F9F8F6] text-[#3D3C38]",
- )}
- >
- <p className="whitespace-pre-wrap">{turn.content}</p>
- {turn.role === "assistant" && turn.sources && turn.sources.length > 0 ? (
- <div className="mt-[10px] border-t border-black/[0.08] pt-[8px]">
- <p className="mb-[6px] flex items-center gap-[4px] text-[9.5px] font-bold uppercase tracking-[0.07em] text-[#A09D98]">
- 📄 Sources consulted (grounded)
- </p>
- <div className="mb-[7px] flex flex-wrap gap-[5px]">
- {turn.sources.map((source) => {
- const label =
- SOURCE_LABELS[source.kind === "battlecard" ? "battlecard" : source.source] ??
- source.source;
- const fetched = formatFetchedAt(source.fetchedAt);
- return (
- <a
- className="border border-[#E2DFD9] bg-white px-[9px] py-[4px]"
- href={source.url}
- key={`${source.url}-${source.title}`}
- rel={source.url.startsWith("http") ? "noreferrer" : undefined}
- target={source.url.startsWith("http") ? "_blank" : undefined}
- >
- <p className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#0057a8]">
- {label} · {source.title}
- {source.url.startsWith("http") ? <ExternalLink className="h-2.5 w-2.5" /> : null}
- </p>
- <p className="mt-[1px] text-[9px] text-[#A09D98]">
- {fetched ? `Fetched ${fetched}` : source.contentVersion ? `v${source.contentVersion}` : ""}
- </p>
- </a>
- );
- })}
- </div>
- </div>
- ) : null}
- {turn.role === "assistant" && turn.nudges?.challenge ? (
- <p className="mt-2 text-xs text-[#6B6860]">
- Practice:{" "}
- <a className="font-semibold text-[#0057a8] hover:underline" href={turn.nudges.challenge.href}>
- {turn.nudges.challenge.title}
- </a>
- </p>
- ) : null}
- {turn.role === "assistant" && turn.nudges?.cert ? (
- <p className="mt-1 text-xs text-[#6B6860]">
- Cert path:{" "}
- <a className="font-semibold text-[#0057a8] hover:underline" href={turn.nudges.cert.href}>
- {turn.nudges.cert.label}
- </a>
- </p>
- ) : null}
- {turn.role === "assistant" && turn.platform?.practiceChallenges.length ? (
- <div className="mt-2 text-xs text-[#6B6860]">
- Related challenges:{" "}
- {turn.platform.practiceChallenges.map((challenge, challengeIndex) => (
- <span key={challenge.href}>
- {challengeIndex > 0 ? " · " : ""}
- <a className="font-semibold text-[#0057a8] hover:underline" href={challenge.href}>
- {challenge.title}
- </a>
- </span>
- ))}
- </div>
- ) : null}
- {turn.role === "assistant" && turn.model ? (
- <p className="mt-2 text-[10px] text-[#A09D98]">
- {turn.provider === "xai" ? "Grok" : turn.provider} · {turn.model}
- </p>
- ) : null}
- {turn.role === "assistant" &&
- index === history.length - 1 &&
- mode === "account_prep" &&
- accountName.trim() ? (
- <div className="mt-3 border-t border-slate-200/80 pt-2">
- <button
- className={SP_OUTLINE_BTN}
- disabled={savingPrep}
- onClick={() => void saveToDealPrep(turn.content)}
- type="button"
- >
- {savingPrep ? (
- <Loader2 className="h-3.5 w-3.5 animate-spin" />
- ) : (
- <Save className="h-3.5 w-3.5" />
- )}
- Save to Deal Prep
- </button>
- </div>
- ) : null}
- </div>
- </div>
- ))
- )}
- {loading ? (
- <div className="flex items-center gap-2 text-sm text-[#6B6860]">
- <Loader2 className="h-4 w-4 animate-spin" />
- {loadingLabel}
- </div>
- ) : null}
- </div>
+      {mode === "account_prep" ? (
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex min-w-[220px] max-w-sm flex-1 flex-col gap-1.5">
+            <label className={LABEL_CLS} htmlFor={accountInputId}>
+              Account name
+            </label>
+            <input
+              className={FIELD_CLS}
+              id={accountInputId}
+              onChange={(event) => setAccountName(event.target.value)}
+              placeholder="e.g. Acme Corp"
+              value={accountName}
+            />
+          </div>
+          <button
+            className="btn-secondary inline-flex items-center gap-2 disabled:opacity-60"
+            disabled={briefLoading || !accountName.trim()}
+            onClick={() => void generatePreCallBrief()}
+            type="button"
+          >
+            {briefLoading ? (
+              <Loader2 aria-hidden className="h-4 w-4 animate-spin" />
+            ) : (
+              <CalendarClock aria-hidden className="h-4 w-4" />
+            )}
+            Pre-call brief
+          </button>
+        </div>
+      ) : null}
 
- <form
- className="flex gap-2 border-t border-[#ECEAE6] px-4 py-3"
- onSubmit={(event) => {
- event.preventDefault();
- void send(message);
- }}
- >
- {mode === "voice_objection" ? (
- <SimulationSpeechInput
- disabled={loading}
- onTranscript={(text) => setMessage((current) => (current ? `${current} ${text}` : text))}
- />
- ) : null}
- <Input
- className="flex-1"
- onChange={(event) => setMessage(event.target.value)}
- placeholder={
- mode === "voice_objection"
- ? "Speak or type a buyer objection…"
- : mode === "battlecard"
- ? "Competitor or objection to battle…"
- : "Ask ISC Lab…"
- }
- value={message}
- />
- <button className={SP_BLUE_BTN} disabled={loading || !message.trim()} type="submit">
- <Send className="h-4 w-4" />
- </button>
- </form>
- </div>
- </div>
- );
+      <section aria-label="ISC Lab conversation" className={cn(LINE_CARD_CLS, "overflow-hidden")}>
+        <div className="flex items-center justify-between gap-3 border-b border-divider px-5 py-3">
+          <span className="label-mono">Transcript{history.length > 0 ? ` · ${history.length}` : ""}</span>
+          {history.length > 0 ? (
+            <button
+              className="link inline-flex items-center gap-1.5 text-sm disabled:opacity-60"
+              disabled={loading}
+              onClick={clearChat}
+              type="button"
+            >
+              <RotateCcw aria-hidden className="h-4 w-4" />
+              Clear chat
+            </button>
+          ) : null}
+        </div>
+
+        <div aria-live="polite" className="flex h-[420px] flex-col gap-4 overflow-y-auto px-5 py-4" role="log">
+          {history.length === 0 ? (
+            <div className="flex flex-col gap-3">
+              <p className="text-[15px] leading-[1.5] text-ink-2">
+                ISC Lab searches product documentation, developer docs, curated battlecards, peer golden pitches and
+                your enablement profile. Every answer cites what was consulted.
+              </p>
+              <span className="label-mono">Try one</span>
+              <ul className="flex flex-col gap-2">
+                {starterPrompts.map((prompt) => (
+                  <li key={prompt}>
+                    <button
+                      className="w-full rounded-[10px] border border-line px-3.5 py-2.5 text-left text-[15px] text-ink hover:border-blue hover:bg-blue-soft disabled:opacity-60"
+                      disabled={loading}
+                      onClick={() => void send(prompt)}
+                      type="button"
+                    >
+                      → {prompt}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            history.map((turn, index) => (
+              <div
+                className={turn.role === "user" ? "flex flex-col items-end gap-1" : "flex flex-col items-start gap-1"}
+                key={`${turn.role}-${index}`}
+              >
+                <span className="label-mono">{turn.role === "user" ? "You" : "ISC Lab"}</span>
+                <div
+                  className={cn(
+                    "max-w-[88%] rounded-[14px] px-4 py-3 text-[15px] leading-[1.5] text-ink",
+                    turn.role === "user" ? "bg-blue-soft" : "border border-line bg-white",
+                  )}
+                >
+                  <p className="whitespace-pre-wrap">{turn.content}</p>
+                  {turn.role === "assistant" && turn.sources && turn.sources.length > 0 ? (
+                    <div className="mt-3 border-t border-divider pt-3">
+                      <p className="label-mono mb-2">Sources consulted</p>
+                      <ul className="flex flex-wrap gap-2">
+                        {turn.sources.map((source) => {
+                          const label =
+                            SOURCE_LABELS[source.kind === "battlecard" ? "battlecard" : source.source] ??
+                            source.source;
+                          const fetched = formatFetchedAt(source.fetchedAt);
+                          const external = source.url.startsWith("http");
+                          const meta = fetched
+                            ? `Fetched ${fetched}`
+                            : source.contentVersion
+                              ? `v${source.contentVersion}`
+                              : "";
+                          return (
+                            <li key={`${source.url}-${source.title}`}>
+                              <a
+                                className="inline-flex max-w-full items-center gap-1.5 rounded-full border-[1.5px] border-blue px-[9px] py-0.5 font-mono text-xs text-blue hover:bg-blue-soft"
+                                href={source.url}
+                                rel={external ? "noreferrer" : undefined}
+                                target={external ? "_blank" : undefined}
+                                title={meta || undefined}
+                              >
+                                <span className="truncate">
+                                  {label} · {source.title}
+                                </span>
+                                {external ? (
+                                  <>
+                                    <ExternalLink aria-hidden className="h-3 w-3 shrink-0" />
+                                    <span className="sr-only">(opens in a new tab)</span>
+                                  </>
+                                ) : null}
+                              </a>
+                              {meta ? <span className="sr-only"> {meta}</span> : null}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  ) : null}
+                  {turn.role === "assistant" && turn.nudges?.challenge ? (
+                    <p className="mt-3 text-sm text-ink-2">
+                      Practice:{" "}
+                      <a className="link" href={turn.nudges.challenge.href}>
+                        {turn.nudges.challenge.title}
+                      </a>
+                    </p>
+                  ) : null}
+                  {turn.role === "assistant" && turn.nudges?.cert ? (
+                    <p className="mt-1 text-sm text-ink-2">
+                      Cert path:{" "}
+                      <a className="link" href={turn.nudges.cert.href}>
+                        {turn.nudges.cert.label}
+                      </a>
+                    </p>
+                  ) : null}
+                  {turn.role === "assistant" && turn.platform?.practiceChallenges.length ? (
+                    <div className="mt-2 text-sm text-ink-2">
+                      Related challenges:{" "}
+                      {turn.platform.practiceChallenges.map((challenge, challengeIndex) => (
+                        <span key={challenge.href}>
+                          {challengeIndex > 0 ? " · " : ""}
+                          <a className="link" href={challenge.href}>
+                            {challenge.title}
+                          </a>
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                  {turn.role === "assistant" && turn.model ? (
+                    <div className="mt-3">
+                      <Tag>Model · {turn.model}</Tag>
+                    </div>
+                  ) : null}
+                  {turn.role === "assistant" &&
+                  index === history.length - 1 &&
+                  mode === "account_prep" &&
+                  accountName.trim() ? (
+                    <div className="mt-3 border-t border-divider pt-3">
+                      <button
+                        className="btn-secondary inline-flex items-center gap-2 disabled:opacity-60"
+                        disabled={savingPrep}
+                        onClick={() => void saveToDealPrep(turn.content)}
+                        type="button"
+                      >
+                        {savingPrep ? (
+                          <Loader2 aria-hidden className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Save aria-hidden className="h-4 w-4" />
+                        )}
+                        Save to Deal Prep
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            ))
+          )}
+          {loading ? (
+            <p className="flex items-center gap-2 text-sm text-muted" role="status">
+              <Loader2 aria-hidden className="h-4 w-4 animate-spin" />
+              {loadingLabel}
+            </p>
+          ) : null}
+        </div>
+
+        <form
+          className="flex flex-col gap-2 border-t border-divider px-5 py-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void send(message);
+          }}
+        >
+          <label className="sr-only" htmlFor={composerId}>
+            Message ISC Lab
+          </label>
+          <textarea
+            className={cn(TEXTAREA_CLS, "min-h-[72px]")}
+            id={composerId}
+            onChange={(event) => setMessage(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+                event.preventDefault();
+                if (!loading) void send(message);
+              }
+            }}
+            placeholder={
+              mode === "voice_objection"
+                ? "Speak or type a buyer objection…"
+                : mode === "battlecard"
+                  ? "Competitor or objection to battle…"
+                  : "Ask ISC Lab…"
+            }
+            rows={2}
+            value={message}
+          />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              {mode === "voice_objection" ? (
+                <SimulationSpeechInput
+                  disabled={loading}
+                  onTranscript={(text) => setMessage((current) => (current ? `${current} ${text}` : text))}
+                />
+              ) : null}
+              <span className="text-[13px] text-muted">Enter to send · Shift+Enter for a new line</span>
+            </div>
+            <button className="btn-primary" disabled={loading || !message.trim()} type="submit">
+              Ask
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+  );
 }

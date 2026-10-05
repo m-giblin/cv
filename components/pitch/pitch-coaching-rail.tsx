@@ -5,11 +5,17 @@ export type PitchScoreRow = {
   score: number;
 };
 
-function scoreColor(score: number) {
-  if (score >= 85) return "#0A6E45";
-  if (score >= 75) return "#0071CE";
-  if (score >= 65) return "#D4810A";
-  return "#B83128";
+/** v2 score rule: danger <60, warning 60–69, blue ≥70. Always paired with the number. */
+function scoreFillClass(score: number) {
+  if (score < 60) return "bg-danger";
+  if (score < 70) return "bg-warning";
+  return "bg-blue";
+}
+
+function scoreTextClass(score: number) {
+  if (score < 60) return "text-danger";
+  if (score < 70) return "text-warning";
+  return "text-ink";
 }
 
 export function PitchCoachingRail({
@@ -24,42 +30,38 @@ export function PitchCoachingRail({
   const showScores = hasSubmission && scores.length > 0;
 
   return (
-    <div className="border-b border-[#E2DFD9] bg-white">
-      <div className="px-4 py-3.5">
-        <p className="mb-2.5 font-mono text-[8px] uppercase tracking-[0.12em] text-[#B0ADA8]">
-          AI coaching · Last submission
-        </p>
+    <div className="border-b border-divider bg-white">
+      <div className="px-5 py-4">
+        <p className="label-mono mb-3">AI coaching · Last submission</p>
         {showScores ? (
-          scores.map((row) => (
-            <div className="mb-2.5" key={row.label}>
-              <div className="mb-1 flex items-center justify-between">
-                <span className="text-[11px] font-medium text-[#3D3C38]">{row.label}</span>
-                <span
-                  className="font-mono text-xs font-medium"
-                  style={{ color: scoreColor(row.score) }}
-                >
-                  {row.score}
-                </span>
-              </div>
-              <div className="h-1 overflow-hidden bg-[#ECEAE6]">
-                <div
-                  className="h-full transition-all"
-                  style={{ background: scoreColor(row.score), width: `${row.score}%` }}
-                />
-              </div>
-            </div>
-          ))
+          <ul className="space-y-3">
+            {scores.map((row) => (
+              <li key={row.label}>
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <span className="text-[13px] font-medium text-ink-2">{row.label}</span>
+                  <span className={`font-mono text-xs font-medium ${scoreTextClass(row.score)}`}>
+                    {row.score < 60 ? "▲ " : ""}
+                    {row.score}
+                  </span>
+                </div>
+                <div aria-hidden="true" className="h-2 overflow-hidden rounded-[4px] bg-divider">
+                  <div
+                    className={`h-full rounded-[4px] ${scoreFillClass(row.score)}`}
+                    style={{ width: `${Math.max(0, Math.min(100, row.score))}%` }}
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
         ) : (
-          <p className="text-[11px] leading-relaxed text-[#A09D98]">
+          <p className="rounded-[14px] border-[1.5px] border-dashed border-line-strong p-4 text-center text-sm text-muted">
             Record a pitch and run AI coaching to see rubric scores here.
           </p>
         )}
         {topNote ? (
-          <div className="mt-2.5 border-l-[3px] border-[#0071CE] bg-[#F0F7FF] px-2.5 py-2">
-            <p className="mb-1 font-mono text-[8px] uppercase tracking-[0.1em] text-[#0071CE]">
-              Top coaching note
-            </p>
-            <p className="text-[11px] leading-relaxed text-[#1A3A5C]">{topNote}</p>
+          <div className="mt-3 rounded-[10px] bg-signal-soft px-3.5 py-3">
+            <p className="mb-1 font-mono text-xs font-medium uppercase tracking-[0.03em] text-ink">→ Top coaching note</p>
+            <p className="text-sm leading-[1.5] text-ink">{topNote}</p>
           </div>
         ) : null}
       </div>

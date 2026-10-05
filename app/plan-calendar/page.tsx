@@ -2,10 +2,10 @@ import { AppShell } from "@/components/app-shell";
 import { DataSourceBanner } from "@/components/data-source-banner";
 import { ManagerPageLayout } from "@/components/manager/manager-page-layout";
 import { PlanCalendarWorkspace } from "@/components/plans/plan-calendar-workspace";
-import { SePlanCalendarView } from "@/components/se/se-plan-calendar-view";
+import { redirect } from "next/navigation";
 import { getAccessTier } from "@/lib/auth/rbac";
-import { fetchSePlanCalendarForUser } from "@/lib/se/fetch-se-plan-calendar";
 import { requireAppAccess } from "@/lib/auth/require-access";
+import { legacySeRedirect } from "@/lib/se/se-routes";
 
 export default async function PlanCalendarPage({
   searchParams,
@@ -13,17 +13,12 @@ export default async function PlanCalendarPage({
   searchParams: Promise<{ se?: string }>;
 }) {
   const { data, source, tier } = await requireAppAccess("/plan-calendar");
-  const { se: previewSeId } = await searchParams;
+  const params = await searchParams;
+  const { se: previewSeId } = params;
 
+  // SEs: the calendar is now a view of My ramp. Managers and admins keep the team calendar here.
   if (tier === "se") {
-    const calendar = await fetchSePlanCalendarForUser(data.currentUser.id);
-
-    return (
-      <AppShell contentWidth="wide" currentUser={data.currentUser} notifications={data.notifications}>
-        <DataSourceBanner source={source} />
-        <SePlanCalendarView initial={calendar} />
-      </AppShell>
-    );
+    redirect(legacySeRedirect("/plan-calendar", params) ?? "/my-plan?view=calendar");
   }
 
   const orgProfiles =

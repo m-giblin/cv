@@ -60,6 +60,8 @@ const OPERATOR_SELF_SERVICE_PREFIXES = [
   "/challenges",
   "/simulations",
   "/pitch",
+  "/practice",
+  "/readiness",
 ] as const;
 
 function isOperatorSelfServicePath(pathname: string): boolean {
@@ -309,6 +311,10 @@ export function canAccessRoute(
       pathname === "/" ||
       pathname.startsWith("/plan-steps") ||
       pathname.startsWith("/my-plan") ||
+      pathname === "/practice" ||
+      pathname.startsWith("/practice/") ||
+      pathname === "/readiness" ||
+      pathname.startsWith("/readiness/") ||
       pathname.startsWith("/my-practice") ||
       pathname.startsWith("/learn") ||
       pathname.startsWith("/lab") ||

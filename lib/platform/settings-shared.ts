@@ -53,7 +53,7 @@ export const PLATFORM_FEATURE_FLAG_DEFS: PlatformFeatureFlagDef[] = [
     category: "workspace",
     defaultEnabled: true,
     kind: "product",
-    routePrefixes: ["/growth", "/feedback"],
+    routePrefixes: ["/growth", "/feedback", "/readiness", "/readiness/feedback"],
   },
 
   // ── Manager ──────────────────────────────────────────────────
@@ -156,7 +156,7 @@ export const PLATFORM_FEATURE_FLAG_DEFS: PlatformFeatureFlagDef[] = [
     category: "readiness",
     defaultEnabled: true,
     kind: "product",
-    routePrefixes: ["/lab", "/api/ai/isc-lab", "/api/isc-lab"],
+    routePrefixes: ["/lab", "/learn/lab", "/api/ai/isc-lab", "/api/isc-lab"],
   },
   {
     id: "development",
@@ -165,7 +165,7 @@ export const PLATFORM_FEATURE_FLAG_DEFS: PlatformFeatureFlagDef[] = [
     category: "readiness",
     defaultEnabled: true,
     kind: "product",
-    routePrefixes: ["/development", "/growth-plan"],
+    routePrefixes: ["/development", "/growth-plan", "/readiness/growth-plan"],
   },
   {
     id: "certifications",
@@ -174,7 +174,7 @@ export const PLATFORM_FEATURE_FLAG_DEFS: PlatformFeatureFlagDef[] = [
     category: "readiness",
     defaultEnabled: true,
     kind: "product",
-    routePrefixes: ["/certifications"],
+    routePrefixes: ["/certifications", "/readiness/certification"],
   },
   {
     id: "resources",
@@ -192,7 +192,7 @@ export const PLATFORM_FEATURE_FLAG_DEFS: PlatformFeatureFlagDef[] = [
     category: "readiness",
     defaultEnabled: true,
     kind: "product",
-    routePrefixes: ["/market-pulse"],
+    routePrefixes: ["/market-pulse", "/practice/quizzes"],
   },
 
   // ── Practice ─────────────────────────────────────────────────
@@ -203,7 +203,7 @@ export const PLATFORM_FEATURE_FLAG_DEFS: PlatformFeatureFlagDef[] = [
     category: "practice",
     defaultEnabled: true,
     kind: "product",
-    routePrefixes: ["/challenges", "/api/challenges"],
+    routePrefixes: ["/challenges", "/practice/challenges", "/api/challenges"],
   },
   {
     id: "simulations",
@@ -213,7 +213,7 @@ export const PLATFORM_FEATURE_FLAG_DEFS: PlatformFeatureFlagDef[] = [
     defaultEnabled: true,
     kind: "product",
     dependsOn: ["ai-features"],
-    routePrefixes: ["/simulations", "/api/simulations"],
+    routePrefixes: ["/simulations", "/practice/simulations", "/api/simulations"],
   },
   {
     id: "pitch-studio",
@@ -223,7 +223,7 @@ export const PLATFORM_FEATURE_FLAG_DEFS: PlatformFeatureFlagDef[] = [
     defaultEnabled: true,
     kind: "product",
     dependsOn: ["ai-features"],
-    routePrefixes: ["/pitch", "/api/pitch"],
+    routePrefixes: ["/pitch", "/practice/pitch", "/api/pitch"],
   },
   {
     id: "deal-prep",
@@ -232,7 +232,7 @@ export const PLATFORM_FEATURE_FLAG_DEFS: PlatformFeatureFlagDef[] = [
     category: "practice",
     defaultEnabled: true,
     kind: "product",
-    routePrefixes: ["/prep", "/api/deal-prep"],
+    routePrefixes: ["/prep", "/practice/deal-prep", "/api/deal-prep"],
   },
   {
     id: "flight-check",
@@ -241,7 +241,7 @@ export const PLATFORM_FEATURE_FLAG_DEFS: PlatformFeatureFlagDef[] = [
     category: "practice",
     defaultEnabled: true,
     kind: "product",
-    routePrefixes: ["/flight-check", "/api/assessments/flight-check"],
+    routePrefixes: ["/flight-check", "/practice/flight-check", "/api/assessments/flight-check"],
   },
   {
     id: "agentic-ai-track",

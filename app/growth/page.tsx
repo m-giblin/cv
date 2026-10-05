@@ -1,29 +1,11 @@
-import Link from "next/link";
-import { AppShell } from "@/components/app-shell";
-import { GrowthDashboardNorthstar } from "@/components/growth/growth-dashboard-northstar";
-import { SEPageLayout } from "@/components/se/se-page-layout";
-import { requireAppAccess } from "@/lib/auth/require-access";
+import { redirect } from "next/navigation";
+import { legacySeRedirect } from "@/lib/se/se-routes";
 
-export default async function GrowthPage() {
- const { data } = await requireAppAccess("/growth");
+type LegacyPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
 
- return (
- <AppShell currentUser={data.currentUser} notifications={data.notifications}>
- <SEPageLayout
- eyebrow="Career"
- subtitle="Competency trends, career progression, and recommended practice"
- title="My Growth"
- >
- <div className="mb-4">
- <Link
- className="inline-flex items-center text-xs font-semibold text-[#0071CE] hover:underline"
- href="/growth/readiness"
- >
- View my readiness across every practice feature →
- </Link>
- </div>
- <GrowthDashboardNorthstar data={data} />
- </SEPageLayout>
- </AppShell>
- );
+/** Legacy route, now /readiness. Query strings are kept. */
+export default async function LegacyRedirectPage({ searchParams }: LegacyPageProps) {
+  redirect(legacySeRedirect("/growth", await searchParams) ?? "/readiness");
 }

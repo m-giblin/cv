@@ -68,42 +68,59 @@ export function BuyerShareRoom({ token }: { token: string }) {
 
  if (error) {
  return (
- <div className="flex min-h-screen items-center justify-center bg-slate-50 px-6">
- <p className="text-sm text-slate-600">{error}</p>
+ <main className="flex min-h-screen items-center justify-center bg-bg px-6" id="main-content">
+ <div className="max-w-md rounded-[14px] border-[1.5px] border-ink bg-white p-6 text-center">
+ <p className="label-mono">Shared room</p>
+ <h1 className="mt-1 text-2xl font-extrabold text-ink">{error}</h1>
+ <p className="mt-2 text-[15px] text-ink-2">Ask the person who sent you this link for a fresh one.</p>
  </div>
+ </main>
  );
  }
 
  if (!room) {
  return (
- <div className="flex min-h-screen items-center justify-center bg-slate-50">
- <p className="text-sm text-slate-500">Loading…</p>
- </div>
+ <main className="flex min-h-screen items-center justify-center bg-bg" id="main-content">
+ <p className="text-sm text-muted" role="status">
+ Loading…
+ </p>
+ </main>
  );
  }
 
  const { payload } = room;
 
  return (
- <div className="min-h-screen bg-gradient-to-b from-[#00143a] to-[#0033a1] px-4 py-10 text-white">
+ <div className="min-h-screen bg-bg">
+ <header className="bg-blue px-4 pt-10 pb-24 text-white sm:px-10">
  <div className="mx-auto max-w-2xl">
- <p className="text-xs font-semibold uppercase tracking-widest text-blue-200">SailPoint · Shared with you</p>
- <h1 className="mt-2 font-display text-3xl font-bold">{room.title}</h1>
- <p className="mt-1 text-blue-100">{room.accountName}</p>
- {payload.seName ? <p className="mt-1 text-sm text-blue-200">Prepared by {payload.seName}</p> : null}
+ <p className="font-mono text-xs font-medium tracking-[0.03em] text-signal uppercase">Shared with you</p>
+ <h1 className="mt-2 text-[32px] leading-[1.05] font-extrabold tracking-[-0.02em]">{room.title}</h1>
+ <p className="mt-2 text-base text-on-blue">{room.accountName}</p>
+ {payload.seName ? (
+ <p className="mt-1 font-mono text-xs text-on-blue-muted">PREPARED BY {payload.seName.toUpperCase()}</p>
+ ) : null}
+ </div>
+ </header>
 
- <div className="mt-8 space-y-6 bg-white p-6 text-slate-800 ">
+ <main className="mx-auto -mt-16 max-w-2xl px-4 pb-12 sm:px-0" id="main-content">
+ <div className="space-y-7 rounded-[14px] border-[1.5px] border-ink bg-white p-6 sm:p-8">
  <section>
- <h2 className="text-sm font-bold uppercase tracking-wide text-[#0033a1]">Executive summary</h2>
- <p className="mt-2 text-sm leading-7">{payload.executiveSummary}</p>
+ <h2 className="label-mono text-blue">Executive summary</h2>
+ <p className="mt-2 text-[15px] leading-normal text-ink">{payload.executiveSummary}</p>
  </section>
 
  {payload.personalizationBullets.length > 0 ? (
  <section>
- <h2 className="text-sm font-bold uppercase tracking-wide text-[#0033a1]">For your organization</h2>
- <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6">
+ <h2 className="label-mono text-blue">For your organization</h2>
+ <ul className="mt-2 space-y-1.5 text-[15px] leading-normal text-ink">
  {payload.personalizationBullets.map((bullet) => (
- <li key={bullet}>{bullet}</li>
+ <li className="flex gap-2.5" key={bullet}>
+ <span aria-hidden className="text-blue">
+ ◆
+ </span>
+ {bullet}
+ </li>
  ))}
  </ul>
  </section>
@@ -111,22 +128,23 @@ export function BuyerShareRoom({ token }: { token: string }) {
 
  {payload.resources.length > 0 ? (
  <section>
- <h2 className="text-sm font-bold uppercase tracking-wide text-[#0033a1]">Resources</h2>
- <ul className="mt-3 space-y-2">
+ <h2 className="label-mono text-blue">Resources</h2>
+ <ul className="mt-3 overflow-hidden rounded-[14px] border border-line">
  {payload.resources.map((resource, index) => (
- <li key={`${resource.label}-${index}`}>
+ <li className="border-b border-divider last:border-b-0" key={`${resource.label}-${index}`}>
  {resource.body ? (
- <div className="border border-slate-200 bg-slate-50 p-3 text-sm">
- <p className="font-semibold text-slate-900">{resource.label}</p>
- <p className="mt-1 text-slate-600">{resource.body}</p>
+ <div className="px-4 py-3">
+ <p className="text-[15px] font-semibold text-ink">{resource.label}</p>
+ <p className="mt-1 text-sm text-ink-2">{resource.body}</p>
  </div>
  ) : (
  <button
- className="w-full border border-[#0033a1]/20 bg-[#e8f2fc] px-4 py-3 text-left text-sm font-semibold text-[#0033a1] hover:bg-[#dbeafe]"
+ className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-[15px] font-bold text-blue hover:bg-blue-soft"
  onClick={() => trackResource(resource.label, resource.url)}
  type="button"
  >
- {resource.label} →
+ {resource.label}
+ <span aria-hidden>→</span>
  </button>
  )}
  </li>
@@ -136,10 +154,10 @@ export function BuyerShareRoom({ token }: { token: string }) {
  ) : null}
  </div>
 
- <p className="mt-6 text-center text-xs text-blue-200">
- Confidential — prepared for {room.accountName}. Do not forward without permission.
+ <p className="mt-6 text-center text-[13px] text-muted">
+ Confidential. Prepared for {room.accountName}. Please don&apos;t forward without permission.
  </p>
- </div>
+ </main>
  </div>
  );
 }

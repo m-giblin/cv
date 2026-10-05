@@ -12,6 +12,7 @@ export interface CalGridEvent {
   icon: string;
   title: string;
   type: string;
+  status: CalMilestone["status"];
   color: string;
   done: boolean;
   evBg: string;
@@ -44,6 +45,7 @@ export function buildMonthGrid(year: number, month: number, milestones: CalMiles
       icon: ms.icon,
       title: ms.title,
       type: ms.type,
+      status: ms.status,
       color:
         ms.status === "DONE"
           ? "#0A6E45"

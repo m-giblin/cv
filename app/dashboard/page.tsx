@@ -1,42 +1,42 @@
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { DataSourceBanner } from "@/components/data-source-banner";
-import { SeWorkspaceNorthstar } from "@/components/se/se-workspace-northstar";
-import { SEPageLayout } from "@/components/se/se-page-layout";
+import { SeToday } from "@/components/se/se-today";
 import { getHomeRoute } from "@/lib/auth/rbac";
 import { requireDashboardPageAccess } from "@/lib/auth/require-access";
 import { fetchCertificationsForUsers } from "@/lib/data/get-certifications-data";
-import { computeCertNextAction } from "@/lib/se/cert-next-action";
+import { buildGateRows, toGateRecords } from "@/lib/se/gate-matrix";
 
 export default async function DashboardPage() {
- const { data, source, tier } = await requireDashboardPageAccess();
+  const { data, source, tier } = await requireDashboardPageAccess();
 
- if (tier === "manager") {
- redirect("/manager");
- }
+  if (tier === "manager") {
+    redirect("/manager");
+  }
 
- if (tier === "admin") {
- redirect("/admin");
- }
+  if (tier === "admin") {
+    redirect("/admin");
+  }
 
- if (tier === "se") {
- const userCerts = await fetchCertificationsForUsers([data.currentUser.id]);
- const certNextAction = computeCertNextAction(data.currentUser.level, userCerts);
- const approvedCertCount = userCerts.filter((cert) => cert.status === "approved").length;
+  if (tier === "se") {
+    const userCerts = await fetchCertificationsForUsers([data.currentUser.id]);
+    const manager = data.profiles.find((profile) => profile.id === data.currentUser.managerId);
+    const gateRows = buildGateRows({
+      records: toGateRecords(userCerts),
+      coachingCards: data.coachingCards,
+      submissions: data.submissions,
+      challenges: data.challenges,
+      userId: data.currentUser.id,
+      reviewerFirstName: manager?.fullName.split(" ")[0] ?? null,
+    });
 
- return (
- <AppShell currentUser={data.currentUser} notifications={data.notifications}>
- <SEPageLayout bare>
- <DataSourceBanner source={source} />
- <SeWorkspaceNorthstar
- approvedCertCount={approvedCertCount}
- certNextAction={certNextAction}
- data={data}
- />
- </SEPageLayout>
- </AppShell>
- );
- }
+    return (
+      <AppShell contentWidth="wide" currentUser={data.currentUser} notifications={data.notifications}>
+        <DataSourceBanner source={source} />
+        <SeToday data={data} gateRows={gateRows} />
+      </AppShell>
+    );
+  }
 
- redirect(getHomeRoute(tier));
+  redirect(getHomeRoute(tier));
 }

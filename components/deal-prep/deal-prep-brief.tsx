@@ -1,15 +1,10 @@
 "use client";
 
-import Link from "next/link";
-import {
- Loader2,
- Mic,
- Sparkles,
-} from "lucide-react";
+import { Loader2, Mic } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Textarea } from "@/components/ui/textarea";
-import { SP_BLUE_BTN, SP_OUTLINE_BTN } from "@/components/se/sp-form-primitives";
+import { Tag } from "@/components/ui/tag";
+import { H2_CLS, LABEL_CLS, LINE_CARD_CLS, TEXTAREA_CLS } from "@/components/se/form-classes";
 import { BuyerSharePanel } from "@/components/buyer-shares/buyer-share-panel";
 import type { DealPrepOutput } from "@/lib/ai/schemas";
 import { formatPrepAsMarkdown } from "@/lib/deal-prep/export";
@@ -94,7 +89,7 @@ export function DealPrepBrief({
  asset.title.toLowerCase().includes(normalized) ||
  normalized.includes(asset.title.toLowerCase().slice(0, 12)),
  );
- return match?.url ?? `/resources?q=${encodeURIComponent(label)}`;
+ return match?.url ?? `/learn?q=${encodeURIComponent(label)}`;
  },
  [assets],
  );
@@ -157,195 +152,217 @@ export function DealPrepBrief({
  const painHint = formContext?.solutions?.split(",")[0]?.trim() || "IGA / NHI pain";
  const attendeeLine = formContext?.attendees?.trim() || brief.buyerPersona || "Key stakeholders";
 
- return (
- <div className="min-h-full bg-white">
- <div className="border-b border-[#ECEAE6] bg-gradient-to-br from-[#FFFBF0] to-white px-7 py-5">
- <p className="mb-1 font-mono text-[8.5px] uppercase tracking-[0.16em] text-[#D4810A]">
- AI-generated · {meetingLabel} · {new Date().toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
- </p>
- <h2 className="font-display text-[22px] font-extrabold leading-none tracking-[-0.03em] text-[#0D0E12]">
- {brief.accountName} — Discovery Brief
- </h2>
- <p className="mt-1 text-xs text-[#6B6860]">
- {attendeeLine} · {painHint} · {stageLabel} stage
- </p>
- <div className="mt-3 flex flex-wrap gap-1.5">
- <button className={SP_OUTLINE_BTN} onClick={() => void copyMarkdown()} type="button">
- Copy brief
- </button>
- <button className={SP_OUTLINE_BTN} onClick={downloadMarkdown} type="button">
- Export PDF
- </button>
- {sessionId ? (
- <button
- className="inline-flex items-center bg-[#0033A1] px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-[#002878]"
- disabled={savingMeta}
- onClick={() => void saveSessionMeta({ sharedWithManager: true })}
- type="button"
- >
- Save to plan step →
- </button>
- ) : null}
- </div>
- {brief.oneThingToNail ? (
- <p className="mt-3 text-[11px] leading-relaxed text-[#3D3C38]">
- <span className="font-semibold text-[#0D0E12]">One thing to nail:</span> {brief.oneThingToNail}
- </p>
- ) : null}
- <div className="mt-2 flex flex-wrap gap-1.5">
- {REGENERATE_FOCUS_OPTIONS.map((focus) => (
- <button
- className={cn(SP_OUTLINE_BTN, "px-2 py-1 text-[10px]")}
- disabled={isRegenerating}
- key={focus}
- onClick={() => onRegenerate(focus)}
- type="button"
- >
- {isRegenerating ? <Loader2 className="inline h-3 w-3 animate-spin" /> : null}
- {focus}
- </button>
- ))}
- </div>
- </div>
+  return (
+    <div className="flex flex-col gap-5">
+      <section aria-labelledby="deal-prep-brief-title" className={cn(LINE_CARD_CLS, "flex flex-col gap-3 px-5 py-[18px]")}>
+        <p className="label-mono">
+          AI-generated · {meetingLabel} ·{" "}
+          {new Date().toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+        </p>
+        <h2 className="text-2xl font-extrabold tracking-[-0.015em] text-ink" id="deal-prep-brief-title">
+          {brief.accountName} — discovery brief
+        </h2>
+        <p className="text-sm text-ink-2">
+          {attendeeLine} · {painHint} · {stageLabel} stage
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button className="btn-secondary" onClick={() => void copyMarkdown()} type="button">
+            Copy brief
+          </button>
+          <button className="btn-secondary" onClick={downloadMarkdown} type="button">
+            Export PDF
+          </button>
+          {sessionId ? (
+            <button
+              className="btn-secondary disabled:opacity-60"
+              disabled={savingMeta}
+              onClick={() => void saveSessionMeta({ sharedWithManager: true })}
+              type="button"
+            >
+              Save to plan step →
+            </button>
+          ) : null}
+        </div>
+        {brief.oneThingToNail ? (
+          <p className="rounded-[10px] bg-blue-soft px-4 py-3 text-[15px] leading-[1.5] text-ink">
+            <span className="font-bold">One thing to nail:</span> {brief.oneThingToNail}
+          </p>
+        ) : null}
+        <div className="flex flex-col gap-2">
+          <span className="label-mono" id="deal-prep-regenerate-label">
+            Regenerate with a focus
+          </span>
+          <div aria-labelledby="deal-prep-regenerate-label" className="flex flex-wrap gap-2" role="group">
+            {REGENERATE_FOCUS_OPTIONS.map((focus) => (
+              <button
+                className={SMALL_BTN_CLS}
+                disabled={isRegenerating}
+                key={focus}
+                onClick={() => onRegenerate(focus)}
+                type="button"
+              >
+                {isRegenerating ? <Loader2 aria-hidden className="h-3.5 w-3.5 animate-spin" /> : null}
+                {focus}
+              </button>
+            ))}
+          </div>
+        </div>
+        {isRegenerating ? (
+          <p className="text-sm text-muted" role="status">
+            Regenerating brief…
+          </p>
+        ) : null}
+      </section>
 
- <div className="space-y-4 px-7 py-5">
- <HandoffBriefSection
- bullet="—"
- color="#0071CE"
- items={brief.discoveryQuestions}
- title="Discovery questions"
- />
- <HandoffObjectionSection
- accountName={brief.accountName}
- activeObjection={activePracticeObjection}
- color="#D4810A"
- industry={result.industry}
- items={brief.likelyObjections}
- onPractice={openPractice}
- prepSessionId={sessionId}
- solutionFocus={brief.solutions[0]}
- />
- <HandoffBriefSection
- bullet="›"
- color="#5b21b6"
- items={brief.competitiveLandmines}
- title={`Competitive positioning vs. ${competitor}`}
- />
- {brief.proofPoints.length > 0 ? (
- <HandoffBriefSection bullet="—" color="#0071CE" items={brief.proofPoints} title="Proof points to bring" />
- ) : null}
- {brief.riskFlags.length > 0 ? (
- <HandoffBriefSection bullet="!" color="#D4810A" items={brief.riskFlags} title="Risk flags" />
- ) : null}
- {brief.stakeholderMap.length > 0 ? (
- <HandoffBriefSection bullet="—" color="#0071CE" items={brief.stakeholderMap} title="Stakeholder map" />
- ) : null}
+      <HandoffBriefSection bullet="→" items={brief.discoveryQuestions} label="Ask" title="Discovery questions" />
+      <HandoffObjectionSection
+        accountName={brief.accountName}
+        activeObjection={activePracticeObjection}
+        industry={result.industry}
+        items={brief.likelyObjections}
+        onPractice={openPractice}
+        prepSessionId={sessionId}
+        solutionFocus={brief.solutions[0]}
+      />
+      <HandoffBriefSection
+        bullet="◆"
+        items={brief.competitiveLandmines}
+        label="Compete"
+        title={`Competitive positioning vs. ${competitor}`}
+      />
+      {brief.proofPoints.length > 0 ? (
+        <HandoffBriefSection bullet="✓" items={brief.proofPoints} label="Proof" title="Proof points to bring" />
+      ) : null}
+      {brief.riskFlags.length > 0 ? (
+        <HandoffBriefSection bullet="▲" items={brief.riskFlags} label="Risk" title="Risk flags" tone="danger" />
+      ) : null}
+      {brief.stakeholderMap.length > 0 ? (
+        <HandoffBriefSection bullet="●" items={brief.stakeholderMap} label="People" title="Stakeholder map" />
+      ) : null}
 
- <BuyerSharePanel accountName={brief.accountName} prep={{ ...result, accountName: brief.accountName }} sessionId={sessionId} />
+      <BuyerSharePanel accountName={brief.accountName} prep={{ ...result, accountName: brief.accountName }} sessionId={sessionId} />
 
- {sessionId ? (
- <div className="space-y-3 border-t border-[#ECEAE6] pt-4">
- <label className="flex cursor-pointer items-center gap-2 text-xs text-[#3D3C38]">
- <input
- checked={shared}
- onChange={(event) => {
- const next = event.target.checked;
- setShared(next);
- void saveSessionMeta({ sharedWithManager: next });
- }}
- type="checkbox"
- />
- Share brief with manager for review
- </label>
- <div>
- <p className="mb-1 font-mono text-[8px] uppercase tracking-[0.1em] text-[#B0ADA8]">Deal outcome</p>
- <p className="mb-1.5 text-[10px] text-[#7A7772]">
- Tagging real outcomes lets us check whether readiness scores actually track deal results.
- </p>
- <div className="flex gap-1.5">
- {(["pending", "won", "lost"] as const).map((option) => (
- <button
- className={cn(
- "border px-2.5 py-1 text-[10.5px] font-semibold capitalize",
- outcome === option
- ? "border-[#0071CE] bg-[#0071CE] text-white"
- : "border-[#D4D1CB] bg-white text-[#3D3C38]",
- )}
- key={option}
- onClick={() => {
- setOutcome(option);
- onOutcomeChange?.(option);
- void saveSessionMeta({ outcome: option });
- }}
- type="button"
- >
- {option}
- </button>
- ))}
- </div>
- </div>
- <div>
- <p className="mb-1 font-mono text-[8px] uppercase tracking-[0.1em] text-[#B0ADA8]">Post-call debrief</p>
- <Textarea
- className="min-h-[52px] resize-none border-[#E2DFD9] bg-[#F9F8F6] text-xs"
- onChange={(event) => setDebriefNotes(event.target.value)}
- placeholder="What landed? What surprised you?"
- rows={3}
- value={debriefNotes}
- />
- <button
- className={cn(SP_OUTLINE_BTN, "mt-2")}
- disabled={savingMeta}
- onClick={() => void saveSessionMeta({ debriefNotes })}
- type="button"
- >
- {savingMeta ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
- Save debrief
- </button>
- </div>
- </div>
- ) : null}
- </div>
- </div>
- );
+      {sessionId ? (
+        <section aria-labelledby="deal-prep-after-call" className={cn(LINE_CARD_CLS, "flex flex-col gap-5 px-5 py-[18px]")}>
+          <div className="flex flex-col gap-1">
+            <span className="label-mono">After the call</span>
+            <h2 className={H2_CLS} id="deal-prep-after-call">
+              Debrief and outcome
+            </h2>
+          </div>
+          <label className="flex cursor-pointer items-center gap-2.5 text-[15px] text-ink">
+            <input
+              checked={shared}
+              className="h-4 w-4 accent-blue"
+              onChange={(event) => {
+                const next = event.target.checked;
+                setShared(next);
+                void saveSessionMeta({ sharedWithManager: next });
+              }}
+              type="checkbox"
+            />
+            Share brief with manager for review
+          </label>
+          <div className="flex flex-col gap-2">
+            <span className={LABEL_CLS} id="deal-prep-outcome-label">
+              Deal outcome
+            </span>
+            <p className="text-[13px] leading-[1.45] text-muted">
+              Tagging real outcomes lets us check whether readiness scores actually track deal results.
+            </p>
+            <div aria-labelledby="deal-prep-outcome-label" className="flex flex-wrap gap-2" role="group">
+              {(["pending", "won", "lost"] as const).map((option) => (
+                <button
+                  aria-pressed={outcome === option}
+                  className={cn(
+                    "rounded-full px-3.5 py-[7px] font-mono text-xs font-medium uppercase tracking-[0.03em] transition-colors",
+                    outcome === option
+                      ? "bg-blue text-white"
+                      : "border-[1.5px] border-line-strong text-ink-2 hover:bg-blue-soft",
+                  )}
+                  key={option}
+                  onClick={() => {
+                    setOutcome(option);
+                    onOutcomeChange?.(option);
+                    void saveSessionMeta({ outcome: option });
+                  }}
+                  type="button"
+                >
+                  {outcome === option ? "✓ " : ""}
+                  {option}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className={LABEL_CLS} htmlFor="deal-prep-debrief">
+              Post-call debrief
+            </label>
+            <textarea
+              className={cn(TEXTAREA_CLS, "min-h-[88px]")}
+              id="deal-prep-debrief"
+              onChange={(event) => setDebriefNotes(event.target.value)}
+              placeholder="What landed? What surprised you?"
+              rows={3}
+              value={debriefNotes}
+            />
+            <button
+              className="btn-secondary inline-flex items-center gap-2 self-start disabled:opacity-60"
+              disabled={savingMeta}
+              onClick={() => void saveSessionMeta({ debriefNotes })}
+              type="button"
+            >
+              {savingMeta ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
+              Save debrief
+            </button>
+          </div>
+        </section>
+      ) : null}
+    </div>
+  );
 }
 
+const SMALL_BTN_CLS =
+  "inline-flex items-center gap-1.5 rounded-full border-[1.5px] border-line-strong bg-white px-3 py-[5px] text-[13px] font-semibold text-ink-2 hover:border-ink hover:bg-blue-soft disabled:cursor-not-allowed disabled:opacity-60";
+
 function HandoffBriefSection({
- title,
- items,
- color,
- bullet,
+  title,
+  label,
+  items,
+  bullet,
+  tone = "blue",
 }: {
- title: string;
- items: string[];
- color: string;
- bullet: string;
+  title: string;
+  label: string;
+  items: string[];
+  bullet: string;
+  tone?: "blue" | "danger";
 }) {
- if (!items.length) return null;
+  if (!items.length) return null;
 
- const bg =
- color === "#0071CE" ? "#F0F7FF" : color === "#D4810A" ? "#FFFBF0" : "#faf8ff";
-
- return (
- <div className="px-4 py-3" style={{ borderLeft: `3px solid ${color}`, background: bg }}>
- <p
- className="mb-2 font-mono text-[8px] uppercase tracking-[0.14em]"
- style={{ color }}
- >
- {title}
- </p>
- <div className="flex flex-col gap-1.5">
- {items.map((item) => (
- <div className="flex items-start gap-2" key={item}>
- <span className="mt-0.5 shrink-0 font-mono text-[10px]" style={{ color }}>
- {bullet}
- </span>
- <span className="text-[11.5px] leading-relaxed text-[#1A1A1A]">{item}</span>
- </div>
- ))}
- </div>
- </div>
- );
+  return (
+    <section className={LINE_CARD_CLS}>
+      <header className="flex items-baseline justify-between gap-3 border-b border-divider px-5 py-3.5">
+        <h2 className={H2_CLS}>{title}</h2>
+        <span className="label-mono shrink-0">
+          {label} · {items.length}
+        </span>
+      </header>
+      <ul className="divide-y divide-divider">
+        {items.map((item) => (
+          <li className="flex items-start gap-3 px-5 py-3" key={item}>
+            <span
+              aria-hidden
+              className={cn("mt-[3px] shrink-0 font-mono text-xs", tone === "danger" ? "text-danger" : "text-blue")}
+            >
+              {bullet}
+            </span>
+            <span className="text-[15px] leading-[1.5] text-ink">{item}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
 }
 
 type PracticeObjectionContext = {
@@ -401,77 +418,85 @@ async function startDealPrepPractice(
 }
 
 function HandoffObjectionSection({
- title = "Likely objections",
- items,
- color,
- bullet = "!",
- onPractice,
- activeObjection,
- accountName,
- industry,
- solutionFocus,
- prepSessionId,
+  title = "Likely objections",
+  items,
+  bullet = "▲",
+  onPractice,
+  activeObjection,
+  accountName,
+  industry,
+  solutionFocus,
+  prepSessionId,
 }: {
- title?: string;
- items: string[];
- color: string;
- bullet?: string;
- onPractice: (objection: string) => void;
- activeObjection: string | null;
- accountName: string;
- industry: string;
- solutionFocus?: string;
- prepSessionId: string | null;
+  title?: string;
+  items: string[];
+  bullet?: string;
+  onPractice: (objection: string) => void;
+  activeObjection: string | null;
+  accountName: string;
+  industry: string;
+  solutionFocus?: string;
+  prepSessionId: string | null;
 }) {
- if (!items.length) return null;
+  if (!items.length) return null;
 
- const practiceContext = { accountName, industry, solutionFocus, prepSessionId };
- const bg = color === "#D4810A" ? "#FFFBF0" : "#F0F7FF";
+  const practiceContext = { accountName, industry, solutionFocus, prepSessionId };
 
- async function startObjectionPractice(objection: string) {
- await startDealPrepPractice(objection, practiceContext, onPractice);
- }
+  async function startObjectionPractice(objection: string) {
+    await startDealPrepPractice(objection, practiceContext, onPractice);
+  }
 
- return (
- <div className="px-4 py-3" style={{ borderLeft: `3px solid ${color}`, background: bg }}>
- <p className="mb-2 font-mono text-[8px] uppercase tracking-[0.14em]" style={{ color }}>
- {title}
- </p>
- <div className="flex flex-col gap-2">
- {items.map((item) => {
- const isActive = activeObjection === item;
- return (
- <div className="flex items-start justify-between gap-2" key={item}>
- <div className="flex items-start gap-2">
- <span className="mt-0.5 shrink-0 font-mono text-[10px]" style={{ color }}>
- {bullet}
- </span>
- <span className="text-[11.5px] leading-relaxed text-[#1A1A1A]">{item}</span>
- </div>
- <button
- className={isActive ? SP_BLUE_BTN : SP_OUTLINE_BTN}
- onClick={() => void startObjectionPractice(item)}
- type="button"
- >
- <Mic className="h-3 w-3" />
- Practice
- </button>
- </div>
- );
- })}
- </div>
- </div>
- );
+  return (
+    <section className={LINE_CARD_CLS}>
+      <header className="flex items-baseline justify-between gap-3 border-b border-divider px-5 py-3.5">
+        <h2 className={H2_CLS}>{title}</h2>
+        <span className="label-mono shrink-0">Handle · {items.length}</span>
+      </header>
+      <ul className="divide-y divide-divider">
+        {items.map((item) => {
+          const isActive = activeObjection === item;
+          return (
+            <li
+              className={cn(
+                "flex flex-col gap-3 px-5 py-3 sm:flex-row sm:items-start sm:justify-between",
+                isActive && "bg-blue-soft",
+              )}
+              key={item}
+            >
+              <div className="flex items-start gap-3">
+                <span aria-hidden className="mt-[3px] shrink-0 font-mono text-xs text-warning">
+                  {bullet}
+                </span>
+                <span className="text-[15px] leading-[1.5] text-ink">{item}</span>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                {isActive ? <Tag tone="blue">● Practicing</Tag> : null}
+                <button
+                  aria-label={`Practice objection: ${item}`}
+                  className={SMALL_BTN_CLS}
+                  onClick={() => void startObjectionPractice(item)}
+                  type="button"
+                >
+                  <Mic aria-hidden className="h-4 w-4" />
+                  Practice
+                </button>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
 }
 
 export function DealPrepBriefEmpty() {
- return (
- <div className="flex min-h-full flex-col items-center justify-center bg-gradient-to-br from-[#FFFBF0] to-white px-8 py-16 text-center">
- <Sparkles className="mb-3 h-8 w-8 text-[#D4810A]/40" />
- <p className="font-display text-lg font-bold text-[#0D0E12]">Your brief appears here</p>
- <p className="mt-2 max-w-sm text-sm leading-relaxed text-[#6B6860]">
- Fill in account details on the left and hit Generate brief — discovery questions, objections, and competitive positioning land in this panel.
- </p>
- </div>
- );
+  return (
+    <div className="rounded-[14px] border-[1.5px] border-dashed border-line-strong p-7 text-center">
+      <p className="text-lg font-extrabold text-ink">Your brief appears here</p>
+      <p className="mx-auto mt-2 max-w-md text-[15px] leading-[1.5] text-muted">
+        Fill in the account details and generate a brief. Discovery questions, likely objections and competitive
+        positioning land here.
+      </p>
+    </div>
+  );
 }

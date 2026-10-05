@@ -2,9 +2,9 @@
 
 import { ChevronDown, ChevronRight, History, Loader2, Search, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { SP_OUTLINE_BTN } from "@/components/se/sp-form-primitives";
+import { FIELD_CLS, LINE_CARD_CLS } from "@/components/se/form-classes";
+import { Tag } from "@/components/ui/tag";
+import { cn } from "@/lib/utils";
 import { PREP_SEARCH_THRESHOLD } from "@/lib/deal-prep/constants";
 import { meetingTypeLabel } from "@/lib/deal-prep/templates";
 
@@ -110,166 +110,191 @@ export function DealPrepHistory({
  const inBrowseAll = historyScope === "all" || historySearch.trim().length > 0;
  const hasHistory = groups.length > 0 || (historyMeta?.total ?? 0) > 0;
 
- return (
- <div className="overflow-hidden border border-[#E2DFD9] bg-white">
- <div className="space-y-3 border-b border-[#ECEAE6] p-[16px_18px]">
- <div>
- <p className="text-[15px] font-bold text-[#0D0E12]">Saved prep by account</p>
- <p className="text-[12px] text-[#6B6860]">
- {hasHistory
- ? "Private to you — grouped by account with version history."
- : "Saved briefs appear here after you generate prep."}
- {historyMeta && hasHistory
- ? inBrowseAll
- ? ` Showing ${historyMeta.showing} accounts · ${historyMeta.total} total briefs.`
- : ` ${historyMeta.total} saved briefs across your accounts.`
- : null}
- </p>
- </div>
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1">
+        <p className="text-base font-bold text-ink">Saved prep by account</p>
+        <p className="text-sm leading-[1.5] text-muted" role="status">
+          {hasHistory
+            ? "Private to you — grouped by account with version history."
+            : "Saved briefs appear here after you generate prep."}
+          {historyMeta && hasHistory
+            ? inBrowseAll
+              ? ` Showing ${historyMeta.showing} accounts · ${historyMeta.total} total briefs.`
+              : ` ${historyMeta.total} saved briefs across your accounts.`
+            : null}
+        </p>
+      </div>
 
- {!hasHistory && !historyLoading ? (
- <p className="border border-dashed border-sp-blue/15 bg-sp-blue-soft/20 px-4 py-6 text-center text-sm text-sp-navy-muted">
- No saved preps yet. Generate a brief and it will show up here.
- </p>
- ) : null}
+      {!hasHistory && !historyLoading ? (
+        <p className="rounded-[14px] border-[1.5px] border-dashed border-line-strong p-7 text-center text-[15px] text-muted">
+          No saved preps yet. Generate a brief and it will show up here.
+        </p>
+      ) : null}
 
- {hasHistory && showSearch ? (
- <div className="relative">
- <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-sp-navy-muted" />
- <Input
- className="h-9 pl-9 pr-9 text-sm"
- onChange={(event) => {
- setHistorySearch(event.target.value);
- if (event.target.value.trim()) {
- setHistoryScope("all");
- }
- }}
- placeholder="Search account, industry, or competitor…"
- value={historySearch}
- />
- {historySearch ? (
- <button
- aria-label="Clear search"
- className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-sp-navy-muted hover:bg-sp-blue-soft/50"
- onClick={() => {
- setHistorySearch("");
- setHistoryScope("recent");
- void loadHistory("recent", "");
- }}
- type="button"
- >
- <X className="h-4 w-4" />
- </button>
- ) : null}
- </div>
- ) : null}
+      {hasHistory && showSearch ? (
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-bold text-ink" htmlFor="deal-prep-history-search">
+            Search past briefs
+          </label>
+          <div className="relative">
+            <Search aria-hidden className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+            <input
+              className={cn(FIELD_CLS, "pl-9 pr-10")}
+              id="deal-prep-history-search"
+              onChange={(event) => {
+                setHistorySearch(event.target.value);
+                if (event.target.value.trim()) {
+                  setHistoryScope("all");
+                }
+              }}
+              placeholder="Account, industry, or competitor…"
+              type="search"
+              value={historySearch}
+            />
+            {historySearch ? (
+              <button
+                aria-label="Clear search"
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted hover:bg-blue-soft hover:text-ink"
+                onClick={() => {
+                  setHistorySearch("");
+                  setHistoryScope("recent");
+                  void loadHistory("recent", "");
+                }}
+                type="button"
+              >
+                <X aria-hidden className="h-4 w-4" />
+              </button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
 
- {hasHistory && historyMeta?.hasOlder && !historySearch ? (
- <button
- className={`${SP_OUTLINE_BTN} w-full justify-center`}
- onClick={() => {
- setHistoryScope("all");
- void loadHistory("all", historySearch);
- }}
- type="button"
- >
- <History className="h-4 w-4" />
- Browse all history ({historyMeta.total})
- </button>
- ) : null}
- </div>
+      {hasHistory && historyMeta?.hasOlder && !historySearch ? (
+        <button
+          className="btn-secondary inline-flex items-center justify-center gap-2"
+          onClick={() => {
+            setHistoryScope("all");
+            void loadHistory("all", historySearch);
+          }}
+          type="button"
+        >
+          <History aria-hidden className="h-4 w-4" />
+          Browse all history ({historyMeta.total})
+        </button>
+      ) : null}
 
- {hasHistory ? (
- <div className={`space-y-2 p-[12px_16px] pb-4 ${inBrowseAll ? "max-h-[min(24rem,50vh)] overflow-y-auto" : ""}`}>
- {historyLoading ? (
- <div className="flex justify-center py-8">
- <Loader2 className="h-6 w-6 animate-spin text-sp-blue" />
- </div>
- ) : groups.length === 0 ? (
- <p className="py-6 text-center text-sm text-sp-navy-muted">No matches for that search.</p>
- ) : (
- groups.map((group) => {
- const expanded = expandedAccounts.has(group.accountKey);
- const isActive = activeSessionId === group.latestSessionId;
+      {hasHistory ? (
+        historyLoading ? (
+          <p
+            className="flex items-center justify-center gap-2 rounded-[14px] border-[1.5px] border-dashed border-line-strong p-7 text-center text-[15px] text-muted"
+            role="status"
+          >
+            <Loader2 aria-hidden className="h-4 w-4 animate-spin" />
+            Loading past briefs…
+          </p>
+        ) : groups.length === 0 ? (
+          <p className="rounded-[14px] border-[1.5px] border-dashed border-line-strong p-7 text-center text-[15px] text-muted">
+            No matches for that search.
+          </p>
+        ) : (
+          <ul className={cn(LINE_CARD_CLS, "divide-y divide-divider overflow-hidden")}>
+            {groups.map((group) => {
+              const expanded = expandedAccounts.has(group.accountKey);
+              const isActive = activeSessionId === group.latestSessionId;
+              const versionsId = `deal-prep-versions-${group.accountKey.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
 
- return (
- <div
- className={`border transition ${isActive ? "border-sp-blue/30 bg-sp-blue-soft/25" : "border-sp-blue/10"}`}
- key={group.accountKey}
- >
- <div className="flex items-stretch gap-1">
- {group.versionCount > 1 ? (
- <button
- aria-label={expanded ? "Collapse versions" : "Expand versions"}
- className="flex shrink-0 items-center px-2 text-sp-navy-muted"
- onClick={() => {
- setExpandedAccounts((current) => {
- const next = new Set(current);
- if (next.has(group.accountKey)) {
- next.delete(group.accountKey);
- } else {
- next.add(group.accountKey);
- }
- return next;
- });
- }}
- type="button"
- >
- {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
- </button>
- ) : null}
- <button
- className="min-w-0 flex-1 p-3 text-left text-sm transition hover:bg-sp-blue-soft/20"
- onClick={() => onLoadSession(group.latestSessionId)}
- type="button"
- >
- <p className="font-semibold text-sp-navy">{group.accountName}</p>
- <p className="text-xs text-sp-navy-muted">
- {group.industry} • v{group.versions[0]?.version_number ?? 1}
- {group.versionCount > 1 ? ` · ${group.versionCount} versions` : ""}
- {group.sharedWithManager ? " · shared" : ""}
- </p>
- </button>
- <button
- aria-label={`Delete latest prep for ${group.accountName}`}
- className="flex shrink-0 items-center px-3 text-sp-navy-muted transition hover:bg-red-50 hover:text-red-600"
- disabled={deletingId === group.latestSessionId}
- onClick={() => void handleDelete(group.latestSessionId)}
- type="button"
- >
- {deletingId === group.latestSessionId ? (
- <Loader2 className="h-4 w-4 animate-spin" />
- ) : (
- <Trash2 className="h-4 w-4" />
- )}
- </button>
- </div>
+              return (
+                <li className={isActive ? "bg-blue-soft" : undefined} key={group.accountKey}>
+                  <div className="flex items-stretch">
+                    {group.versionCount > 1 ? (
+                      <button
+                        aria-controls={versionsId}
+                        aria-expanded={expanded}
+                        aria-label={`${expanded ? "Collapse" : "Expand"} versions for ${group.accountName}`}
+                        className="flex shrink-0 items-center pl-3 pr-1 text-muted hover:text-ink"
+                        onClick={() => {
+                          setExpandedAccounts((current) => {
+                            const next = new Set(current);
+                            if (next.has(group.accountKey)) {
+                              next.delete(group.accountKey);
+                            } else {
+                              next.add(group.accountKey);
+                            }
+                            return next;
+                          });
+                        }}
+                        type="button"
+                      >
+                        {expanded ? (
+                          <ChevronDown aria-hidden className="h-4 w-4" />
+                        ) : (
+                          <ChevronRight aria-hidden className="h-4 w-4" />
+                        )}
+                      </button>
+                    ) : null}
+                    <button
+                      aria-current={isActive ? "true" : undefined}
+                      className="flex min-w-0 flex-1 flex-col gap-1 px-4 py-3 text-left hover:bg-blue-soft"
+                      onClick={() => onLoadSession(group.latestSessionId)}
+                      type="button"
+                    >
+                      <span className="text-[15px] font-semibold text-ink">{group.accountName}</span>
+                      <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-muted">
+                        <span>{group.industry}</span>
+                        <span className="font-mono text-xs uppercase">
+                          v{group.versions[0]?.version_number ?? 1}
+                          {group.versionCount > 1 ? ` · ${group.versionCount} versions` : ""}
+                        </span>
+                        {group.sharedWithManager ? <Tag tone="blue">✓ Shared</Tag> : null}
+                        {isActive ? <Tag tone="signal">● Open</Tag> : null}
+                      </span>
+                    </button>
+                    <button
+                      aria-label={`Delete latest prep for ${group.accountName}`}
+                      className="flex shrink-0 items-center px-3 text-muted transition hover:bg-danger-soft hover:text-danger"
+                      disabled={deletingId === group.latestSessionId}
+                      onClick={() => void handleDelete(group.latestSessionId)}
+                      type="button"
+                    >
+                      {deletingId === group.latestSessionId ? (
+                        <Loader2 aria-hidden className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 aria-hidden className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
 
- {expanded && group.versionCount > 1 ? (
- <div className="border-t border-sp-blue/10 px-3 py-2">
- {group.versions.map((version) => (
- <button
- className={`flex w-full items-center justify-between px-2 py-2 text-left text-xs hover:bg-sp-blue-soft/20 ${
- activeSessionId === version.id ? "bg-sp-blue-soft/30 font-semibold" : "text-sp-navy-muted"
- }`}
- key={version.id}
- onClick={() => onLoadSession(version.id)}
- type="button"
- >
- <span>
- v{version.version_number ?? 1} · {meetingTypeLabel(version.meeting_type)}
- </span>
- <span>{new Date(version.created_at).toLocaleDateString()}</span>
- </button>
- ))}
- </div>
- ) : null}
- </div>
- );
- })
- )}
- </div>
- ) : null}
- </div>
- );
+                  {expanded && group.versionCount > 1 ? (
+                    <ul className="border-t border-divider py-1 pl-9 pr-3" id={versionsId}>
+                      {group.versions.map((version) => (
+                        <li key={version.id}>
+                          <button
+                            aria-current={activeSessionId === version.id ? "true" : undefined}
+                            className={cn(
+                              "flex w-full items-center justify-between gap-3 rounded-[10px] px-2 py-2 text-left text-sm hover:bg-blue-soft",
+                              activeSessionId === version.id ? "font-semibold text-ink" : "text-ink-2",
+                            )}
+                            onClick={() => onLoadSession(version.id)}
+                            type="button"
+                          >
+                            <span>
+                              v{version.version_number ?? 1} · {meetingTypeLabel(version.meeting_type)}
+                            </span>
+                            <span className="font-mono text-xs text-muted">
+                              {new Date(version.created_at).toLocaleDateString()}
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+        )
+      ) : null}
+    </div>
+  );
 }

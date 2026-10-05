@@ -1,24 +1,40 @@
 import { AppShell } from "@/components/app-shell";
-import { LearnPageNorthstar } from "@/components/learn/learn-page-northstar";
-import { SEPageLayout } from "@/components/se/se-page-layout";
+import { LearnLibrary } from "@/components/learn/learn-library";
+import { PageHeader } from "@/components/ui/page-header";
 import { requireAppAccess } from "@/lib/auth/require-access";
+import { getUserReleaseProjectTags } from "@/lib/corpus/user-release-tags";
+import { GENAI_VS_AGENTIC_MODULES } from "@/lib/learn/agentic-curriculum";
 import { isFeatureEnabled } from "@/lib/platform/feature-flags";
 import { loadPlatformSettings } from "@/lib/platform/settings";
+import { createClient } from "@/lib/supabase/server";
+
+export const metadata = { title: "Learn" };
+
+const AGENTIC_TRACK_MODULE_IDS = new Set(["agentic-ai", "ais-positioning", "customer-discovery"]);
 
 export default async function LearnPage() {
   const { data } = await requireAppAccess("/learn");
   const settings = await loadPlatformSettings(data.currentUser.tenantId ?? undefined);
   const agenticTrackEnabled = isFeatureEnabled(settings.featureFlags, "agentic-ai-track");
+  const labEnabled = isFeatureEnabled(settings.featureFlags, "isc-lab");
+  const supabase = await createClient();
+  const releaseProjectTags =
+    supabase && data.currentUser.id ? await getUserReleaseProjectTags(supabase, data.currentUser.id) : [];
+  const modules = agenticTrackEnabled
+    ? GENAI_VS_AGENTIC_MODULES
+    : GENAI_VS_AGENTIC_MODULES.filter((module) => !AGENTIC_TRACK_MODULE_IDS.has(module.id));
 
   return (
-    <AppShell currentUser={data.currentUser} notifications={data.notifications}>
-      <SEPageLayout
-        eyebrow="Enablement"
-        subtitle="SailPoint's 2026 story: GenAI assists people; Agentic AI acts — and every agent needs identity governance. Study before customer calls."
-        title="Learn: GenAI vs Agentic AI"
-      >
-        <LearnPageNorthstar agenticTrackEnabled={agenticTrackEnabled} />
-      </SEPageLayout>
+    <AppShell contentWidth="wide" currentUser={data.currentUser} notifications={data.notifications}>
+      <PageHeader eyebrow="Modules · battle cards · guides · ISC Lab" title="Learn" />
+      <div className="px-[var(--gutter)] pb-7">
+        <LearnLibrary
+          labEnabled={labEnabled}
+          modules={modules}
+          pathName="GenAI vs Agentic AI"
+          releaseProjectTags={releaseProjectTags}
+        />
+      </div>
     </AppShell>
   );
 }

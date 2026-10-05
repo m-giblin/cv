@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { Loader2, Plane } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Textarea } from "@/components/ui/textarea";
+import { CARD_CLS, H2_CLS, LABEL_CLS, LINE_CARD_CLS, TEXTAREA_CLS } from "@/components/se/form-classes";
+import { Stat } from "@/components/ui/stat";
+import { Tag } from "@/components/ui/tag";
 import { cn } from "@/lib/utils";
 
 type Question = {
@@ -24,19 +26,25 @@ const COMPETENCY_AREAS = [
   "Value articulation",
 ];
 
-const FOCUS_COLORS: Record<string, string> = {
-  "Objection handling": "#D4810A",
-  Discovery: "#0A6E45",
-  "Value articulation": "#0071CE",
-  "Demo execution": "#0369A1",
-  "Competitive positioning": "#5b21b6",
-};
+/** Score colour rule: danger < 60, warning 60–69, blue ≥ 70. Always paired with the number. */
+function scoreTextClass(score: number | null) {
+  if (score === null) return "text-muted";
+  if (score >= 70) return "text-blue";
+  if (score >= 60) return "text-warning";
+  return "text-danger";
+}
 
-function competencyColor(score: number | null) {
-  if (score === null) return "#B0ADA8";
-  if (score >= 80) return "#0A6E45";
-  if (score >= 70) return "#0071CE";
-  return "#D4810A";
+function scoreFillClass(score: number | null) {
+  if (score === null) return "bg-line-strong";
+  if (score >= 70) return "bg-blue";
+  if (score >= 60) return "bg-warning";
+  return "bg-danger";
+}
+
+function ScoreTag({ score }: { score: number }) {
+  if (score >= 70) return <Tag tone="success">✓ On track</Tag>;
+  if (score >= 60) return <Tag tone="warning">• Close</Tag>;
+  return <Tag tone="danger">▲ Needs practice</Tag>;
 }
 
 export function CompetencyFlightCheck({
@@ -164,241 +172,254 @@ export function CompetencyFlightCheck({
     setSubmitting(false);
   }
 
-  const progressPct = total > 0 ? (progress / total) * 100 : 0;
-
   const scoresPanel = (
-    <div>
-      <p className="mb-3 font-mono text-[8px] uppercase tracking-[0.12em] text-[#B0ADA8]">Scores so far</p>
-      <div className="space-y-2.5">
+    <section aria-labelledby="fc-scores" className="flex flex-col gap-2">
+      <h2 className="label-mono" id="fc-scores">
+        Scores so far
+      </h2>
+      <ul className={`${LINE_CARD_CLS} overflow-hidden`}>
         {COMPETENCY_AREAS.map((name) => {
           const score = competencyScores?.[name] ?? null;
           const probes = probeCounts[name] ?? 0;
           const pct = score ?? (probes > 0 ? 50 : 0);
-          const color = competencyColor(score);
           return (
-            <div key={name}>
-              <div className="mb-1 flex items-center justify-between">
-                <span className="text-[11px] text-[#3D3C38]">{name}</span>
-                <span className="font-mono text-xs font-medium" style={{ color }}>
-                  {score !== null ? score : probes > 0 ? "…" : "—"}
+            <li className="border-b border-divider px-4 py-3 last:border-b-0" key={name}>
+              <div className="mb-1.5 flex items-center justify-between gap-2">
+                <span className="text-sm text-ink-2">{name}</span>
+                <span className={cn("font-mono text-xs font-medium", scoreTextClass(score))}>
+                  {score !== null ? `${score < 60 ? "▲ " : ""}${score}` : probes > 0 ? "Probing" : "—"}
                 </span>
               </div>
-              <div className="h-[3px] bg-[#ECEAE6]">
-                <div className="h-full transition-all" style={{ background: color, width: `${pct}%` }} />
+              <div aria-hidden="true" className="h-2 overflow-hidden rounded-[4px] bg-divider">
+                <div className={cn("h-full transition-all", scoreFillClass(score))} style={{ width: `${pct}%` }} />
               </div>
-            </div>
+            </li>
           );
         })}
-      </div>
+      </ul>
       {started ? (
-        <div className="mt-4 border border-[#E2DFD9] bg-white px-3 py-2.5">
-          <p className="font-mono text-[8px] uppercase tracking-[0.1em] text-[#0369A1]">Adaptive mode</p>
-          <p className="mt-1 text-[11px] leading-relaxed text-[#6B6860]">
-            Difficulty increases on strong answers. Next question targets{" "}
-            <strong className="text-[#0D0E12]">{lowestFocus}</strong> — your lowest area.
-          </p>
-        </div>
+        <p className="text-[13px] leading-[1.45] text-muted">
+          Difficulty increases on strong answers. Next question targets{" "}
+          <strong className="text-ink">{lowestFocus}</strong>, your lowest area.
+        </p>
       ) : null}
-    </div>
+    </section>
   );
 
   const sessionPanel = (
-    <div>
-      <p className="mb-3 font-mono text-[8px] uppercase tracking-[0.12em] text-[#B0ADA8]">This session</p>
-      <div className="mb-3.5 grid grid-cols-2 gap-px border border-[#E2DFD9] bg-[#E2DFD9]">
-        <div className="bg-white px-3 py-2.5 text-center">
-          <p className="font-mono text-[22px] leading-none text-[#0D0E12]">{progress}</p>
-          <p className="mt-0.5 font-mono text-[8px] uppercase tracking-[0.08em] text-[#B0ADA8]">Done</p>
-        </div>
-        <div className="bg-white px-3 py-2.5 text-center">
-          <p className="font-mono text-[22px] leading-none text-[#0369A1]">{Math.max(0, total - progress)}</p>
-          <p className="mt-0.5 font-mono text-[8px] uppercase tracking-[0.08em] text-[#B0ADA8]">Left</p>
-        </div>
+    <section aria-labelledby="fc-session" className="flex flex-col gap-3">
+      <h2 className="label-mono" id="fc-session">
+        This session
+      </h2>
+      <div className={`${LINE_CARD_CLS} grid grid-cols-2 gap-3 px-4 py-3`}>
+        <Stat label="Done" value={progress} />
+        <Stat label="Left" value={Math.max(0, total - progress)} />
       </div>
-      <p className="mb-2 font-mono text-[8px] uppercase tracking-[0.1em] text-[#B0ADA8]">Focus areas</p>
-      <div className="mb-3.5 flex flex-col gap-1">
+      <h3 className="label-mono mt-1">Focus areas</h3>
+      <ul className={`${LINE_CARD_CLS} overflow-hidden`}>
         {(focus.length > 0 ? focus : ["Objection handling", "Discovery", "Value articulation"]).map((item) => (
-          <div
-            className="flex items-center gap-1.5 border border-[#E2DFD9] bg-white px-2.5 py-1.5"
-            key={item}
-          >
-            <span
-              className="h-1.5 w-1.5 shrink-0 rounded-full"
-              style={{ background: FOCUS_COLORS[item] ?? "#B0ADA8" }}
-            />
-            <span className="text-[11px] text-[#3D3C38]">{item}</span>
-          </div>
+          <li className="border-b border-divider px-4 py-2.5 text-sm text-ink-2 last:border-b-0" key={item}>
+            {item}
+          </li>
         ))}
-      </div>
-      <div className="border-l-[3px] border-[#0369A1] bg-[#E0F2FE] px-3 py-2.5">
-        <p className="mb-1 font-mono text-[8px] uppercase tracking-[0.1em] text-[#0369A1]">After this check</p>
-        <p className="text-[11px] leading-relaxed text-[#1A3A5C]">
+      </ul>
+      <div className="rounded-[14px] bg-blue-soft px-4 py-3">
+        <p className="font-mono text-xs font-medium uppercase tracking-[0.03em] text-blue">After this check</p>
+        <p className="mt-1 text-[13px] leading-[1.45] text-ink-2">
           Auto-assigns practice matched to your weakest result. No manual selection needed.
         </p>
       </div>
-    </div>
+    </section>
   );
 
-  return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      {started ? (
-        <div className="h-[3px] shrink-0 bg-[#ECEAE6]">
-          <div
-            className="h-full bg-[#0369A1] transition-all duration-500"
-            style={{ width: `${progressPct}%` }}
+  const progressBlocks = started && !complete ? (
+    <div className="flex items-center gap-3">
+      <div aria-hidden="true" className="flex flex-1 gap-[3px]">
+        {Array.from({ length: total }, (_, index) => (
+          <span
+            className={cn(
+              "h-2 flex-1 rounded-[2px]",
+              index < progress
+                ? "bg-blue"
+                : index === progress
+                  ? "bg-signal outline outline-[1.5px] outline-ink"
+                  : "bg-[#DCE2EC]",
+            )}
+            key={index}
           />
-        </div>
-      ) : null}
+        ))}
+      </div>
+      <span className="shrink-0 font-mono text-xs uppercase tracking-[0.03em] text-muted">
+        Question {questionNumber} of {total}
+      </span>
+    </div>
+  ) : null;
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[240px_1fr_240px]">
-        <aside className="hidden min-h-0 overflow-y-auto border-r border-[#E2DFD9] bg-[#F9F8F6] p-4 lg:block">
-          {started || complete ? scoresPanel : <p className="text-[11px] text-[#6B6860]">Scores appear once you start.</p>}
-        </aside>
+  return (
+    <div className="grid min-w-0 grid-cols-1 items-start gap-7 lg:grid-cols-[minmax(0,1fr)_280px]">
+      <div className="flex min-w-0 flex-col gap-4">
+        {progressBlocks}
 
-        <main className="min-h-0 overflow-y-auto bg-white">
-          {complete && fieldSignalScore !== null ? (
-            <div className="mx-auto max-w-[640px] px-10 py-9">
-              <div className="flex items-center gap-2">
-                <Plane className="h-5 w-5 text-[#0369A1]" />
-                <p className="font-display text-lg font-extrabold text-[#0D0E12]">
-                  Field Signal Score: {fieldSignalScore}
+        {complete && fieldSignalScore !== null ? (
+          <section aria-labelledby="fc-result" className="flex flex-col gap-4">
+            <div aria-live="polite" className={`${CARD_CLS} px-6 py-5`} role="status">
+              <h2 className="label-mono" id="fc-result">
+                Field signal score
+              </h2>
+              <div className="mt-1 flex flex-wrap items-end gap-x-4 gap-y-2">
+                <p className="text-[64px] font-extrabold leading-[0.85] tracking-[-0.04em] text-blue">
+                  {fieldSignalScore}
                 </p>
+                <div className="pb-1">
+                  <ScoreTag score={fieldSignalScore} />
+                </div>
               </div>
-              <p className="mt-2 text-sm text-[#6B6860]">
-                Adaptive probe complete — practice has been auto-assigned based on your gaps.
+              <p className="mt-3 text-[15px] text-ink-2">
+                Adaptive probe complete. Practice has been auto-assigned based on your gaps.
               </p>
-              <div className="mt-4 space-y-2">
+            </div>
+            {actions.length > 0 ? (
+              <ul className={`${LINE_CARD_CLS} overflow-hidden`}>
                 {actions.map((action) => (
-                  <div className="border border-[#E2DFD9] bg-[#F9F8F6] p-3" key={action.href}>
-                    <p className="text-sm font-semibold text-[#0D0E12]">{action.label}</p>
-                    <p className="text-xs text-[#6B6860]">{action.reason}</p>
-                    <Link className="mt-1 inline-block text-xs font-semibold text-[#0071ce]" href={action.href}>
+                  <li
+                    className="flex flex-wrap items-center justify-between gap-3 border-b border-divider px-5 py-3.5 last:border-b-0"
+                    key={action.href}
+                  >
+                    <div className="min-w-0">
+                      <p className="text-[15px] font-bold text-ink">{action.label}</p>
+                      <p className="text-[13px] text-muted">{action.reason}</p>
+                    </div>
+                    <Link className="link text-sm" href={action.href}>
                       Go practice →
                     </Link>
-                  </div>
+                  </li>
                 ))}
-              </div>
+              </ul>
+            ) : null}
+          </section>
+        ) : !started ? (
+          <section aria-labelledby="fc-start" className={`${CARD_CLS} px-6 py-6`}>
+            <p className="label-mono">Competency flight check · Session 1</p>
+            <h2 className={`${H2_CLS} mt-1`} id="fc-start">
+              Ready to find your gaps?
+            </h2>
+            <p className="mt-2 max-w-[560px] text-[15px] leading-[1.5] text-ink-2">
+              {total} adaptive probes across competency areas. Results auto-assign practice challenges and notify your
+              manager.
+            </p>
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <button
+                className="btn-primary inline-flex items-center gap-2"
+                disabled={loading}
+                onClick={() => void loadSession()}
+                type="button"
+              >
+                {loading ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : null}
+                {loading ? "Starting..." : "Start flight check →"}
+              </button>
+              <button className="btn-secondary" disabled={loading} onClick={() => void loadSession()} type="button">
+                Resume last session
+              </button>
             </div>
-          ) : !started ? (
-            <div className="flex min-h-full items-center justify-center bg-gradient-to-br from-[#001228] to-[#002468] p-8">
-              <div className="max-w-lg text-center lg:text-left">
-                <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-white/40">
-                  Competency Flight Check · Session 1
-                </p>
-                <p className="mt-2 font-display text-xl font-extrabold text-white">Ready to find your gaps?</p>
-                <p className="mt-2 text-xs leading-relaxed text-white/60">
-                  {total} adaptive probes across competency areas. Results auto-assign practice challenges and
-                  notify your manager.
-                </p>
-                <div className="mt-5 flex flex-wrap justify-center gap-2 lg:justify-start">
-                  <button
-                    className="bg-[#0369A1] px-5 py-2.5 text-[12.5px] font-semibold text-white hover:bg-[#025a8a] disabled:opacity-50"
-                    disabled={loading}
-                    onClick={() => void loadSession()}
-                    type="button"
-                  >
-                    {loading ? <Loader2 className="inline h-4 w-4 animate-spin" /> : "Start flight check →"}
-                  </button>
-                  <button
-                    className="border border-white/15 bg-white/10 px-4 py-2 text-[12.5px] font-semibold text-white hover:bg-white/15 disabled:opacity-50"
-                    disabled={loading}
-                    onClick={() => void loadSession()}
-                    type="button"
-                  >
-                    Resume last session
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : question ? (
-            <div className="mx-auto flex w-full max-w-[640px] flex-col px-10 py-9">
-              <p className="mb-2 text-center font-mono text-[9px] uppercase tracking-[0.16em] text-[#0369A1]">
+          </section>
+        ) : question ? (
+          <section aria-labelledby="fc-question" className={`${CARD_CLS} flex flex-col gap-5 px-6 py-6`}>
+            <div>
+              <p className="label-mono">
                 {question.competency} · Question {questionNumber}
               </p>
-              <h2 className="mb-7 text-center font-display text-xl font-extrabold leading-snug tracking-[-0.025em] text-[#0D0E12]">
+              <h2 className="mt-1.5 text-lg font-extrabold leading-[1.35] text-ink" id="fc-question">
                 &ldquo;{question.prompt}&rdquo;
               </h2>
-
-              {question.type !== "talk_track" ? (
-                <div className="mb-7 flex w-full flex-col gap-2">
-                  {(question.options ?? []).map((option, index) => {
-                    const active = selected === index;
-                    return (
-                      <button
-                        className={cn(
-                          "flex items-start gap-3 border-[1.5px] px-4 py-3 text-left text-xs leading-relaxed transition",
-                          active
-                            ? "border-[#0369A1] bg-[#EEF4FF] text-[#0D0E12]"
-                            : "border-[#E2DFD9] bg-white text-[#0D0E12]",
-                        )}
-                        key={option}
-                        onClick={() => setSelected(index)}
-                        type="button"
-                      >
-                        <span
-                          className={cn(
-                            "mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-[1.5px]",
-                            active ? "border-[#0369A1] bg-[#EEF4FF]" : "border-[#D4D1CB] bg-white",
-                          )}
-                        >
-                          {active ? <span className="h-2 w-2 rounded-full bg-[#0369A1]" /> : null}
-                        </span>
-                        {option}
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : null}
-
-              <div className="mb-4 w-full border border-[#E2DFD9] bg-[#F9F8F6] px-3.5 py-2.5">
-                <p className="mb-1 font-mono text-[8px] uppercase tracking-[0.1em] text-[#B0ADA8]">
-                  Or write your own response
-                </p>
-                <Textarea
-                  className="min-h-[52px] resize-none border-0 bg-transparent p-0 text-[11.5px] leading-relaxed text-[#3D3C38] shadow-none focus-visible:ring-0"
-                  onChange={(event) => setAnswer(event.target.value)}
-                  placeholder="I'd focus on SailPoint's deployment methodology — we have a dedicated success framework…"
-                  rows={2}
-                  value={answer}
-                />
-              </div>
-
-              <div className="flex w-full justify-end gap-2">
-                <button
-                  className="border border-[#E2DFD9] bg-white px-4 py-2 text-[11px] font-semibold text-[#3D3C38] hover:bg-[#F9F8F6] disabled:opacity-50"
-                  disabled={submitting}
-                  onClick={() => void submitAnswer(true)}
-                  type="button"
-                >
-                  Skip
-                </button>
-                <button
-                  className="bg-[#0369A1] px-5 py-2 text-[11px] font-semibold text-white hover:bg-[#025a8a] disabled:opacity-50"
-                  disabled={
-                    submitting ||
-                    (question.type === "talk_track"
-                      ? answer.trim().length < 10
-                      : selected === null && answer.trim().length < 10)
-                  }
-                  onClick={() => void submitAnswer()}
-                  type="button"
-                >
-                  {submitting ? <Loader2 className="inline h-3.5 w-3.5 animate-spin" /> : "Next question →"}
-                </button>
-              </div>
             </div>
-          ) : (
-            <div className="flex items-center justify-center gap-2 p-12 text-sm text-[#6B6860]">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Loading next probe…
-            </div>
-          )}
-        </main>
 
-        <aside className="hidden min-h-0 overflow-y-auto border-l border-[#E2DFD9] bg-[#F9F8F6] p-4 lg:block">
-          {sessionPanel}
-        </aside>
+            {question.type !== "talk_track" ? (
+              <div aria-labelledby="fc-question" className="flex flex-col gap-2" role="group">
+                {(question.options ?? []).map((option, index) => {
+                  const active = selected === index;
+                  return (
+                    <button
+                      aria-pressed={active}
+                      className={cn(
+                        "flex w-full items-start gap-3 rounded-[12px] px-4 py-3 text-left text-[15px] leading-[1.45] text-ink transition-colors",
+                        active ? "border-[1.5px] border-blue bg-blue-soft" : "border border-line bg-white hover:bg-surface-2",
+                      )}
+                      key={option}
+                      onClick={() => setSelected(index)}
+                      type="button"
+                    >
+                      <span aria-hidden="true" className="mt-0.5 w-4 shrink-0 font-mono text-xs font-medium text-muted">
+                        {String.fromCharCode(65 + index)}
+                      </span>
+                      <span className="flex-1">{option}</span>
+                      {active ? (
+                        <span className="shrink-0 font-mono text-xs font-medium uppercase text-blue">● Selected</span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+
+            <div className="flex flex-col gap-1.5">
+              <label className={LABEL_CLS} htmlFor="fc-answer">
+                {question.type === "talk_track" ? "Your response" : "Or write your own response"}
+              </label>
+              <textarea
+                className={`${TEXTAREA_CLS} min-h-[96px]`}
+                id="fc-answer"
+                onChange={(event) => setAnswer(event.target.value)}
+                placeholder="I'd focus on SailPoint's deployment methodology — we have a dedicated success framework…"
+                rows={3}
+                value={answer}
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center justify-end gap-3">
+              <button
+                className="btn-secondary"
+                disabled={submitting}
+                onClick={() => void submitAnswer(true)}
+                type="button"
+              >
+                Skip
+              </button>
+              <button
+                className="btn-primary inline-flex items-center gap-2"
+                disabled={
+                  submitting ||
+                  (question.type === "talk_track"
+                    ? answer.trim().length < 10
+                    : selected === null && answer.trim().length < 10)
+                }
+                onClick={() => void submitAnswer()}
+                type="button"
+              >
+                {submitting ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : null}
+                {submitting ? "Saving..." : "Next question →"}
+              </button>
+            </div>
+          </section>
+        ) : (
+          <p
+            className="rounded-[14px] border-[1.5px] border-dashed border-line-strong p-7 text-center text-[15px] text-muted"
+            role="status"
+          >
+            Loading next probe...
+          </p>
+        )}
       </div>
+
+      <aside aria-label="Flight check progress" className="flex min-w-0 flex-col gap-6">
+        {started || complete ? (
+          scoresPanel
+        ) : (
+          <p className="rounded-[14px] border-[1.5px] border-dashed border-line-strong p-5 text-center text-sm text-muted">
+            Scores appear once you start.
+          </p>
+        )}
+        {sessionPanel}
+      </aside>
     </div>
   );
 }

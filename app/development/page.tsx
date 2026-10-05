@@ -1,9 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { DevelopmentPlanPanel } from "@/components/development/development-plan-panel";
-import { SEPageLayout } from "@/components/se/se-page-layout";
+import { PageHeader } from "@/components/ui/page-header";
 import { getAccessTier } from "@/lib/auth/rbac";
 import { requireAppAccess } from "@/lib/auth/require-access";
 import { fetchDevelopmentPlanForUser } from "@/lib/data/get-development-data";
@@ -37,38 +35,22 @@ export default async function DevelopmentPage({ searchParams }: DevelopmentPageP
  const isSe = tier === "se";
 
  if (isSe) {
- redirect("/growth-plan");
+ redirect("/readiness/growth-plan");
  }
 
  return (
- <AppShell currentUser={data.currentUser} notifications={data.notifications}>
- <SEPageLayout
- eyebrow="Annual development"
- subtitle={
- isSe
- ? "Annual goals with quarterly checkpoints. Add evidence; your manager attests progress."
- : "Co-create annual development plans, link competencies, and run Q1–Q4 review cadences that actually stick."
- }
- title={isSe ? "Development" : "Development plans & quarterly reviews"}
- >
- {isSe ? (
- <Link
- className="mb-4 inline-flex items-center gap-1 text-sm font-semibold text-[#0071ce] hover:underline"
- href="/growth"
- >
- Career readiness & competency trends <ArrowRight className="h-4 w-4" />
- </Link>
- ) : null}
-
- <DevelopmentPlanPanel
- assignees={assignees}
- competencies={data.competencies}
- focusReviewId={params.review}
- initialPlan={plan}
- initialSelectedUserId={targetUserId}
- viewerRole={viewerRole}
- />
- </SEPageLayout>
- </AppShell>
- );
+    <AppShell contentWidth="wide" currentUser={data.currentUser} notifications={data.notifications}>
+      <PageHeader eyebrow="Annual goals · quarterly reviews" title="Development plans" />
+      <div className="px-[var(--gutter)] pb-7">
+        <DevelopmentPlanPanel
+          assignees={assignees}
+          competencies={data.competencies}
+          focusReviewId={params.review}
+          initialPlan={plan}
+          initialSelectedUserId={targetUserId}
+          viewerRole={viewerRole}
+        />
+      </div>
+    </AppShell>
+  );
 }

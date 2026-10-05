@@ -1,5 +1,9 @@
 import { cn } from "@/lib/utils";
 
+/**
+ * v2 lifecycle row (Flight strip style): three equal mono-12 cells.
+ * Done = blue "✓", current = signal fill with ink text "●", upcoming = muted "○".
+ */
 export function SimulationStepStrip({
   step,
   className,
@@ -14,32 +18,31 @@ export function SimulationStepStrip({
   ];
 
   return (
-    <ol className={cn("flex items-center gap-0", className)}>
+    <ol
+      aria-label="Simulation steps"
+      className={cn(
+        "grid grid-cols-3 overflow-hidden rounded-[10px] border border-line bg-white font-mono text-xs uppercase tracking-[0.03em]",
+        className,
+      )}
+    >
       {steps.map((item) => {
         const active = step === item.n;
         const done = step > item.n;
-        const bg = active ? "#EEF4FF" : "#F9F8F6";
-        const border = active ? "#0071CE" : "#E2DFD9";
-        const numBg = active ? "#0071CE" : done ? "#0A6E45" : "#E2DFD9";
-        const numColor = active || done ? "white" : "#B0ADA8";
-        const textColor = active ? "#0D0E12" : done ? "#0A6E45" : "#B0ADA8";
+        const symbol = done ? "✓" : active ? "●" : "○";
 
         return (
-          <li key={item.n}>
-            <div
-              className="flex items-center gap-1.5 border px-2.5 py-1"
-              style={{ background: bg, borderColor: border }}
-            >
-              <span
-                className="flex h-4 w-4 items-center justify-center rounded-full font-mono text-[8px] font-medium"
-                style={{ background: numBg, color: numColor }}
-              >
-                {item.n}
-              </span>
-              <span className="text-[10.5px] font-medium" style={{ color: textColor }}>
-                {item.label}
-              </span>
-            </div>
+          <li
+            aria-current={active ? "step" : undefined}
+            className={cn(
+              "whitespace-nowrap px-3 py-[9px] font-medium",
+              item.n > 1 && "border-l border-divider",
+              done && "text-blue",
+              active && "bg-signal text-ink",
+              !done && !active && "text-[#5A6884]",
+            )}
+            key={item.n}
+          >
+            {symbol} {item.label}
           </li>
         );
       })}

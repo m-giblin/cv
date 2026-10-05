@@ -1,16 +1,14 @@
 "use client";
 
-import Link from "next/link";
-import { ChevronLeft, Plus } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
+import { SegmentedToggle } from "@/components/ui/segmented-toggle";
+import { Tag } from "@/components/ui/tag";
 import type { AccessTier } from "@/lib/auth/rbac";
 
 type PortalView = "browse" | "submissions" | "generate";
 
 export function ChallengesWorkspaceBar({
-  tier,
-  backHref,
   testMode,
   stats,
   showGenerator,
@@ -18,6 +16,7 @@ export function ChallengesWorkspaceBar({
   onToggleHelp,
 }: {
   tier: AccessTier;
+  /** Kept for API compatibility; the shell nav now handles "back". */
   backHref: string;
   testMode?: boolean;
   stats: { total: number; earned: number; inFlight: number; submittedCount: number };
@@ -41,73 +40,44 @@ export function ChallengesWorkspaceBar({
       const params = new URLSearchParams(searchParams.toString());
       if (nextView === "browse") params.delete("view");
       else params.set("view", nextView);
-      router.replace(`/challenges?${params.toString()}`, { scroll: false });
+      router.replace(`/practice/challenges?${params.toString()}`, { scroll: false });
     },
     [router, searchParams],
   );
 
   return (
-    <div className="flex shrink-0 flex-wrap items-center gap-2.5 border-b border-[#E2DFD9] bg-white px-5 py-2.5">
-      <Link
-        className="inline-flex items-center gap-1.5 font-mono text-[11px] text-[#A09D98] hover:text-[#0071ce]"
-        href={backHref}
-      >
-        <ChevronLeft className="h-3 w-3" strokeWidth={1.6} />
-        My Practice
-      </Link>
-      <span className="text-[#E2DFD9]">›</span>
-      <span className="font-mono text-[10.5px] font-medium text-[#0D0E12]">Challenges</span>
+    <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-3 pb-5">
+      <p className="font-mono text-xs font-medium uppercase tracking-[0.03em] text-muted">
+        {stats.total} available · {stats.earned} earned · {stats.inFlight} in flight
+      </p>
+      {testMode ? <Tag tone="warning">• Test mode</Tag> : null}
 
-      <div className="ml-4 flex overflow-hidden border border-[#E2DFD9]">
-        <button
-          className={`px-3 py-1 text-[10.5px] font-semibold ${
-            view === "browse" ? "bg-[#00143A] text-white" : "border-l border-[#E2DFD9] text-[#6B6860] first:border-l-0"
-          }`}
-          onClick={() => setView("browse")}
-          type="button"
-        >
-          Browse
-        </button>
-        <button
-          className={`border-l border-[#E2DFD9] px-3 py-1 text-[10.5px] font-semibold ${
-            view === "submissions" ? "bg-[#00143A] text-white" : "text-[#6B6860]"
-          }`}
-          onClick={() => setView("submissions")}
-          type="button"
-        >
-          My submissions{stats.submittedCount > 0 ? ` (${stats.submittedCount})` : ""}
-        </button>
+      <div className="ml-auto flex flex-wrap items-center gap-3">
+        <SegmentedToggle
+          label="Challenges view"
+          onChange={(id) => setView(id as PortalView)}
+          options={[
+            { id: "browse", label: "Library" },
+            {
+              id: "submissions",
+              label: `My submissions${stats.submittedCount > 0 ? ` (${stats.submittedCount})` : ""}`,
+            },
+          ]}
+          value={view === "submissions" ? "submissions" : "browse"}
+        />
         {showGenerator ? (
           <button
-            className={`inline-flex items-center gap-1 border-l border-[#E2DFD9] px-3 py-1 text-[10.5px] font-semibold ${
-              view === "generate" ? "bg-[#00143A] text-white" : "text-[#6B6860]"
-            }`}
-            onClick={() => setView("generate")}
+            aria-pressed={view === "generate"}
+            className="btn-secondary"
+            onClick={() => setView(view === "generate" ? "browse" : "generate")}
             type="button"
           >
-            <Plus className="h-2.5 w-2.5" />
-            AI generate
+            {view === "generate" ? "Close generator" : "Generate a challenge"}
           </button>
         ) : null}
-      </div>
-
-      {testMode ? (
-        <span className="shrink-0 border border-[#D4810A]/30 bg-[#FFFBF0] px-2 py-0.5 font-mono text-[8px] uppercase tracking-[0.08em] text-[#D4810A]">
-          Test mode
-        </span>
-      ) : null}
-
-      <div className="ml-auto flex flex-wrap items-center gap-2.5">
-        <span className="font-mono text-[9px] text-[#B0ADA8]">{stats.total} challenges</span>
-        <span className="font-mono text-[9px] text-[#B0ADA8]">·</span>
-        <span className="font-mono text-[9px] text-[#B0ADA8]">{stats.earned} earned</span>
-        {stats.inFlight > 0 ? (
-          <span className="bg-[#EEF4FF] px-2 py-0.5 font-mono text-[9px] font-semibold text-[#0071CE]">
-            {stats.inFlight} in progress
-          </span>
-        ) : null}
         <button
-          className="font-mono text-[9px] text-[#0071CE] hover:underline"
+          aria-expanded={showHelp}
+          className="link text-sm"
           onClick={onToggleHelp}
           type="button"
         >

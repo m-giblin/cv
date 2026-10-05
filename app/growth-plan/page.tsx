@@ -1,17 +1,11 @@
-import { AppShell } from "@/components/app-shell";
-import { DataSourceBanner } from "@/components/data-source-banner";
-import { SeGrowthPlanView } from "@/components/se/growth-plan/SeGrowthPlanView";
-import { fetchSeGrowthPlanForUser } from "@/lib/se/fetch-se-growth-plan";
-import { requireAppAccess } from "@/lib/auth/require-access";
+import { redirect } from "next/navigation";
+import { legacySeRedirect } from "@/lib/se/se-routes";
 
-export default async function GrowthPlanPage() {
-  const { data, source } = await requireAppAccess("/growth-plan");
-  const growthPlan = await fetchSeGrowthPlanForUser(data.currentUser.id);
+type LegacyPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
 
-  return (
-    <AppShell contentWidth="wide" currentUser={data.currentUser} notifications={data.notifications}>
-      <DataSourceBanner source={source} />
-      <SeGrowthPlanView initial={growthPlan} seUserId={data.currentUser.id} />
-    </AppShell>
-  );
+/** Legacy route, now /readiness/growth-plan. Query strings are kept. */
+export default async function LegacyRedirectPage({ searchParams }: LegacyPageProps) {
+  redirect(legacySeRedirect("/growth-plan", await searchParams) ?? "/readiness/growth-plan");
 }

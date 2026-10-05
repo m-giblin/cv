@@ -1,20 +1,11 @@
-import { AppShell } from "@/components/app-shell";
-import { MyReadinessCard } from "@/components/growth/my-readiness-card";
-import { SEPageLayout } from "@/components/se/se-page-layout";
-import { requireAppAccess } from "@/lib/auth/require-access";
+import { redirect } from "next/navigation";
+import { legacySeRedirect } from "@/lib/se/se-routes";
 
-export default async function MyReadinessPage() {
-  const { data } = await requireAppAccess("/growth/readiness");
+type LegacyPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
 
-  return (
-    <AppShell currentUser={data.currentUser} notifications={data.notifications}>
-      <SEPageLayout
-        eyebrow="Career"
-        subtitle="Your composite readiness and competency picture across every practice feature"
-        title="My Readiness"
-      >
-        <MyReadinessCard />
-      </SEPageLayout>
-    </AppShell>
-  );
+/** Legacy route, now /readiness. Query strings are kept. */
+export default async function LegacyRedirectPage({ searchParams }: LegacyPageProps) {
+  redirect(legacySeRedirect("/growth/readiness", await searchParams) ?? "/readiness");
 }
