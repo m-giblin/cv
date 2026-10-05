@@ -108,7 +108,7 @@ export async function POST(request: Request) {
  userId: admin.id,
  title: "Corpus feedback — confusing content",
  body: `${asset.title}: ${comment ?? "Flagged as confusing"}`,
- actionUrl: "/admin?tab=corpus",
+ actionUrl: "/admin/content/corpus",
  });
  }
  }

@@ -2,8 +2,8 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useMemo } from "react";
 import {
   ADMIN_SETTINGS_HEADERS,
   ADMIN_TAB_HEADERS,
@@ -16,6 +16,7 @@ import {
 } from "@/components/admin/admin-settings-panel";
 import { AdminTabPanel } from "@/components/admin/admin-tabs";
 import { useTenantBranding } from "@/components/tenant/tenant-branding-provider";
+import { adminPathFor, adminRouteFromPath } from "@/lib/admin/admin-routes";
 import { formatTokenCount, type AiUsageSummary } from "@/lib/ai/settings-shared";
 import type { PendingReviewBreakdown } from "@/lib/data/get-pending-review-breakdown";
 import type { ActivityLog, Profile, ProfileRole, SeLevel, UserPlan } from "@/lib/types";
@@ -140,19 +141,16 @@ export function AdminConsole({
   const overviewAvailable = hasOverviewData(profiles, plans, activity, pendingReviews);
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [tab, setTab] = useState<AdminTab>(() => parseAdminTab(searchParams.get("tab"), overviewAvailable));
-  const [settingsSection, setSettingsSection] = useState<AdminSettingsSection>(() =>
-    parseAdminSettingsSection(searchParams.get("section")),
-  );
-
-  useEffect(() => {
-    setTab(parseAdminTab(searchParams.get("tab"), overviewAvailable));
-    setSettingsSection(parseAdminSettingsSection(searchParams.get("section")));
-  }, [overviewAvailable, searchParams]);
+  const pathname = usePathname();
+  const route = adminRouteFromPath(pathname);
+  // The route decides the view; `?tab=` is only read for legacy URLs that have not redirected yet.
+  const routeTab = route?.tab ?? parseAdminTab(searchParams.get("tab"), overviewAvailable);
+  const tab: AdminTab = routeTab === "overview" && !overviewAvailable ? "users" : routeTab;
+  const settingsSection: AdminSettingsSection =
+    route?.section ?? parseAdminSettingsSection(searchParams.get("section"));
 
   function selectSettingsSection(next: AdminSettingsSection) {
-    setSettingsSection(next);
-    router.replace(`/admin?tab=settings&section=${next}`, { scroll: false });
+    router.replace(adminPathFor("settings", next), { scroll: false });
   }
 
   const header = useMemo(() => {
@@ -179,7 +177,7 @@ export function AdminConsole({
         <AdminOutlineBtn href="/simulations?test=1">Test as SE</AdminOutlineBtn>
         <Link
           className="inline-flex items-center bg-[#00143A] px-3 py-1.5 text-[11px] font-semibold text-white"
-          href="/admin?tab=users"
+          href="/admin/people"
         >
           Manage users →
         </Link>

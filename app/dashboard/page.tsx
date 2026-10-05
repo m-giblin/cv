@@ -16,7 +16,7 @@ export default async function DashboardPage() {
  }
 
  if (tier === "admin") {
- redirect("/admin?tab=overview");
+ redirect("/admin");
  }
 
  if (tier === "se") {

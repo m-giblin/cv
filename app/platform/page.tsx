@@ -1,19 +1,23 @@
-import { Suspense } from "react";
-import { AppShell } from "@/components/app-shell";
-import { PlatformConsole } from "@/components/platform/platform-console";
-import { SEPageLayout } from "@/components/se/se-page-layout";
-import { requireSuperAdminPageAccess } from "@/lib/auth/require-super-admin-page";
+import { redirect } from "next/navigation";
+import { PlatformSectionPage } from "@/components/platform/platform-section-page";
+import { canonicalPlatformHref } from "@/lib/platform/platform-routes";
 
-export default async function PlatformPage() {
-  const { currentUser } = await requireSuperAdminPageAccess();
+type PlatformPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
 
-  return (
-    <AppShell contentWidth="full" currentUser={currentUser} notifications={[]}>
-      <SEPageLayout bare>
-        <Suspense fallback={<div className="p-6 text-sm text-[#6B6860]">Loading console…</div>}>
-          <PlatformConsole />
-        </Suspense>
-      </SEPageLayout>
-    </AppShell>
-  );
+export default async function PlatformPage({ searchParams }: PlatformPageProps) {
+  const params = await searchParams;
+
+  // Legacy `/platform?view=x` links go to the view's own route.
+  if (typeof params.view === "string") {
+    const query = new URLSearchParams();
+    for (const [key, value] of Object.entries(params)) {
+      if (typeof value === "string") query.set(key, value);
+    }
+    const target = canonicalPlatformHref(`/platform?${query.toString()}`);
+    if (!target.startsWith("/platform?view=")) redirect(target);
+  }
+
+  return <PlatformSectionPage />;
 }

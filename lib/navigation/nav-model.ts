@@ -110,95 +110,93 @@ export const NAV: Record<WorkspaceHat, NavItem[]> = {
     {
       id: "overview",
       label: "Overview",
-      href: "/admin?tab=overview",
+      href: "/admin",
       children: [
-        { id: "overview", label: "Overview", href: "/admin?tab=overview" },
-        { id: "help", label: "Help", href: "/admin?tab=help" },
+        { id: "overview", label: "Overview", href: "/admin" },
+        { id: "help", label: "Help", href: "/admin/help" },
       ],
     },
-    { id: "people", label: "People", href: "/admin?tab=users" },
+    { id: "people", label: "People", href: "/admin/people" },
     {
       id: "programs",
       label: "Programs",
-      href: "/admin?tab=plans",
+      href: "/admin/programs",
       children: [
-        { id: "plans", label: "Plans", href: "/admin?tab=plans" },
-        { id: "competencies", label: "Competencies", href: "/admin?tab=competencies" },
+        { id: "plans", label: "Plans", href: "/admin/programs" },
+        { id: "competencies", label: "Competencies", href: "/admin/programs/competencies" },
         { id: "assign", label: "Assign", href: "/plans" },
       ],
     },
     {
       id: "content",
       label: "Content",
-      href: "/admin?tab=content-portal",
+      href: "/admin/content",
       children: [
-        { id: "portal", label: "Content portal", href: "/admin?tab=content-portal" },
-        { id: "corpus", label: "Corpus", href: "/admin?tab=corpus" },
-        { id: "ai", label: "AI & sims", href: "/admin?tab=ai" },
-        { id: "reviews", label: "Reviews", href: "/admin?tab=reviews" },
+        { id: "portal", label: "Content portal", href: "/admin/content" },
+        { id: "corpus", label: "Corpus", href: "/admin/content/corpus" },
+        { id: "ai", label: "AI & sims", href: "/admin/content/ai" },
+        { id: "reviews", label: "Reviews", href: "/admin/content/reviews" },
       ],
     },
     {
       id: "insights",
       label: "Insights",
-      href: "/admin?tab=analytics",
+      href: "/admin/insights",
       children: [
-        { id: "analytics", label: "Analytics", href: "/admin?tab=analytics" },
-        { id: "audit", label: "Audit log", href: "/admin?tab=audit" },
+        { id: "analytics", label: "Analytics", href: "/admin/insights" },
+        { id: "audit", label: "Audit log", href: "/admin/insights/audit" },
       ],
     },
     {
       id: "settings",
       label: "Settings",
-      href: "/admin?tab=settings&section=flags",
+      href: "/admin/settings/features",
       children: [
-        { id: "features", label: "Features", href: "/admin?tab=settings&section=flags" },
-        { id: "integrations", label: "Integrations", href: "/admin?tab=settings&section=integrations" },
-        { id: "ai", label: "AI", href: "/admin?tab=settings&section=ai" },
-        { id: "security", label: "Security", href: "/admin?tab=security" },
-        { id: "basic", label: "Data retention", href: "/admin?tab=settings&section=basic" },
+        { id: "features", label: "Features", href: "/admin/settings/features" },
+        { id: "integrations", label: "Integrations", href: "/admin/settings/integrations" },
+        { id: "ai", label: "AI", href: "/admin/settings/ai" },
+        { id: "security", label: "Security", href: "/admin/settings/security" },
+        { id: "general", label: "General", href: "/admin/settings/general" },
+        { id: "retention", label: "Data retention", href: "/admin/settings/retention" },
       ],
     },
   ],
   platform: [
-    { id: "now", label: "Now", href: "/platform?view=now" },
+    { id: "now", label: "Now", href: "/platform" },
     {
       id: "tenants",
       label: "Tenants",
-      href: "/platform?view=tenant",
+      href: "/platform/tenants",
       children: [
-        { id: "tenant", label: "Tenants", href: "/platform?view=tenant" },
-        { id: "overview", label: "Health", href: "/platform?view=overview" },
-        { id: "onboarding", label: "Onboarding", href: "/platform?view=onboarding" },
+        { id: "tenant", label: "Tenants", href: "/platform/tenants" },
+        { id: "overview", label: "Health", href: "/platform/tenants/health" },
+        { id: "onboarding", label: "Onboarding", href: "/platform/tenants/onboarding" },
       ],
     },
     {
       id: "support",
       label: "Support",
-      href: "/platform?view=support",
+      href: "/platform/support",
       children: [
-        { id: "support", label: "Support", href: "/platform?view=support" },
-        { id: "shadow", label: "Shadow log", href: "/platform?view=shadow" },
+        { id: "support", label: "Support", href: "/platform/support" },
+        { id: "shadow", label: "Shadow log", href: "/platform/support/shadow" },
       ],
     },
-    { id: "usage", label: "Usage", href: "/platform?view=usage" },
+    { id: "usage", label: "Usage", href: "/platform/usage" },
     {
       id: "settings",
       label: "Settings",
-      href: "/platform?view=settings",
+      href: "/platform/settings",
       children: [
-        { id: "settings", label: "Settings", href: "/platform?view=settings" },
-        { id: "global-audit", label: "Global audit", href: "/platform?view=global-audit" },
+        { id: "settings", label: "Settings", href: "/platform/settings" },
+        { id: "global-audit", label: "Global audit", href: "/platform/settings/audit" },
       ],
     },
   ],
 };
 
 /** Query params that default when absent, so "/manager" counts as "?section=command". */
-const QUERY_DEFAULTS: Record<string, Record<string, string>> = {
-  "/platform": { view: "now" },
-  "/admin": { tab: "overview", section: "flags" },
-};
+const QUERY_DEFAULTS: Record<string, Record<string, string>> = {};
 
 /** How well an href matches the current location: -1 none, higher is more specific. */
 export function hrefScore(href: string, pathname: string, params: URLSearchParams): number {

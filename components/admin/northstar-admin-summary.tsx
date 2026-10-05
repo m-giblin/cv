@@ -324,7 +324,7 @@ export function NorthstarAdminSummary({
             pendingQueue.map((item) => (
               <Link
                 className="block border-b border-[#F2F0EC] px-[14px] py-2.5 transition hover:bg-[#F0EFEB]"
-                href="/admin?tab=reviews"
+                href="/admin/content/reviews"
                 key={item.id}
                 style={{ borderLeft: `2px solid ${item.accentColor}` }}
               >
@@ -342,7 +342,7 @@ export function NorthstarAdminSummary({
             ))
           )}
           <div className="p-2 px-[14px]">
-            <AdminOutlineBtn className="w-full justify-center" href="/admin?tab=reviews">
+            <AdminOutlineBtn className="w-full justify-center" href="/admin/content/reviews">
               All {heroPending} reviews →
             </AdminOutlineBtn>
           </div>
@@ -359,7 +359,7 @@ export function NorthstarAdminSummary({
           <AdminStatColumn label="Today" sub="across all features" value={usage.requestsToday} />
           <AdminStatColumn label="Tokens (30d)" sub={usage.model} value={formatTokenCount(usage.tokens30d)} />
           <div className="p-2.5 px-[14px]">
-            <AdminOutlineBtn className="w-full justify-center" href="/admin?tab=ai">
+            <AdminOutlineBtn className="w-full justify-center" href="/admin/content/ai">
               AI settings →
             </AdminOutlineBtn>
           </div>
@@ -377,7 +377,7 @@ export function NorthstarAdminSummary({
                 : ""}
             </span>
           </div>
-          <AdminOutlineBtn href="/admin?tab=settings&section=flags">
+          <AdminOutlineBtn href="/admin/settings/features">
             Manage flags →
           </AdminOutlineBtn>
         </div>

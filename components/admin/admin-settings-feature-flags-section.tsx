@@ -46,7 +46,7 @@ export function AdminSettingsFeatureFlagsSection() {
  <div className="max-w-3xl space-y-4">
  <div className="border border-[#E2DFD9] bg-[#F9F8F6] px-4 py-3 text-[12px] text-[#3D3C38]">
  Feature entitlements are managed by the platform operator. Contact support to request changes.
- <Link className="ml-1 inline-flex items-center gap-1 font-semibold text-[#0033a1] hover:underline" href="/admin?tab=help">
+ <Link className="ml-1 inline-flex items-center gap-1 font-semibold text-[#0033a1] hover:underline" href="/admin/help">
  Open Help
  <ExternalLink className="h-3 w-3" />
  </Link>

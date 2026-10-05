@@ -11,7 +11,9 @@ import {
   getWorkspaceHome,
   type WorkspaceHat,
 } from "@/lib/auth/workspace";
+import { canonicalAdminHref } from "@/lib/admin/admin-routes";
 import { canonicalHref } from "@/lib/manager/manager-routes";
+import { canonicalPlatformHref } from "@/lib/platform/platform-routes";
 import { resolveActive, visibleNav } from "@/lib/navigation/nav-model";
 import type { PlatformFeatureFlags } from "@/lib/platform/settings-shared";
 import type { Notification, Profile } from "@/lib/types";
@@ -31,7 +33,7 @@ function unreadFor(notifications: Notification[], hrefs: string[]) {
       item.actionUrl &&
       hrefs.some((href) => {
         const base = href.split("?")[0] ?? href;
-        const target = canonicalHref(item.actionUrl ?? "");
+        const target = canonicalPlatformHref(canonicalAdminHref(canonicalHref(item.actionUrl ?? "")));
         return target === href || target.split(/[?#]/)[0] === base;
       }),
   ).length;

@@ -22,7 +22,7 @@ import {
   Zap,
   BarChart2,
 } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { CreateTenantModal, type CreateTenantFormValues } from "@/components/platform/create-tenant-modal";
@@ -49,6 +49,7 @@ import {
   matchFeatureFlagPreset,
   type FeatureFlagPresetId,
 } from "@/lib/platform/flag-presets";
+import { PLATFORM_VIEW_PATHS, platformViewFromPath } from "@/lib/platform/platform-routes";
 import type { PlatformFeatureFlags } from "@/lib/platform/settings-shared";
 import type { SupportRequest, Tenant, TenantAdminInvite, TenantHealth } from "@/lib/tenant/types";
 
@@ -126,13 +127,17 @@ const BILLING_STATUS_COLORS: Record<string, string> = {
 
 export function PlatformConsole() {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const consoleView = parseConsoleView(searchParams.get("view"));
+  // The route decides the view; `?view=` is only read for legacy URLs that have not redirected yet.
+  const consoleView: ConsoleView =
+    platformViewFromPath(pathname) ?? parseConsoleView(searchParams.get("view"));
 
   const replaceConsoleUrl = useCallback(
     (next: { view?: ConsoleView; tenant?: string | null; tab?: TenantTab | null }) => {
       const params = new URLSearchParams(searchParams.toString());
-      if (next.view) params.set("view", next.view);
+      params.delete("view");
+      const path = next.view ? PLATFORM_VIEW_PATHS[next.view] : pathname;
       if (next.tenant === null) {
         params.delete("tenant");
       } else if (next.tenant) {
@@ -143,9 +148,10 @@ export function PlatformConsole() {
       } else if (next.tab) {
         params.set("tab", next.tab);
       }
-      router.replace(`/platform?${params.toString()}`, { scroll: false });
+      const query = params.toString();
+      router.replace(query ? `${path}?${query}` : path, { scroll: false });
     },
-    [router, searchParams],
+    [pathname, router, searchParams],
   );
 
   const setConsoleView = useCallback(
