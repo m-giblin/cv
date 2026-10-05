@@ -23,11 +23,9 @@ export function WorkspaceSwitcher({
 
   if (hats.length <= 1) {
     return (
-      <div className="mb-2 border border-white/[0.08] bg-white/[0.04] px-2.5 py-2">
-        <p className="font-mono text-[8px] uppercase tracking-[0.1em] text-white/35">Workspace</p>
-        <p className="mt-0.5 text-[11px] font-semibold text-white/85">
-          {WORKSPACE_HAT_LABELS[activeHat]}
-        </p>
+      <div className="rounded-[10px] border border-blue-line px-2.5 py-2">
+        <p className="font-mono text-xs uppercase text-on-blue-muted">Workspace</p>
+        <p className="text-sm font-semibold text-white">{WORKSPACE_HAT_LABELS[activeHat]}</p>
       </div>
     );
   }
@@ -54,45 +52,40 @@ export function WorkspaceSwitcher({
   }
 
   return (
-    <div className="mb-2">
+    <div>
       <button
-        className="flex w-full items-center justify-between border border-white/[0.08] bg-white/[0.04] px-2.5 py-2 text-left hover:bg-white/[0.07]"
+        aria-expanded={open}
+        className="flex w-full items-center justify-between rounded-[10px] border border-blue-line px-2.5 py-2 text-left hover:bg-blue-2"
         onClick={() => setOpen((value) => !value)}
         type="button"
       >
-        <div className="min-w-0">
-          <p className="font-mono text-[8px] uppercase tracking-[0.1em] text-white/35">Workspace</p>
-          <p className="mt-0.5 truncate text-[11px] font-semibold text-white/90">
+        <span className="min-w-0">
+          <span className="block font-mono text-xs uppercase text-on-blue-muted">Workspace</span>
+          <span className="block truncate text-sm font-semibold text-white">
             {WORKSPACE_HAT_LABELS[activeHat]}
-          </p>
-        </div>
-        <span className="shrink-0 font-mono text-[10px] text-white/40">{open ? "▴" : "▾"}</span>
+          </span>
+        </span>
+        <span className="shrink-0 text-xs text-on-blue-muted">Switch</span>
       </button>
       {open ? (
-        <div className="mt-1 border border-white/[0.08] bg-[#00102e]">
+        <div className="mt-1 overflow-hidden rounded-[10px] border border-blue-line bg-blue-2">
           {hats.map((hat) => (
             <button
               className={cn(
-                "block w-full border-b border-white/[0.05] px-2.5 py-2 text-left last:border-b-0",
-                hat === activeHat ? "bg-white/[0.08]" : "hover:bg-white/[0.05]",
+                "block w-full border-b border-blue-line px-2.5 py-2 text-left last:border-b-0",
+                hat === activeHat ? "bg-blue-line" : "hover:bg-blue-line/60",
               )}
               disabled={switching}
               key={hat}
               onClick={() => void switchTo(hat)}
-              title={WORKSPACE_HAT_DESCRIPTIONS[hat]}
               type="button"
             >
-              <p
-                className={cn(
-                  "text-[11px] font-semibold",
-                  hat === activeHat ? "text-white" : "text-white/75",
-                )}
-              >
+              <span className="block text-sm font-semibold text-white">
                 {WORKSPACE_HAT_LABELS[hat]}
-              </p>
-              <p className="mt-0.5 text-[9px] leading-snug text-white/35">
+              </span>
+              <span className="block text-xs leading-snug text-on-blue-muted">
                 {WORKSPACE_HAT_DESCRIPTIONS[hat]}
-              </p>
+              </span>
             </button>
           ))}
         </div>

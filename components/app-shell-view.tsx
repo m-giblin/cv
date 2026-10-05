@@ -1,58 +1,75 @@
 "use client";
 
-import Link from "next/link";
-import { CSSProperties, ReactNode, Suspense } from "react";
-import { NavMobile, NavSidebar } from "@/components/nav-sidebar";
-import { NavTopBar } from "@/components/nav-top-bar";
-import { ShadowTenantBanner } from "@/components/platform/shadow-tenant-banner";
-import { TenantBrandMark, TenantBrandText } from "@/components/tenant/tenant-brand-mark";
-import { TenantBrandingProvider, useTenantBranding } from "@/components/tenant/tenant-branding-provider";
-import { SidebarUserFooter } from "@/components/sidebar-user-footer";
-import { WorkspaceSwitcher } from "@/components/workspace-switcher";
-import { MobilePracticeShell } from "@/components/practice/mobile-practice-shell";
-import { UatBugTracker } from "@/components/uat/uat-bug-tracker";
+import { usePathname, useSearchParams } from "next/navigation";
+import { CSSProperties, ReactNode, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { CommandPalette } from "@/components/nav/command-palette";
+import { SidebarBrand, SidebarContent } from "@/components/nav/app-sidebar";
+import { SectionTabs } from "@/components/nav/section-tabs";
+import { useNavFlags } from "@/components/nav/use-nav-flags";
 import { NotificationFlyout } from "@/components/notifications/notification-flyout";
+import { ShadowTenantBanner } from "@/components/platform/shadow-tenant-banner";
+import {
+  TenantBrandingProvider,
+  useTenantBranding,
+} from "@/components/tenant/tenant-branding-provider";
+import { UatBugTracker } from "@/components/uat/uat-bug-tracker";
 import type { AccessTier } from "@/lib/auth/rbac";
-import { getWorkspaceHome, type WorkspaceHat } from "@/lib/auth/workspace";
+import type { WorkspaceHat } from "@/lib/auth/workspace";
+import { pageTitle, paletteEntries } from "@/lib/navigation/nav-model";
 import type { TenantShellBranding } from "@/lib/tenant/shell-branding";
 import { Notification, Profile } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-function AdminTenantBadge() {
-  const branding = useTenantBranding();
-  const slug = branding.tenantSlug ? `${branding.tenantSlug}.sailpoint.io` : branding.productTagline;
+function DocumentTitle({ workspace }: { workspace: WorkspaceHat }) {
+  const pathname = usePathname();
+  const params = useSearchParams();
+  const { productName } = useTenantBranding();
 
-  return (
-    <div className="mt-2 flex items-center justify-between border border-white/[0.08] bg-white/[0.05] px-2.5 py-1.5">
-      <div className="min-w-0">
-        <div className="truncate text-[11px] font-medium text-white/75">{branding.productName}</div>
-        <div className="truncate font-mono text-[8px] tracking-[0.06em] text-white/30">{slug}</div>
-      </div>
-      <div className="flex shrink-0 items-center gap-1">
-        <span className="animate-pulse-dot h-1.5 w-1.5 rounded-full bg-[#0A6E45]" />
-        <span className="font-mono text-[8px] text-white/30">Active</span>
-      </div>
-    </div>
-  );
+  useEffect(() => {
+    document.title = pageTitle(workspace, pathname, params, productName);
+  }, [workspace, pathname, params, productName]);
+
+  return null;
 }
 
-function SidebarLogo({
-  homeHref,
-  workspace,
+function MobileDrawer({
+  open,
+  onClose,
+  children,
 }: {
-  homeHref: string;
-  workspace: WorkspaceHat;
+  open: boolean;
+  onClose: () => void;
+  children: ReactNode;
 }) {
+  const pathname = usePathname();
+
+  useEffect(() => {
+    onClose();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
   return (
-    <div className="shrink-0 border-b border-white/[0.07] px-4 pb-4 pt-5">
-      <Link className="flex items-center gap-2.5" href={homeHref}>
-        <TenantBrandMark />
-        <TenantBrandText
-          taglineClassName="font-mono text-[8px] tracking-[0.14em] text-white/30"
-          titleClassName="font-display text-[14px] font-extrabold text-white"
-        />
-      </Link>
-      {workspace === "tenant_admin" ? <AdminTenantBadge /> : null}
+    <div className="fixed inset-0 z-40 lg:hidden">
+      <div aria-hidden className="absolute inset-0 bg-[rgba(10,26,63,0.25)]" onClick={onClose} />
+      <div
+        aria-label="Navigation"
+        aria-modal="true"
+        className="absolute inset-y-0 left-0 w-[260px] max-w-[85vw] overflow-y-auto bg-blue"
+        role="dialog"
+      >
+        {children}
+      </div>
     </div>
   );
 }
@@ -62,7 +79,6 @@ export function AppShellView({
   currentUser,
   notifications,
   contentWidth = "default",
-  tier,
   workspace,
   workspaceHats,
   shadowTenantName,
@@ -82,88 +98,114 @@ export function AppShellView({
   branding: TenantShellBranding;
   forgeEnabled?: boolean;
 }) {
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const flags = useNavFlags(workspace);
+  const entries = useMemo(() => paletteEntries(workspace, flags), [workspace, flags]);
+  const closeDrawer = useCallback(() => setDrawerOpen(false), []);
   const myNotifications = notifications.filter((item) => item.userId === currentUser.id);
-  const homeHref = getWorkspaceHome(workspace);
-  const shellStyle = {
-    "--tenant-primary": branding.primaryColor,
-  } as CSSProperties;
+  const shellStyle = { "--tenant-primary": branding.primaryColor } as CSSProperties;
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setPaletteOpen((value) => !value);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const sidebar = (onNavigate?: () => void) => (
+    <Suspense fallback={null}>
+      <SidebarContent
+        currentUser={currentUser}
+        flags={flags}
+        notifications={notifications}
+        onNavigate={onNavigate}
+        onOpenPalette={() => {
+          onNavigate?.();
+          setPaletteOpen(true);
+        }}
+        workspace={workspace}
+        workspaceHats={workspaceHats}
+      />
+    </Suspense>
+  );
 
   return (
     <TenantBrandingProvider branding={branding}>
-      <div className="design-northstar min-h-screen bg-[#F5F4F0]" style={shellStyle}>
+      <div className="design-northstar min-h-screen bg-bg" style={shellStyle}>
+        <a
+          className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-full focus:bg-signal focus:px-4 focus:py-2 focus:text-ink"
+          href="#main-content"
+        >
+          Skip to main content
+        </a>
+        <Suspense fallback={null}>
+          <DocumentTitle workspace={workspace} />
+        </Suspense>
+
         {shadowTenantName && shadowMode ? (
           <ShadowTenantBanner mode={shadowMode} tenantName={shadowTenantName} />
         ) : null}
 
-        <header className="relative border-b border-white/10 bg-[#00143a] px-4 py-3 lg:hidden">
-          <div
-            className="pointer-events-none absolute inset-x-0 top-0 h-[2px]"
-            style={{ background: "linear-gradient(90deg,#0033a1,#0071ce,#cc27b0)" }}
+        <header className="flex items-center justify-between gap-3 bg-blue px-4 py-3 lg:hidden">
+          <button
+            aria-expanded={drawerOpen}
+            aria-label="Open navigation"
+            className="rounded-[10px] border border-blue-line px-3 py-2 text-white"
+            onClick={() => setDrawerOpen(true)}
+            type="button"
+          >
+            <span aria-hidden>☰</span>
+          </button>
+          <SidebarBrand workspace={workspace} />
+          <NotificationFlyout
+            align="header"
+            appearance="sidebar-dark"
+            notifications={myNotifications}
           />
-          <div className="flex items-center justify-between gap-3">
-            <Link className="flex items-center gap-2.5" href={homeHref}>
-              <TenantBrandMark className="!h-8 !w-8" />
-              <TenantBrandText
-                layout="inline"
-                titleClassName="font-display text-sm font-bold text-white"
-              />
-            </Link>
-            <NotificationFlyout
-              align="header"
-              appearance="sidebar-dark"
-              notifications={myNotifications}
-            />
-          </div>
-          <Suspense fallback={null}>
-            <NavMobile workspace={workspace} />
-          </Suspense>
         </header>
+        <MobileDrawer onClose={closeDrawer} open={drawerOpen}>
+          {sidebar(closeDrawer)}
+        </MobileDrawer>
 
-        <aside className="fixed inset-y-0 left-0 z-20 hidden w-[220px] flex-col bg-[#00143a] lg:flex">
-          <div
-            className="pointer-events-none absolute inset-x-0 top-0 z-10 h-[2px]"
-            style={{ background: "linear-gradient(90deg,#0033a1,#0071ce,#cc27b0)" }}
-          />
-          <SidebarLogo homeHref={homeHref} workspace={workspace} />
-          <div className="sp-sidebar-scroll min-h-0 flex-1 overflow-y-auto py-3">
-            <Suspense fallback={<div className="px-5 py-2 text-xs text-white/40">Loading…</div>}>
-              <NavSidebar notifications={myNotifications} workspace={workspace} />
-            </Suspense>
-          </div>
-          <div className="shrink-0 border-t border-white/[0.07] px-3 pb-2 pt-3">
-            <WorkspaceSwitcher activeHat={workspace} hats={workspaceHats} />
-          </div>
-          <SidebarUserFooter currentUser={currentUser} notifications={notifications} />
+        <aside className="fixed inset-y-0 left-0 z-20 hidden w-[var(--rail-width)] overflow-y-auto bg-blue lg:block">
+          {sidebar()}
         </aside>
 
-        <div className="lg:pl-[220px]">
-          <div className="hidden lg:block">
-            <NavTopBar
-              currentUser={currentUser}
-              notifications={myNotifications}
-              tier={tier}
-              workspace={workspace}
-            />
-          </div>
+        <div className="lg:pl-[var(--rail-width)]">
+          <Suspense fallback={null}>
+            <SectionTabs flags={flags} workspace={workspace} />
+          </Suspense>
           <main
             className={cn(
-              "bg-[#F5F4F0] px-0 py-0 pb-20 lg:pb-6",
+              "px-0 py-0 pb-6 outline-none",
               contentWidth === "full"
                 ? "w-full"
                 : contentWidth === "wide"
                   ? "mx-auto w-full max-w-[1600px]"
                   : "mx-auto w-full max-w-7xl",
             )}
+            id="main-content"
+            tabIndex={-1}
           >
             {children}
           </main>
-          <MobilePracticeShell />
           <UatBugTracker
             enabled={forgeEnabled}
             reporterEmail={currentUser.email}
             reporterName={currentUser.fullName}
           />
         </div>
+
+        <CommandPalette
+          entries={entries}
+          onClose={() => setPaletteOpen(false)}
+          open={paletteOpen}
+        />
       </div>
     </TenantBrandingProvider>
   );
