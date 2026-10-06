@@ -1,3 +1,4 @@
+import type { UserPlan } from "@/lib/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { fetchPlansForUsers } from "@/lib/data/fetch-plans-bundle";
@@ -25,6 +26,8 @@ export async function fetchReadinessMapPayload(
   supabase: SupabaseClient<Database>,
   tenantId: string | null,
   userIds: string[],
+  /** Plans the caller already loaded for these people; skips a second plan fetch. */
+  preloadedPlans?: UserPlan[],
 ): Promise<ReadinessMapPayload> {
   if (!userIds.length) {
     return buildReadinessMapPayload({
@@ -51,7 +54,7 @@ export async function fetchReadinessMapPayload(
     marketPulseResult,
     dealPrepStats,
   ] = await Promise.all([
-    fetchPlansForUsers(supabase, userIds, tenantId),
+    preloadedPlans ? Promise.resolve(preloadedPlans) : fetchPlansForUsers(supabase, userIds, tenantId),
     supabase.from("profiles").select("id, email, full_name, role, level, manager_id, avatar_url, created_at").in("id", userIds),
     supabase
       .from("coaching_cards")

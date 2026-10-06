@@ -62,6 +62,31 @@ export async function fetchDevelopmentPlans(
     return [];
   }
 
+  // One round trip: plans with their goals and quarterly reviews embedded. Falls back to the
+  // step-by-step queries below if embedding isn't available.
+  let nestedQuery = supabase
+    .from("development_plans")
+    .select("*, development_goals(*, goal_quarterly_reviews(*))")
+    .eq("status", "active")
+    .order("year", { ascending: false });
+  if (userIds?.length) {
+    nestedQuery = nestedQuery.in("user_id", userIds);
+  }
+  const nested = await nestedQuery;
+  if (!nested.error) {
+    type NestedPlan = DbPlan & { development_goals?: (DbGoal & { goal_quarterly_reviews?: DbReview[] })[] | null };
+    return ((nested.data ?? []) as unknown as NestedPlan[]).map((plan) => {
+      const goals = [...(plan.development_goals ?? [])].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+      const reviews = goals.flatMap((goal) => goal.goal_quarterly_reviews ?? []);
+      const { development_goals: _omit, ...row } = plan;
+      void _omit;
+      return mapPlan(
+        row as DbPlan,
+        goals.map(({ goal_quarterly_reviews: _r, ...goal }) => (void _r, mapGoal(goal as DbGoal, reviews))),
+      );
+    });
+  }
+
   let planQuery = supabase
     .from("development_plans")
     .select("*")

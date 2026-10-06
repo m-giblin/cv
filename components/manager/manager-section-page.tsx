@@ -111,7 +111,9 @@ export async function ManagerSectionPage({ section }: { section: ManagerSection 
  fetchSharedDealPrepForManager([...orgIds]),
  fetchDevelopmentPlans([...orgIds]),
  fetchManagerCoachingNotes(data.currentUser.id, [...orgIds]),
+ // Mentees (and their own plan fetch) only appear on the Mentees section.
  (async () => {
+  if (section !== "mentees") return [];
  const supabase = await createClient();
  if (!supabase) return [];
  return fetchMenteeAssignments(
@@ -131,7 +133,7 @@ export async function ManagerSectionPage({ section }: { section: ManagerSection 
  const supabase = await createClient();
  if (!supabase) return null;
  try {
- const payload = await fetchReadinessMapPayload(supabase, data.currentUser.tenantId, [...orgIds]);
+ const payload = await fetchReadinessMapPayload(supabase, data.currentUser.tenantId, [...orgIds], orgPlans);
  // Best-effort threshold nudges run after the response so they never slow the page. An operator
  // shadowing the tenant is not the SEs' manager, so nothing is sent while shadowing.
  if (!isShadowing) {
