@@ -52,6 +52,8 @@ export type SeManagerSnapshot = {
   certSummary: CertSummary;
   managerNotes: string;
   mentorNotes?: { mentorName: string; notes: string; updatedAt: string } | null;
+  /** Approved certification types; lets the workbench rebuild the coaching summary client-side. */
+  approvedCerts?: string[];
 };
 
 function sentence(value: string) {

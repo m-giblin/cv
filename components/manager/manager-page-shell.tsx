@@ -10,6 +10,9 @@ import { ManagerInbox } from "@/components/manager/manager-inbox";
 import { ManagerLeaderboard } from "@/components/manager/manager-leaderboard";
 import { ManagerMenteesPanel } from "@/components/manager/manager-mentees-panel";
 import { ProgramsWorkspace } from "@/components/programs/programs-workspace";
+import { useFullSnapshot } from "@/components/manager/use-full-snapshot";
+import { Drawer } from "@/components/ui/drawer";
+import { PageSkeleton } from "@/components/ui/page-skeleton";
 import { getAccessTier } from "@/lib/auth/rbac";
 import { ManagerReviewHistory, type ReviewHistoryEntry } from "@/components/manager/manager-review-history";
 import { ManagerSeDetailPanel, type SeManagerSnapshot } from "@/components/manager/manager-se-detail-panel";
@@ -26,7 +29,7 @@ import type { CoachingCadenceRow } from "@/lib/manager/coaching-cadence";
 import type { PlatformFeatureFlags } from "@/lib/platform/settings-shared";
 import type { SeCoachingSummary } from "@/lib/manager/se-coaching-summary";
 import type { TeamMember } from "@/lib/manager/team-status";
-import type { ActivityLog, Challenge, DevelopmentPlan, Profile, ProfileRole, UserPlan } from "@/lib/types";
+import type { ActivityLog, Challenge, Competency, DevelopmentPlan, Profile, ProfileRole, UserPlan } from "@/lib/types";
 
 export type ManagerSection =
   | "command"
@@ -83,6 +86,7 @@ export function ManagerPageShell({
   activity,
   profiles,
   seSnapshots,
+  competencies = [],
   coachingByUser,
   challenges,
   mentors,
@@ -110,6 +114,8 @@ export function ManagerPageShell({
   profiles: Profile[];
   reviewHistory: ReviewHistoryEntry[];
   seSnapshots: SeManagerSnapshot[];
+  /** Feeds the coaching summary the SE workbench rebuilds once its full data loads. */
+  competencies?: Competency[];
   coachingByUser: Record<string, SeCoachingSummary>;
   challenges: Challenge[];
   mentors: Profile[];
@@ -133,6 +139,8 @@ export function ManagerPageShell({
     () => seSnapshots.find((snapshot) => snapshot.profile.id === selectedProfileId) ?? null,
     [seSnapshots, selectedProfileId],
   );
+
+  const fullSnapshot = useFullSnapshot(selectedSnapshot, competencies);
 
   const openProfile = useCallback(
     (profileId: string) => {
@@ -270,14 +278,19 @@ export function ManagerPageShell({
   return (
     <>
       {content}
-      {selectedSnapshot ? (
+      {selectedSnapshot && !fullSnapshot ? (
+        <Drawer bodyWidth="full" eyebrow="SE" onClose={closeProfile} open title={selectedSnapshot.profile.fullName}>
+          <PageSkeleton label={`Loading ${selectedSnapshot.profile.fullName}`} />
+        </Drawer>
+      ) : null}
+      {fullSnapshot ? (
         <ManagerSeDetailPanel
           challenges={challenges}
           mentors={mentors}
           onClose={closeProfile}
           plans={plans}
           profiles={profiles}
-          snapshot={selectedSnapshot}
+          snapshot={fullSnapshot}
           teamAssignees={org}
         />
       ) : null}

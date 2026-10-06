@@ -36,16 +36,15 @@ import { getEffectiveAccess } from "@/lib/auth/effective-access";
 import { resolveTenantContext } from "@/lib/auth/tenant-context";
 import {
  fetchMenteeAssignments,
- fetchMentorCoachingNotesForManager,
 } from "@/lib/data/fetch-mentor-mentees";
 import {
- fetchManagerCoachingNotes,
  fetchReadinessCertifications,
 } from "@/lib/data/get-manager-growth-data";
 import { createClient } from "@/lib/supabase/server";
 
 /** Sections that show readiness numbers and so need the readiness payload. */
 const READINESS_SECTIONS = new Set(["command", "roster", "readiness"]);
+const DEV_PLAN_SECTIONS = new Set(["command", "roster", "cadence", "dev"]);
 
 const ManagerPageShell = dynamic(
  () => import("@/components/manager/manager-page-shell").then((mod) => mod.ManagerPageShell),
@@ -109,8 +108,10 @@ export async function ManagerSectionPage({ section }: { section: ManagerSection 
  ] = await Promise.all([
  fetchReadinessCertifications([...orgIds]),
  fetchSharedDealPrepForManager([...orgIds]),
- fetchDevelopmentPlans([...orgIds]),
- fetchManagerCoachingNotes(data.currentUser.id, [...orgIds]),
+ // Development plans feed the coaching summaries on these sections; the SE workbench fetches
+ // its own copy (and the coaching notes) when opened, from /api/manager/se-snapshot.
+ DEV_PLAN_SECTIONS.has(section) ? fetchDevelopmentPlans([...orgIds]) : Promise.resolve([]),
+ Promise.resolve({} as Record<string, string>),
  // Mentees (and their own plan fetch) only appear on the Mentees section.
  (async () => {
   if (section !== "mentees") return [];
@@ -123,11 +124,7 @@ export async function ManagerSectionPage({ section }: { section: ManagerSection 
  data.currentUser.tenantId,
  );
  })(),
- (async () => {
- const supabase = await createClient();
- if (!supabase) return {};
- return fetchMentorCoachingNotesForManager(supabase, [...orgIds]);
- })(),
+ Promise.resolve({} as Record<string, { mentorName: string; notes: string; updatedAt: string }>),
  (async (): Promise<ReadinessMapPayload | null> => {
  if (!wantsReadiness || orgIds.size === 0) return null;
  const supabase = await createClient();
@@ -349,6 +346,7 @@ export async function ManagerSectionPage({ section }: { section: ManagerSection 
  certSummary,
  managerNotes: managerNotes[profile.id] ?? "",
  mentorNotes: mentorNotesByUser[profile.id] ?? null,
+ approvedCerts,
  };
  });
 
@@ -466,6 +464,7 @@ export async function ManagerSectionPage({ section }: { section: ManagerSection 
  reviewItems={reviewItems}
  section={section}
  seSnapshots={seSnapshots}
+ competencies={data.competencies}
  managerFirstName={data.currentUser.fullName.split(" ")[0]}
  readinessAvailable={isManagerSectionAllowed("readiness", settings.featureFlags)}
  featureFlags={settings.featureFlags}
