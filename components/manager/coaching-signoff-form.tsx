@@ -177,7 +177,7 @@ export function CoachingSignoffForm({
           className={INPUT_CLASS}
           onChange={(event) => onStrengthChange(event.target.value)}
           placeholder="What they did well. Be specific."
-          rows={2}
+          rows={4}
           value={signoff.strength}
         />
       </label>
@@ -188,7 +188,7 @@ export function CoachingSignoffForm({
             className={INPUT_CLASS}
             onChange={(event) => onGapChange(event.target.value)}
             placeholder="The highest-impact improvement area"
-            rows={2}
+            rows={4}
             value={signoff.gap ?? ""}
           />
         </label>
@@ -199,7 +199,7 @@ export function CoachingSignoffForm({
           className={INPUT_CLASS}
           onChange={(event) => onNextActionChange(event.target.value)}
           placeholder="What they should practice or do before the next milestone"
-          rows={2}
+          rows={4}
           value={signoff.nextAction}
         />
       </label>
@@ -240,7 +240,7 @@ export function CoachingSignoffForm({
                 className={INPUT_CLASS}
                 onChange={(event) => onAttestationNoteChange(event.target.value)}
                 placeholder="What you observed or coached in the live moment"
-                rows={2}
+                rows={4}
                 value={signoff.attestationNote ?? ""}
               />
             </label>

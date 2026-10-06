@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { X } from "lucide-react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { toast } from "sonner";
 import type { CertReviewItem } from "@/components/manager/cert-review-item";
 import {
@@ -20,7 +21,7 @@ import { HeaderStat } from "@/components/manager/team-member-bits";
 import { ActionBar } from "@/components/ui/action-bar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Chip } from "@/components/ui/chip";
-import { Drawer } from "@/components/ui/drawer";
+import { Modal } from "@/components/ui/modal";
 import { PageBody, PageHeader } from "@/components/ui/page-header";
 import { FilterBar, TableCard, rowHighlight, tdCls, thCls } from "@/components/ui/table";
 import type { ReviewSignoffContext } from "@/lib/coaching/signoff-policy";
@@ -282,6 +283,7 @@ export function ManagerInbox({
   const [grade, setGrade] = useState("4");
   const [saving, setSaving] = useState<"approve" | "reject" | "bulk" | null>(null);
   const signoff = useCoachingSignoffState();
+  const workbenchTitleId = useId();
 
   useEffect(() => {
     void fetch("/api/mentor-reviews")
@@ -697,146 +699,165 @@ export function ManagerInbox({
         />
       ) : null}
 
-      <Drawer
-        footer={
-          activeItem ? (
-            <div className="flex items-center gap-3.5">
-              <button
-                className="btn-primary"
-                disabled={saving !== null}
-                onClick={() => void submitReview(activeItem, "approve")}
-                type="button"
-              >
-                {saving === "approve" ? "Approving…" : "Approve"}
-              </button>
-              <button
-                className="btn-secondary disabled:opacity-60"
-                disabled={saving !== null}
-                onClick={() => void submitReview(activeItem, "reject")}
-                type="button"
-              >
-                {saving === "reject" ? "Sending…" : "Request changes"}
-              </button>
-            </div>
-          ) : null
-        }
-        onClose={closeReview}
-        open={activeItem !== null}
-        title={
-          activeItem ? (
-            <span className="flex flex-col gap-1.5">
-              <span className="label-caps label-caps--blue">{typeTagLabel(activeItem)}</span>
-              <span className="text-[22px] leading-[1.15] font-extrabold tracking-[-0.015em] text-ink">
-                {itemTitle(activeItem)}
-              </span>
-              <span className="text-sm font-normal text-muted" suppressHydrationWarning>
-                {itemPerson(activeItem)}
-                {waitingPhrase(itemTimestamp(activeItem), now)}
-              </span>
-            </span>
-          ) : (
-            "Review"
-          )
-        }
-      >
+      <Modal height="100%" labelledBy={workbenchTitleId} onClose={closeReview} open={activeItem !== null} width="min(1360px, 100%)">
         {activeItem ? (
-          <div className="flex flex-col gap-4 text-[15px] leading-normal text-ink-2">
-            <p>{helperText(activeItem)}</p>
-
-            {activeItem.inboxType === "coaching" ? (
-              <SimulationCoachingReviewPanel
-                item={{
-                  score: activeItem.score,
-                  title: activeItem.title,
-                  personName: activeItem.personName,
-                  strengths: activeItem.strengths,
-                  gaps: activeItem.gaps,
-                  recommendedImprovements: activeItem.recommendedImprovements,
-                  managerSummary: activeItem.managerSummary,
-                  seReflection: activeItem.seReflection,
-                  simulationLabel: activeItem.simulationLabel,
-                  transcript: activeItem.transcript,
-                }}
-                onAppendMoment={appendMoment}
-                onDraft={(text) => signoff.setNextAction(text)}
-              />
-            ) : null}
-
-            {activeItem.inboxType === "submission" ? (
-              <ChallengeSubmissionReviewPanel
-                challengeTitle={activeItem.title}
-                onAppendMoment={appendMoment}
-                onDraft={(text) => signoff.setNextAction(text)}
-                onSuggestedGrade={(suggested) => setGrade(String(suggested))}
-                submissionId={activeItem.id}
-              />
-            ) : null}
-
-            {activeItem.inboxType === "mentor" && activeItem.seNotes ? (
-              <div className="flex flex-col gap-1.5 rounded-[12px] border border-line px-4 py-3">
-                <p className="label-caps">SE notes</p>
-                <p className="text-ink">{activeItem.seNotes}</p>
+          <>
+            <header className="flex items-start justify-between gap-6 border-b border-line bg-white px-8 py-5">
+              <div className="flex min-w-0 flex-col gap-1.5">
+                <span className="label-caps label-caps--blue">{typeTagLabel(activeItem)}</span>
+                <h2
+                  className="m-0 text-[28px] leading-[1.1] font-extrabold tracking-[-0.02em] text-ink"
+                  id={workbenchTitleId}
+                >
+                  {itemTitle(activeItem)}
+                </h2>
+                <span className="text-sm text-muted" suppressHydrationWarning>
+                  {itemPerson(activeItem)}
+                  {waitingPhrase(itemTimestamp(activeItem), now)}
+                </span>
               </div>
-            ) : null}
+              <button
+                aria-label="Close review"
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-line-strong bg-white text-ink hover:border-blue hover:text-blue"
+                onClick={closeReview}
+                type="button"
+              >
+                <X aria-hidden className="h-5 w-5" />
+              </button>
+            </header>
 
-            {activeItem.inboxType === "pitch" && activeItem.reflectionText ? (
-              <div className="flex flex-col gap-1.5 rounded-[12px] border border-line px-4 py-3">
-                <p className="label-caps">SE reflection</p>
-                <p className="text-ink">{activeItem.reflectionText}</p>
+            <div className="grid min-h-0 flex-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_minmax(420px,520px)] lg:overflow-hidden">
+              <section
+                aria-label="The work"
+                className="flex min-w-0 flex-col gap-4 px-8 py-6 text-[15px] leading-normal text-ink-2 lg:overflow-y-auto"
+              >
+                <p className="label-caps">The work</p>
+                <p className="m-0">{helperText(activeItem)}</p>
+
+                {activeItem.inboxType === "coaching" ? (
+                  <SimulationCoachingReviewPanel
+                    item={{
+                      score: activeItem.score,
+                      title: activeItem.title,
+                      personName: activeItem.personName,
+                      strengths: activeItem.strengths,
+                      gaps: activeItem.gaps,
+                      recommendedImprovements: activeItem.recommendedImprovements,
+                      managerSummary: activeItem.managerSummary,
+                      seReflection: activeItem.seReflection,
+                      simulationLabel: activeItem.simulationLabel,
+                      transcript: activeItem.transcript,
+                    }}
+                    onAppendMoment={appendMoment}
+                    onDraft={(text) => signoff.setNextAction(text)}
+                  />
+                ) : null}
+
+                {activeItem.inboxType === "submission" ? (
+                  <ChallengeSubmissionReviewPanel
+                    challengeTitle={activeItem.title}
+                    onAppendMoment={appendMoment}
+                    onDraft={(text) => signoff.setNextAction(text)}
+                    onSuggestedGrade={(suggested) => setGrade(String(suggested))}
+                    submissionId={activeItem.id}
+                  />
+                ) : null}
+
+                {activeItem.inboxType === "mentor" && activeItem.seNotes ? (
+                  <div className="flex flex-col gap-1.5 rounded-[12px] border border-line bg-white px-4 py-3">
+                    <p className="label-caps">SE notes</p>
+                    <p className="text-ink">{activeItem.seNotes}</p>
+                  </div>
+                ) : null}
+
+                {activeItem.inboxType === "pitch" && activeItem.reflectionText ? (
+                  <div className="flex flex-col gap-1.5 rounded-[12px] border border-line bg-white px-4 py-3">
+                    <p className="label-caps">SE reflection</p>
+                    <p className="text-ink">{activeItem.reflectionText}</p>
+                  </div>
+                ) : null}
+
+                {activeItem.inboxType === "pitch" ? (
+                  <Link className="link self-start text-sm" href={`/pitch?review=${activeItem.id}`} target="_blank">
+                    Watch video pitch
+                  </Link>
+                ) : null}
+              </section>
+
+              <section
+                aria-label="Your sign-off"
+                className="flex min-w-0 flex-col gap-4 border-t border-line bg-white px-7 py-6 text-[15px] leading-normal text-ink-2 lg:overflow-y-auto lg:border-t-0 lg:border-l"
+              >
+                <p className="label-caps">Your sign-off</p>
+                {usesStructuredSignoff(activeItem) ? (
+                  <>
+                    <ManagerCoachingBriefPanel onBrief={signoff.applyBrief} payload={briefPayloadForItem(activeItem)} />
+                    <CoachingSignoffForm
+                      decision="approve"
+                      onAttestationNoteChange={signoff.setAttestationNote}
+                      onConfidenceChange={signoff.setConfidence}
+                      onGapChange={signoff.setGap}
+                      onLiveAttestationChange={signoff.setLiveAttestation}
+                      onNextActionChange={signoff.setNextAction}
+                      onStrengthChange={signoff.setStrength}
+                      signoff={signoff.value}
+                      tier={tier}
+                    />
+                  </>
+                ) : (
+                  <label className="flex flex-col gap-1.5 text-sm font-bold text-ink">
+                    Feedback
+                    <textarea
+                      className="h-40 w-full resize-y rounded-[10px] border border-line-strong bg-white px-3.5 py-3 text-[15px] font-normal text-ink focus:border-blue focus:shadow-[0_0_0_3px_var(--color-blue-soft)] focus:outline-none"
+                      onChange={(event) => setFeedback(event.target.value)}
+                      placeholder="What worked, and what to improve"
+                      value={feedback}
+                    />
+                  </label>
+                )}
+
+                {activeItem.inboxType === "submission" ||
+                activeItem.inboxType === "coaching" ||
+                activeItem.inboxType === "pitch" ? (
+                  <label className="flex flex-col gap-1.5 text-sm font-bold text-ink">
+                    Grade, 1 to 5
+                    <input
+                      className="num w-24 rounded-[10px] border border-line-strong bg-white px-3.5 py-2.5 text-[15px] font-semibold text-ink focus:border-blue focus:shadow-[0_0_0_3px_var(--color-blue-soft)] focus:outline-none"
+                      max={5}
+                      min={1}
+                      onChange={(event) => setGrade(event.target.value)}
+                      type="number"
+                      value={grade}
+                    />
+                  </label>
+                ) : null}
+              </section>
+            </div>
+
+            <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-line bg-white px-8 py-4">
+              <span className="text-[13px] text-muted">Nothing is sent until you approve or request changes. Esc closes.</span>
+              <div className="flex items-center gap-3">
+                <button
+                  className="btn-secondary disabled:opacity-60"
+                  disabled={saving !== null}
+                  onClick={() => void submitReview(activeItem, "reject")}
+                  type="button"
+                >
+                  {saving === "reject" ? "Sending…" : "Request changes"}
+                </button>
+                <button
+                  className="btn-primary"
+                  disabled={saving !== null}
+                  onClick={() => void submitReview(activeItem, "approve")}
+                  type="button"
+                >
+                  {saving === "approve" ? "Approving…" : "Approve"}
+                </button>
               </div>
-            ) : null}
-
-            {activeItem.inboxType === "pitch" ? (
-              <Link className="link self-start text-sm" href={`/pitch?review=${activeItem.id}`} target="_blank">
-                Watch video pitch
-              </Link>
-            ) : null}
-
-            {usesStructuredSignoff(activeItem) ? (
-              <>
-                <ManagerCoachingBriefPanel onBrief={signoff.applyBrief} payload={briefPayloadForItem(activeItem)} />
-                <CoachingSignoffForm
-                  decision="approve"
-                  onAttestationNoteChange={signoff.setAttestationNote}
-                  onConfidenceChange={signoff.setConfidence}
-                  onGapChange={signoff.setGap}
-                  onLiveAttestationChange={signoff.setLiveAttestation}
-                  onNextActionChange={signoff.setNextAction}
-                  onStrengthChange={signoff.setStrength}
-                  signoff={signoff.value}
-                  tier={tier}
-                />
-              </>
-            ) : (
-              <label className="flex flex-col gap-1.5 text-sm font-bold text-ink">
-                Feedback
-                <textarea
-                  className="h-24 w-full resize-none rounded-[10px] border border-line-strong bg-white px-3 py-2.5 text-[15px] font-normal text-ink"
-                  onChange={(event) => setFeedback(event.target.value)}
-                  placeholder="What worked, and what to improve"
-                  value={feedback}
-                />
-              </label>
-            )}
-
-            {activeItem.inboxType === "submission" ||
-            activeItem.inboxType === "coaching" ||
-            activeItem.inboxType === "pitch" ? (
-              <label className="flex flex-col gap-1.5 text-sm font-bold text-ink">
-                Grade, 1 to 5
-                <input
-                  className="w-24 rounded-[10px] border border-line-strong bg-white px-3 py-2 text-[15px] font-normal text-ink"
-                  max={5}
-                  min={1}
-                  onChange={(event) => setGrade(event.target.value)}
-                  type="number"
-                  value={grade}
-                />
-              </label>
-            ) : null}
-          </div>
+            </footer>
+          </>
         ) : null}
-      </Drawer>
+      </Modal>
     </>
   );
 }

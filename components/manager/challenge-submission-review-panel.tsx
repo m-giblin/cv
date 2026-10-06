@@ -204,7 +204,11 @@ export function ChallengeSubmissionReviewPanel({
       .then(async (response) => {
         if (!response.ok) {
           const body = (await response.json().catch(() => ({}))) as { error?: string };
-          throw new Error(body.error ?? "Could not load submission.");
+          throw new Error(
+            response.status === 403
+              ? "You can only open work from people in your reporting line, so this proof is hidden."
+              : (body.error ?? "Could not load submission."),
+          );
         }
         return response.json() as Promise<ChallengeDetailResponse>;
       })

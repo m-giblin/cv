@@ -18,8 +18,8 @@ export function Modal({
   onClose: () => void;
   labelledBy?: string;
   children: ReactNode;
-  width?: number;
-  height?: number;
+  width?: number | string;
+  height?: number | string;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const fallbackId = useId();
