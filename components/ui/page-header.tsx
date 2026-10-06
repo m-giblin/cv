@@ -65,8 +65,11 @@ export function MainWithRail({
 }) {
   return (
     <div
-      className={cn("grid items-start gap-[var(--rail-gap)] max-xl:grid-cols-1", className)}
-      style={{ gridTemplateColumns: `minmax(0,1fr) ${railWidth}px` }}
+      className={cn(
+        "grid grid-cols-1 items-start gap-[var(--rail-gap)] xl:[grid-template-columns:minmax(0,1fr)_var(--main-rail-w)]",
+        className,
+      )}
+      style={{ "--main-rail-w": `${railWidth}px` } as React.CSSProperties}
     >
       <div className="flex min-w-0 flex-col gap-8">{children}</div>
       <aside className="flex min-w-0 flex-col gap-6">{rail}</aside>

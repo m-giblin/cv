@@ -1,5 +1,7 @@
-import { formatDistanceToNow } from "date-fns";
-import { Tag } from "@/components/ui/tag";
+import { format } from "date-fns";
+import { StatusPill } from "@/components/ui/status-pill";
+import { TableCard, tdCls, thCls } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 import type { ActivityLog, CoachingCard, Profile } from "@/lib/types";
 
 export type ReviewHistoryEntry = {
@@ -102,46 +104,41 @@ export function ManagerReviewHistory({
  }
 
  return (
- <div className="overflow-x-auto rounded-[14px] border border-line bg-white">
- <table className="w-full min-w-[760px] border-collapse text-left text-[15px]">
+ <TableCard>
  <caption className="sr-only">Completed reviews, newest first</caption>
- <thead className="bg-blue font-mono text-xs text-white uppercase">
+ <thead>
  <tr>
- <th className="px-5 py-[11px] font-medium" scope="col">When</th>
- <th className="px-5 py-[11px] font-medium" scope="col">Decision</th>
- <th className="px-5 py-[11px] font-medium" scope="col">Type</th>
- <th className="px-5 py-[11px] font-medium" scope="col">Item</th>
- <th className="px-5 py-[11px] font-medium" scope="col">SE</th>
+ <th className={thCls} scope="col">Item</th>
+ <th className={thCls} scope="col">SE</th>
+ <th className={thCls} scope="col">Decision</th>
+ <th className={cn(thCls, "text-right")} scope="col">Reviewed</th>
  </tr>
  </thead>
  <tbody>
  {entries.map((entry) => {
  const approved = entry.decision === "approved";
  return (
- <tr className="border-b border-divider align-top last:border-b-0" key={entry.id}>
- <td className="px-5 py-3 font-mono text-xs whitespace-nowrap text-ink-2">
- {formatDistanceToNow(new Date(entry.reviewedAt), { addSuffix: true })}
- </td>
- <td className="px-5 py-3">
- <Tag className="bg-transparent" tone={approved ? "success" : "warning"}>
- {approved ? "✓ Approved" : "• Changes requested"}
- </Tag>
- </td>
- <td className="px-5 py-3">
- <Tag>{TYPE_LABEL[entry.type]}</Tag>
- </td>
- <td className="px-5 py-3">
- <span className="block font-bold text-ink">{entry.title}</span>
+ <tr className="align-top" key={entry.id}>
+ <td className={cn(tdCls, "align-top")}>
+ <span className="flex min-w-0 flex-col">
+ <span className="text-[15px] font-bold text-ink">{entry.title}</span>
+ <span className="text-[13px] text-muted">{TYPE_LABEL[entry.type]}</span>
  {entry.feedbackPreview ? (
- <span className="mt-1 line-clamp-2 block text-sm text-ink-2">{entry.feedbackPreview}</span>
+ <span className="mt-1.5 line-clamp-2 max-w-[560px] text-sm text-ink-2">{entry.feedbackPreview}</span>
  ) : null}
+ </span>
  </td>
- <td className="px-5 py-3 text-ink">{entry.personName}</td>
+ <td className={cn(tdCls, "align-top text-ink")}>{entry.personName}</td>
+ <td className={cn(tdCls, "align-top")}>
+ <StatusPill tone={approved ? "success" : "warning"}>{approved ? "Approved" : "Changes requested"}</StatusPill>
+ </td>
+ <td className={cn(tdCls, "align-top text-right whitespace-nowrap text-ink-2")}>
+ {format(new Date(entry.reviewedAt), "EEE, MMM d")}
+ </td>
  </tr>
  );
  })}
  </tbody>
- </table>
- </div>
+ </TableCard>
  );
 }

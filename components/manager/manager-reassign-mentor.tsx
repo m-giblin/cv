@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, UserRoundCog } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -33,28 +33,25 @@ export function ManagerReassignMentor({
     setIsSaving(false);
 
     if (!response.ok) {
-      toast.error("Could not update mentor assignment.");
+      toast.error("Couldn't update the mentor");
       return;
     }
 
-    toast.success(`Mentor updated for ${seName}.`);
+    toast.success(`Mentor updated for ${seName}`);
     router.refresh();
   }
 
   return (
     <section className="rounded-[14px] border border-line bg-white p-4">
-      <h3 className="flex items-center gap-2 text-[15px] font-bold text-ink">
-        <UserRoundCog aria-hidden className="h-4 w-4 text-blue" />
-        Assigned mentor
-      </h3>
+      <h3 className="text-[15px] font-bold text-ink">Assigned mentor</h3>
       <p className="mt-1 text-sm text-muted">
-        Mentors endorse check-ins; you retain final sign-off on ramp steps.
+        Mentors endorse check-ins. You keep the final sign-off on ramp steps.
       </p>
       <div className="mt-3 space-y-3">
-        <label className="block space-y-1.5 text-sm font-bold text-ink">
+        <label className="block space-y-1.5 text-sm font-semibold text-ink">
           <span className="block">Mentor</span>
           <select
-            className="w-full rounded-[10px] border-[1.5px] border-line-strong bg-white px-3 py-2.5 text-sm font-normal text-ink"
+            className="w-full rounded-[10px] border border-line-strong bg-white px-3 py-2 text-[15px] font-normal text-ink"
             onChange={(event) => setMentorId(event.target.value)}
             value={mentorId}
           >

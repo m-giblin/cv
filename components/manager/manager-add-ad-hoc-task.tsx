@@ -1,13 +1,13 @@
 "use client";
 
-import { Loader2, Plus } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
 const INPUT_CLASS =
-  "w-full rounded-[10px] border-[1.5px] border-line-strong bg-white px-3 py-2.5 text-sm font-normal text-ink";
-const LABEL_CLASS = "block space-y-1.5 text-sm font-bold text-ink";
+  "w-full rounded-[10px] border border-line-strong bg-white px-3 py-2 text-[15px] font-normal text-ink";
+const LABEL_CLASS = "block space-y-1.5 text-sm font-semibold text-ink";
 
 export function ManagerAddAdHocTask({
   assignmentId,
@@ -26,7 +26,7 @@ export function ManagerAddAdHocTask({
   async function handleAdd(event: React.FormEvent) {
     event.preventDefault();
     if (title.trim().length < 3) {
-      toast.error("Add a task title.");
+      toast.error("Add a task title");
       return;
     }
 
@@ -44,11 +44,11 @@ export function ManagerAddAdHocTask({
     setIsSaving(false);
 
     if (!response.ok) {
-      toast.error("Could not add task.");
+      toast.error("Couldn't add the task");
       return;
     }
 
-    toast.success(`Task added for ${personName}.`);
+    toast.success(`Task added for ${personName}`);
     setTitle("");
     setDescription("");
     setDueDate("");
@@ -62,16 +62,15 @@ export function ManagerAddAdHocTask({
         <div className="min-w-0 flex-1">
           <h3 className="text-[15px] font-bold text-ink">Add ramp task</h3>
           <p className="mt-1 text-sm text-muted">
-            One-off assignments for this employee. You conduct the live sign-off when they submit.
+            A one-off task for this SE. You run the live sign-off when they submit it.
           </p>
         </div>
         <button
           aria-expanded={open}
-          className="link inline-flex items-center gap-1 text-sm"
+          className="link text-sm"
           onClick={() => setOpen((value) => !value)}
           type="button"
         >
-          {open ? null : <Plus aria-hidden className="h-4 w-4" />}
           {open ? "Cancel" : "Add task"}
         </button>
       </div>

@@ -2,7 +2,7 @@
 
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Tag } from "@/components/ui/tag";
+import { StatusPill } from "@/components/ui/status-pill";
 import type { ManagerCoachingQuality } from "@/lib/coaching/manager-quality";
 
 export function ManagerCoachingQualityPanel({ orgIds }: { orgIds: string[] }) {
@@ -35,52 +35,53 @@ export function ManagerCoachingQualityPanel({ orgIds }: { orgIds: string[] }) {
       {rows.map((row) => {
         const quality =
           row.qualityScore >= 75
-            ? { tone: "success" as const, symbol: "✓", text: "text-blue" }
+            ? ({ tone: "success", word: "Strong" } as const)
             : row.qualityScore >= 55
-              ? { tone: "warning" as const, symbol: "▲", text: "text-warning" }
-              : { tone: "danger" as const, symbol: "▲", text: "text-danger" };
+              ? ({ tone: "warning", word: "Fair" } as const)
+              : ({ tone: "danger", word: "Weak" } as const);
 
         return (
           <li className="border-b border-divider p-4 last:border-b-0" key={row.managerId}>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="min-w-0 text-sm font-bold text-ink">{row.managerName}</p>
-              <Tag tone={quality.tone}>
-                {quality.symbol} Quality {row.qualityScore}
-              </Tag>
+              <StatusPill tone={quality.tone}>
+                {quality.word}, quality {row.qualityScore}
+              </StatusPill>
             </div>
             <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
               <div>
-                <dt className="label-mono">Sign-offs (30d)</dt>
-                <dd className="text-lg font-extrabold tracking-[-0.03em] text-ink">{row.totalSignoffs}</dd>
+                <dt className="text-[13px] text-muted">Sign-offs, last 30 days</dt>
+                <dd className="num text-lg font-extrabold tracking-[-0.03em] text-ink">{row.totalSignoffs}</dd>
               </div>
               <div>
-                <dt className="label-mono">Avg review time</dt>
-                <dd className="text-lg font-extrabold tracking-[-0.03em] text-ink">
-                  {row.avgReviewDurationMs ? `${Math.round(row.avgReviewDurationMs / 1000)}s` : "—"}
+                <dt className="text-[13px] text-muted">Avg review time</dt>
+                <dd className="num text-lg font-extrabold tracking-[-0.03em] text-ink">
+                  {row.avgReviewDurationMs ? `${Math.round(row.avgReviewDurationMs / 1000)} sec` : "—"}
                 </dd>
               </div>
               <div>
-                <dt className="label-mono">AI edited</dt>
-                <dd className="text-lg font-extrabold tracking-[-0.03em] text-ink">
+                <dt className="text-[13px] text-muted">AI edited</dt>
+                <dd className="num text-lg font-extrabold tracking-[-0.03em] text-ink">
                   {Math.round(row.aiEditRate * 100)}%
                 </dd>
               </div>
               <div>
-                <dt className="label-mono">Cadence risk</dt>
-                <dd className="text-lg font-extrabold tracking-[-0.03em] text-ink">{row.cadenceRiskCount} SEs</dd>
+                <dt className="text-[13px] text-muted">Cadence risk</dt>
+                <dd className="num text-lg font-extrabold tracking-[-0.03em] text-ink">{row.cadenceRiskCount} {row.cadenceRiskCount === 1 ? "SE" : "SEs"}</dd>
               </div>
             </dl>
             {row.flags.length > 0 ? (
-              <ul className="mt-3 space-y-1 text-sm text-ink-2">
+              <ul aria-label="Flags" className="mt-3 space-y-1 text-sm text-ink-2">
                 {row.flags.map((flag) => (
-                  <li className="flex gap-1.5" key={flag}>
-                    <span aria-hidden className="text-warning">▲</span>
-                    <span>{flag}</span>
+                  <li key={flag}>
+                    <StatusPill tone="warning">{flag}</StatusPill>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="mt-3 text-sm text-success">✓ Coaching patterns look healthy.</p>
+              <p className="mt-3">
+                <StatusPill tone="success">Coaching patterns look healthy</StatusPill>
+              </p>
             )}
           </li>
         );

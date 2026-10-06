@@ -19,10 +19,12 @@ import { ManagerToday } from "@/components/manager/manager-today";
 import type { PlanStepReviewItem } from "@/components/manager/plan-step-review-panel";
 import type { ReviewItem } from "@/components/manager/review-queue";
 import { TeamReadiness, type CompetencySeRow } from "@/components/manager/team-readiness";
-import { PageHeader } from "@/components/ui/page-header";
+import { SectionTabs } from "@/components/nav/section-tabs";
+import { PageBody, PageHeader } from "@/components/ui/page-header";
 import type { MenteeAssignment } from "@/lib/data/fetch-mentor-mentees";
 import type { LeaderboardEntry } from "@/lib/gamification/leaderboard";
 import type { CoachingCadenceRow } from "@/lib/manager/coaching-cadence";
+import type { PlatformFeatureFlags } from "@/lib/platform/settings-shared";
 import type { SeCoachingSummary } from "@/lib/manager/se-coaching-summary";
 import type { TeamMember } from "@/lib/manager/team-status";
 import type { ActivityLog, Challenge, DevelopmentPlan, Profile, ProfileRole, UserPlan } from "@/lib/types";
@@ -41,7 +43,16 @@ export type ManagerSection =
   | "mentees";
 
 function Body({ children }: { children: ReactNode }) {
-  return <div className="px-[var(--gutter)] pb-8">{children}</div>;
+  return <PageBody className="pb-8">{children}</PageBody>;
+}
+
+/** Team › Roster / Readiness / … text tabs (artboards 9b, 10b), shared by every Team page. */
+export function TeamTabs({ flags }: { flags?: PlatformFeatureFlags }) {
+  return (
+    <PageBody className="pb-[22px]">
+      <SectionTabs flags={flags} workspace="manager" />
+    </PageBody>
+  );
 }
 
 /** Updates `?profile=` without a server round trip (Next keeps useSearchParams in sync with pushState). */
@@ -81,6 +92,7 @@ export function ManagerPageShell({
   mentees = [],
   viewerRole = "manager",
   readinessAvailable = true,
+  featureFlags,
 }: {
   section: ManagerSection;
   reviewCount: number;
@@ -109,6 +121,7 @@ export function ManagerPageShell({
   mentees?: MenteeAssignment[];
   viewerRole?: ProfileRole;
   readinessAvailable?: boolean;
+  featureFlags?: PlatformFeatureFlags;
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -152,16 +165,28 @@ export function ManagerPageShell({
       break;
     case "roster":
       content = (
-        <ManagerTeamRoster members={teamMembers} onSelectProfile={openProfile} readinessAvailable={readinessAvailable} />
+        <ManagerTeamRoster
+          members={teamMembers}
+          onSelectProfile={openProfile}
+          readinessAvailable={readinessAvailable}
+          tabs={<TeamTabs flags={featureFlags} />}
+        />
       );
       break;
     case "readiness":
-      content = <TeamReadiness org={org} rows={competencyRows} />;
+      content = <TeamReadiness org={org} rows={competencyRows} tabs={<TeamTabs flags={featureFlags} />} />;
       break;
     case "leaderboard":
       content = (
         <>
-          <PageHeader eyebrow="Trophies · sim scores · weekly practice streaks" title="Leaderboard" />
+          <PageHeader
+            accent="Practice that shows."
+            className="pb-[22px]"
+            eyebrow="Team"
+            subtitle="Ranked on trophies, simulation scores and weekly practice streaks."
+            title="Leaderboard."
+          />
+          <TeamTabs flags={featureFlags} />
           <Body>
             <ManagerLeaderboard entries={leaderboardEntries} onOpenProfile={openProfile} />
           </Body>
@@ -171,7 +196,16 @@ export function ManagerPageShell({
     case "history":
       content = (
         <>
-          <PageHeader eyebrow={`Coaching archive · ${reviewHistory.length} reviews`} title="Review history" />
+          <PageHeader
+            accent="What you signed off."
+            eyebrow="Coaching"
+            subtitle={
+              reviewHistory.length === 0
+                ? "Reviews you complete show up here."
+                : `The last ${reviewHistory.length} ${reviewHistory.length === 1 ? "review" : "reviews"}, newest first.`
+            }
+            title="Review history."
+          />
           <Body>
             <ManagerReviewHistory entries={reviewHistory} />
           </Body>
@@ -196,7 +230,7 @@ export function ManagerPageShell({
     case "program":
       content = (
         <>
-          <PageHeader eyebrow="Onboarding program" title="Programs" />
+          <PageHeader accent="Every ramp in one place." eyebrow="Programs" title="Tracker." />
           <Body>
             <div className="flex flex-col gap-7">
               <ManagerProgramTrackerPanel
@@ -218,7 +252,7 @@ export function ManagerPageShell({
     case "assign":
       content = (
         <>
-          <PageHeader eyebrow="Ramp assignments" title="Assign plans" />
+          <PageHeader eyebrow="Programs" title="Assign plans." />
           <Body>
             <ManagerAssignPlansSection
               assignees={assignees}
@@ -234,7 +268,13 @@ export function ManagerPageShell({
     case "mentees":
       content = (
         <>
-          <PageHeader eyebrow="Mentor workspace" title="Mentees" />
+          <PageHeader
+            accent="The people you mentor."
+            className="pb-[22px]"
+            eyebrow="Team"
+            title="Mentees."
+          />
+          <TeamTabs flags={featureFlags} />
           <Body>
             <ManagerMenteesPanel mentees={mentees} />
           </Body>
@@ -245,6 +285,8 @@ export function ManagerPageShell({
     default:
       content = (
         <ManagerToday
+          activity={activity}
+          cadenceRows={cadenceRows}
           managerFirstName={managerFirstName}
           members={teamMembers}
           onOpenProfile={openProfile}

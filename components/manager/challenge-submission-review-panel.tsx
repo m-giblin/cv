@@ -1,10 +1,13 @@
 "use client";
 
-import { ExternalLink, FileText, Loader2, Plus, X } from "lucide-react";
+import { Loader2, Plus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ManagerCopilotDraft } from "@/components/manager/manager-copilot-draft";
+import { ScoreBar } from "@/components/ui/bars";
+import { StatusPill, type StatusTone } from "@/components/ui/status-pill";
 import { Tag } from "@/components/ui/tag";
 import { isPdfEvidence } from "@/lib/evidence/evidence-file-shared";
+import { cn } from "@/lib/utils";
 
 type ChallengeBrief = {
   title: string;
@@ -46,19 +49,33 @@ type ChallengeDetailResponse = {
   } | null;
 };
 
-function scoreTone(score: number) {
-  if (score >= 80) return { label: "Strong", symbol: "✓", tag: "success" as const, text: "text-blue" };
-  if (score >= 70) return { label: "Developing", symbol: "●", tag: "blue" as const, text: "text-blue" };
-  if (score >= 60) return { label: "Below target", symbol: "▲", tag: "warning" as const, text: "text-warning" };
-  return { label: "Below target", symbol: "▲", tag: "danger" as const, text: "text-danger" };
+function scoreTone(score: number): { label: string; pill: StatusTone; text: string } {
+  if (score >= 80) return { label: "Strong", pill: "success", text: "text-blue" };
+  if (score >= 70) return { label: "Developing", pill: "blue", text: "text-blue" };
+  if (score >= 60) return { label: "Below target", pill: "warning", text: "text-warning" };
+  return { label: "Below target", pill: "danger", text: "text-danger" };
 }
+
+const SECTION_TITLE = "label-caps mb-2 block";
 
 function BriefSection({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <section>
-      <p className="label-mono mb-1">{label}</p>
+      <h3 className={SECTION_TITLE}>{label}</h3>
       {children}
     </section>
+  );
+}
+
+function TagList({ items }: { items: string[] }) {
+  return (
+    <ul className="flex flex-wrap gap-2">
+      {items.map((item) => (
+        <li key={item}>
+          <Tag>{item}</Tag>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -79,14 +96,14 @@ function ChallengeBriefModal({ challenge, onClose }: { challenge: ChallengeBrief
       >
         <div className="flex items-start justify-between gap-3 border-b border-divider px-5 py-4">
           <div className="min-w-0">
-            <p className="label-mono">Challenge brief</p>
-            <h2 className="text-base font-bold text-ink" id="challenge-brief-title">
+            <p className="label-caps label-caps--blue">Challenge brief</p>
+            <h2 className="mt-1 text-[22px] leading-tight font-extrabold tracking-[-0.015em] text-ink" id="challenge-brief-title">
               {challenge.title}
             </h2>
           </div>
           <button
             aria-label="Close"
-            className="rounded-full p-1.5 text-muted hover:bg-blue-soft hover:text-ink"
+            className="rounded-full p-1.5 text-muted hover:bg-divider hover:text-ink"
             onClick={onClose}
             type="button"
           >
@@ -94,19 +111,23 @@ function ChallengeBriefModal({ challenge, onClose }: { challenge: ChallengeBrief
           </button>
         </div>
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4 pb-5">
-          <p className="font-mono text-xs text-muted">
-            {challenge.estimatedMinutes} min
-            {challenge.targetLevel ? ` · ${challenge.targetLevel} level` : ""}
-            {challenge.difficulty ? ` · ${challenge.difficulty}` : ""}
+          <p className="text-[13px] text-muted">
+            {[
+              `${challenge.estimatedMinutes} minutes`,
+              challenge.targetLevel ? `${challenge.targetLevel} level` : null,
+              challenge.difficulty || null,
+            ]
+              .filter(Boolean)
+              .join(", ")}
           </p>
           {challenge.description ? (
             <BriefSection label="Overview">
-              <p className="text-sm leading-relaxed text-ink-2">{challenge.description}</p>
+              <p className="text-[15px] leading-normal text-ink-2">{challenge.description}</p>
             </BriefSection>
           ) : null}
           {challenge.steps.length > 0 ? (
             <BriefSection label="Steps">
-              <ol className="list-decimal space-y-1.5 pl-5 text-sm leading-relaxed text-ink-2">
+              <ol className="list-decimal space-y-1.5 pl-5 text-[15px] leading-normal text-ink-2 marker:text-muted">
                 {challenge.steps.map((step) => (
                   <li key={step}>{step}</li>
                 ))}
@@ -114,8 +135,8 @@ function ChallengeBriefModal({ challenge, onClose }: { challenge: ChallengeBrief
             </BriefSection>
           ) : null}
           {challenge.successCriteria.length > 0 ? (
-            <BriefSection label="Success criteria (rubric)">
-              <ul className="list-disc space-y-1 pl-5 text-sm leading-relaxed text-ink-2">
+            <BriefSection label="Success criteria">
+              <ul className="list-disc space-y-1 pl-5 text-[15px] leading-normal text-ink-2 marker:text-line-strong">
                 {challenge.successCriteria.map((item) => (
                   <li key={item}>{item}</li>
                 ))}
@@ -124,12 +145,12 @@ function ChallengeBriefModal({ challenge, onClose }: { challenge: ChallengeBrief
           ) : null}
           {challenge.linkedSolutions.length > 0 ? (
             <BriefSection label="Linked solutions">
-              <p className="text-sm text-muted">{challenge.linkedSolutions.join(" · ")}</p>
+              <TagList items={challenge.linkedSolutions} />
             </BriefSection>
           ) : null}
           {challenge.competencyNames.length > 0 ? (
             <BriefSection label="Competencies">
-              <p className="text-sm text-muted">{challenge.competencyNames.join(" · ")}</p>
+              <TagList items={challenge.competencyNames} />
             </BriefSection>
           ) : null}
           {challenge.linkedResources.length > 0 ? (
@@ -210,15 +231,15 @@ export function ChallengeSubmissionReviewPanel({
     return (
       <div className="flex items-center gap-2 py-2 text-sm text-muted" role="status">
         <Loader2 aria-hidden className="h-4 w-4 animate-spin" />
-        Loading challenge proof and AI assessment…
+        Loading challenge proof and AI assessment
       </div>
     );
   }
 
   if (error || !detail) {
     return (
-      <div className="rounded-[14px] bg-danger-soft px-4 py-3 text-sm text-danger" role="alert">
-        ▲ {error ?? "Submission details unavailable."}
+      <div className="rounded-[14px] bg-danger-soft px-4 py-3 text-sm font-semibold text-danger" role="alert">
+        {error ?? "Submission details unavailable."}
       </div>
     );
   }
@@ -231,64 +252,70 @@ export function ChallengeSubmissionReviewPanel({
         <ChallengeBriefModal challenge={detail.challenge} onClose={() => setShowBrief(false)} />
       ) : null}
 
-      <div className="min-w-0 space-y-4">
+      <div className="min-w-0 space-y-6">
         {detail.aiReview && tone ? (
-          <div className="flex flex-wrap items-end gap-x-5 gap-y-2">
-            <div>
-              <p className="label-mono">AI initial score</p>
-              <p className={`text-[32px] leading-none font-extrabold tracking-[-0.03em] ${tone.text}`}>
-                {detail.aiReview.score}
-                <span className="text-sm font-bold text-muted">/100</span>
-              </p>
+          <section className="space-y-3">
+            <div className="flex flex-wrap items-end gap-x-8 gap-y-3">
+              <div className="flex flex-col gap-1">
+                <span className="label-caps">AI initial score</span>
+                <span className={cn("num text-[44px] leading-none font-extrabold tracking-[-0.03em]", tone.text)}>
+                  {detail.aiReview.score}
+                  <span className="ml-1 text-[15px] font-semibold tracking-normal text-muted">of 100</span>
+                </span>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="label-caps">Suggested grade</span>
+                <span className="num text-[44px] leading-none font-extrabold tracking-[-0.03em] text-ink">
+                  {detail.aiReview.suggestedGrade}
+                  <span className="ml-1 text-[15px] font-semibold tracking-normal text-muted">of 5</span>
+                </span>
+              </div>
+              <StatusPill className="pb-1" tone={tone.pill}>
+                {tone.label}
+              </StatusPill>
             </div>
-            <div>
-              <p className="label-mono">Suggested grade</p>
-              <p className="text-[32px] leading-none font-extrabold tracking-[-0.03em] text-ink">
-                {detail.aiReview.suggestedGrade}
-                <span className="text-sm font-bold text-muted">/5</span>
-              </p>
-            </div>
-            <Tag tone={tone.tag}>
-              {tone.symbol} {tone.label}
-            </Tag>
-          </div>
+            <ScoreBar value={detail.aiReview.score} />
+          </section>
         ) : null}
-        <button className="link text-sm" onClick={() => setShowBrief(true)} type="button">
+        <button className="btn-secondary" onClick={() => setShowBrief(true)} type="button">
           View challenge brief
         </button>
 
         {detail.aiReview?.summary ? (
-          <div className="rounded-[14px] bg-blue-soft px-4 py-3">
-            <p className="label-mono mb-1">AI assessment — validate against evidence</p>
-            <p className="text-sm leading-relaxed text-ink">{detail.aiReview.summary}</p>
+          <section>
+            <h3 className={SECTION_TITLE}>AI assessment</h3>
+            <p className="text-[15px] leading-normal text-ink-2">{detail.aiReview.summary}</p>
             {detail.aiReview.evidenceNotes ? (
-              <p className="mt-1.5 text-sm text-muted">{detail.aiReview.evidenceNotes}</p>
+              <p className="mt-2 text-sm text-muted">{detail.aiReview.evidenceNotes}</p>
             ) : null}
-          </div>
+            <p className="mt-2 text-[13px] text-muted">Check it against the evidence before you approve.</p>
+          </section>
         ) : null}
 
         {detail.submission.reflectionText ? (
-          <div className="rounded-[14px] border border-line bg-white px-4 py-3">
-            <p className="label-mono mb-1">SE reflection</p>
-            <p className="text-sm italic leading-relaxed text-ink-2">
-              &ldquo;{detail.submission.reflectionText}&rdquo;
-            </p>
-          </div>
+          <section>
+            <h3 className={SECTION_TITLE}>Their reflection</h3>
+            <blockquote className="border-l-2 border-line-strong pl-4 text-[15px] leading-normal text-ink-2">
+              {detail.submission.reflectionText}
+            </blockquote>
+          </section>
         ) : null}
 
-        <div>
-          <p className="label-mono mb-2">Submitted proof ({detail.evidence.length})</p>
+        <section>
+          <h3 className={SECTION_TITLE}>
+            Submitted proof <span className="num">{detail.evidence.length}</span>
+          </h3>
           {detail.evidence.length === 0 ? (
-            <p className="rounded-[14px] bg-danger-soft px-4 py-3 text-sm text-danger">
-              ▲ No evidence attached — ask the SE to resubmit with screenshots, exports, or workflow artifacts.
+            <p className="rounded-[14px] bg-danger-soft px-4 py-3 text-sm font-semibold text-danger">
+              No evidence attached. Ask the SE to resubmit with screenshots, exports or workflow artifacts.
             </p>
           ) : (
             <ul className="overflow-hidden rounded-[14px] border border-line bg-white">
               {detail.evidence.map((item, index) => (
                 <li className="border-b border-divider p-3 last:border-b-0" key={`${item.label}-${index}`}>
                   {item.unavailable ? (
-                    <p className="text-sm text-danger">
-                      ▲ {item.label} — file not found in storage. Ask the SE to re-upload.
+                    <p className="text-sm font-semibold text-danger">
+                      {item.label} is missing from storage. Ask the SE to re-upload it.
                     </p>
                   ) : item.kind === "image" && item.href ? (
                     <button
@@ -312,25 +339,19 @@ export function ChallengeSubmissionReviewPanel({
                         title={item.label}
                       />
                       <button
-                        className="link inline-flex items-center gap-1.5 text-sm"
+                        className="link text-sm"
                         onClick={() => openEvidence(item, submissionId, index)}
                         type="button"
                       >
-                        <FileText aria-hidden className="h-4 w-4" />
-                        Open {item.label} in new tab
+                        Open {item.label} in a new tab
                       </button>
                     </div>
                   ) : (
                     <button
-                      className="link inline-flex items-center gap-1.5 text-left text-sm"
+                      className="link text-left text-sm"
                       onClick={() => openEvidence(item, submissionId, index)}
                       type="button"
                     >
-                      {item.kind === "link" ? (
-                        <ExternalLink aria-hidden className="h-4 w-4 shrink-0" />
-                      ) : (
-                        <FileText aria-hidden className="h-4 w-4 shrink-0" />
-                      )}
                       Open {item.label}
                     </button>
                   )}
@@ -338,25 +359,25 @@ export function ChallengeSubmissionReviewPanel({
               ))}
             </ul>
           )}
-        </div>
+        </section>
 
         {detail.aiReview && (detail.aiReview.strengths.length > 0 || detail.aiReview.gaps.length > 0) ? (
-          <div className="space-y-3">
-            <div>
-              <p className="label-mono">AI strengths</p>
-              <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm text-ink-2">
+          <div className="space-y-5">
+            <section>
+              <h3 className={SECTION_TITLE}>AI strengths</h3>
+              <ul className="list-disc space-y-1 pl-5 text-[15px] leading-normal text-ink-2 marker:text-line-strong">
                 {detail.aiReview.strengths.map((item) => (
                   <li key={item}>{item}</li>
                 ))}
               </ul>
-            </div>
-            <div>
-              <p className="label-mono mb-2">AI gaps to validate</p>
+            </section>
+            <section>
+              <h3 className={SECTION_TITLE}>AI gaps to validate</h3>
               <ul className="overflow-hidden rounded-[14px] border border-line bg-white">
                 {detail.aiReview.gaps.map((gap) => (
                   <li className="border-b border-divider last:border-b-0" key={gap}>
                     <button
-                      className="flex w-full items-start gap-2 px-4 py-3 text-left text-sm leading-relaxed text-ink-2 transition-colors hover:bg-blue-soft"
+                      className="flex w-full items-start gap-2.5 px-4 py-3 text-left text-[15px] leading-normal text-ink-2 transition-colors hover:bg-blue-soft"
                       onClick={() => onAppendMoment?.(gap)}
                       type="button"
                     >
@@ -366,7 +387,7 @@ export function ChallengeSubmissionReviewPanel({
                   </li>
                 ))}
               </ul>
-            </div>
+            </section>
           </div>
         ) : null}
 

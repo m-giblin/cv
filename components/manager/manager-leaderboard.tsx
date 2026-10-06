@@ -1,7 +1,14 @@
 "use client";
 
-import { InitialsAvatar } from "@/components/manager/team-member-bits";
+import { PersonCell, TableCard, tdCls, thCls } from "@/components/ui/table";
 import type { LeaderboardEntry } from "@/lib/gamification/leaderboard";
+import { cn, initials } from "@/lib/utils";
+
+function scoreTone(score: number) {
+  if (score < 60) return "text-danger";
+  if (score < 70) return "text-warning";
+  return "text-ink";
+}
 
 /** Team › Leaderboard: points table (trophies, sim scores, weekly practice streaks). */
 export function ManagerLeaderboard({
@@ -20,59 +27,59 @@ export function ManagerLeaderboard({
   }
 
   return (
-    <div className="overflow-x-auto rounded-[14px] border border-line bg-white">
-      <table className="w-full min-w-[640px] border-collapse text-left text-[15px]">
-        <caption className="sr-only">Team leaderboard, highest points first</caption>
-        <thead className="bg-blue font-mono text-xs text-white uppercase">
-          <tr>
-            <th className="w-16 px-5 py-[11px] font-medium" scope="col">
-              Rank
-            </th>
-            <th className="px-5 py-[11px] font-medium" scope="col">
-              SE
-            </th>
-            <th className="px-5 py-[11px] font-medium" scope="col">
-              Trophies
-            </th>
-            <th className="px-5 py-[11px] font-medium" scope="col">
-              Sim avg
-            </th>
-            <th className="px-5 py-[11px] font-medium" scope="col">
-              Streak
-            </th>
-            <th className="px-5 py-[11px] text-right font-medium" scope="col">
-              Points
-            </th>
+    <TableCard minWidth={640}>
+      <caption className="sr-only">Team leaderboard, highest points first</caption>
+      <thead>
+        <tr>
+          <th className={cn(thCls, "w-20")} scope="col">Rank</th>
+          <th className={thCls} scope="col">SE</th>
+          <th className={cn(thCls, "text-right")} scope="col">Trophies</th>
+          <th className={cn(thCls, "text-right")} scope="col">Sim avg</th>
+          <th className={cn(thCls, "text-right")} scope="col">Streak</th>
+          <th className={cn(thCls, "text-right")} scope="col">Points</th>
+        </tr>
+      </thead>
+      <tbody>
+        {entries.map((entry, index) => (
+          <tr key={entry.profileId}>
+            <td className={cn(tdCls, "num font-bold text-ink-2")}>{entry.rank || index + 1}</td>
+            <td className={tdCls}>
+              <PersonCell
+                initials={initials(entry.fullName)}
+                name={
+                  <button
+                    className="text-left font-bold text-ink hover:underline"
+                    onClick={() => onOpenProfile(entry.profileId)}
+                    type="button"
+                  >
+                    {entry.fullName}
+                  </button>
+                }
+              />
+            </td>
+            <td className={cn(tdCls, "num text-right text-ink-2")}>{entry.trophies}</td>
+            <td
+              className={cn(
+                tdCls,
+                "num text-right font-semibold",
+                entry.avgSimScore === null ? "text-muted" : scoreTone(entry.avgSimScore),
+              )}
+            >
+              {entry.avgSimScore ?? <span className="text-[13px] font-normal">No sims</span>}
+            </td>
+            <td className={cn(tdCls, "num text-right text-ink-2")}>
+              {entry.streakWeeks > 0 ? (
+                `${entry.streakWeeks} week${entry.streakWeeks === 1 ? "" : "s"}`
+              ) : (
+                <span className="text-[13px] text-muted">None</span>
+              )}
+            </td>
+            <td className={cn(tdCls, "num text-right text-[22px] font-extrabold tracking-[-0.03em] text-blue")}>
+              {entry.points}
+            </td>
           </tr>
-        </thead>
-        <tbody>
-          {entries.map((entry, index) => (
-            <tr className={`border-b border-divider last:border-b-0 ${index === 0 ? "bg-signal-soft" : ""}`} key={entry.profileId}>
-              <td className="px-5 py-3 text-[22px] font-extrabold tracking-[-0.03em] text-faint">
-                {String(entry.rank || index + 1).padStart(2, "0")}
-              </td>
-              <td className="px-5 py-3">
-                <button
-                  className="flex items-center gap-3 text-left font-bold text-ink hover:underline"
-                  onClick={() => onOpenProfile(entry.profileId)}
-                  type="button"
-                >
-                  <InitialsAvatar name={entry.fullName} size={28} />
-                  {entry.fullName}
-                </button>
-              </td>
-              <td className="px-5 py-3 font-mono text-xs text-ink-2">{entry.trophies}</td>
-              <td className="px-5 py-3 font-mono text-xs text-ink-2">{entry.avgSimScore ?? "—"}</td>
-              <td className="px-5 py-3 font-mono text-xs text-ink-2">
-                {entry.streakWeeks > 0 ? `${entry.streakWeeks} wk` : "—"}
-              </td>
-              <td className="px-5 py-3 text-right text-[22px] font-extrabold tracking-[-0.03em] text-blue">
-                {entry.points}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+        ))}
+      </tbody>
+    </TableCard>
   );
 }

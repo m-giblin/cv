@@ -1,10 +1,13 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { SimulationAssignForm } from "@/components/manager/simulation-assign-form";
 import { Drawer } from "@/components/ui/drawer";
-import { PageHeader } from "@/components/ui/page-header";
+import { DistributionBar } from "@/components/ui/bars";
+import { PageBody, PageHeader } from "@/components/ui/page-header";
 import { SegmentedToggle } from "@/components/ui/segmented-toggle";
+import { TableCard, rowHighlight, tdCls, thCls } from "@/components/ui/table";
+import { numberWord, plural } from "@/lib/manager/copy";
 import { AT_RISK_READINESS, READINESS_TARGET } from "@/lib/manager/team-status";
 import type { Profile } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -47,38 +50,15 @@ function buildLines(rows: CompetencySeRow[]): CompetencyLine[] {
     .sort((a, b) => a.average - b.average || b.below.length - a.below.length);
 }
 
-function DistributionBar({ line }: { line: CompetencyLine }) {
-  const pct = (n: number) => `${(n / line.scored) * 100}%`;
-  const label = `${line.below.length} below ${AT_RISK_READINESS}, ${line.close} between ${AT_RISK_READINESS} and ${READINESS_TARGET - 1}, ${line.atTarget} at ${READINESS_TARGET} or above`;
-  const segment = "flex items-center overflow-hidden rounded-[5px] pl-2 font-mono text-xs whitespace-nowrap uppercase";
-  return (
-    <div aria-label={label} className="flex h-6 gap-1" role="img">
-      {line.below.length > 0 ? (
-        <span className={cn(segment, "bg-danger text-white")} style={{ width: pct(line.below.length) }}>
-          ▲ {line.below.length}
-        </span>
-      ) : null}
-      {line.close > 0 ? (
-        <span className={cn(segment, "border-[1.5px] border-dashed border-blue text-blue")} style={{ width: pct(line.close) }}>
-          • {line.close}
-        </span>
-      ) : null}
-      {line.atTarget > 0 ? (
-        <span className={cn(segment, "bg-blue text-white")} style={{ width: pct(line.atTarget) }}>
-          ✓ {line.atTarget} at {READINESS_TARGET}+
-        </span>
-      ) : null}
-    </div>
-  );
-}
-
-/** Team › Readiness: one line card per competency, worst first, with a single primary action. */
+/** Team › Readiness (10b): one card per competency, worst first. Only the worst gets the primary action. */
 export function TeamReadiness({
   rows,
   org,
+  tabs,
 }: {
   rows: CompetencySeRow[];
   org: Profile[];
+  tabs?: ReactNode;
 }) {
   const [view, setView] = useState("cards");
   const [assigning, setAssigning] = useState<CompetencyLine | null>(null);
@@ -92,134 +72,142 @@ export function TeamReadiness({
     return org.filter((profile) => ids.has(profile.id));
   }, [assigning, org]);
 
+  const seCount = rows.length;
+  const subtitle =
+    seCount > 0 && lines.length > 0
+      ? `${numberWord(seCount, true)} ${plural(seCount, "SE", "SEs")}, ${numberWord(lines.length)} ${plural(lines.length, "competency", "competencies")}. Target is ${READINESS_TARGET}.`
+      : `Target is ${READINESS_TARGET}.`;
+
   return (
     <>
       <PageHeader
+        accent="Where the team is thin."
         actions={
-          <div className="flex flex-wrap items-center gap-5">
-            <p aria-label="Legend" className="flex gap-4 font-mono text-xs text-ink-2 uppercase">
-              <span>▲ Below {AT_RISK_READINESS}</span>
-              <span>
-                • {AT_RISK_READINESS}–{READINESS_TARGET - 1}
-              </span>
-              <span>✓ {READINESS_TARGET}+</span>
-            </p>
-            <SegmentedToggle
-              label="Readiness view"
-              onChange={setView}
-              options={[
-                { id: "cards", label: "Cards" },
-                { id: "table", label: "Table" },
-              ]}
-              value={view}
-            />
-          </div>
+          <SegmentedToggle
+            label="Readiness view"
+            onChange={setView}
+            options={[
+              { id: "cards", label: "Distribution" },
+              { id: "table", label: "Table" },
+            ]}
+            value={view}
+          />
         }
-        className="pb-3.5"
-        eyebrow={`Readiness by competency · ${rows.length} SE${rows.length === 1 ? "" : "s"} · target ${READINESS_TARGET}`}
-        title="Team"
+        className="pb-[22px]"
+        eyebrow="Team"
+        subtitle={subtitle}
+        title="Readiness."
       />
+      {tabs}
 
-      <div className="flex flex-col gap-2.5 px-[var(--gutter)] pt-[18px] pb-7">
+      <PageBody className="flex flex-col gap-3 pb-7">
         {lines.length === 0 ? (
           <p className="rounded-[14px] border border-line bg-white px-5 py-10 text-center text-[15px] text-muted">
-            No competency scores yet. They appear once simulations, challenges and Flight Checks are scored.
+            No competency scores yet. They appear once simulations, challenges and flight checks are scored.
           </p>
         ) : view === "table" ? (
-          <div className="overflow-x-auto rounded-[14px] border border-line bg-white">
-            <table className="w-full min-w-[760px] border-collapse text-left text-[15px]">
-              <caption className="sr-only">Team readiness by competency, worst first</caption>
-              <thead className="bg-blue font-mono text-xs text-white uppercase">
-                <tr>
-                  {["Competency", "Team average", `Below ${AT_RISK_READINESS}`, `${AT_RISK_READINESS}–${READINESS_TARGET - 1}`, `${READINESS_TARGET}+`, `Names below ${AT_RISK_READINESS}`].map(
-                    (heading) => (
-                      <th className="px-5 py-[11px] font-medium" key={heading} scope="col">
-                        {heading}
-                      </th>
-                    ),
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {lines.map((line) => (
-                  <tr className="border-b border-divider last:border-b-0" key={line.name}>
-                    <th className="px-5 py-3 font-bold text-ink" scope="row">
-                      {line.name}
-                    </th>
-                    <td className={cn("px-5 py-3 font-extrabold", line.average < READINESS_TARGET ? "text-danger" : "text-blue")}>
-                      {line.average}
-                    </td>
-                    <td className="px-5 py-3">{line.below.length}</td>
-                    <td className="px-5 py-3">{line.close}</td>
-                    <td className="px-5 py-3">{line.atTarget}</td>
-                    <td className="px-5 py-3 text-ink-2">
-                      {line.below.length
-                        ? line.below.map((entry) => `${entry.fullName} (${entry.score})`).join(", ")
-                        : "None"}
-                    </td>
-                  </tr>
+          <TableCard>
+            <caption className="sr-only">Team readiness by competency, worst first</caption>
+            <thead>
+              <tr>
+                {[
+                  "Competency",
+                  "Team average",
+                  `Under ${AT_RISK_READINESS}`,
+                  `${AT_RISK_READINESS} to ${READINESS_TARGET - 1}`,
+                  `${READINESS_TARGET}+`,
+                  `Under ${AT_RISK_READINESS}, by name`,
+                ].map((heading, index) => (
+                  <th className={cn(thCls, index > 0 && index < 5 && "text-right")} key={heading} scope="col">
+                    {heading}
+                  </th>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </tr>
+            </thead>
+            <tbody>
+              {lines.map((line) => (
+                <tr className={line === worst ? rowHighlight.danger : undefined} key={line.name}>
+                  <th className={cn(tdCls, "font-bold text-ink")} scope="row">
+                    {line.name}
+                  </th>
+                  <td
+                    className={cn(
+                      tdCls,
+                      "num text-right font-extrabold",
+                      line.average < READINESS_TARGET ? "text-danger" : "text-ink",
+                    )}
+                  >
+                    {line.average}
+                  </td>
+                  <td className={cn(tdCls, "num text-right")}>{line.below.length}</td>
+                  <td className={cn(tdCls, "num text-right")}>{line.close}</td>
+                  <td className={cn(tdCls, "num text-right")}>{line.atTarget}</td>
+                  <td className={cn(tdCls, "text-sm text-ink-2")}>
+                    {line.below.length
+                      ? line.below.map((entry) => `${entry.fullName} (${entry.score})`).join(", ")
+                      : "None"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </TableCard>
         ) : (
-          lines.map((line) => (
-            <section
-              aria-label={line.name}
-              className="grid grid-cols-1 items-center gap-5 rounded-[14px] border border-line bg-white px-5 py-4 md:grid-cols-[220px_minmax(0,1fr)_210px]"
-              key={line.name}
-            >
-              <div className="flex items-baseline gap-3">
-                <span
-                  className={cn(
-                    "text-[34px] leading-none font-extrabold tracking-[-0.03em]",
-                    line.average < READINESS_TARGET ? "text-danger" : "text-blue",
-                  )}
-                >
-                  {line.average}
-                </span>
-                <h2 className="text-[15px] leading-[1.2] font-bold text-ink">{line.name}</h2>
-              </div>
-              <div className="flex flex-col gap-2">
-                <DistributionBar line={line} />
-                <div className="flex flex-wrap gap-1.5">
+          lines.map((line) => {
+            const isWorst = line === worst;
+            return (
+              <section
+                aria-label={line.name}
+                className={cn(
+                  "grid grid-cols-1 items-center gap-5 rounded-[14px] border border-line bg-white px-[22px] py-[18px] md:grid-cols-[220px_minmax(0,1fr)_230px] md:gap-7",
+                  isWorst && "shadow-[inset_3px_0_0_var(--color-danger)]",
+                )}
+                key={line.name}
+              >
+                <div className="flex flex-col gap-1">
+                  <h2 className="text-base leading-tight font-extrabold text-ink">{line.name}</h2>
+                  <span className="text-sm text-muted">
+                    Team average{" "}
+                    <b
+                      className={cn(
+                        "num text-[22px] font-extrabold",
+                        line.average < READINESS_TARGET ? "text-danger" : "text-ink",
+                      )}
+                    >
+                      {line.average}
+                    </b>
+                  </span>
+                </div>
+                <div className="flex min-w-0 flex-col gap-2">
+                  <DistributionBar mid={line.close} over70={line.atTarget} under60={line.below.length} />
+                  {line.below.length > 0 ? (
+                    <span className="text-[13px] text-ink-2">
+                      Under {AT_RISK_READINESS}: {line.below.map((entry) => entry.firstName).join(", ")}
+                    </span>
+                  ) : null}
+                </div>
+                <div className="md:justify-self-end">
                   {line.below.length === 0 ? (
-                    <span className="label-mono">No one below {AT_RISK_READINESS}</span>
+                    <span className="text-sm text-muted">No action needed</span>
+                  ) : isWorst ? (
+                    <button className="btn-primary whitespace-nowrap" onClick={() => setAssigning(line)} type="button">
+                      Assign practice to {line.below.length}
+                    </button>
                   ) : (
-                    line.below.map((entry) => (
-                      <span
-                        className="rounded-full border-[1.5px] border-danger px-[9px] py-0.5 font-mono text-xs text-danger uppercase"
-                        key={entry.userId}
-                        title={entry.fullName}
-                      >
-                        {entry.firstName} {entry.score}
-                      </span>
-                    ))
+                    <button className="link text-sm" onClick={() => setAssigning(line)} type="button">
+                      Assign practice to {line.below.length}
+                    </button>
                   )}
                 </div>
-              </div>
-              <div className="md:justify-self-end">
-                {line.below.length === 0 ? (
-                  <span className="label-mono">No action needed</span>
-                ) : line === worst ? (
-                  <button className="btn-primary !px-[18px] !py-[9px] !text-sm" onClick={() => setAssigning(line)} type="button">
-                    Assign practice to {line.below.length}
-                  </button>
-                ) : (
-                  <button className="link text-sm" onClick={() => setAssigning(line)} type="button">
-                    Assign practice to {line.below.length}
-                  </button>
-                )}
-              </div>
-            </section>
-          ))
+              </section>
+            );
+          })
         )}
-      </div>
+      </PageBody>
 
       <Drawer
         onClose={closeDrawer}
         open={assigning !== null}
-        title={assigning ? `Assign practice · ${assigning.name}` : "Assign practice"}
+        title={assigning ? `Assign practice for ${assigning.name}` : "Assign practice"}
       >
         {assigning ? (
           <div className="flex flex-col gap-4">

@@ -1,10 +1,13 @@
 "use client";
 
-import { CalendarDays, CheckCircle2, ClipboardList, Loader2, Pencil } from "lucide-react";
+import { format, parseISO } from "date-fns";
+import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { Stamp } from "@/components/ui/stamp";
+import { rowHighlight } from "@/components/ui/table";
 import { Tag } from "@/components/ui/tag";
 import {
  addDaysToIsoDate,
@@ -14,6 +17,7 @@ import {
  templateDurationLabel,
 } from "@/lib/plans/template-catalog";
 import type { Profile, UserPlan } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 type PlanTemplateStep = {
  id: string;
@@ -32,8 +36,16 @@ type PlanTemplate = {
 };
 
 const INPUT_CLASS =
- "w-full rounded-[10px] border-[1.5px] border-line-strong bg-white px-3 py-2.5 text-sm font-normal text-ink";
-const LABEL_CLASS = "block space-y-1.5 text-sm font-bold text-ink";
+ "w-full rounded-[10px] border border-line-strong bg-white px-3 py-2 text-[15px] font-normal text-ink";
+const LABEL_CLASS = "block space-y-1.5 text-sm font-semibold text-ink";
+
+function displayDate(iso: string) {
+ try {
+ return format(parseISO(iso), "EEE, MMM d");
+ } catch {
+ return iso;
+ }
+}
 
 function todayIso() {
  return new Date().toISOString().slice(0, 10);
@@ -124,7 +136,7 @@ export function ManagerPlanAssignPanel({
  return;
  }
 
- toast.success(`${selectedTemplate?.name ?? "Plan"} assigned — SE notified.`);
+ toast.success(`${selectedTemplate?.name ?? "Plan"} assigned. The SE has been notified.`);
  onAssigned?.();
  router.refresh();
  }
@@ -136,7 +148,7 @@ export function ManagerPlanAssignPanel({
  <section className="scroll-mt-6" id={compact ? undefined : "onboarding-plans"}>
  <div className="flex justify-center py-10" role="status">
  <Loader2 aria-hidden className="h-6 w-6 animate-spin text-blue" />
- <span className="sr-only">Loading plan templates…</span>
+ <span className="sr-only">Loading plan templates</span>
  </div>
  </section>
  );
@@ -145,33 +157,38 @@ export function ManagerPlanAssignPanel({
  return (
  <section className="min-w-0 scroll-mt-6 space-y-4" id={compact ? undefined : "onboarding-plans"}>
  <div>
- <h3 className="flex items-center gap-2 text-[15px] font-bold text-ink">
- <ClipboardList aria-hidden className="h-4 w-4 text-blue" />
+ <h3 className="text-lg font-extrabold text-ink">
  {compact ? "Assign onboarding plan" : "Onboarding plans"}
  </h3>
  <p className="mt-1 text-sm text-muted">
- Three steps: pick a week template → choose SE → confirm dates.
+ Pick a week template, choose the SE and mentor, then confirm dates.
  </p>
- <ol className="mt-3 flex flex-wrap gap-2">
+ <ol className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
  {[
  { n: 1, label: "Template" },
- { n: 2, label: "SE & mentor" },
+ { n: 2, label: "SE and mentor" },
  { n: 3, label: "Confirm" },
  ].map((step) => (
- <li key={step.n}>
- <Tag
+ <li
  aria-current={assignStep === step.n ? "step" : undefined}
- tone={assignStep === step.n ? "blue" : assignStep > step.n ? "success" : "neutral"}
+ className={cn(
+ "inline-flex items-center gap-2 text-[13px] font-semibold whitespace-nowrap",
+ assignStep === step.n ? "text-ink" : "text-muted",
+ )}
+ key={step.n}
  >
- {assignStep > step.n ? "✓" : `${step.n}.`} {step.label}
- </Tag>
+ <Stamp
+ size={18}
+ state={assignStep > step.n ? "earned" : assignStep === step.n ? "partial" : "none"}
+ />
+ {step.label}
  </li>
  ))}
  </ol>
  </div>
 
  <div className="space-y-4">
- <p className="label-mono">Step 1 · Template</p>
+ <p className="label-caps">Step 1, template</p>
  <ul className={`grid gap-2 ${compact ? "grid-cols-1" : "sm:grid-cols-2 xl:grid-cols-3"}`}>
  {templates.map((template) => {
  const days = templateDurationDays(template.steps);
@@ -181,17 +198,16 @@ export function ManagerPlanAssignPanel({
  <li className="min-w-0" key={template.id}>
  <button
  aria-pressed={isSelected}
- className={`h-full w-full rounded-[14px] border p-3 text-left transition-colors ${
- isSelected
- ? "border-[1.5px] border-blue bg-blue-soft"
- : "border-line bg-white hover:bg-bg"
- }`}
+ className={cn(
+ "h-full w-full rounded-[14px] border border-line p-3.5 text-left transition-colors",
+ isSelected ? rowHighlight.selected : "bg-white hover:bg-bg",
+ )}
  onClick={() => setSelectedTemplateId(template.id)}
  type="button"
  >
  <div className="flex items-start justify-between gap-2">
- <p className="text-sm font-bold text-ink">{template.name}</p>
- {isSelected ? <CheckCircle2 aria-hidden className="h-4 w-4 shrink-0 text-blue" /> : null}
+ <p className="text-[15px] font-bold text-ink">{template.name}</p>
+ {isSelected ? <Stamp size={18} state="earned" /> : null}
  </div>
  {template.description ? (
  <p className="mt-1 line-clamp-2 text-sm text-muted">{template.description}</p>
@@ -207,15 +223,15 @@ export function ManagerPlanAssignPanel({
  </ul>
 
  {selectedTemplate ? (
- <div className="rounded-[14px] bg-blue-soft px-4 py-3">
- <p className="label-mono">Template preview</p>
- <p className="mt-1 text-sm font-bold text-ink">{stepTypeSummary(selectedTemplate.steps)}</p>
+ <div className="rounded-[14px] border border-line bg-white px-4 py-3.5">
+ <p className="label-caps">Template preview</p>
+ <p className="mt-1 text-[15px] font-bold text-ink">{stepTypeSummary(selectedTemplate.steps)}</p>
  <ul className="mt-3 space-y-2">
  {selectedTemplate.steps.map((step) => (
  <li className="flex items-start justify-between gap-3 text-sm" key={step.id}>
  <span className="min-w-0 text-ink-2">{step.title}</span>
- <span className="shrink-0 font-mono text-xs text-muted">
- Day {step.metadata?.dueOffsetDays ?? "—"}
+ <span className="num shrink-0 text-[13px] text-muted">
+ {step.metadata?.dueOffsetDays !== undefined ? `Day ${step.metadata.dueOffsetDays}` : "No due day"}
  </span>
  </li>
  ))}
@@ -224,7 +240,7 @@ export function ManagerPlanAssignPanel({
  ) : null}
 
  <form className="space-y-4 border-t border-divider pt-4" onSubmit={handleAssign}>
- <p className="label-mono">Step 2–3 · SE, mentor and dates</p>
+ <p className="label-caps">Steps 2 and 3, SE, mentor and dates</p>
  <div className={`grid gap-4 ${compact ? "grid-cols-1" : "sm:grid-cols-2"}`}>
  <label className={LABEL_CLASS}>
  <span className="block">Assign to</span>
@@ -248,7 +264,7 @@ export function ManagerPlanAssignPanel({
  <label className={LABEL_CLASS}>
  <span className="block">Mentor</span>
  <span className="block text-sm font-normal text-muted">
- Any employee on your team — they coach; you sign off.
+ Anyone on your team. They coach; you sign off.
  </span>
  <select
  className={INPUT_CLASS}
@@ -278,18 +294,17 @@ export function ManagerPlanAssignPanel({
  </label>
  <div className={LABEL_CLASS}>
  <span className="block">Target completion</span>
- <div className="flex items-center gap-2 rounded-[10px] bg-surface-2 px-3 py-2.5 text-sm font-normal text-ink-2">
- <CalendarDays aria-hidden className="h-4 w-4 shrink-0 text-muted" />
- <span className="font-mono">{targetCompletion}</span>
- <span className="text-xs text-muted">(auto)</span>
+ <div className="flex items-center gap-2 rounded-[10px] bg-surface-2 px-3 py-2 text-[15px] font-normal text-ink-2">
+ <span>{displayDate(targetCompletion)}</span>
+ <span className="text-[13px] text-muted">Set from the template</span>
  </div>
  </div>
  </div>
 
  {assigneePlan ? (
- <p className="rounded-[14px] bg-warning-soft px-4 py-3 text-sm text-ink">
- <span className="font-bold text-warning">▲</span> {assigneePlan.name} is already assigned (
- {assigneePlan.progress}% complete). Assigning adds another plan — consider editing on Plans instead.
+ <p className="rounded-[14px] bg-signal-soft px-4 py-3 text-sm text-ink-2">
+ <span className="font-bold text-warning">{assigneePlan.name} is already assigned</span> and{" "}
+ {assigneePlan.progress}% complete. Assigning adds another plan, so consider editing it on Plans instead.
  </p>
  ) : null}
 
@@ -302,8 +317,7 @@ export function ManagerPlanAssignPanel({
  {isSaving ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
  Assign plan
  </button>
- <Link className="link inline-flex items-center gap-1.5 text-sm" href="/plans">
- <Pencil aria-hidden className="h-4 w-4" />
+ <Link className="link text-sm" href="/plans">
  Customize templates
  </Link>
  </div>

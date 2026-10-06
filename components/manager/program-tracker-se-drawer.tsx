@@ -2,65 +2,96 @@
 
 import Link from "next/link";
 import { Drawer } from "@/components/ui/drawer";
+import { StatusPill, type StatusTone } from "@/components/ui/status-pill";
 import { Tag } from "@/components/ui/tag";
 import type { DrawerProfileView, ProgramStepView } from "@/lib/plans/program-tracker-view";
+import { cn } from "@/lib/utils";
 
-type TagTone = "neutral" | "blue" | "success" | "warning" | "danger" | "signal";
-
-/** Maps the view model's health label (CRITICAL / BEHIND / AHEAD / ON PACE) to a tag. */
-export function healthTag(label: string): { tone: TagTone; symbol: string; text: string } {
+/** Maps the view model's health label (CRITICAL / BEHIND / AHEAD / ON PACE) to a status pill. */
+export function healthTag(label: string): { tone: StatusTone; text: string } {
   const key = label.trim().toUpperCase();
-  if (key === "CRITICAL") return { tone: "danger", symbol: "▲", text: "Critical" };
-  if (key === "BEHIND") return { tone: "warning", symbol: "▲", text: "Behind" };
-  if (key === "AHEAD") return { tone: "blue", symbol: "◆", text: "Ahead" };
-  return { tone: "success", symbol: "●", text: label.charAt(0) + label.slice(1).toLowerCase() };
+  if (key === "CRITICAL") return { tone: "danger", text: "Critical" };
+  if (key === "BEHIND") return { tone: "warning", text: "Behind" };
+  if (key === "AHEAD") return { tone: "blue", text: "Ahead" };
+  return { tone: "success", text: label.charAt(0) + label.slice(1).toLowerCase() };
 }
 
-/** Maps a program status string from the view model to a tag. */
-export function programStatusTag(status: string): { tone: TagTone; symbol: string } {
+/** Maps a program status string from the view model to a status pill tone. */
+export function programStatusTag(status: string): { tone: StatusTone } {
   switch (status) {
     case "Critical":
-      return { tone: "danger", symbol: "▲" };
+      return { tone: "danger" };
     case "Behind":
-      return { tone: "warning", symbol: "▲" };
-    case "Ahead":
-      return { tone: "blue", symbol: "◆" };
+      return { tone: "warning" };
     case "Complete":
-      return { tone: "success", symbol: "✓" };
     case "On track":
-      return { tone: "success", symbol: "●" };
+      return { tone: "success" };
     case "Not started":
-      return { tone: "neutral", symbol: "•" };
+      return { tone: "neutral" };
     default:
-      return { tone: "blue", symbol: "•" };
+      return { tone: "blue" };
   }
 }
 
-export function InitialsAvatar({ initials, size = 28 }: { initials: string; size?: 28 | 32 | 44 }) {
-  const sizeClass = size === 44 ? "h-11 w-11 text-sm" : size === 32 ? "h-8 w-8 text-xs" : "h-7 w-7 text-xs";
+/** 34px person-cell avatar (44 for drawer headers). */
+export function InitialsAvatar({ initials, size = 34 }: { initials: string; size?: 34 | 44 }) {
   return (
     <span
       aria-hidden
-      className={`flex shrink-0 items-center justify-center rounded-full bg-blue-soft font-bold text-blue ${sizeClass}`}
+      className={cn(
+        "grid shrink-0 place-items-center rounded-full bg-blue-soft font-bold text-blue",
+        size === 44 ? "h-11 w-11 text-[15px]" : "h-[34px] w-[34px] text-[13px]",
+      )}
     >
       {initials}
     </span>
   );
 }
 
-const STEP_DOT: Record<ProgramStepView["status"], string> = {
-  done: "border-success bg-success text-white",
-  active: "border-blue bg-blue text-white",
-  blocked: "border-danger bg-danger text-white",
-  upcoming: "border-line-strong bg-white text-muted",
+/** 8px progress bar, blue on the track (danger when the program is critical). */
+export function TrackerProgressBar({
+  pct,
+  danger = false,
+  className,
+  label,
+}: {
+  pct: number;
+  danger?: boolean;
+  className?: string;
+  label?: string;
+}) {
+  const width = Math.max(0, Math.min(100, pct));
+  return (
+    <div
+      aria-hidden={label ? undefined : true}
+      aria-label={label}
+      className={cn("h-2 overflow-hidden rounded-[4px] bg-track", className)}
+      role={label ? "img" : undefined}
+    >
+      <div className={cn("h-full rounded-[4px]", danger ? "bg-danger" : "bg-blue")} style={{ width: `${width}%` }} />
+    </div>
+  );
+}
+
+/** View-model copy still carries "·" and "—" separators; render them as plain punctuation. */
+export function trackerCopy(text: string) {
+  return text
+    .replace(/\s*→\s*$/, "")
+    .replaceAll(" · ", ", ")
+    .replaceAll(" — ", ": ")
+    .replace(/\(Wks (\d+)–(\d+)\)/, "(weeks $1 to $2)");
+}
+
+const STEP_STATUS: Record<ProgramStepView["status"], { tone: StatusTone; label: string }> = {
+  done: { tone: "success", label: "Done" },
+  active: { tone: "blue", label: "In progress" },
+  blocked: { tone: "danger", label: "Blocked" },
+  upcoming: { tone: "neutral", label: "Upcoming" },
 };
 
-const STEP_TEXT: Record<ProgramStepView["status"], string> = {
-  done: "text-muted",
-  active: "text-ink",
-  blocked: "text-danger",
-  upcoming: "text-ink",
-};
+function dueLabel(due: string) {
+  return due && due !== "—" ? `Due ${due}` : "No due date";
+}
 
 export function ProgramTrackerSeDrawer({
   profile,
@@ -90,42 +121,43 @@ export function ProgramTrackerSeDrawer({
       }
       onClose={onClose}
       open={profile !== null}
-      title={profile?.name ?? ""}
+      title={
+        profile ? (
+          <span className="flex items-center gap-3.5">
+            <InitialsAvatar initials={profile.initials} size={44} />
+            <span className="flex min-w-0 flex-col">
+              <span className="text-[22px] leading-[1.15] font-extrabold tracking-[-0.015em] text-ink">{profile.name}</span>
+              <span className="text-[13px] font-normal text-muted">
+                {profile.level}, day {profile.day} of ramp
+              </span>
+            </span>
+          </span>
+        ) : (
+          ""
+        )
+      }
     >
       {profile && health ? (
-        <div className="space-y-6">
-          <div className="flex items-center gap-3">
-            <InitialsAvatar initials={profile.initials} size={44} />
-            <div className="min-w-0 flex-1">
-              <p className="label-mono">
-                {profile.level} · Day {profile.day} of ramp
-              </p>
-              <div className="mt-1">
-                <Tag tone={health.tone}>
-                  {health.symbol} {health.text}
-                </Tag>
-              </div>
-            </div>
-          </div>
+        <div className="flex flex-col gap-6">
+          <StatusPill tone={health.tone}>{health.text}</StatusPill>
 
-          <dl className="grid grid-cols-2 overflow-hidden rounded-[14px] border border-line">
+          <dl className="grid grid-cols-2 overflow-hidden rounded-[14px] border border-line bg-white">
             {[
               { value: String(profile.programCount), label: "Programs", danger: false },
-              { value: profile.overall, label: "Avg progress", danger: false },
+              { value: profile.overall === "—" ? "None" : profile.overall, label: "Avg progress", danger: false },
               { value: String(profile.overdueCount), label: "Overdue", danger: profile.overdueCount > 0 },
               { value: String(profile.certsCleared), label: "Gates cleared", danger: false },
             ].map((stat, index) => (
               <div
-                className={`px-4 py-3 ${index % 2 === 0 ? "border-r border-divider" : ""} ${
-                  index < 2 ? "border-b border-divider" : ""
-                }`}
+                className={cn("px-4 py-3", index % 2 === 0 && "border-r border-divider", index < 2 && "border-b border-divider")}
                 key={stat.label}
               >
-                <dt className="label-mono">{stat.label}</dt>
+                <dt className="label-caps whitespace-nowrap">{stat.label}</dt>
                 <dd
-                  className={`mt-1 text-[22px] font-extrabold leading-none tracking-[-0.03em] ${
-                    stat.danger ? "text-danger" : "text-blue"
-                  }`}
+                  className={cn(
+                    "num mt-1.5 text-[28px] leading-none font-extrabold tracking-[-0.03em]",
+                    stat.danger ? "text-danger" : "text-blue",
+                  )}
                 >
                   {stat.value}
                 </dd>
@@ -133,91 +165,69 @@ export function ProgramTrackerSeDrawer({
             ))}
           </dl>
 
-          <section>
-            <h3 className="label-mono mb-2">Active programs</h3>
+          <section className="flex flex-col gap-3">
+            <h3 className="label-caps">Active programs</h3>
             {profile.programs.length === 0 ? (
               <p className="text-sm text-muted">No active programs.</p>
             ) : (
-              <div className="space-y-3">
-                {profile.programs.map((program) => {
-                  const status = programStatusTag(program.status);
-                  const bad = program.status === "Critical";
-                  return (
-                    <div
-                      className={`overflow-hidden rounded-[14px] border bg-white ${
-                        bad ? "border-danger" : "border-line"
-                      }`}
-                      key={program.name}
-                    >
-                      <div className="flex items-start justify-between gap-3 border-b border-divider px-4 py-3">
-                        <div className="min-w-0">
-                          <p className="label-mono">{program.type}</p>
-                          <p className="mt-0.5 text-sm font-bold text-ink">{program.name}</p>
-                        </div>
-                        <Tag tone={status.tone}>
-                          {status.symbol} {program.status}
-                        </Tag>
+              profile.programs.map((program) => {
+                const status = programStatusTag(program.status);
+                const bad = program.status === "Critical";
+                return (
+                  <div
+                    className={cn(
+                      "overflow-hidden rounded-[14px] border border-line bg-white",
+                      bad && "shadow-[inset_3px_0_0_var(--color-danger)]",
+                    )}
+                    key={program.name}
+                  >
+                    <div className="flex items-start justify-between gap-3 px-4 pt-3.5">
+                      <div className="flex min-w-0 flex-col items-start gap-1.5">
+                        <Tag tone="blue">{program.type}</Tag>
+                        <p className="text-[15px] font-bold text-ink">{program.name}</p>
                       </div>
-                      <div className="flex items-center gap-3 px-4 py-3">
-                        <div className="flex-1">
-                          <div className="mb-1 flex justify-between text-xs">
-                            <span className="text-muted">Progress</span>
-                            <span className={`font-mono font-medium ${bad ? "text-danger" : "text-blue"}`}>
-                              {program.pct}%
-                            </span>
-                          </div>
-                          <div className="h-2 overflow-hidden rounded-full bg-divider">
-                            <div
-                              className={`h-full rounded-full ${bad ? "bg-danger" : "bg-blue"}`}
-                              style={{ width: `${program.pct}%` }}
-                            />
-                          </div>
-                        </div>
-                        <span className="whitespace-nowrap font-mono text-xs text-muted">Due {program.due}</span>
+                      <StatusPill tone={status.tone}>{program.status}</StatusPill>
+                    </div>
+                    <div className="flex flex-col gap-1.5 px-4 pt-2.5 pb-3.5">
+                      <div className="flex items-baseline justify-between gap-3 text-[13px]">
+                        <span className="text-muted">{dueLabel(program.due)}</span>
+                        <span className={cn("num font-bold", bad ? "text-danger" : "text-blue")}>{program.pct}%</span>
                       </div>
-                      {program.steps.length > 0 ? (
-                        <ul className="border-t border-divider">
-                          {program.steps.map((step) => (
+                      <TrackerProgressBar danger={bad} label={`${program.pct}% complete`} pct={program.pct} />
+                    </div>
+                    {program.steps.length > 0 ? (
+                      <ul className="border-t border-divider">
+                        {program.steps.map((step) => {
+                          const stepStatus = STEP_STATUS[step.status];
+                          return (
                             <li
-                              className="flex items-center gap-2.5 border-b border-divider px-4 py-2 last:border-b-0"
+                              className="flex items-center gap-3 border-b border-divider px-4 py-2.5 last:border-b-0"
                               key={`${step.label}-${step.date}`}
                             >
-                              <span
-                                aria-hidden
-                                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-[1.5px] text-xs ${
-                                  STEP_DOT[step.status]
-                                }`}
-                              >
-                                {step.check}
+                              <span className="flex min-w-0 flex-1 flex-col">
+                                <span className={cn("text-sm", step.status === "done" ? "text-muted" : "text-ink")}>
+                                  {step.label}
+                                </span>
+                                {step.date !== "—" ? (
+                                  <span className={cn("text-[13px]", step.status === "blocked" ? "text-danger" : "text-muted")}>
+                                    {step.date}
+                                  </span>
+                                ) : null}
                               </span>
-                              <span className="sr-only">{step.status}:</span>
-                              <span
-                                className={`flex-1 text-sm ${STEP_TEXT[step.status]} ${
-                                  step.strike === "line-through" ? "line-through" : ""
-                                }`}
-                              >
-                                {step.label}
-                              </span>
-                              <span
-                                className={`whitespace-nowrap font-mono text-xs ${
-                                  step.status === "blocked" ? "text-danger" : "text-muted"
-                                }`}
-                              >
-                                {step.date}
-                              </span>
+                              <StatusPill tone={stepStatus.tone}>{stepStatus.label}</StatusPill>
                             </li>
-                          ))}
-                        </ul>
-                      ) : null}
-                    </div>
-                  );
-                })}
-              </div>
+                          );
+                        })}
+                      </ul>
+                    ) : null}
+                  </div>
+                );
+              })
             )}
           </section>
 
-          <section>
-            <h3 className="label-mono mb-2">Recent activity</h3>
+          <section className="flex flex-col gap-3">
+            <h3 className="label-caps">Recent activity</h3>
             {profile.activity.length === 0 ? (
               <p className="text-sm text-muted">No recent activity logged.</p>
             ) : (
@@ -226,9 +236,9 @@ export function ProgramTrackerSeDrawer({
                   <li className="flex gap-3 border-b border-divider px-4 py-2.5 last:border-b-0" key={index}>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm text-ink">{entry.label}</p>
-                      <p className="text-xs text-muted">{entry.program}</p>
+                      <p className="text-[13px] text-muted">{trackerCopy(entry.program)}</p>
                     </div>
-                    <span className="shrink-0 font-mono text-xs text-muted">{entry.date}</span>
+                    {entry.date !== "—" ? <span className="shrink-0 text-[13px] text-muted">{entry.date}</span> : null}
                   </li>
                 ))}
               </ul>

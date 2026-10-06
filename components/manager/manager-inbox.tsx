@@ -18,12 +18,15 @@ import type { ReviewItem } from "@/components/manager/review-queue";
 import { SimulationCoachingReviewPanel } from "@/components/manager/simulation-coaching-review-panel";
 import { HeaderStat } from "@/components/manager/team-member-bits";
 import { ActionBar } from "@/components/ui/action-bar";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Chip } from "@/components/ui/chip";
 import { Drawer } from "@/components/ui/drawer";
-import { PageHeader } from "@/components/ui/page-header";
+import { PageBody, PageHeader } from "@/components/ui/page-header";
+import { FilterBar, TableCard, rowHighlight, tdCls, thCls } from "@/components/ui/table";
 import type { ReviewSignoffContext } from "@/lib/coaching/signoff-policy";
 import { signoffTierForReview } from "@/lib/coaching/signoff-policy";
-import { INBOX_SLA_DAYS } from "@/lib/manager/team-status";
+import { ageWords } from "@/lib/manager/copy";
+import { AT_RISK_READINESS, INBOX_SLA_DAYS } from "@/lib/manager/team-status";
 import { cn } from "@/lib/utils";
 
 type MentorItem = {
@@ -58,9 +61,9 @@ type Filter = "all" | InboxType;
 
 const FILTERS: { id: Filter; label: string }[] = [
   { id: "all", label: "All" },
+  { id: "coaching", label: "Sim cards" },
   { id: "submission", label: "Challenges" },
-  { id: "coaching", label: "Sims" },
-  { id: "plan_step", label: "Steps" },
+  { id: "plan_step", label: "Plan steps" },
   { id: "cert", label: "Gates" },
   { id: "mentor", label: "Mentor notes" },
   { id: "deal_prep", label: "Deal preps" },
@@ -71,7 +74,7 @@ const TYPE_LABEL: Record<InboxType, string> = {
   submission: "Challenge",
   coaching: "Sim card",
   plan_step: "Plan step",
-  cert: "Cert gate",
+  cert: "Gate",
   mentor: "Mentor note",
   deal_prep: "Deal prep",
   pitch: "Pitch",
@@ -80,7 +83,7 @@ const TYPE_LABEL: Record<InboxType, string> = {
 /** Sim cards at or above this score can be approved in bulk. */
 const BULK_MIN_SCORE = 75;
 
-const GRID = "grid grid-cols-[36px_76px_120px_minmax(0,1fr)_150px_60px_90px] gap-3";
+type AgeFilter = "any" | "old" | "today";
 
 function itemKey(item: InboxItem) {
   if (item.inboxType === "plan_step") return `plan-${item.assignmentStepId}`;
@@ -90,7 +93,7 @@ function itemKey(item: InboxItem) {
 function itemTitle(item: InboxItem) {
   if (item.inboxType === "mentor") return item.topic;
   if (item.inboxType === "cert") return item.label;
-  if (item.inboxType === "deal_prep") return `${item.accountName} · ${item.industry}`;
+  if (item.inboxType === "deal_prep") return `${item.accountName}, ${item.industry}`;
   return item.title;
 }
 
@@ -121,7 +124,7 @@ function isBulkEligible(item: InboxItem) {
 }
 
 function typeTagLabel(item: InboxItem) {
-  if (item.inboxType === "plan_step" && item.isManagerGate) return "◆ Gate step";
+  if (item.inboxType === "plan_step" && item.isManagerGate) return "Gate step";
   return TYPE_LABEL[item.inboxType];
 }
 
@@ -200,11 +203,17 @@ function ageDays(iso: string | null, now: number): number | null {
 }
 
 function ageLabel(iso: string | null, now: number) {
-  if (!iso) return "—";
+  if (!iso) return "Not dated";
   const time = new Date(iso).getTime();
-  if (now - time < 3_600_000) return "Now";
-  const days = ageDays(iso, now) ?? 0;
-  return days === 0 ? "Today" : `${days}d`;
+  if (now - time < 3_600_000) return "Just now";
+  return ageWords(ageDays(iso, now));
+}
+
+/** ", waiting 4 days" or ", submitted today" for the review drawer subline. */
+function waitingPhrase(iso: string | null, now: number) {
+  if (!iso) return "";
+  const days = ageDays(iso, now);
+  return days && days > 0 ? `, waiting ${ageWords(days)}` : ", submitted today";
 }
 
 function gradeFromScore(score: number) {
@@ -265,6 +274,8 @@ export function ManagerInbox({
   const [extrasLoading, setExtrasLoading] = useState(2);
   const [removed, setRemoved] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<Filter>("all");
+  const [personFilter, setPersonFilter] = useState("all");
+  const [ageFilter, setAgeFilter] = useState<AgeFilter>("any");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const [feedback, setFeedback] = useState("");
@@ -314,7 +325,7 @@ export function ManagerInbox({
 
   const counts = useMemo(() => {
     const result: Record<Filter, number> = {
-      all: allItems.length,
+      all: 0,
       submission: 0,
       coaching: 0,
       plan_step: 0,
@@ -323,11 +334,27 @@ export function ManagerInbox({
       deal_prep: 0,
       pitch: 0,
     };
-    for (const item of allItems) result[item.inboxType] += 1;
+    for (const item of allItems) {
+      if (personFilter !== "all" && itemPerson(item) !== personFilter) continue;
+      if (ageFilter !== "any") {
+        const days = ageDays(itemTimestamp(item), now);
+        if (ageFilter === "old" ? !(days !== null && days > INBOX_SLA_DAYS) : days !== 0) continue;
+      }
+      result[item.inboxType] += 1;
+      result.all += 1;
+    }
     return result;
-  }, [allItems]);
+  }, [allItems, personFilter, ageFilter, now]);
 
-  const visible = filter === "all" ? allItems : allItems.filter((item) => item.inboxType === filter);
+  const people = useMemo(() => [...new Set(allItems.map(itemPerson))].sort((a, b) => a.localeCompare(b)), [allItems]);
+  // Person and age narrow the list first; the type chips count what is left.
+  const narrowed = allItems.filter((item) => {
+    if (personFilter !== "all" && itemPerson(item) !== personFilter) return false;
+    if (ageFilter === "any") return true;
+    const days = ageDays(itemTimestamp(item), now);
+    return ageFilter === "old" ? days !== null && days > INBOX_SLA_DAYS : days === 0;
+  });
+  const visible = filter === "all" ? narrowed : narrowed.filter((item) => item.inboxType === filter);
   const overSla = allItems.filter((item) => (ageDays(itemTimestamp(item), now) ?? 0) > INBOX_SLA_DAYS).length;
   const activeItem = activeKey ? (allItems.find((item) => itemKey(item) === activeKey) ?? null) : null;
   const selectedItems = allItems.filter((item) => selected.has(itemKey(item)));
@@ -357,7 +384,7 @@ export function ManagerInbox({
 
   function toggleSelect(item: InboxItem) {
     if (!isBulkEligible(item)) {
-      toast(`Only sim cards at ${BULK_MIN_SCORE}+ can be bulk approved`);
+      toast(`Only sim cards scoring ${BULK_MIN_SCORE} or higher can be approved in bulk. Open this one to review it.`);
       return;
     }
     const key = itemKey(item);
@@ -371,7 +398,7 @@ export function ManagerInbox({
 
   function toggleAllEligible() {
     if (eligibleVisible.length === 0) {
-      toast(`Only sim cards at ${BULK_MIN_SCORE}+ can be bulk approved`);
+      toast(`Only sim cards scoring ${BULK_MIN_SCORE} or higher can be approved in bulk.`);
       return;
     }
     setSelected((current) => {
@@ -412,7 +439,7 @@ export function ManagerInbox({
     removeItems([itemKey(item)]);
     setActiveKey(null);
     const first = itemPerson(item).split(" ")[0];
-    toast.success(decision === "approve" ? `Approved · ${first} notified` : `Changes requested · ${first} notified`);
+    toast.success(decision === "approve" ? `Approved. ${first} has been notified.` : `Changes requested. ${first} has been notified.`);
     router.refresh();
   }
 
@@ -444,10 +471,10 @@ export function ManagerInbox({
     if (approved.length > 0) {
       toast.success(
         failed > 0
-          ? `Approved ${approved.length} · ${failed} need a full review`
+          ? `Approved ${approved.length}. ${failed} still need a full review.`
           : approved.length === 1
-            ? `Approved · ${itemPerson(approved[0]!.item).split(" ")[0]} notified`
-            : `Approved ${approved.length} items`,
+            ? `Approved. ${itemPerson(approved[0]!.item).split(" ")[0]} has been notified.`
+            : `Approved ${approved.length} sim cards.`,
       );
       router.refresh();
     } else {
@@ -458,64 +485,108 @@ export function ManagerInbox({
   const tier = activeItem ? signoffTierForReview(signoffContextForItem(activeItem)) : "light";
   const appendMoment = (moment: string) => {
     const current = signoff.value.nextAction;
-    signoff.setNextAction(current.trim() ? `${current.trim()}\n\n• ${moment}` : moment);
+    signoff.setNextAction(current.trim() ? `${current.trim()}\n\n${moment}` : moment);
+  };
+
+  const pillCls =
+    "cursor-pointer appearance-none rounded-full border border-line bg-white bg-[length:8px] bg-[right_14px_center] bg-no-repeat py-[7px] pr-9 pl-3.5 text-sm font-semibold text-ink hover:border-line-strong";
+  const caret = {
+    backgroundImage:
+      "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 5'%3E%3Cpath d='M1 1l3 3 3-3' fill='none' stroke='%23121A2E' stroke-width='1.5'/%3E%3C/svg%3E\")",
   };
 
   return (
     <>
       <PageHeader
+        accent="Oldest first."
         actions={
-          <div className="flex gap-8">
+          <div className="flex items-end gap-9">
             <HeaderStat label="Waiting" value={allItems.length} />
-            <HeaderStat label="Over 3 days" tone={overSla > 0 ? "danger" : "blue"} value={overSla} />
+            <HeaderStat label="Older than 3 days" tone={overSla > 0 ? "danger" : "blue"} value={overSla} />
           </div>
         }
-        className="pb-4"
-        eyebrow="Oldest first"
-        title="Inbox"
+        className="pb-[22px]"
+        eyebrow="Manager"
+        title="Inbox."
       />
 
-      <div className="flex flex-wrap gap-1.5 px-[var(--gutter)] pb-3" role="group" aria-label="Filter by type">
-        {FILTERS.filter((option) => option.id === "all" || counts[option.id] > 0).map((option) => (
-          <Chip active={filter === option.id} key={option.id} onClick={() => setFilter(option.id)}>
-            {option.label} {counts[option.id]}
-          </Chip>
-        ))}
-      </div>
+      <PageBody className="flex flex-col gap-[22px] pb-8">
+        <FilterBar
+          show={
+            <span aria-label="Filter by type" className="flex flex-wrap gap-2" role="group">
+              {FILTERS.filter((option) => option.id === "all" || counts[option.id] > 0).map((option) => (
+                <Chip
+                  active={filter === option.id}
+                  count={counts[option.id]}
+                  key={option.id}
+                  onClick={() => setFilter(option.id)}
+                >
+                  {option.label}
+                </Chip>
+              ))}
+            </span>
+          }
+        >
+          <select
+            aria-label="Filter by SE"
+            className={pillCls}
+            onChange={(event) => setPersonFilter(event.target.value)}
+            style={caret}
+            value={personFilter}
+          >
+            <option value="all">Every SE</option>
+            {people.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+          <select
+            aria-label="Filter by age"
+            className={pillCls}
+            onChange={(event) => setAgeFilter(event.target.value as AgeFilter)}
+            style={caret}
+            value={ageFilter}
+          >
+            <option value="any">Any age</option>
+            <option value="old">Older than {INBOX_SLA_DAYS} days</option>
+            <option value="today">Today</option>
+          </select>
+        </FilterBar>
 
-      <div className="px-[var(--gutter)] pb-8">
-        <div className="overflow-hidden rounded-[14px] border border-line bg-white">
-          <div className="overflow-x-auto">
-            <div aria-label="Items waiting on you" className="min-w-[760px]" role="table">
-              <div
-                className={cn(GRID, "items-center bg-blue px-[18px] py-[11px] font-mono text-xs text-white uppercase")}
-                role="row"
-              >
-                <span role="columnheader">
-                  <button
-                    aria-checked={allEligibleSelected}
-                    aria-label={`Select all sim cards at ${BULK_MIN_SCORE}+`}
-                    className={cn(
-                      "grid h-[18px] w-[18px] place-items-center rounded-[5px] border-[1.5px] border-white text-xs",
-                      allEligibleSelected && "bg-white text-blue",
-                    )}
-                    onClick={toggleAllEligible}
-                    role="checkbox"
-                    type="button"
-                  >
-                    {allEligibleSelected ? "✓" : null}
-                  </button>
-                </span>
-                <span role="columnheader">Age</span>
-                <span role="columnheader">Type</span>
-                <span role="columnheader">Item</span>
-                <span role="columnheader">SE</span>
-                <span role="columnheader">Score</span>
-                <span role="columnheader">
+        <div className="flex flex-col gap-3">
+          <TableCard>
+            <caption className="sr-only">Items waiting on you, oldest first</caption>
+            <thead>
+              <tr>
+                <th className={cn(thCls, "w-[52px]")} scope="col">
+                  <Checkbox
+                    checked={allEligibleSelected}
+                    label={`Select every sim card scoring ${BULK_MIN_SCORE} or higher`}
+                    onChange={toggleAllEligible}
+                  />
+                </th>
+                <th className={cn(thCls, "w-[100px]")} scope="col">
+                  Age
+                </th>
+                <th className={cn(thCls, "w-[120px]")} scope="col">
+                  Type
+                </th>
+                <th className={thCls} scope="col">
+                  Item
+                </th>
+                <th className={cn(thCls, "w-[160px]")} scope="col">
+                  SE
+                </th>
+                <th className={cn(thCls, "w-[76px]")} scope="col">
+                  Score
+                </th>
+                <th className={cn(thCls, "w-[96px]")} scope="col">
                   <span className="sr-only">Action</span>
-                </span>
-              </div>
-
+                </th>
+              </tr>
+            </thead>
+            <tbody>
               {visible.map((item) => {
                 const key = itemKey(item);
                 const on = selected.has(key);
@@ -524,87 +595,86 @@ export function ManagerInbox({
                 const days = ageDays(time, now);
                 const old = days !== null && days > INBOX_SLA_DAYS;
                 const fresh = time ? now - new Date(time).getTime() < 3_600_000 : false;
+                const score = item.inboxType === "coaching" ? item.score : null;
                 return (
-                  <div
-                    className={cn(
-                      GRID,
-                      "items-center border-b border-divider px-[18px] py-3 text-[15px] last:border-b-0",
-                      on ? "bg-blue-soft" : fresh ? "bg-signal-soft" : null,
-                    )}
-                    key={key}
-                    role="row"
-                  >
-                    <span role="cell">
-                      <button
-                        aria-checked={on}
+                  <tr className={on ? rowHighlight.selected : fresh ? rowHighlight.ready : undefined} key={key}>
+                    <td className={cn(tdCls, "py-3")}>
+                      <Checkbox
                         aria-disabled={!eligible}
-                        aria-label={`Select ${itemTitle(item)} for bulk approve`}
-                        className={cn(
-                          "grid h-[18px] w-[18px] place-items-center rounded-[5px] text-xs text-white",
-                          on
-                            ? "bg-blue"
-                            : eligible
-                              ? "border-[1.5px] border-faint"
-                              : "cursor-not-allowed border-[1.5px] border-line",
-                        )}
-                        onClick={() => toggleSelect(item)}
-                        role="checkbox"
-                        type="button"
-                      >
-                        {on ? "✓" : null}
-                      </button>
-                    </span>
-                    <span role="cell" suppressHydrationWarning>
+                        checked={on}
+                        className={eligible ? undefined : "opacity-50"}
+                        label={
+                          eligible
+                            ? `Select ${itemTitle(item)} for bulk approve`
+                            : `${itemTitle(item)} needs a full review`
+                        }
+                        onChange={() => toggleSelect(item)}
+                      />
+                    </td>
+                    <td className={cn(tdCls, "py-3")} suppressHydrationWarning>
+                      {old ? (
+                        <span
+                          className="inline-flex rounded-full bg-danger-soft px-2.5 py-[3px] text-[13px] font-bold whitespace-nowrap text-danger"
+                          suppressHydrationWarning
+                        >
+                          {ageLabel(time, now)}
+                        </span>
+                      ) : (
+                        <span className="text-sm whitespace-nowrap text-muted" suppressHydrationWarning>
+                          {ageLabel(time, now)}
+                        </span>
+                      )}
+                    </td>
+                    <td className={cn(tdCls, "py-3 text-sm whitespace-nowrap text-ink-2")}>{typeTagLabel(item)}</td>
+                    <td className={cn(tdCls, "max-w-0 py-3")}>
+                      <span className="block truncate font-bold text-ink">{itemTitle(item)}</span>
+                    </td>
+                    <td className={cn(tdCls, "py-3 text-sm text-ink")}>
+                      <span className="block truncate">{itemPerson(item)}</span>
+                    </td>
+                    <td className={cn(tdCls, "py-3")}>
                       <span
                         className={cn(
-                          "font-mono text-xs font-medium uppercase",
-                          old ? "rounded-[6px] bg-danger px-2 py-[3px] text-white" : "text-ink-2",
+                          "num text-lg font-extrabold",
+                          score !== null && score < AT_RISK_READINESS ? "text-danger" : "text-ink",
                         )}
-                        suppressHydrationWarning
                       >
-                        {ageLabel(time, now)}
+                        {score ?? "—"}
                       </span>
-                    </span>
-                    <span role="cell">
-                      <span className="inline-flex rounded-full border-[1.5px] border-line-strong px-[9px] py-0.5 font-mono text-xs whitespace-nowrap text-ink-2 uppercase">
-                        {typeTagLabel(item)}
-                      </span>
-                    </span>
-                    <span className="min-w-0 truncate font-bold text-ink" role="cell">
-                      {itemTitle(item)}
-                    </span>
-                    <span className="truncate text-ink" role="cell">
-                      {itemPerson(item)}
-                    </span>
-                    <span className="text-xl font-extrabold tracking-[-0.03em] text-ink" role="cell">
-                      {item.inboxType === "coaching" ? item.score : "—"}
-                    </span>
-                    <span className="text-right" role="cell">
-                      <button className="link text-sm" onClick={() => setActiveKey(key)} type="button">
+                    </td>
+                    <td className={cn(tdCls, "py-3 text-right")}>
+                      <button className="link cursor-pointer text-sm" onClick={() => setActiveKey(key)} type="button">
                         Review<span className="sr-only"> {itemTitle(item)}</span>
                       </button>
-                    </span>
-                  </div>
+                    </td>
+                  </tr>
                 );
               })}
 
               {visible.length === 0 && extrasLoading === 0 ? (
-                <p className="px-10 py-10 text-center text-base text-muted">Inbox clear. Nice work.</p>
+                <tr>
+                  <td className={cn(tdCls, "py-10 text-center text-base text-muted")} colSpan={7}>
+                    {allItems.length === 0 ? "Inbox clear. Nice work." : "Nothing matches these filters."}
+                  </td>
+                </tr>
               ) : null}
               {extrasLoading > 0 ? (
-                <p aria-live="polite" className="px-[18px] py-3 label-mono" role="status">
-                  Loading mentor notes and pitches…
-                </p>
+                <tr>
+                  <td aria-live="polite" className={cn(tdCls, "text-sm text-muted")} colSpan={7} role="status">
+                    Loading mentor notes and pitches…
+                  </td>
+                </tr>
               ) : null}
-            </div>
-          </div>
+            </tbody>
+          </TableCard>
+          {counts.coaching > 0 ? (
+            <p className="text-[13px] text-muted">
+              Tick sim cards scoring {BULK_MIN_SCORE} or higher to approve them together. Everything else opens for a
+              full review.
+            </p>
+          ) : null}
         </div>
-        {counts.coaching > 0 ? (
-          <p className="mt-3 text-[13px] text-muted">
-            Tick sim cards scoring {BULK_MIN_SCORE}+ to approve them together. Everything else opens for a full review.
-          </p>
-        ) : null}
-      </div>
+      </PageBody>
 
       {selectedItems.length > 0 ? (
         <ActionBar
@@ -616,14 +686,14 @@ export function ManagerInbox({
           }
           secondary={
             <button
-              className="text-sm font-bold text-white underline decoration-2 underline-offset-[3px]"
+              className="cursor-pointer text-sm font-bold text-white underline decoration-white decoration-2 underline-offset-4"
               onClick={() => setSelected(new Set())}
               type="button"
             >
-              Clear
+              Discard
             </button>
           }
-          summary={`Bulk approve · sim cards ${BULK_MIN_SCORE}+ only`}
+          summary={`Bulk approve works for sim cards at ${BULK_MIN_SCORE} or higher.`}
         />
       ) : null}
 
@@ -655,12 +725,13 @@ export function ManagerInbox({
         title={
           activeItem ? (
             <span className="flex flex-col gap-1.5">
-              <span className="label-mono" suppressHydrationWarning>
-                {typeTagLabel(activeItem)} · {itemPerson(activeItem)}
-                {itemTimestamp(activeItem) ? ` · ${ageLabel(itemTimestamp(activeItem), now)}` : ""}
-              </span>
+              <span className="label-caps label-caps--blue">{typeTagLabel(activeItem)}</span>
               <span className="text-[22px] leading-[1.15] font-extrabold tracking-[-0.015em] text-ink">
                 {itemTitle(activeItem)}
+              </span>
+              <span className="text-sm font-normal text-muted" suppressHydrationWarning>
+                {itemPerson(activeItem)}
+                {waitingPhrase(itemTimestamp(activeItem), now)}
               </span>
             </span>
           ) : (
@@ -702,16 +773,16 @@ export function ManagerInbox({
             ) : null}
 
             {activeItem.inboxType === "mentor" && activeItem.seNotes ? (
-              <div className="rounded-[14px] bg-blue-soft px-4 py-3">
-                <p className="label-mono">SE notes</p>
-                <p className="mt-1 text-ink">{activeItem.seNotes}</p>
+              <div className="flex flex-col gap-1.5 rounded-[12px] border border-line px-4 py-3">
+                <p className="label-caps">SE notes</p>
+                <p className="text-ink">{activeItem.seNotes}</p>
               </div>
             ) : null}
 
             {activeItem.inboxType === "pitch" && activeItem.reflectionText ? (
-              <div className="rounded-[14px] bg-blue-soft px-4 py-3">
-                <p className="label-mono">SE reflection</p>
-                <p className="mt-1 text-ink">{activeItem.reflectionText}</p>
+              <div className="flex flex-col gap-1.5 rounded-[12px] border border-line px-4 py-3">
+                <p className="label-caps">SE reflection</p>
+                <p className="text-ink">{activeItem.reflectionText}</p>
               </div>
             ) : null}
 
@@ -740,7 +811,7 @@ export function ManagerInbox({
               <label className="flex flex-col gap-1.5 text-sm font-bold text-ink">
                 Feedback
                 <textarea
-                  className="h-24 w-full resize-none rounded-[10px] border-[1.5px] border-line-strong px-3 py-2.5 text-sm font-normal text-ink"
+                  className="h-24 w-full resize-none rounded-[10px] border border-line-strong bg-white px-3 py-2.5 text-[15px] font-normal text-ink"
                   onChange={(event) => setFeedback(event.target.value)}
                   placeholder="What worked, and what to improve"
                   value={feedback}
@@ -752,9 +823,9 @@ export function ManagerInbox({
             activeItem.inboxType === "coaching" ||
             activeItem.inboxType === "pitch" ? (
               <label className="flex flex-col gap-1.5 text-sm font-bold text-ink">
-                Grade (1–5)
+                Grade, 1 to 5
                 <input
-                  className="w-24 rounded-[10px] border-[1.5px] border-line-strong px-3 py-2 text-sm font-normal text-ink"
+                  className="w-24 rounded-[10px] border border-line-strong bg-white px-3 py-2 text-[15px] font-normal text-ink"
                   max={5}
                   min={1}
                   onChange={(event) => setGrade(event.target.value)}

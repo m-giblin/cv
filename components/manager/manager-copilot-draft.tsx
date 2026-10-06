@@ -55,7 +55,7 @@ export function ManagerCopilotDraft({
       const body = (await response.json()) as { draft: string };
       onDraft(body.draft);
       if (!autoDraft) {
-        toast.success("Draft ready — edit before sending.");
+        toast.success("Draft ready. Edit it before sending.");
       }
     } finally {
       setLoading(false);
@@ -77,7 +77,7 @@ export function ManagerCopilotDraft({
       type="button"
     >
       {loading ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : <Sparkles aria-hidden className="h-4 w-4" />}
-      {autoDraft && loading ? "Drafting feedback…" : "Regenerate draft (co-pilot)"}
+      {autoDraft && loading ? "Drafting feedback…" : "Redraft with AI"}
     </button>
   );
 }

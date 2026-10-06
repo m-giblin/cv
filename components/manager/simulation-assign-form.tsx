@@ -4,14 +4,16 @@ import { ChevronLeft, ChevronRight, Loader2, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Chip } from "@/components/ui/chip";
-import { Tag } from "@/components/ui/tag";
 import { paginate } from "@/components/ui/data-table";
+import { rowHighlight } from "@/components/ui/table";
+import { Tag } from "@/components/ui/tag";
 import {
   DIFFICULTY_OPTIONS,
   SOLUTION_OPTIONS,
   VERTICAL_OPTIONS,
 } from "@/lib/simulations/prompt-template";
 import { Profile } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 type Template = {
   id: string;
@@ -29,8 +31,8 @@ const PAGE_SIZE = 10;
 const SE_ROLES = new Set(["basic_se", "senior_se", "advisory_solutions_consultant"]);
 
 const INPUT_CLASS =
-  "w-full rounded-[10px] border-[1.5px] border-line-strong bg-white px-3 py-2.5 text-sm font-normal text-ink";
-const LABEL_CLASS = "block space-y-1.5 text-sm font-bold text-ink";
+  "w-full rounded-[10px] border border-line-strong bg-white px-3 py-2 text-[15px] font-normal text-ink";
+const LABEL_CLASS = "block space-y-1.5 text-sm font-semibold text-ink";
 
 function seProfiles(profiles: Profile[]) {
   return profiles.filter((profile) => SE_ROLES.has(profile.role));
@@ -43,6 +45,7 @@ export function SimulationAssignForm({
   defaultAssigneeId,
   fixedAssigneeIds,
   onAssigned,
+  submitVariant = "primary",
 }: {
   /** People available in the single-assign dropdown (usually one SE on the detail panel). */
   assignees: Profile[];
@@ -57,6 +60,11 @@ export function SimulationAssignForm({
   fixedAssigneeIds?: string[];
   /** Called after a successful assignment. */
   onAssigned?: () => void;
+  /**
+   * The submit button is the drawer's one primary action by default. Pass "secondary" when the
+   * form sits inside a surface that already has its own primary (e.g. the SE detail drawer).
+   */
+  submitVariant?: "primary" | "secondary";
 }) {
   const singleOptions = useMemo(() => seProfiles(assignees), [assignees]);
   const teamOptions = useMemo(
@@ -221,7 +229,7 @@ export function SimulationAssignForm({
     const count = body.assignedCount ?? assignedToIds.length;
     toast.success(
       count === 1
-        ? "Simulation assigned — SE opens Simulations to start."
+        ? "Simulation assigned. The SE can start it from Simulations."
         : `Simulation assigned to ${count} SEs.`,
     );
     onAssigned?.();
@@ -239,9 +247,9 @@ export function SimulationAssignForm({
   return (
     <div className="min-w-0 space-y-6">
       <section className="space-y-3">
-        <div>
-          <p className="label-mono">Step 1</p>
-          <h3 className="text-[15px] font-bold text-ink">Prompt template</h3>
+        <div className="flex flex-col gap-1">
+          <p className="label-caps">Step 1</p>
+          <h3 className="text-lg font-extrabold text-ink">Prompt template</h3>
         </div>
 
         <label className="block">
@@ -254,13 +262,13 @@ export function SimulationAssignForm({
             <input
               className={`${INPUT_CLASS} pl-9`}
               onChange={(event) => setTemplateSearch(event.target.value)}
-              placeholder="Search templates…"
+              placeholder="Search templates"
               type="search"
               value={templateSearch}
             />
           </span>
         </label>
-        <p className="font-mono text-xs text-muted">
+        <p className="text-[13px] text-muted">
           {filteredTemplates.length === templates.length
             ? `${templates.length} templates`
             : `${filteredTemplates.length} of ${templates.length} templates`}
@@ -274,9 +282,10 @@ export function SimulationAssignForm({
               return (
                 <li className="border-b border-divider last:border-b-0" key={template.id}>
                   <label
-                    className={`flex cursor-pointer items-start gap-3 px-4 py-3 ${
-                      selected ? "bg-blue-soft" : "hover:bg-bg"
-                    }`}
+                    className={cn(
+                      "flex cursor-pointer items-start gap-3 px-4 py-3",
+                      selected ? rowHighlight.selected : "hover:bg-bg",
+                    )}
                   >
                     <input
                       checked={selected}
@@ -286,18 +295,17 @@ export function SimulationAssignForm({
                       type="radio"
                     />
                     <span className="min-w-0 flex-1 space-y-1">
-                      <span className="block text-sm font-bold text-ink">{template.name}</span>
-                      <span className="block truncate text-sm text-muted" title={template.persona}>
-                        {template.persona}
+                      <span className="block text-[15px] font-bold text-ink">{template.name}</span>
+                      <span className="block truncate text-[13px] text-muted" title={template.persona}>
+                        {template.persona}, {template.vertical}
                       </span>
-                      <span className="flex flex-wrap items-center gap-2">
-                        <span className="font-mono text-xs text-muted">{template.vertical}</span>
+                      <span className="flex flex-wrap items-center gap-2 pt-0.5">
                         {template.parameterized ? (
-                          <Tag tone="blue">◆ Solution · vertical · difficulty</Tag>
+                          <Tag tone="blue">Configurable</Tag>
                         ) : template.hasSolutionPlaceholder ? (
-                          <Tag tone="blue">◆ Solution</Tag>
+                          <Tag tone="blue">Solution configurable</Tag>
                         ) : (
-                          <Tag>• Fixed</Tag>
+                          <Tag>Fixed</Tag>
                         )}
                       </span>
                     </span>
@@ -313,13 +321,13 @@ export function SimulationAssignForm({
 
         {templatePageCount > 1 ? (
           <div className="flex items-center justify-between gap-2">
-            <p className="font-mono text-xs text-muted">
+            <p className="text-[13px] text-muted">
               Page {templateSafePage} of {templatePageCount}
             </p>
             <div className="flex gap-2">
               <button
                 aria-label="Previous page"
-                className="btn-secondary inline-flex items-center gap-1 px-3 py-1.5 disabled:opacity-50"
+                className="btn-secondary inline-flex items-center px-3 disabled:opacity-50"
                 disabled={templateSafePage <= 1}
                 onClick={() => setTemplatePage(templateSafePage - 1)}
                 type="button"
@@ -328,7 +336,7 @@ export function SimulationAssignForm({
               </button>
               <button
                 aria-label="Next page"
-                className="btn-secondary inline-flex items-center gap-1 px-3 py-1.5 disabled:opacity-50"
+                className="btn-secondary inline-flex items-center px-3 disabled:opacity-50"
                 disabled={templateSafePage >= templatePageCount}
                 onClick={() => setTemplatePage(templateSafePage + 1)}
                 type="button"
@@ -341,17 +349,17 @@ export function SimulationAssignForm({
       </section>
 
       <form className="space-y-4" onSubmit={handleSubmit}>
-        <div>
-          <p className="label-mono">Step 2</p>
-          <h3 className="text-[15px] font-bold text-ink">Assignment details</h3>
+        <div className="flex flex-col gap-1">
+          <p className="label-caps">Step 2</p>
+          <h3 className="text-lg font-extrabold text-ink">Assignment details</h3>
         </div>
 
         {isFixed ? (
-          <div className="rounded-[14px] bg-blue-soft px-4 py-3 text-sm text-ink">
+          <div className="rounded-[14px] border border-line bg-white px-4 py-3 text-[15px] text-ink">
             <p className="font-bold">
               Assigning to {fixedCount} SE{fixedCount === 1 ? "" : "s"}
             </p>
-            {fixedNames.length > 0 ? <p className="text-ink-2">{fixedNames.join(", ")}</p> : null}
+            {fixedNames.length > 0 ? <p className="text-sm text-ink-2">{fixedNames.join(", ")}</p> : null}
           </div>
         ) : (
           <>
@@ -360,8 +368,8 @@ export function SimulationAssignForm({
                 <Chip active={assignMode === "one"} onClick={() => setAssignMode("one")}>
                   One SE
                 </Chip>
-                <Chip active={assignMode === "all"} onClick={() => setAssignMode("all")}>
-                  All SEs ({teamOptions.length})
+                <Chip active={assignMode === "all"} count={teamOptions.length} onClick={() => setAssignMode("all")}>
+                  All SEs
                 </Chip>
               </div>
             ) : null}
@@ -383,13 +391,13 @@ export function SimulationAssignForm({
                 </select>
               </label>
             ) : (
-              <p className="rounded-[14px] bg-blue-soft px-4 py-3 text-sm text-ink">
-                Will assign to <span className="font-bold">{teamOptions.length}</span> SEs:{" "}
+              <p className="rounded-[14px] border border-line bg-white px-4 py-3 text-sm text-ink-2">
+                Will assign to <span className="font-bold text-ink">{teamOptions.length}</span> SEs:{" "}
                 {teamOptions
                   .slice(0, 6)
                   .map((profile) => profile.fullName)
                   .join(", ")}
-                {teamOptions.length > 6 ? ` +${teamOptions.length - 6} more` : ""}.
+                {teamOptions.length > 6 ? ` and ${teamOptions.length - 6} more` : ""}.
               </p>
             )}
           </>
@@ -409,7 +417,7 @@ export function SimulationAssignForm({
                     {solution}
                   </option>
                 ))}
-                <option value="custom">Custom solution…</option>
+                <option value="custom">Custom solution</option>
               </select>
             </label>
             {solutionFocus === "custom" ? (
@@ -463,7 +471,10 @@ export function SimulationAssignForm({
         ) : null}
 
         <button
-          className="btn-secondary inline-flex w-full items-center justify-center gap-2 disabled:opacity-50"
+          className={cn(
+            submitVariant === "primary" ? "btn-primary" : "btn-secondary disabled:opacity-50",
+            "inline-flex w-full items-center justify-center gap-2",
+          )}
           disabled={isSaving || !templateId}
           type="submit"
         >

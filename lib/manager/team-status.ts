@@ -3,7 +3,7 @@ import type { CertSummary } from "@/lib/manager/growth-insights";
 import type { SeCoachingSummary } from "@/lib/manager/se-coaching-summary";
 import type { Profile, UserPlan } from "@/lib/types";
 
-/** Below this readiness score an SE is flagged at risk (the "▲ below 60" band on Team › Readiness). */
+/** Below this readiness score an SE is flagged at risk (the "under 60" band on Team › Readiness). */
 export const AT_RISK_READINESS = 60;
 /** Team target used across the manager portal. */
 export const READINESS_TARGET = 70;
@@ -14,7 +14,7 @@ const COACHING_CADENCE_DAYS = 14;
 
 export type TeamStatus = "at_risk" | "review_due" | "on_track";
 
-export type TeamActionKind = "review" | "sign_off" | "practice" | "one_on_one";
+export type TeamActionKind = "review" | "sign_off" | "practice" | "one_on_one" | "assign_plan";
 
 export type TeamAction = { kind: TeamActionKind; label: string };
 
@@ -36,6 +36,10 @@ export type TeamMember = {
   firstName: string;
   email: string;
   level: string;
+  /** Week of the current ramp (1-based), or null without an active plan. */
+  rampWeek: number | null;
+  /** Second line under the name: "Basic, week 7" or just the level. */
+  subline: string;
   readiness: number | null;
   status: TeamStatus;
   reason: string | null;
@@ -47,6 +51,8 @@ export type TeamMember = {
   lowCompetency: { name: string; score: number } | null;
   daysSinceCoaching: number | null;
   talkingPoints: string[];
+  /** Oldest item waiting on the manager, if any. */
+  pending: PendingReviewSummary | null;
 };
 
 /** The five career gates, in order (Basic → Senior → Advisory). */
@@ -81,12 +87,35 @@ function plural(count: number, word: string) {
 }
 
 function pendingReason(pending: PendingReviewSummary) {
-  const more = pending.count > 1 ? ` · +${pending.count - 1} more` : "";
+  const more = pending.count > 1 ? `, plus ${pending.count - 1} more` : "";
   if (pending.kind === "cert") return `${pending.title} evidence ready${more}`;
   if (pending.ageDays !== null && pending.ageDays > 0) {
     return `${pending.title} waiting ${plural(pending.ageDays, "day")}${more}`;
   }
-  return `${pending.title} waiting${more}`;
+  return `${pending.title} submitted${more}`;
+}
+
+const REVIEW_LABEL: Record<PendingReviewSummary["kind"], string> = {
+  challenge: "Review challenge",
+  sim: "Review sim card",
+  plan_step: "Review step",
+  cert: "Review gate",
+  deal_prep: "Review deal prep",
+};
+
+/** Joins reason phrases into one sentence: "No activity in 9 days, objection handling at 52". */
+function joinPhrases(parts: string[]) {
+  return parts
+    .map((part, index) => (index === 0 ? part : part.charAt(0).toLowerCase() + part.slice(1)))
+    .join(", ");
+}
+
+/** Week of the current ramp (1-based), or null without an active plan. */
+export function rampWeekFor(plan: UserPlan | undefined, now: number): number | null {
+  if (!plan || plan.progress >= 100 || !plan.startDate) return null;
+  const start = new Date(plan.startDate).getTime();
+  if (Number.isNaN(start) || start > now) return null;
+  return Math.floor((now - start) / (7 * 86_400_000)) + 1;
 }
 
 function lowestCompetency(summary: Record<string, number> | undefined) {
@@ -128,38 +157,44 @@ export function buildTeamMember(input: {
   const reviewAction: TeamAction | null =
     openReviewCount > 0
       ? pending?.kind === "cert"
-        ? { kind: "sign_off", label: "Sign off" }
-        : { kind: "review", label: "Review" }
+        ? { kind: "sign_off", label: REVIEW_LABEL.cert }
+        : { kind: "review", label: pending ? REVIEW_LABEL[pending.kind] : "Review" }
       : null;
+  const noPlan = !plan;
 
   let reason: string | null = null;
   let action: TeamAction | null = null;
 
   if (status === "at_risk") {
     const parts: string[] = [];
+    if (noPlan) parts.push("No ramp plan assigned");
     const idle = coaching?.lastActiveDays ?? null;
     if (idle !== null && idle >= 7) parts.push(`No activity in ${idle} days`);
-    if (lowCompetency) parts.push(`${lowCompetency.name} ${lowCompetency.score}`);
+    if (lowCompetency) parts.push(`${lowCompetency.name} at ${lowCompetency.score}`);
     const overdue = overdueStepCount(plan, now);
     if (overdue > 0) parts.push(`${plural(overdue, "step")} overdue`);
     if (parts.length < 2 && coaching?.simTrendLabel && coaching.simTrendLabel.startsWith("Slipping")) {
       parts.push(coaching.simTrendLabel);
     }
-    if (parts.length === 0 && readiness !== null) parts.push(`Readiness ${readiness}, below ${AT_RISK_READINESS}`);
+    if (parts.length === 0 && readiness !== null) parts.push(`Readiness ${readiness}, under ${AT_RISK_READINESS}`);
     if (parts.length === 0 && coaching) parts.push(coaching.healthLabel);
-    reason = parts.slice(0, 2).join(" · ") || null;
+    reason = joinPhrases(parts.slice(0, 2)) || null;
     action =
       reviewAction ??
-      (lowCompetency
-        ? { kind: "practice", label: "Assign practice" }
-        : { kind: "one_on_one", label: "Schedule 1:1" });
+      (noPlan
+        ? { kind: "assign_plan", label: "Assign a plan" }
+        : lowCompetency
+          ? { kind: "practice", label: "Assign practice" }
+          : { kind: "one_on_one", label: "Schedule a 1:1" });
   } else if (status === "review_due") {
     reason = pending ? pendingReason(pending) : `${plural(openReviewCount, "item")} waiting on you`;
     action = reviewAction;
   } else if (daysSinceCoaching !== null && daysSinceCoaching > COACHING_CADENCE_DAYS) {
-    reason = `Coaching past cadence (${daysSinceCoaching} days)`;
-    action = { kind: "one_on_one", label: "Schedule 1:1" };
+    reason = `No coaching in ${daysSinceCoaching} days`;
+    action = { kind: "one_on_one", label: "Schedule a 1:1" };
   }
+
+  const rampWeek = rampWeekFor(plan, now);
 
   return {
     profileId: profile.id,
@@ -167,6 +202,8 @@ export function buildTeamMember(input: {
     firstName,
     email: profile.email,
     level: profile.level,
+    rampWeek,
+    subline: rampWeek !== null ? `${profile.level}, week ${rampWeek}` : profile.level,
     readiness,
     status,
     reason,
@@ -178,6 +215,7 @@ export function buildTeamMember(input: {
     lowCompetency,
     daysSinceCoaching,
     talkingPoints: coaching?.talkingPoints ?? [],
+    pending: pending ?? null,
   };
 }
 

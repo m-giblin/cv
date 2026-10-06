@@ -50,7 +50,7 @@ const ManagerPageShell = dynamic(
  {
  loading: () => (
  <div aria-busy="true" className="flex min-h-[40vh] items-center justify-center" role="status">
- <span className="label-mono">Loading team overview…</span>
+ <span className="text-sm text-muted">Loading your team…</span>
  </div>
  ),
  },
@@ -261,9 +261,9 @@ export async function ManagerSectionPage({ section }: { section: ManagerSection 
  .join("\n\n")
  : undefined),
  simulationLabel: context
- ? `${context.solutionFocus} • ${context.vertical} • ${context.difficulty}`
+ ? `${context.solutionFocus}, ${context.vertical}, ${context.difficulty}`
  : simulation
- ? `${simulation.solutionFocus} • ${simulation.vertical} • ${simulation.difficulty}`
+ ? `${simulation.solutionFocus}, ${simulation.vertical}, ${simulation.difficulty}`
  : undefined,
  };
  }),
@@ -427,7 +427,7 @@ export async function ManagerSectionPage({ section }: { section: ManagerSection 
  <Suspense
  fallback={
  <div aria-busy="true" className="flex min-h-[40vh] items-center justify-center" role="status">
- <span className="label-mono">Loading team overview…</span>
+ <span className="text-sm text-muted">Loading your team…</span>
  </div>
  }
  >
@@ -461,6 +461,7 @@ export async function ManagerSectionPage({ section }: { section: ManagerSection 
  seSnapshots={seSnapshots}
  managerFirstName={data.currentUser.fullName.split(" ")[0]}
  readinessAvailable={isManagerSectionAllowed("readiness", settings.featureFlags)}
+ featureFlags={settings.featureFlags}
  mentees={mentees}
  viewerRole={role}
  />

@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { TeamActionLink, TeamStatusTag } from "@/components/manager/team-member-bits";
-import { PageHeader } from "@/components/ui/page-header";
+import { TeamActionLink, TeamStatusTag, initialsOf } from "@/components/manager/team-member-bits";
+import { PageBody, PageHeader } from "@/components/ui/page-header";
 import { SegmentedToggle } from "@/components/ui/segmented-toggle";
 import { Stamp } from "@/components/ui/stamp";
-import type { TeamMember, TeamStatus } from "@/lib/manager/team-status";
+import { PersonCell, TableCard, rowHighlight, tdCls, thCls } from "@/components/ui/table";
+import { ageWords, numberWord, plural, sentence } from "@/lib/manager/copy";
+import { AT_RISK_READINESS, type TeamGate, type TeamMember, type TeamStatus } from "@/lib/manager/team-status";
 import { cn } from "@/lib/utils";
 
 type View = "table" | "status";
@@ -13,46 +15,53 @@ type SortKey = "urgency" | "name" | "readiness";
 
 const VIEW_STORAGE_KEY = "manager-roster-view";
 
-function metaLine(member: TeamMember) {
-  const ramp = member.rampTotal > 0 ? `Ramp ${member.rampDone}/${member.rampTotal}` : "No ramp plan";
-  return `${member.level} · ${ramp} · Gates ${member.gatesCleared}/${member.gates.length}`;
-}
+const STAMP_WORD: Record<TeamGate["state"], string> = {
+  earned: "cleared",
+  ready: "ready to sign off",
+  partial: "in progress",
+  none: "not yet",
+};
 
-function levelSummary(members: TeamMember[]) {
-  const counts = new Map<string, number>();
-  for (const member of members) counts.set(member.level, (counts.get(member.level) ?? 0) + 1);
-  return [`${members.length} SE${members.length === 1 ? "" : "s"}`, ...[...counts].map(([level, n]) => `${n} ${level}`)].join(
-    " · ",
+function PersonButton({ member, onOpen, subline }: { member: TeamMember; onOpen: (id: string) => void; subline?: string }) {
+  return (
+    <button
+      aria-label={`Open ${member.fullName}`}
+      className="block min-w-0 cursor-pointer rounded-[8px] text-left"
+      onClick={() => onOpen(member.profileId)}
+      type="button"
+    >
+      <PersonCell initials={initialsOf(member.fullName)} name={member.fullName} subline={subline ?? member.subline} />
+    </button>
   );
 }
 
-function ColumnHeader({ label, count }: { label: string; count: number }) {
+function ColumnHeader({ label, count, tone }: { label: string; count: number; tone: "danger" | "warning" | "success" }) {
+  const border = { danger: "border-danger", warning: "border-warning", success: "border-success" }[tone];
+  const text = { danger: "text-danger", warning: "text-warning", success: "text-success" }[tone];
   return (
-    <h2 className="flex items-center justify-between rounded-[10px] bg-blue px-3.5 py-[9px] font-mono text-xs font-medium text-white uppercase">
-      <span>{label}</span>
-      <span className="text-signal">{count}</span>
+    <h2 className={cn("flex items-center justify-between border-b-2 pb-2.5", border)}>
+      <span className="text-base font-extrabold text-ink">{label}</span>
+      <span className={cn("num text-sm font-bold", text)}>{count}</span>
     </h2>
   );
 }
 
-function NameButton({
-  member,
-  onOpen,
-  className,
-}: {
-  member: TeamMember;
-  onOpen: (id: string) => void;
-  className?: string;
-}) {
+function GateStamps({ gates }: { gates: TeamGate[] }) {
   return (
-    <button
-      className={cn("text-left text-[17px] font-bold hover:underline", className)}
-      onClick={() => onOpen(member.profileId)}
-      type="button"
-    >
-      {member.fullName}
-    </button>
+    <ul aria-label="Career gates" className="flex gap-1.5">
+      {gates.map((gate) => (
+        <li className="flex flex-1 justify-center" key={gate.id} title={`${gate.label}: ${STAMP_WORD[gate.state]}`}>
+          <Stamp label={`${gate.label}: ${STAMP_WORD[gate.state]}`} size={20} state={gate.state} />
+        </li>
+      ))}
+    </ul>
   );
+}
+
+function pendingSubline(member: TeamMember) {
+  const pending = member.pending;
+  if (!pending) return member.subline;
+  return pending.count > 1 ? `${pending.title} and ${pending.count - 1} more` : pending.title;
 }
 
 function StatusColumns({
@@ -69,39 +78,26 @@ function StatusColumns({
   const waiting = by("review_due");
   const onTrack = by("on_track");
   const empty = (text: string): ReactNode => (
-    <p className="rounded-[14px] border border-dashed border-line-strong px-4 py-5 text-sm text-muted">{text}</p>
+    <p className="rounded-[14px] border border-dashed border-line-strong px-[18px] py-4 text-sm text-muted">{text}</p>
   );
 
   return (
-    <div className="grid grid-cols-1 items-start gap-5 px-[var(--gutter)] pt-[18px] pb-7 lg:grid-cols-3">
-      <section aria-label="At risk" className="flex flex-col gap-2.5">
-        <ColumnHeader count={atRisk.length} label="▲ At risk" />
+    <div className="grid grid-cols-1 items-start gap-7 lg:grid-cols-3">
+      <section aria-label="At risk" className="flex flex-col gap-3.5">
+        <ColumnHeader count={atRisk.length} label="At risk" tone="danger" />
         {atRisk.length === 0
           ? empty("No one is at risk right now.")
           : atRisk.map((member) => (
               <article
-                className="flex flex-col gap-2.5 rounded-[16px] border-l-[5px] border-danger bg-badge p-4 text-white"
+                className="flex flex-col gap-3 rounded-[14px] border border-line bg-white px-[18px] py-4 shadow-[inset_3px_0_0_var(--color-danger)]"
                 key={member.profileId}
               >
-                <div className="flex items-center justify-between gap-3">
-                  <NameButton className="text-white" member={member} onOpen={onOpenProfile} />
-                  <span className="text-[30px] leading-none font-extrabold tracking-[-0.03em]">
-                    {member.readiness ?? "—"}
-                  </span>
-                </div>
-                <span className="font-mono text-xs text-on-blue-muted uppercase">{metaLine(member)}</span>
-                <ul aria-label="Career gates" className="flex gap-[5px]">
-                  {member.gates.map((gate) => (
-                    <li key={gate.id}>
-                      <Stamp label={`${gate.label}: ${gate.state === "none" ? "not yet" : gate.state}`} onDark size={20} state={gate.state} />
-                    </li>
-                  ))}
-                </ul>
-                {member.reason ? <p className="text-sm leading-[1.4] text-on-blue">{member.reason}</p> : null}
+                <PersonButton member={member} onOpen={onOpenProfile} />
+                <GateStamps gates={member.gates} />
+                {member.reason ? <p className="text-sm leading-normal text-ink-2">{sentence(member.reason)}</p> : null}
                 <TeamActionLink
                   className="self-start"
                   member={member}
-                  onDark
                   onOpenProfile={onOpenProfile}
                   readinessAvailable={readinessAvailable}
                 />
@@ -109,70 +105,55 @@ function StatusColumns({
             ))}
       </section>
 
-      <section aria-label="Waiting on you" className="flex flex-col gap-2.5">
-        <ColumnHeader count={waiting.length} label="● Waiting on you" />
+      <section aria-label="Waiting on you" className="flex flex-col gap-3.5">
+        <ColumnHeader count={waiting.length} label="Waiting on you" tone="warning" />
         {waiting.length === 0
           ? empty("Nothing is waiting on you.")
           : waiting.map((member) => (
-              <article
-                className="grid grid-cols-[8px_minmax(0,1fr)] overflow-hidden rounded-[14px] border-[1.5px] border-ink bg-white"
-                key={member.profileId}
-              >
-                <span aria-hidden className="bg-blue" />
-                <div className="flex flex-col gap-2 px-4 py-3.5">
-                  <div className="flex items-center justify-between gap-3">
-                    <NameButton className="text-ink" member={member} onOpen={onOpenProfile} />
-                    <span className="text-[30px] leading-none font-extrabold tracking-[-0.03em] text-blue">
-                      {member.readiness ?? "—"}
-                    </span>
-                  </div>
-                  <span className="label-mono">{metaLine(member)}</span>
-                  {member.reason ? <p className="text-sm text-ink-2">{member.reason}</p> : null}
-                  <TeamActionLink
-                    className="self-start"
-                    member={member}
-                    onOpenProfile={onOpenProfile}
-                    readinessAvailable={readinessAvailable}
-                  />
+              <article className="rounded-[14px] border border-line bg-white px-[18px] py-3.5" key={member.profileId}>
+                <div className="flex items-start justify-between gap-3">
+                  <PersonButton member={member} onOpen={onOpenProfile} subline={pendingSubline(member)} />
+                  <span
+                    aria-label={member.readiness === null ? "No readiness score yet" : `Readiness ${member.readiness}`}
+                    className="num text-[26px] leading-none font-extrabold text-blue"
+                  >
+                    {member.readiness ?? "—"}
+                  </span>
+                </div>
+                <div className="mt-2.5 flex items-center justify-between gap-3">
+                  <span className="text-[13px] text-muted">
+                    {member.pending?.ageDays != null ? ageWords(member.pending.ageDays) : "Waiting"}
+                  </span>
+                  <TeamActionLink member={member} onOpenProfile={onOpenProfile} readinessAvailable={readinessAvailable} />
                 </div>
               </article>
             ))}
       </section>
 
-      <section aria-label="On track" className="flex flex-col gap-2.5">
-        <ColumnHeader count={onTrack.length} label="✓ On track" />
+      <section aria-label="On track" className="flex flex-col">
+        <ColumnHeader count={onTrack.length} label="On track" tone="success" />
         {onTrack.length === 0 ? (
-          empty("No one is on track yet.")
+          <div className="pt-3.5">{empty("No one is on track yet.")}</div>
         ) : (
-          <>
-            <ul className="overflow-hidden rounded-[14px] border border-line bg-white">
-              {onTrack.map((member) => (
-                <li
-                  className="flex items-center justify-between gap-3 border-b border-divider px-4 py-3 text-[15px] last:border-b-0"
-                  key={member.profileId}
-                >
-                  <button
-                    className="text-left font-bold text-ink hover:underline"
-                    onClick={() => onOpenProfile(member.profileId)}
-                    type="button"
-                  >
-                    {member.fullName}
-                  </button>
-                  <span className="text-xl font-extrabold tracking-[-0.03em] text-ink">{member.readiness ?? "—"}</span>
-                </li>
-              ))}
-            </ul>
-            <p className="text-[13px] text-muted">
-              On-track SEs collapse to rows, so the at-risk and waiting columns get the attention.
-            </p>
-          </>
+          <ul>
+            {onTrack.map((member) => (
+              <li
+                className="flex items-center justify-between gap-3 border-t border-divider py-[11px] first:border-t-0"
+                key={member.profileId}
+              >
+                <PersonButton member={member} onOpen={onOpenProfile} />
+                <span className="num text-lg font-extrabold text-ink">{member.readiness ?? "—"}</span>
+              </li>
+            ))}
+          </ul>
         )}
+        <p className="pt-3.5 text-[13px] leading-normal text-muted">
+          Click anyone to open their plan, scores and coaching notes in a side panel.
+        </p>
       </section>
     </div>
   );
 }
-
-const TABLE_GRID = "grid grid-cols-[minmax(0,1.4fr)_150px_70px_90px_80px_minmax(0,2fr)_130px] gap-4";
 
 function RosterTable({
   members,
@@ -190,96 +171,99 @@ function RosterTable({
     return members;
   }, [members, sort]);
 
-  const sortButton = (key: SortKey, label: string) => (
-    <button
-      aria-label={`Sort by ${label.toLowerCase()}`}
-      className={cn("uppercase hover:underline", sort === key && "text-signal")}
-      onClick={() => setSort(key)}
-      type="button"
+  const sortHeader = (key: SortKey, label: string, className?: string) => (
+    <th
+      aria-sort={sort === key ? (key === "name" ? "ascending" : key === "readiness" ? "descending" : "other") : "none"}
+      className={cn(thCls, className)}
+      scope="col"
     >
-      {label}
-      {sort === key ? " ↓" : ""}
-    </button>
+      <button
+        className={cn("th cursor-pointer hover:text-ink", sort === key && "text-ink")}
+        onClick={() => setSort(key)}
+        title={`Sort by ${label.toLowerCase()}`}
+        type="button"
+      >
+        {label}
+      </button>
+    </th>
   );
 
   return (
-    <div className="px-[var(--gutter)] pt-[18px] pb-7">
-      <div className="overflow-hidden rounded-[14px] border border-line bg-white">
-        <div className="overflow-x-auto">
-          <div aria-label="Team roster" className="min-w-[900px]" role="table">
-            <div className={cn(TABLE_GRID, "bg-blue px-5 py-[11px] font-mono text-xs text-white uppercase")} role="row">
-              <span aria-sort={sort === "name" ? "ascending" : "none"} role="columnheader">
-                {sortButton("name", "SE")}
-              </span>
-              <span aria-sort={sort === "urgency" ? "other" : "none"} role="columnheader">
-                {sortButton("urgency", "Status")}
-              </span>
-              <span aria-sort={sort === "readiness" ? "descending" : "none"} role="columnheader">
-                {sortButton("readiness", "Ready")}
-              </span>
-              <span role="columnheader">Ramp</span>
-              <span role="columnheader">Gates</span>
-              <span role="columnheader">Why</span>
-              <span className="text-right" role="columnheader">
-                Next action
-              </span>
-            </div>
-            {sorted.map((member) => (
-              <div
-                className={cn(TABLE_GRID, "items-center border-b border-divider px-5 py-[13px] text-[15px] last:border-b-0")}
-                key={member.profileId}
-                role="row"
+    <TableCard minWidth={940}>
+      <caption className="sr-only">Team roster. Click a column header to sort.</caption>
+      <thead>
+        <tr>
+          {sortHeader("name", "SE")}
+          {sortHeader("urgency", "Status", "w-[150px]")}
+          {sortHeader("readiness", "Ready", "w-[80px]")}
+          <th className={cn(thCls, "w-[100px]")} scope="col">
+            Ramp
+          </th>
+          <th className={cn(thCls, "w-[90px]")} scope="col">
+            Gates
+          </th>
+          <th className={thCls} scope="col">
+            Why
+          </th>
+          <th className={cn(thCls, "w-[150px] text-right")} scope="col">
+            Next
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {sorted.map((member) => (
+          <tr className={member.status === "at_risk" ? rowHighlight.danger : undefined} key={member.profileId}>
+            <td className={cn(tdCls, "py-3")}>
+              <PersonButton member={member} onOpen={onOpenProfile} />
+            </td>
+            <td className={tdCls}>
+              <TeamStatusTag status={member.status} />
+            </td>
+            <td className={tdCls}>
+              <span
+                className={cn(
+                  "num text-[22px] font-extrabold tracking-[-0.02em]",
+                  member.readiness !== null && member.readiness < AT_RISK_READINESS ? "text-danger" : "text-ink",
+                )}
               >
-                <span className="flex min-w-0 flex-col" role="cell">
-                  <button
-                    className="truncate text-left font-bold text-ink hover:underline"
-                    onClick={() => onOpenProfile(member.profileId)}
-                    type="button"
-                  >
-                    {member.fullName}
-                  </button>
-                  <span className="label-mono">{member.level}</span>
-                </span>
-                <span role="cell">
-                  <TeamStatusTag status={member.status} />
-                </span>
-                <span className="text-[22px] font-extrabold tracking-[-0.03em] text-ink" role="cell">
-                  {member.readiness ?? "—"}
-                </span>
-                <span className="font-mono text-xs text-ink-2" role="cell">
-                  {member.rampTotal > 0 ? `${member.rampDone}/${member.rampTotal}` : "—"}
-                </span>
-                <span className="font-mono text-xs text-ink-2" role="cell">
-                  {member.gatesCleared}/{member.gates.length}
-                </span>
-                <span className="text-ink-2" role="cell">
-                  {member.reason ?? <span className="text-muted">Nothing needed</span>}
-                </span>
-                <span className="text-right" role="cell">
-                  <TeamActionLink
-                    member={member}
-                    onOpenProfile={onOpenProfile}
-                    readinessAvailable={readinessAvailable}
-                  />
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
+                {member.readiness ?? "—"}
+              </span>
+            </td>
+            <td className={cn(tdCls, "text-sm text-ink-2")}>
+              {member.rampTotal > 0 ? `${member.rampDone} of ${member.rampTotal}` : "No plan"}
+            </td>
+            <td className={cn(tdCls, "text-sm text-ink-2")}>
+              {member.gatesCleared} of {member.gates.length}
+            </td>
+            <td className={cn(tdCls, "text-sm text-ink-2")}>
+              {member.reason ?? <span className="text-muted">Nothing needed</span>}
+            </td>
+            <td className={cn(tdCls, "text-right")}>
+              <TeamActionLink member={member} onOpenProfile={onOpenProfile} readinessAvailable={readinessAvailable} />
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </TableCard>
   );
 }
 
-/** Team › Roster: one roster, two views (TABLE | BY STATUS). Every name opens the SE detail drawer. */
+function rosterAccent(count: number) {
+  if (count === 0) return undefined;
+  return `${numberWord(count, true)} ${plural(count, "person", "people")}, three piles.`;
+}
+
+/** Team › Roster (9b): one roster, two views (Table | By status). Every name opens the SE detail drawer. */
 export function ManagerTeamRoster({
   members,
   onSelectProfile,
   readinessAvailable,
+  tabs,
 }: {
   members: TeamMember[];
   onSelectProfile: (profileId: string) => void;
   readinessAvailable: boolean;
+  tabs?: ReactNode;
 }) {
   const [view, setView] = useState<View>("status");
 
@@ -305,6 +289,7 @@ export function ManagerTeamRoster({
   return (
     <>
       <PageHeader
+        accent={rosterAccent(members.length)}
         actions={
           <SegmentedToggle
             label="Roster view"
@@ -316,19 +301,22 @@ export function ManagerTeamRoster({
             value={view}
           />
         }
-        className="pb-3.5"
-        eyebrow={levelSummary(members)}
-        title="Team"
+        className="pb-[22px]"
+        eyebrow="Team"
+        title="Your team."
       />
-      {members.length === 0 ? (
-        <p className="mx-[var(--gutter)] rounded-[14px] border border-line bg-white px-5 py-10 text-center text-[15px] text-muted">
-          No one reports to you yet.
-        </p>
-      ) : view === "table" ? (
-        <RosterTable members={members} onOpenProfile={onSelectProfile} readinessAvailable={readinessAvailable} />
-      ) : (
-        <StatusColumns members={members} onOpenProfile={onSelectProfile} readinessAvailable={readinessAvailable} />
-      )}
+      {tabs}
+      <PageBody className="pb-7">
+        {members.length === 0 ? (
+          <p className="rounded-[14px] border border-line bg-white px-5 py-10 text-center text-[15px] text-muted">
+            No one reports to you yet.
+          </p>
+        ) : view === "table" ? (
+          <RosterTable members={members} onOpenProfile={onSelectProfile} readinessAvailable={readinessAvailable} />
+        ) : (
+          <StatusColumns members={members} onOpenProfile={onSelectProfile} readinessAvailable={readinessAvailable} />
+        )}
+      </PageBody>
     </>
   );
 }

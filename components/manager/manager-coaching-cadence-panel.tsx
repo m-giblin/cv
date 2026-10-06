@@ -3,24 +3,25 @@
 import { toast } from "sonner";
 import { ManagerCoachingQualityPanel } from "@/components/manager/manager-coaching-quality-panel";
 import { HeaderStat } from "@/components/manager/team-member-bits";
-import { PageHeader } from "@/components/ui/page-header";
-import { Tag } from "@/components/ui/tag";
+import { PageBody, PageHeader } from "@/components/ui/page-header";
+import { StatusPill, type StatusTone } from "@/components/ui/status-pill";
+import { PersonCell, TableCard, rowHighlight, tdCls, thCls } from "@/components/ui/table";
 import type { CoachingCadenceRow } from "@/lib/manager/coaching-cadence";
 import { downloadOneOnOneIcs } from "@/lib/manager/one-on-one-ics";
 import type { SeCoachingSummary } from "@/lib/manager/se-coaching-summary";
 import type { Profile } from "@/lib/types";
-import { uniqueProfiles } from "@/lib/utils";
+import { cn, initials, uniqueProfiles } from "@/lib/utils";
 
-const PRIORITY_TAG: Record<CoachingCadenceRow["priority"], { label: string; tone: "danger" | "warning" | "success" }> = {
-  urgent: { label: "▲ Urgent", tone: "danger" },
-  attention: { label: "• Attention", tone: "warning" },
-  healthy: { label: "✓ Healthy", tone: "success" },
+const PRIORITY_PILL: Record<CoachingCadenceRow["priority"], { label: string; tone: StatusTone }> = {
+  urgent: { label: "Urgent", tone: "danger" },
+  attention: { label: "Needs attention", tone: "warning" },
+  healthy: { label: "Healthy", tone: "success" },
 };
 
 function lastCoached(days: number | null) {
   if (days === null) return "Never";
   if (days === 0) return "Today";
-  return `${days}d ago`;
+  return days === 1 ? "1 day" : `${days} days`;
 }
 
 /** Coaching › Cadence: who is due a coaching touchpoint, from reviewed coaching cards and open reviews. */
@@ -42,33 +43,35 @@ export function ManagerCoachingCadencePanel({
   return (
     <>
       <PageHeader
+        accent="Who you haven't seen lately."
         actions={
-          <div className="flex gap-8">
+          <div className="flex gap-12">
             <HeaderStat label="Urgent" tone={urgent > 0 ? "danger" : "blue"} value={urgent} />
             <HeaderStat label="Needs attention" value={attention} />
           </div>
         }
-        eyebrow={`Coaching rhythm · ${cadenceRows.length} SE${cadenceRows.length === 1 ? "" : "s"} · 14-day cadence`}
-        title="Coaching"
+        eyebrow="Coaching"
+        subtitle={`A 14-day coaching rhythm across ${cadenceRows.length} SE${cadenceRows.length === 1 ? "" : "s"}, most urgent first.`}
+        title="Cadence."
       />
-      <div className="flex flex-col gap-7 px-[var(--gutter)] pb-8">
-        <div className="overflow-x-auto rounded-[14px] border border-line bg-white">
-          <table className="w-full min-w-[760px] border-collapse text-left text-[15px]">
+      <PageBody className="flex flex-col gap-8 pb-7">
+        <div className="flex flex-col gap-3">
+          <TableCard>
             <caption className="sr-only">Coaching cadence, most urgent first</caption>
-            <thead className="bg-blue font-mono text-xs text-white uppercase">
+            <thead>
               <tr>
-                <th className="px-5 py-[11px] font-medium" scope="col">SE</th>
-                <th className="px-5 py-[11px] font-medium" scope="col">Priority</th>
-                <th className="px-5 py-[11px] font-medium" scope="col">Last coached</th>
-                <th className="px-5 py-[11px] font-medium" scope="col">Open reviews</th>
-                <th className="px-5 py-[11px] font-medium" scope="col">Focus</th>
-                <th className="px-5 py-[11px] text-right font-medium" scope="col">Next action</th>
+                <th className={thCls} scope="col">SE</th>
+                <th className={thCls} scope="col">Status</th>
+                <th className={thCls} scope="col">Last coached</th>
+                <th className={cn(thCls, "text-right")} scope="col">Open reviews</th>
+                <th className={thCls} scope="col">Focus</th>
+                <th className={cn(thCls, "text-right")} scope="col">Next action</th>
               </tr>
             </thead>
             <tbody>
               {cadenceRows.length === 0 ? (
                 <tr>
-                  <td className="px-5 py-10 text-center text-muted" colSpan={6}>
+                  <td className={cn(tdCls, "py-10 text-center text-muted")} colSpan={6}>
                     No one reports to you yet.
                   </td>
                 </tr>
@@ -76,33 +79,40 @@ export function ManagerCoachingCadencePanel({
                 cadenceRows.map((row) => {
                   const coaching = coachingByUser[row.profileId];
                   const profile = profileById.get(row.profileId);
-                  const tag = PRIORITY_TAG[row.priority];
+                  const pill = PRIORITY_PILL[row.priority];
+                  const focus = coaching?.topGaps[0] ?? coaching?.currentFocus;
                   return (
-                    <tr className="border-b border-divider last:border-b-0" key={row.profileId}>
-                      <th className="px-5 py-3 text-left" scope="row">
-                        <button
-                          className="font-bold text-ink hover:underline"
-                          onClick={() => onOpenProfile?.(row.profileId)}
-                          type="button"
-                        >
-                          {row.fullName}
-                        </button>
+                    <tr className={row.priority === "urgent" ? rowHighlight.danger : undefined} key={row.profileId}>
+                      <th className={cn(tdCls, "text-left font-normal")} scope="row">
+                        <PersonCell
+                          initials={initials(row.fullName)}
+                          name={
+                            onOpenProfile ? (
+                              <button
+                                className="text-left font-bold text-ink hover:underline"
+                                onClick={() => onOpenProfile(row.profileId)}
+                                type="button"
+                              >
+                                {row.fullName}
+                              </button>
+                            ) : (
+                              row.fullName
+                            )
+                          }
+                          subline={profile?.level}
+                        />
                       </th>
-                      <td className="px-5 py-3">
-                        <Tag className="bg-transparent" tone={tag.tone}>
-                          {tag.label}
-                        </Tag>
+                      <td className={tdCls}>
+                        <StatusPill tone={pill.tone}>{pill.label}</StatusPill>
                       </td>
-                      <td className="px-5 py-3 font-mono text-xs text-ink-2 uppercase">
-                        {lastCoached(row.daysSinceCoaching)}
+                      <td className={cn(tdCls, "text-ink-2")}>{lastCoached(row.daysSinceCoaching)}</td>
+                      <td className={cn(tdCls, "num text-right font-bold", row.openReviews ? "text-ink" : "text-muted")}>
+                        {row.openReviews}
                       </td>
-                      <td className="px-5 py-3 text-xl font-extrabold tracking-[-0.03em] text-ink">
-                        {row.openReviews || "—"}
+                      <td className={cn(tdCls, "text-ink-2")}>
+                        {focus ?? <span className="text-muted">Not set</span>}
                       </td>
-                      <td className="px-5 py-3 text-ink-2">
-                        {coaching?.topGaps[0] ?? coaching?.currentFocus ?? <span className="text-muted">—</span>}
-                      </td>
-                      <td className="px-5 py-3 text-right">
+                      <td className={cn(tdCls, "text-right")}>
                         <button
                           className="link text-sm"
                           onClick={() => {
@@ -124,21 +134,21 @@ export function ManagerCoachingCadencePanel({
                 })
               )}
             </tbody>
-          </table>
+          </TableCard>
+          <p className="max-w-[640px] text-[13px] text-muted">
+            Last coached is the most recent coaching card you reviewed. Over 14 days needs attention; over 21 days or any
+            open review is urgent.
+          </p>
         </div>
-        <p className="-mt-4 text-[13px] text-muted">
-          Last coached is the most recent coaching card you reviewed. Over 14 days needs attention; over 21 days or any
-          open review is urgent.
-        </p>
 
-        <section className="flex flex-col gap-3 rounded-[14px] border border-line bg-white px-5 py-4">
-          <div>
-            <h2 className="text-lg font-extrabold text-ink">Coaching quality · 30 days</h2>
+        <section className="flex flex-col gap-4 rounded-[14px] border border-line bg-white p-5">
+          <div className="flex flex-col gap-1">
+            <h2 className="text-xl font-extrabold text-ink">Coaching quality, last 30 days</h2>
             <p className="text-sm text-ink-2">Structured sign-off patterns. Flags fast rubber-stamping and cadence gaps.</p>
           </div>
           <ManagerCoachingQualityPanel orgIds={uniqueProfiles(org).map((profile) => profile.id)} />
         </section>
-      </div>
+      </PageBody>
     </>
   );
 }

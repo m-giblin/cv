@@ -1,19 +1,25 @@
 "use client";
 
+import { format } from "date-fns";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useId, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   healthTag,
   InitialsAvatar,
   ProgramTrackerSeDrawer,
   programStatusTag,
+  TrackerProgressBar,
+  trackerCopy,
 } from "@/components/manager/program-tracker-se-drawer";
 import type { CertReviewItem } from "@/components/manager/cert-review-item";
 import type { PlanStepReviewItem } from "@/components/manager/plan-step-review-panel";
+import { Chip } from "@/components/ui/chip";
 import { SegmentedToggle } from "@/components/ui/segmented-toggle";
-import { Stat } from "@/components/ui/stat";
+import { Stat, StatStrip } from "@/components/ui/stat";
+import { StatusPill, type StatusTone } from "@/components/ui/status-pill";
+import { FilterBar, PersonCell, rowHighlight, TableCard, tdCls, thCls, TwoLineCell } from "@/components/ui/table";
 import { Tag } from "@/components/ui/tag";
 import type { MilestoneNudgeStatus } from "@/lib/manager/milestone-actions";
 import type { SeCoachingSummary } from "@/lib/manager/se-coaching-summary";
@@ -21,19 +27,17 @@ import { addCalendarDays } from "@/lib/plans/business-days";
 import {
   buildProgramTrackerView,
   classifyMilestoneDueDate,
-  MILESTONE_BUCKET_LABELS,
   PROGRAM_PHASE_DEFINITIONS,
+  type MilestoneBucket,
   type MilestoneItemView,
   type ProgramTrackerTab,
 } from "@/lib/plans/program-tracker-view";
 import type { ActivityLog, DevelopmentPlan, Profile, UserPlan } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
+/** "Thu, Oct 9" from a yyyy-mm-dd date (noon avoids timezone drift). */
 function formatMilestoneDate(iso: string): string {
-  return new Date(`${iso}T12:00:00`).toLocaleDateString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
+  return format(new Date(`${iso}T12:00:00`), "EEE, MMM d");
 }
 
 function todayIso(): string {
@@ -48,50 +52,60 @@ type RescheduleResult = {
   mode: "quick" | "custom";
 };
 
+const BUCKET_SENTENCE: Record<MilestoneBucket, string> = {
+  overdue: "It's still overdue.",
+  thisWeek: "It's now due this week.",
+  upcoming: "It's now due in the next 2 weeks.",
+  later: "It's now due later.",
+};
+
 function rescheduleToastMessage(item: MilestoneItemView, data: RescheduleResult): string {
   const from = formatMilestoneDate(data.previousDueDate);
   const to = formatMilestoneDate(data.newDueDate);
-  const bucket = classifyMilestoneDueDate(data.newDueDate);
-  const where = MILESTONE_BUCKET_LABELS[bucket];
+  const where = BUCKET_SENTENCE[classifyMilestoneDueDate(data.newDueDate)];
   if (data.mode === "custom") {
-    return `${item.label}: ${from} → ${to}. Now in ${where}.`;
+    return `${item.label} moved from ${from} to ${to}. ${where}`;
   }
   const anchorNote =
     data.anchoredFrom === data.previousDueDate
-      ? `+${data.shiftDays} days`
-      : `+${data.shiftDays} days from today`;
-  return `${item.label}: ${from} → ${to} (${anchorNote}). Now in ${where}.`;
+      ? `${data.shiftDays} days later`
+      : `${data.shiftDays} days from today`;
+  return `${item.label} moved from ${from} to ${to}, ${anchorNote}. ${where}`;
 }
 
 function planCalendarHref(userId: string): string {
   return `/plan-calendar?se=${encodeURIComponent(userId)}`;
 }
 
-/** Small pill action used inside rows (btn-secondary is too large for dense lists). */
+/** Small secondary pill for dense rows (btn-secondary is too large for table cells). */
 const PILL =
-  "inline-flex items-center rounded-full border-[1.5px] border-ink bg-white px-3 py-1 text-xs font-bold text-ink no-underline hover:bg-blue-soft disabled:cursor-not-allowed disabled:border-line-strong disabled:text-muted disabled:hover:bg-white";
+  "inline-flex items-center rounded-full border border-line-strong bg-white px-3 py-1 text-[13px] font-semibold whitespace-nowrap text-ink no-underline hover:border-ink disabled:cursor-not-allowed disabled:text-muted disabled:hover:border-line-strong";
 
 const LINE_CARD = "overflow-hidden rounded-[14px] border border-line bg-white";
 
 const QUARTERS = ["Q3 FY2026", "Q2 FY2026", "All"];
 
-const TRACKER_TABS: ProgramTrackerTab[] = ["cohort", "programs", "milestones"];
+const TRACKER_TABS: Array<{ id: ProgramTrackerTab; label: string }> = [
+  { id: "cohort", label: "Cohort" },
+  { id: "programs", label: "Programs" },
+  { id: "milestones", label: "Milestones" },
+];
 
 const PHASE_HEADERS = [
-  ["Phase 1", "Foundations · wks 1–2"],
-  ["Phase 2", "Technical depth · wks 3–4"],
-  ["Phase 3", "Field application · wks 5–6"],
-  ["Phase 4", "Cert gates · ongoing"],
+  ["Phase 1", "Foundations, weeks 1 to 2"],
+  ["Phase 2", "Technical depth, weeks 3 to 4"],
+  ["Phase 3", "Field application, weeks 5 to 6"],
+  ["Phase 4", "Cert gates, ongoing"],
 ] as const;
 
-const PHASE_CELL: Record<string, { cls: string; symbol: string }> = {
-  complete: { cls: "bg-success-soft text-success", symbol: "✓" },
-  active: { cls: "bg-blue-soft text-blue", symbol: "●" },
-  blocked: { cls: "bg-danger-soft text-danger", symbol: "▲" },
-  upcoming: { cls: "bg-white text-muted", symbol: "•" },
+const PHASE_TONE: Record<string, StatusTone> = {
+  complete: "success",
+  active: "blue",
+  blocked: "danger",
+  upcoming: "neutral",
 };
 
-const COHORT_GRID = "grid grid-cols-[200px_repeat(4,minmax(0,1fr))_110px]";
+type MilestoneFilter = "all" | MilestoneBucket;
 
 export function ManagerProgramTrackerPanel({
   org,
@@ -112,6 +126,7 @@ export function ManagerProgramTrackerPanel({
   planSteps?: PlanStepReviewItem[];
   certReviewItems?: CertReviewItem[];
 }) {
+  const [milestoneFilter, setMilestoneFilter] = useState<MilestoneFilter>("all");
   const router = useRouter();
   const [tab, setTab] = useState<ProgramTrackerTab>("cohort");
   const [drawerUserId, setDrawerUserId] = useState<string | null>(null);
@@ -265,7 +280,7 @@ export function ManagerProgramTrackerPanel({
         }
         toast.success(rescheduleToastMessage(item, data), {
           action: {
-            label: "Plan Calendar",
+            label: "Plan calendar",
             onClick: () => router.push(planCalendarHref(item.userId)),
           },
         });
@@ -303,7 +318,7 @@ export function ManagerProgramTrackerPanel({
         }
         toast.success(rescheduleToastMessage(item, data), {
           action: {
-            label: "Plan Calendar",
+            label: "Plan calendar",
             onClick: () => router.push(planCalendarHref(item.userId)),
           },
         });
@@ -366,12 +381,26 @@ export function ManagerProgramTrackerPanel({
         nudgeStatus[item.assignmentStepId]?.canNudge === false,
     );
 
+
+  const milestoneCounts: Record<MilestoneFilter, number> = {
+    all:
+      view.milestonesOverdue.length +
+      view.milestonesThisWeek.length +
+      view.milestonesUpcoming.length +
+      view.milestonesLater.length,
+    overdue: view.milestonesOverdue.length,
+    thisWeek: view.milestonesThisWeek.length,
+    upcoming: view.milestonesUpcoming.length,
+    later: view.milestonesLater.length,
+  };
+  const showBucket = (bucket: MilestoneBucket) => milestoneFilter === "all" || milestoneFilter === bucket;
+
   return (
     <>
-      <div className="space-y-6">
+      <div className="flex flex-col gap-6">
         {/* Toolbar */}
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="label-mono">{view.cohortEyebrow}</p>
+          <p className="label-caps">{trackerCopy(view.cohortEyebrow)}</p>
           <div className="flex flex-wrap items-center gap-3">
             <SegmentedToggle
               label="Quarter"
@@ -380,36 +409,32 @@ export function ManagerProgramTrackerPanel({
               value={String(quarterIdx)}
             />
             <Link className="btn-secondary no-underline" href="/plans">
-              + Add program
+              Add program
             </Link>
           </div>
         </div>
 
         {/* Manager queue */}
         {view.managerQueue.length > 0 ? (
-          <section
-            aria-label="Manager queue"
-            className="rounded-[14px] border-[1.5px] border-ink bg-signal-soft px-5 py-4"
-          >
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <p className="label-mono text-ink">Manager queue</p>
-              <span className="font-mono text-xs text-muted">
-                {view.managerQueue.length} pending your action
+          <section aria-label="Waiting on you" className={LINE_CARD}>
+            <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-line px-5 py-3">
+              <h2 className="label-caps">Waiting on you</h2>
+              <span className="text-[13px] text-muted">
+                {view.managerQueue.length} {view.managerQueue.length === 1 ? "item needs" : "items need"} your action
               </span>
             </div>
-            <ul className="flex flex-wrap gap-2.5">
+            <ul>
               {view.managerQueue.map((item) => (
                 <li
-                  className="flex items-center gap-3 rounded-full border border-line bg-white py-1 pl-4 pr-1"
+                  className="flex items-center justify-between gap-3 border-t border-divider px-5 py-3 first:border-t-0"
                   key={item.id}
                 >
-                  <span className="text-sm text-ink">{item.title}</span>
-                  <button
-                    className={PILL}
-                    onClick={() => router.push("/manager/inbox")}
-                    type="button"
-                  >
-                    {item.actionLabel}
+                  <span className="flex min-w-0 items-center gap-3">
+                    <InitialsAvatar initials={item.seInitials} />
+                    <span className="truncate text-[15px] text-ink">{trackerCopy(item.title)}</span>
+                  </span>
+                  <button className={PILL} onClick={() => router.push("/manager/inbox")} type="button">
+                    {trackerCopy(item.actionLabel)}
                   </button>
                 </li>
               ))}
@@ -418,175 +443,157 @@ export function ManagerProgramTrackerPanel({
         ) : null}
 
         {/* Stats */}
-        <section aria-label="Program stats" className={LINE_CARD}>
-          <div className="-mb-px -mr-px grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
-            <StatCell>
-              <Stat label="Active programs" value={view.stats.activePrograms} />
-              <p className="mt-1 text-xs text-muted">Across cohort</p>
-            </StatCell>
-            <StatCell>
-              <Stat label="On track" value={view.stats.onTrack} />
-              <p className="mt-1 text-xs text-muted">{view.stats.onTrackPct}% of programs</p>
-            </StatCell>
-            <StatCell>
-              <Stat
-                label="At risk"
-                tone={view.stats.atRisk > 0 ? "danger" : "blue"}
-                value={view.stats.atRisk}
-              />
-              <p className="mt-1 text-xs text-muted">Behind pace</p>
-            </StatCell>
-            <StatCell>
-              <Stat
-                label="Overdue items"
-                note={view.stats.overdueItems > 0 ? "Need action now" : undefined}
-                tone={view.stats.overdueItems > 0 ? "danger" : "blue"}
-                value={view.stats.overdueItems}
-              />
-              {view.stats.overdueItems > 0 ? null : (
-                <p className="mt-1 text-xs text-muted">Nothing overdue</p>
-              )}
-            </StatCell>
-            <StatCell>
-              <Stat label="Avg completion" value={`${view.stats.avgCompletion}%`} />
-              <ProgressBar className="mt-2" pct={view.stats.avgCompletion} />
-            </StatCell>
-            <StatCell>
-              <Stat
-                label="Cert gates cleared"
-                value={
-                  <>
-                    {view.stats.certGatesCleared}
-                    <span className="text-[22px] text-faint">/{view.stats.certGatesTotal}</span>
-                  </>
-                }
-              />
-              <p className="mt-1 text-xs text-muted">This quarter</p>
-            </StatCell>
-          </div>
-        </section>
+        <StatStrip>
+          <Stat label="Active programs" note="Across the cohort" value={view.stats.activePrograms} />
+          <Stat label="On track" note={`${view.stats.onTrackPct}% of programs`} value={view.stats.onTrack} />
+          <Stat
+            label="At risk"
+            note={view.stats.atRisk > 0 ? "Behind pace" : undefined}
+            noteTone="danger"
+            tone={view.stats.atRisk > 0 ? "danger" : "blue"}
+            value={view.stats.atRisk}
+          />
+          <Stat
+            label="Overdue items"
+            note={view.stats.overdueItems > 0 ? "Need action now" : "Nothing overdue"}
+            noteTone={view.stats.overdueItems > 0 ? "danger" : "muted"}
+            tone={view.stats.overdueItems > 0 ? "danger" : "blue"}
+            value={view.stats.overdueItems}
+          />
+          <Stat label="Avg completion" value={`${view.stats.avgCompletion}%`} />
+          <Stat
+            label="Cert gates cleared"
+            note="This quarter"
+            value={
+              <>
+                {view.stats.certGatesCleared}
+                <span className="text-[22px] text-muted">/{view.stats.certGatesTotal}</span>
+              </>
+            }
+          />
+        </StatStrip>
 
         {/* View switcher */}
         <SegmentedToggle
+          className="self-start"
           label="Program tracker view"
           onChange={(id) => setTab(id as ProgramTrackerTab)}
           options={TRACKER_TABS.map((mode) => ({
-            id: mode,
-            label:
-              mode === "milestones" && view.overdueCount > 0
-                ? `Milestones · ${view.overdueCount}`
-                : mode,
+            id: mode.id,
+            label: mode.id === "milestones" && view.overdueCount > 0 ? `${mode.label} (${view.overdueCount} overdue)` : mode.label,
           }))}
           value={tab}
         />
 
         {tab === "cohort" ? (
-          <div className="space-y-6">
-            <section className={LINE_CARD}>
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-divider px-5 py-4">
+          <div className="flex flex-col gap-6">
+            <section className="flex flex-col gap-3">
+              <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-extrabold text-ink">SE-I onboarding program</h2>
-                  <p className="label-mono mt-0.5">4-phase · weeks 1–12</p>
+                  <h2 className="text-xl font-extrabold text-ink">SE-I onboarding program</h2>
+                  <p className="text-[13px] text-muted">Four phases over weeks 1 to 12</p>
                 </div>
                 <Link className="link text-sm" href="/plan-calendar">
                   View plan calendar
                 </Link>
               </div>
 
-              <div className="overflow-x-auto">
-                <div className="min-w-[760px]">
-                  <div className={`${COHORT_GRID} bg-blue font-mono text-xs uppercase text-white`}>
-                    <div className="px-5 py-[11px]">SE</div>
+              <TableCard minWidth={880}>
+                <thead>
+                  <tr>
+                    <th className={thCls} scope="col">
+                      SE
+                    </th>
                     {PHASE_HEADERS.map(([phase, sub]) => (
-                      <div className="px-3 py-[11px]" key={phase}>
-                        <div>{phase}</div>
-                        <div className="mt-0.5 normal-case text-on-blue-muted">{sub}</div>
-                      </div>
+                      <th className={thCls} key={phase} scope="col">
+                        <span className="block">{phase}</span>
+                        <span className="mt-0.5 block text-xs font-normal tracking-normal normal-case">{sub}</span>
+                      </th>
                     ))}
-                    <div className="px-3 py-[11px] text-center">Overall</div>
-                  </div>
-
+                    <th className={cn(thCls, "text-right")} scope="col">
+                      Overall
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
                   {view.cohortRows.length === 0 ? (
-                    <p className="px-5 py-8 text-center text-sm text-muted">
-                      No team members in scope.{" "}
-                      <Link className="link" href="/plans">
-                        Assign plans
-                      </Link>
-                    </p>
+                    <tr>
+                      <td className={cn(tdCls, "py-8 text-center text-sm text-muted")} colSpan={6}>
+                        No team members in scope.{" "}
+                        <Link className="link" href="/plans">
+                          Assign plans
+                        </Link>
+                      </td>
+                    </tr>
                   ) : (
                     view.cohortRows.map((row) => {
                       const blocked = row.phases.some((phase) => phase.status === "blocked");
                       const hasOverall = row.overall !== "—";
                       return (
-                        <button
-                          aria-label={`Open ${row.name}'s programs`}
-                          className={`${COHORT_GRID} w-full border-b border-divider text-left last:border-b-0 hover:bg-bg`}
+                        <tr
+                          className={cn("cursor-pointer", blocked ? rowHighlight.danger : "hover:bg-bg")}
                           key={row.userId}
                           onClick={() => setDrawerUserId(row.userId)}
-                          type="button"
                         >
-                          <div className="flex items-center gap-2.5 px-5 py-3">
-                            <InitialsAvatar initials={row.initials} />
-                            <div className="min-w-0">
-                              <div className="truncate text-sm font-bold text-ink">{row.name}</div>
-                              <div className="font-mono text-xs text-muted">
-                                {row.level} · Day {row.day}
-                              </div>
-                            </div>
-                          </div>
-                          {row.phases.map((phase, index) => {
-                            const cell = PHASE_CELL[phase.status] ?? PHASE_CELL.upcoming!;
-                            return (
-                              <div
-                                className={`flex flex-col justify-center gap-0.5 border-l border-divider px-3 py-3 ${cell.cls}`}
-                                key={index}
-                              >
-                                <span className="text-sm font-bold">
-                                  <span aria-hidden>{cell.symbol}</span> {phase.label}
-                                </span>
-                                {phase.sub ? <span className="text-xs text-muted">{phase.sub}</span> : null}
-                              </div>
-                            );
-                          })}
-                          <div className="flex flex-col items-center justify-center gap-1.5 border-l border-divider px-3 py-3">
-                            <span
-                              className={`text-[22px] font-extrabold leading-none tracking-[-0.03em] ${
-                                !hasOverall ? "text-faint" : blocked ? "text-danger" : "text-blue"
-                              }`}
+                          <td className={tdCls}>
+                            <button
+                              aria-label={`Open ${row.name}'s programs`}
+                              className="rounded-[8px] text-left"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setDrawerUserId(row.userId);
+                              }}
+                              type="button"
                             >
-                              {row.overall}
+                              <PersonCell initials={row.initials} name={row.name} subline={`${row.level}, day ${row.day}`} />
+                            </button>
+                          </td>
+                          {row.phases.map((phase, index) => (
+                            <td className={tdCls} key={index}>
+                              <span className="flex flex-col gap-0.5">
+                                <StatusPill tone={PHASE_TONE[phase.status] ?? "neutral"}>{phase.label}</StatusPill>
+                                {phase.sub ? <span className="pl-[14px] text-[13px] text-muted">{phase.sub}</span> : null}
+                              </span>
+                            </td>
+                          ))}
+                          <td className={cn(tdCls, "text-right")}>
+                            <span className="ml-auto flex w-[88px] flex-col items-end gap-1.5">
+                              <span
+                                className={cn(
+                                  "num text-[20px] leading-none font-extrabold tracking-[-0.03em]",
+                                  !hasOverall ? "text-muted" : blocked ? "text-danger" : "text-blue",
+                                )}
+                              >
+                                {hasOverall ? row.overall : "None"}
+                              </span>
+                              <TrackerProgressBar className="w-full" danger={blocked} pct={hasOverall ? row.overallPct : 0} />
                             </span>
-                            <ProgressBar
-                              className="w-16"
-                              danger={blocked}
-                              pct={hasOverall ? row.overallPct : 0}
-                            />
-                          </div>
-                        </button>
+                          </td>
+                        </tr>
                       );
                     })
                   )}
-                </div>
-              </div>
+                </tbody>
+              </TableCard>
             </section>
 
             <div className="grid gap-6 lg:grid-cols-2">
               <section className={LINE_CARD}>
-                <div className="border-b border-divider px-5 py-4">
-                  <h2 className="text-lg font-extrabold text-ink">Phase definitions</h2>
+                <div className="border-b border-line px-5 py-3">
+                  <h2 className="label-caps">Phase definitions</h2>
                 </div>
                 <ul>
                   {PROGRAM_PHASE_DEFINITIONS.map((phase, index) => (
-                    <li className="flex gap-3 border-b border-divider px-5 py-3 last:border-b-0" key={phase.name}>
+                    <li className="flex gap-3 border-t border-divider px-5 py-3 first:border-t-0" key={phase.name}>
                       <span
                         aria-hidden
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-soft font-mono text-xs font-medium text-blue"
+                        className="num grid h-8 w-8 shrink-0 place-items-center rounded-full bg-blue-soft text-[13px] font-bold text-blue"
                       >
-                        {String(index + 1).padStart(2, "0")}
+                        {index + 1}
                       </span>
                       <div>
-                        <p className="text-sm font-bold text-ink">{phase.name}</p>
-                        <p className="mt-0.5 text-xs leading-snug text-muted">{phase.desc}</p>
+                        <p className="text-[15px] font-bold text-ink">{trackerCopy(phase.name)}</p>
+                        <p className="mt-0.5 text-[13px] leading-snug text-muted">{trackerCopy(phase.desc)}</p>
                       </div>
                     </li>
                   ))}
@@ -594,11 +601,13 @@ export function ManagerProgramTrackerPanel({
               </section>
 
               <section className={LINE_CARD}>
-                <div className="flex items-center justify-between gap-3 border-b border-divider px-5 py-4">
-                  <div>
-                    <h2 className="text-lg font-extrabold text-ink">Overdue milestones</h2>
-                    <p className="mt-0.5 text-sm text-danger">
-                      {view.milestonesOverdue.length} items need action now
+                <div className="flex items-baseline justify-between gap-3 border-b border-line px-5 py-3">
+                  <div className="flex flex-col gap-0.5">
+                    <h2 className="label-caps">Overdue milestones</h2>
+                    <p className={cn("text-[13px] font-semibold", view.milestonesOverdue.length > 0 ? "text-danger" : "text-muted")}>
+                      {view.milestonesOverdue.length === 1
+                        ? "1 item needs action now"
+                        : `${view.milestonesOverdue.length} items need action now`}
                     </p>
                   </div>
                   <button className="link text-sm" onClick={() => setTab("milestones")} type="button">
@@ -611,20 +620,12 @@ export function ManagerProgramTrackerPanel({
                   <ul>
                     {view.milestonesOverdue.slice(0, 6).map((item) => (
                       <li
-                        className="flex items-center justify-between gap-3 border-b border-divider px-5 py-3 last:border-b-0"
+                        className="flex items-center justify-between gap-3 border-t border-divider px-5 py-3 first:border-t-0"
                         key={item.id}
                       >
-                        <div className="flex min-w-0 items-center gap-3">
-                          <span className="w-12 shrink-0 font-mono text-xs font-medium text-danger">
-                            {item.dateShort}
-                          </span>
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-bold text-ink">{item.label}</p>
-                            <p className="truncate text-xs text-muted">{item.program}</p>
-                          </div>
-                        </div>
-                        <div className="flex shrink-0 items-center gap-2">
-                          <Tag tone="danger">▲ Overdue</Tag>
+                        <TwoLineCell subline={`${item.se}, due ${formatMilestoneDate(item.isoDate)}`} title={item.label} />
+                        <div className="flex shrink-0 items-center gap-3">
+                          <StatusPill tone="danger">Overdue</StatusPill>
                           <button
                             className={PILL}
                             disabled={nudgeDisabled(item)}
@@ -645,60 +646,56 @@ export function ManagerProgramTrackerPanel({
         ) : null}
 
         {tab === "programs" ? (
-          <div className="space-y-8">
-            {view.sePrograms.length === 0 ? (
-              <p className="text-sm text-muted">No programs in scope.</p>
-            ) : null}
+          <div className="flex flex-col gap-8">
+            {view.sePrograms.length === 0 ? <p className="text-sm text-muted">No programs in scope.</p> : null}
             {view.sePrograms.map((se) => {
               const health = healthTag(se.healthLabel);
               return (
-                <section key={se.userId}>
-                  <button
-                    className="mb-3 flex w-full flex-wrap items-center gap-3 rounded-[10px] text-left"
-                    onClick={() => setDrawerUserId(se.userId)}
-                    type="button"
-                  >
-                    <InitialsAvatar initials={se.initials} size={32} />
-                    <span className="text-lg font-extrabold text-ink">{se.name}</span>
-                    <span className="font-mono text-xs text-muted">
-                      {se.level} · Day {se.day}
-                    </span>
-                    <Tag tone={health.tone}>
-                      {health.symbol} {health.text}
-                    </Tag>
-                    <span className="ml-auto text-xs text-muted">
+                <section className="flex flex-col gap-3" key={se.userId}>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                    <button
+                      aria-label={`Open ${se.name}'s programs`}
+                      className="rounded-[8px] text-left"
+                      onClick={() => setDrawerUserId(se.userId)}
+                      type="button"
+                    >
+                      <PersonCell initials={se.initials} name={se.name} subline={`${se.level}, day ${se.day}`} />
+                    </button>
+                    <StatusPill tone={health.tone}>{health.text}</StatusPill>
+                    <span className="ml-auto text-[13px] text-muted">
                       {se.programCount} active program{se.programCount === 1 ? "" : "s"}
                     </span>
-                  </button>
+                  </div>
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
                     {se.programs.map((program) => {
                       const status = programStatusTag(program.status);
                       const bad = program.status === "Critical";
                       return (
                         <div
-                          className={`flex flex-col rounded-[14px] border bg-white px-5 py-4 ${
-                            bad ? "border-danger" : "border-line"
-                          }`}
+                          className={cn(
+                            "flex flex-col gap-2 rounded-[14px] border border-line bg-white px-5 py-4",
+                            bad && "shadow-[inset_3px_0_0_var(--color-danger)]",
+                          )}
                           key={program.id}
                         >
-                          <div className="mb-2 flex items-start justify-between gap-2">
-                            <span className="label-mono">{program.type}</span>
-                            <Tag tone={status.tone}>
-                              {status.symbol} {program.status}
-                            </Tag>
+                          <div className="flex items-start justify-between gap-2">
+                            <Tag tone="blue">{program.type}</Tag>
+                            <StatusPill tone={status.tone}>{program.status}</StatusPill>
                           </div>
-                          <p className="mb-1 text-sm font-bold leading-snug text-ink">{program.name}</p>
-                          <p className="mb-3 text-xs text-muted">{program.subtitle}</p>
-                          <div className="mt-auto">
-                            <div className="mb-1 flex justify-between text-xs">
+                          <div>
+                            <p className="text-[15px] leading-snug font-bold text-ink">{program.name}</p>
+                            <p className="text-[13px] text-muted">{program.subtitle}</p>
+                          </div>
+                          <div className="mt-auto flex flex-col gap-1.5 pt-1">
+                            <div className="flex items-baseline justify-between text-[13px]">
                               <span className="text-muted">Progress</span>
-                              <span className={`font-mono font-medium ${bad ? "text-danger" : "text-blue"}`}>
-                                {program.pct}%
-                              </span>
+                              <span className={cn("num font-bold", bad ? "text-danger" : "text-blue")}>{program.pct}%</span>
                             </div>
-                            <ProgressBar className="mb-3" danger={bad} pct={program.pct} />
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="font-mono text-xs text-muted">Due {program.due}</span>
+                            <TrackerProgressBar danger={bad} label={`${program.pct}% complete`} pct={program.pct} />
+                            <div className="mt-1 flex items-center justify-between gap-2">
+                              <span className="text-[13px] text-muted">
+                                {program.due && program.due !== "—" ? `Due ${program.due}` : "No due date"}
+                              </span>
                               <Link className="link text-sm" href={`/manager/team?profile=${se.userId}`}>
                                 Open
                               </Link>
@@ -716,63 +713,84 @@ export function ManagerProgramTrackerPanel({
 
         {tab === "milestones" ? (
           <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-            <div className="space-y-6">
-              <MilestoneSection
-                actionLoading={actionLoading}
-                actions="overdue"
-                datePickerStepId={datePickerStepId}
-                items={view.milestonesOverdue}
-                label="Overdue"
-                nudgeStatus={nudgeStatus}
-                onMarkDone={handleMarkDone}
-                onNudge={handleNudge}
-                onReschedule={handleReschedule}
-                onRescheduleToDate={handleRescheduleToDate}
-                setDatePickerStepId={setDatePickerStepId}
+            <div className="flex min-w-0 flex-col gap-6">
+              <FilterBar
+                show={(
+                  [
+                    ["all", "All"],
+                    ["overdue", "Overdue"],
+                    ["thisWeek", "This week"],
+                    ["upcoming", "Next 2 weeks"],
+                    ["later", "Later"],
+                  ] as const
+                ).map(([id, label]) => (
+                  <Chip
+                    active={milestoneFilter === id}
+                    count={milestoneCounts[id]}
+                    key={id}
+                    onClick={() => setMilestoneFilter(id)}
+                  >
+                    {label}
+                  </Chip>
+                ))}
               />
-              <MilestoneSection actions="thisWeek" items={view.milestonesThisWeek} label="Due this week" />
-              <MilestoneSection
-                actions="upcoming"
-                items={view.milestonesUpcoming}
-                label="Upcoming · next 2 weeks"
-              />
-              <MilestoneSection actions="later" items={view.milestonesLater} label="Later" />
-              {view.milestonesOverdue.length === 0 &&
-              view.milestonesThisWeek.length === 0 &&
-              view.milestonesUpcoming.length === 0 &&
-              view.milestonesLater.length === 0 ? (
-                <p className="text-sm text-muted">No open milestones on the horizon.</p>
+              {showBucket("overdue") ? (
+                <MilestoneSection
+                  actionLoading={actionLoading}
+                  actions="overdue"
+                  datePickerStepId={datePickerStepId}
+                  items={view.milestonesOverdue}
+                  label="Overdue"
+                  nudgeStatus={nudgeStatus}
+                  onMarkDone={handleMarkDone}
+                  onNudge={handleNudge}
+                  onReschedule={handleReschedule}
+                  onRescheduleToDate={handleRescheduleToDate}
+                  setDatePickerStepId={setDatePickerStepId}
+                />
               ) : null}
-              <p className="text-xs text-muted">
-                Rescheduled milestones stay here by due date, or view the full timeline on{" "}
+              {showBucket("thisWeek") ? (
+                <MilestoneSection actions="thisWeek" items={view.milestonesThisWeek} label="Due this week" />
+              ) : null}
+              {showBucket("upcoming") ? (
+                <MilestoneSection actions="upcoming" items={view.milestonesUpcoming} label="Due in the next 2 weeks" />
+              ) : null}
+              {showBucket("later") ? <MilestoneSection actions="later" items={view.milestonesLater} label="Later" /> : null}
+              {milestoneCounts[milestoneFilter] === 0 ? (
+                <p className="text-sm text-muted">
+                  {milestoneFilter === "all" ? "No open milestones on the horizon." : "No milestones in this view."}
+                </p>
+              ) : null}
+              <p className="text-[13px] text-muted">
+                Rescheduled milestones stay here by due date. See the full timeline on the{" "}
                 <Link className="link" href="/plan-calendar">
-                  Plan Calendar
+                  plan calendar
                 </Link>
                 .
               </p>
             </div>
 
-            <aside className={`${LINE_CARD} lg:sticky lg:top-4`}>
-              <div className="border-b border-divider px-5 py-4">
-                <p className="label-mono">Manager sign-off queue</p>
-                <h2 className="mt-0.5 text-lg font-extrabold text-ink">
+            <aside className={cn(LINE_CARD, "lg:sticky lg:top-4")}>
+              <div className="border-b border-line px-5 py-4">
+                <h2 className="label-caps">Manager sign-off queue</h2>
+                <p className="mt-1 text-xl font-extrabold text-ink">
                   {view.signOffItems.length} item{view.signOffItems.length === 1 ? "" : "s"} waiting
-                </h2>
+                </p>
               </div>
               {view.signOffItems.length === 0 ? (
                 <p className="px-5 py-6 text-sm text-muted">No pending sign-offs.</p>
               ) : (
                 <ul>
                   {view.signOffItems.map((item) => (
-                    <li className="border-b border-divider px-5 py-3 last:border-b-0" key={item.id}>
-                      <div className="mb-1.5 flex items-center gap-2.5">
+                    <li className="flex flex-col gap-2 border-t border-divider px-5 py-3 first:border-t-0" key={item.id}>
+                      <span className="flex items-center gap-3">
                         <InitialsAvatar initials={item.seInitials} />
-                        <span className="text-sm font-bold text-ink">{item.title}</span>
-                      </div>
-                      <p className="mb-2.5 text-xs leading-snug text-muted">{item.description}</p>
+                        <span className="text-sm font-bold text-ink">{trackerCopy(item.title)}</span>
+                      </span>
+                      <p className="text-[13px] leading-snug text-muted">{item.description}</p>
                       <div className="flex gap-2">
                         <button className={PILL} onClick={() => router.push("/manager/inbox")} type="button">
-                          Approve ✓
+                          Approve
                         </button>
                         <button className={PILL} onClick={() => router.push("/manager/inbox")} type="button">
                           Review
@@ -789,27 +807,6 @@ export function ManagerProgramTrackerPanel({
 
       <ProgramTrackerSeDrawer onClose={closeDrawer} profile={drawerProfile} />
     </>
-  );
-}
-
-function StatCell({ children }: { children: ReactNode }) {
-  return <div className="border-b border-r border-divider px-5 py-4">{children}</div>;
-}
-
-function ProgressBar({
-  pct,
-  danger = false,
-  className = "",
-}: {
-  pct: number;
-  danger?: boolean;
-  className?: string;
-}) {
-  const width = Math.max(0, Math.min(100, pct));
-  return (
-    <div aria-hidden className={`h-2 overflow-hidden rounded-full bg-divider ${className}`}>
-      <div className={`h-full rounded-full ${danger ? "bg-danger" : "bg-blue"}`} style={{ width: `${width}%` }} />
-    </div>
   );
 }
 
@@ -838,44 +835,48 @@ function MilestoneDatePickerRow({
   if (!open) return null;
 
   return (
-    <div className="flex flex-wrap items-end gap-3 border-t border-divider bg-bg px-5 py-3">
-      <div className="flex flex-col gap-1">
-        <label className="text-xs text-muted" htmlFor={inputId}>
-          Was {formatMilestoneDate(item.isoDate)}. New due date
-        </label>
-        <input
-          className="h-9 w-[11rem] rounded-[10px] border border-line-strong bg-white px-3 text-sm text-ink"
-          id={inputId}
-          min={todayIso()}
-          onChange={(event) => setPickedDate(event.target.value)}
-          type="date"
-          value={pickedDate}
-        />
-      </div>
-      <button
-        className={PILL}
-        disabled={!pickedDate || saving}
-        onClick={() => onApply(pickedDate)}
-        type="button"
-      >
-        {saving ? "Saving…" : "Apply"}
-      </button>
-      <button className="link text-sm" disabled={saving} onClick={onCancel} type="button">
-        Cancel
-      </button>
-    </div>
+    <tr>
+      <td className={cn(tdCls, "bg-bg")} colSpan={4}>
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex flex-col gap-1">
+            <label className="text-[13px] text-muted" htmlFor={inputId}>
+              Was {formatMilestoneDate(item.isoDate)}. New due date
+            </label>
+            <input
+              className="w-[11rem] rounded-[10px] border border-line-strong bg-white px-3 py-2 text-[15px] text-ink"
+              id={inputId}
+              min={todayIso()}
+              onChange={(event) => setPickedDate(event.target.value)}
+              type="date"
+              value={pickedDate}
+            />
+          </div>
+          <button className={PILL} disabled={!pickedDate || saving} onClick={() => onApply(pickedDate)} type="button">
+            {saving ? "Saving…" : "Apply"}
+          </button>
+          <button className="link text-sm" disabled={saving} onClick={onCancel} type="button">
+            Cancel
+          </button>
+        </div>
+      </td>
+    </tr>
   );
 }
 
-const SECTION_STYLE: Record<
-  "overdue" | "thisWeek" | "upcoming" | "later",
-  { symbol: string; text: string; date: string }
-> = {
-  overdue: { symbol: "▲", text: "text-danger", date: "text-danger" },
-  thisWeek: { symbol: "●", text: "text-warning", date: "text-warning" },
-  upcoming: { symbol: "•", text: "text-muted", date: "text-ink" },
-  later: { symbol: "•", text: "text-muted", date: "text-muted" },
+const SECTION_DATE: Record<MilestoneBucket, string> = {
+  overdue: "text-danger",
+  thisWeek: "text-warning",
+  upcoming: "text-ink",
+  later: "text-muted",
 };
+
+/** "in 3d" from the view model, as words. */
+function daysAwayCopy(value: string) {
+  const match = /^in (\d+)d$/.exec(value);
+  if (!match) return value;
+  const days = Number(match[1]);
+  return days === 1 ? "In 1 day" : `In ${days} days`;
+}
 
 function MilestoneSection({
   label,
@@ -892,7 +893,7 @@ function MilestoneSection({
 }: {
   label: string;
   items: MilestoneItemView[];
-  actions: "overdue" | "thisWeek" | "upcoming" | "later";
+  actions: MilestoneBucket;
   nudgeStatus?: Record<string, MilestoneNudgeStatus>;
   actionLoading?: Record<string, boolean>;
   datePickerStepId?: string | null;
@@ -902,118 +903,164 @@ function MilestoneSection({
   onRescheduleToDate?: (item: MilestoneItemView, newDueDate: string) => void;
   onMarkDone?: (item: MilestoneItemView) => void;
 }) {
-  const style = SECTION_STYLE[actions];
-
   if (items.length === 0) return null;
 
   return (
-    <section>
-      <h2 className={`mb-2 font-mono text-xs font-medium uppercase tracking-[0.03em] ${style.text}`}>
-        <span aria-hidden>{style.symbol}</span> {label} · {items.length} items
+    <section className="flex flex-col gap-2.5">
+      <h2 className="flex items-baseline gap-2">
+        <span className="label-caps">{label}</span>
+        <span className="num text-[13px] text-muted">{items.length}</span>
       </h2>
-      <ul
-        className={`overflow-hidden rounded-[14px] border bg-white ${
-          actions === "overdue" ? "border-danger" : "border-line"
-        }`}
-      >
-        {items.map((item) => (
-          <li className="border-b border-divider last:border-b-0" key={item.id}>
-            <div className="flex flex-wrap items-center gap-4 px-5 py-3">
-              <div className={`w-12 shrink-0 text-center font-mono text-xs ${style.date}`}>
-                <div className="font-medium">{item.dateShort}</div>
-                <div>{item.dayOfWeek}</div>
-              </div>
-              <InitialsAvatar initials={item.initials} />
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-muted">{item.se}</p>
-                <p className="text-sm font-bold text-ink">{item.label}</p>
-                <p className="font-mono text-xs text-muted">{item.program}</p>
-              </div>
-              {actions === "overdue" ? (
-                <div className="flex shrink-0 flex-wrap items-center gap-2">
-                  <button
-                    className={PILL}
-                    disabled={
-                      actionLoading[`nudge:${item.assignmentStepId}`] ||
-                      nudgeStatus[item.assignmentStepId]?.canNudge === false
-                    }
-                    onClick={() => onNudge?.(item)}
-                    title={nudgeStatus[item.assignmentStepId]?.reason}
-                    type="button"
-                  >
-                    {actionLoading[`nudge:${item.assignmentStepId}`]
-                      ? "Sending…"
-                      : nudgeStatus[item.assignmentStepId]?.canNudge === false
-                        ? "Nudged"
-                        : "Nudge SE"}
-                  </button>
-                  <button
-                    className={PILL}
-                    disabled={actionLoading[`reschedule:${item.assignmentStepId}`]}
-                    onClick={() => onReschedule?.(item)}
-                    title="Move due date forward 7 days from today"
-                    type="button"
-                  >
-                    {actionLoading[`reschedule:${item.assignmentStepId}`] ? "Saving…" : "+7 days"}
-                  </button>
-                  <button
-                    aria-expanded={datePickerStepId === item.assignmentStepId}
-                    className={PILL}
-                    disabled={actionLoading[`reschedule-date:${item.assignmentStepId}`]}
-                    onClick={() =>
-                      setDatePickerStepId?.(
-                        datePickerStepId === item.assignmentStepId ? null : item.assignmentStepId,
-                      )
-                    }
-                    title="Choose a specific due date"
-                    type="button"
-                  >
-                    {datePickerStepId === item.assignmentStepId ? "Close" : "Pick date"}
-                  </button>
-                  <button
-                    className={PILL}
-                    disabled={actionLoading[`complete:${item.assignmentStepId}`]}
-                    onClick={() => onMarkDone?.(item)}
-                    type="button"
-                  >
-                    {actionLoading[`complete:${item.assignmentStepId}`] ? "Saving…" : "Mark done"}
-                  </button>
-                </div>
-              ) : null}
-              {actions === "thisWeek" ? (
-                <div className="flex shrink-0 flex-wrap items-center gap-3">
-                  <button className={PILL} type="button">
-                    Remind SE
-                  </button>
-                  <Link className="link text-sm" href={`/manager/team?profile=${item.userId}`}>
-                    View step
-                  </Link>
-                  <Link className="link text-sm" href={planCalendarHref(item.userId)}>
-                    Calendar
-                  </Link>
-                </div>
-              ) : null}
-              {actions === "upcoming" || actions === "later" ? (
-                <div className="flex shrink-0 items-center gap-3">
-                  {item.daysAway ? (
-                    <span className="font-mono text-xs text-muted">{item.daysAway}</span>
-                  ) : null}
-                  <Link className="link text-sm" href={planCalendarHref(item.userId)}>
-                    Calendar
-                  </Link>
-                </div>
-              ) : null}
-            </div>
-            <MilestoneDatePickerRow
+      <TableCard minWidth={actions === "overdue" ? 860 : 680}>
+        <thead>
+          <tr>
+            <th className={cn(thCls, "w-[130px]")} scope="col">
+              Due
+            </th>
+            <th className={thCls} scope="col">
+              SE
+            </th>
+            <th className={thCls} scope="col">
+              Milestone
+            </th>
+            <th className={cn(thCls, "text-right")} scope="col">
+              <span className="sr-only">Actions</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item) => (
+            <MilestoneRows
+              actionLoading={actionLoading}
+              actions={actions}
+              datePickerStepId={datePickerStepId}
               item={item}
-              onApply={(date) => onRescheduleToDate?.(item, date)}
-              onCancel={() => setDatePickerStepId?.(null)}
-              open={datePickerStepId === item.assignmentStepId}
-              saving={Boolean(actionLoading[`reschedule-date:${item.assignmentStepId}`])}
+              key={item.id}
+              nudgeStatus={nudgeStatus}
+              onMarkDone={onMarkDone}
+              onNudge={onNudge}
+              onReschedule={onReschedule}
+              onRescheduleToDate={onRescheduleToDate}
+              setDatePickerStepId={setDatePickerStepId}
             />
-          </li>
-        ))}
-      </ul>
+          ))}
+        </tbody>
+      </TableCard>
     </section>
+  );
+}
+
+function MilestoneRows({
+  item,
+  actions,
+  nudgeStatus,
+  actionLoading,
+  datePickerStepId,
+  setDatePickerStepId,
+  onNudge,
+  onReschedule,
+  onRescheduleToDate,
+  onMarkDone,
+}: {
+  item: MilestoneItemView;
+  actions: MilestoneBucket;
+  nudgeStatus: Record<string, MilestoneNudgeStatus>;
+  actionLoading: Record<string, boolean>;
+  datePickerStepId: string | null;
+  setDatePickerStepId?: (stepId: string | null) => void;
+  onNudge?: (item: MilestoneItemView) => void;
+  onReschedule?: (item: MilestoneItemView) => void;
+  onRescheduleToDate?: (item: MilestoneItemView, newDueDate: string) => void;
+  onMarkDone?: (item: MilestoneItemView) => void;
+}) {
+  const stepId = item.assignmentStepId;
+  return (
+    <>
+      <tr className={actions === "overdue" ? rowHighlight.danger : undefined}>
+        <td className={cn(tdCls, "text-sm font-semibold whitespace-nowrap", SECTION_DATE[actions])}>
+          {formatMilestoneDate(item.isoDate)}
+        </td>
+        <td className={tdCls}>
+          <PersonCell initials={item.initials} name={item.se} />
+        </td>
+        <td className={tdCls}>
+          <TwoLineCell subline={trackerCopy(item.program)} title={item.label} />
+        </td>
+        <td className={cn(tdCls, "text-right")}>
+          {actions === "overdue" ? (
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <button
+                className={PILL}
+                disabled={actionLoading[`nudge:${stepId}`] || nudgeStatus[stepId]?.canNudge === false}
+                onClick={() => onNudge?.(item)}
+                title={nudgeStatus[stepId]?.reason}
+                type="button"
+              >
+                {actionLoading[`nudge:${stepId}`]
+                  ? "Sending…"
+                  : nudgeStatus[stepId]?.canNudge === false
+                    ? "Nudged"
+                    : "Nudge SE"}
+              </button>
+              <button
+                className={PILL}
+                disabled={actionLoading[`reschedule:${stepId}`]}
+                onClick={() => onReschedule?.(item)}
+                title="Move the due date 7 days later"
+                type="button"
+              >
+                {actionLoading[`reschedule:${stepId}`] ? "Saving…" : "Add 7 days"}
+              </button>
+              <button
+                aria-expanded={datePickerStepId === stepId}
+                className={PILL}
+                disabled={actionLoading[`reschedule-date:${stepId}`]}
+                onClick={() => setDatePickerStepId?.(datePickerStepId === stepId ? null : stepId)}
+                title="Choose a specific due date"
+                type="button"
+              >
+                {datePickerStepId === stepId ? "Close" : "Pick date"}
+              </button>
+              <button
+                className={PILL}
+                disabled={actionLoading[`complete:${stepId}`]}
+                onClick={() => onMarkDone?.(item)}
+                type="button"
+              >
+                {actionLoading[`complete:${stepId}`] ? "Saving…" : "Mark done"}
+              </button>
+            </div>
+          ) : null}
+          {actions === "thisWeek" ? (
+            <div className="flex flex-wrap items-center justify-end gap-3">
+              <button className={PILL} type="button">
+                Remind SE
+              </button>
+              <Link className="link text-sm" href={`/manager/team?profile=${item.userId}`}>
+                View step
+              </Link>
+              <Link className="link text-sm" href={planCalendarHref(item.userId)}>
+                Calendar
+              </Link>
+            </div>
+          ) : null}
+          {actions === "upcoming" || actions === "later" ? (
+            <div className="flex items-center justify-end gap-3">
+              {item.daysAway ? <span className="text-[13px] text-muted">{daysAwayCopy(item.daysAway)}</span> : null}
+              <Link className="link text-sm" href={planCalendarHref(item.userId)}>
+                Calendar
+              </Link>
+            </div>
+          ) : null}
+        </td>
+      </tr>
+      <MilestoneDatePickerRow
+        item={item}
+        onApply={(date) => onRescheduleToDate?.(item, date)}
+        onCancel={() => setDatePickerStepId?.(null)}
+        open={datePickerStepId === stepId}
+        saving={Boolean(actionLoading[`reschedule-date:${stepId}`])}
+      />
+    </>
   );
 }

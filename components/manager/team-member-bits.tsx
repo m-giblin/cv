@@ -3,13 +3,14 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { toast } from "sonner";
-import { Tag } from "@/components/ui/tag";
+import { Stat } from "@/components/ui/stat";
+import { StatusPill, type StatusTone } from "@/components/ui/status-pill";
 import { managerSectionHref } from "@/lib/manager/manager-routes";
 import { downloadOneOnOneIcs } from "@/lib/manager/one-on-one-ics";
 import type { TeamMember, TeamStatus } from "@/lib/manager/team-status";
 import { cn } from "@/lib/utils";
 
-/** Mono label over a 40/800 numeral, with an optional inline danger note ("5 OVER 3D"). */
+/** Caps label over a 40/800 numeral, with an optional status-coloured subline ("5 older than 3 days"). */
 export function HeaderStat({
   label,
   value,
@@ -19,38 +20,23 @@ export function HeaderStat({
   label: string;
   value: ReactNode;
   note?: ReactNode;
-  tone?: "blue" | "danger";
+  tone?: "blue" | "danger" | "ink";
 }) {
-  return (
-    <div className="flex flex-col gap-0.5">
-      <span className="label-mono">{label}</span>
-      <span
-        className={cn(
-          "text-[40px] leading-none font-extrabold tracking-[-0.03em]",
-          tone === "danger" ? "text-danger" : "text-blue",
-        )}
-      >
-        {value}
-        {note ? (
-          <span className="ml-1.5 font-mono text-xs font-medium tracking-normal text-danger uppercase">{note}</span>
-        ) : null}
-      </span>
-    </div>
-  );
+  return <Stat label={label} note={note} noteTone="danger" tone={tone} value={value} />;
 }
 
-const STATUS_TAG: Record<TeamStatus, { label: string; tone: "danger" | "blue" | "success" }> = {
-  at_risk: { label: "▲ At risk", tone: "danger" },
-  review_due: { label: "● Review due", tone: "blue" },
-  on_track: { label: "✓ On track", tone: "success" },
+const STATUS_PILL: Record<TeamStatus, { label: string; tone: StatusTone }> = {
+  at_risk: { label: "At risk", tone: "danger" },
+  review_due: { label: "Waiting on you", tone: "warning" },
+  on_track: { label: "On track", tone: "success" },
 };
 
 export function TeamStatusTag({ status, className }: { status: TeamStatus; className?: string }) {
-  const tag = STATUS_TAG[status];
+  const pill = STATUS_PILL[status];
   return (
-    <Tag className={cn("justify-self-start bg-transparent", className)} tone={tag.tone}>
-      {tag.label}
-    </Tag>
+    <StatusPill className={className} tone={pill.tone}>
+      {pill.label}
+    </StatusPill>
   );
 }
 
@@ -70,13 +56,16 @@ export function TeamActionLink({
 }) {
   const action = member.action;
   if (!action) return null;
-  // `.link` is unlayered CSS, so utilities can't recolour it; the on-dark variant is spelled out.
-  const cls = cn(
-    onDark
-      ? "text-sm font-bold text-signal underline decoration-signal decoration-2 underline-offset-[3px] hover:text-white hover:decoration-white"
-      : "link text-sm",
-    className,
-  );
+  // Inside `.on-navy` the link turns amber on its own; `onDark` is kept for callers outside one.
+  const cls = cn("link text-sm", onDark && "link--on-navy", className);
+
+  if (action.kind === "assign_plan") {
+    return (
+      <Link className={cls} href={managerSectionHref("assign")}>
+        {action.label}
+      </Link>
+    );
+  }
 
   if (action.kind === "review" || action.kind === "sign_off") {
     return (
@@ -115,17 +104,21 @@ export function TeamActionLink({
   );
 }
 
-export function InitialsAvatar({ name, size = 32 }: { name: string; size?: number }) {
-  const letters = name
+export function initialsOf(name: string) {
+  return name
     .split(" ")
     .filter(Boolean)
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
     .join("");
+}
+
+export function InitialsAvatar({ name, size = 32 }: { name: string; size?: number }) {
+  const letters = initialsOf(name);
   return (
     <span
       aria-hidden
-      className="grid shrink-0 place-items-center rounded-full bg-blue-soft text-xs font-bold text-blue"
+      className="grid shrink-0 place-items-center rounded-full bg-blue-soft text-[13px] font-bold text-blue"
       style={{ width: size, height: size }}
     >
       {letters}
