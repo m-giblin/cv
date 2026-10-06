@@ -17,6 +17,7 @@ async function errorText(response: Response): Promise<string> {
 
 /** Edit drawer for a simulation template (PATCH /api/admin/simulation-templates/[id]). Power-user view of the full prompt. */
 export function SimTemplateEditor({
+  side,
   row,
   onClose,
   onSaved,
@@ -24,6 +25,8 @@ export function SimTemplateEditor({
   row: SimTemplateRow | null;
   onClose: () => void;
   onSaved: () => void;
+  /** "As the SE sees it" preview and item actions, shown as the workbench's right column. */
+  side?: React.ReactNode;
 }) {
   const formId = useId();
   const [saving, setSaving] = useState(false);
@@ -72,7 +75,11 @@ export function SimTemplateEditor({
 
   return (
     <Drawer
-      size="form"
+      eyebrow={side ? "Practice" : undefined}
+      mainLabel={side ? "Edit" : undefined}
+      side={side}
+      sideLabel="As the SE sees it"
+      size={side ? "full" : "form"}
       footer={
         <>
           <button className="btn-primary" disabled={saving} form={formId} type="submit">
@@ -83,7 +90,7 @@ export function SimTemplateEditor({
       }
       onClose={onClose}
       open={row !== null}
-      title="Edit simulation"
+      title={row?.name ?? "Edit simulation"}
     >
       <form className="flex flex-col gap-4" id={formId} onSubmit={(event) => void save(event)}>
         <p className="text-sm text-ink-2">
@@ -142,6 +149,7 @@ export function SimTemplateEditor({
 
 /** Edit drawer for a pitch scenario (PATCH /api/admin/pitch-scenarios/[id]). */
 export function PitchScenarioEditor({
+  side,
   row,
   onClose,
   onSaved,
@@ -149,6 +157,7 @@ export function PitchScenarioEditor({
   row: PitchScenarioRow | null;
   onClose: () => void;
   onSaved: () => void;
+  side?: React.ReactNode;
 }) {
   const formId = useId();
   const [saving, setSaving] = useState(false);
@@ -216,7 +225,11 @@ export function PitchScenarioEditor({
 
   return (
     <Drawer
-      size="form"
+      eyebrow={side ? "Practice" : undefined}
+      mainLabel={side ? "Edit" : undefined}
+      side={side}
+      sideLabel="As the SE sees it"
+      size={side ? "full" : "form"}
       footer={
         <>
           <button className="btn-primary" disabled={saving} form={formId} type="submit">
@@ -227,7 +240,7 @@ export function PitchScenarioEditor({
       }
       onClose={onClose}
       open={row !== null}
-      title="Edit pitch scenario"
+      title={row?.label ?? "Edit pitch scenario"}
     >
       <form className="flex flex-col gap-4" id={formId} onSubmit={(event) => void save(event)}>
         <Field htmlFor={`${formId}-label`} label="Name">

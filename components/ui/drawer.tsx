@@ -89,7 +89,7 @@ export function Drawer({
   const isForm = size === "form";
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center p-3 sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
       <div aria-hidden className="absolute inset-0 bg-[rgb(11_23_51/0.45)]" onClick={onClose} />
       <div
         aria-labelledby={titleId}

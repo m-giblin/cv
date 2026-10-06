@@ -12,6 +12,7 @@ import { PracticeWizard, type PublishedPractice } from "@/components/admin/pract
 import { Note } from "@/components/ui/editorial";
 import { FlightStrip } from "@/components/ui/flight-strip";
 import { Chip } from "@/components/ui/chip";
+import { DataTablePagination, paginate } from "@/components/ui/data-table";
 import { StatusPill } from "@/components/ui/status-pill";
 import { FilterBar, TableCard, TwoLineCell, rowHighlight, tdCls, thCls } from "@/components/ui/table";
 import { Tag } from "@/components/ui/tag";
@@ -76,6 +77,8 @@ function PillSelect({
   );
 }
 
+const PAGE_SIZE = 10;
+
 function rounds(value: number): string {
   return value === 0 ? "No practice rounds" : value === 1 ? "One practice round" : `${value} practice rounds`;
 }
@@ -105,6 +108,7 @@ export function PracticeLibrary({
   const [duplicateOf, setDuplicateOf] = useState<PracticeItem | null>(null);
   const [assigning, setAssigning] = useState<PracticeItem | null>(null);
   const [editing, setEditing] = useState<PracticeItem | null>(null);
+  const [page, setPage] = useState(1);
   const [lastPublished, setLastPublished] = useState<PublishedPractice | null>(null);
 
   const load = useCallback(async () => {
@@ -146,10 +150,19 @@ export function PracticeLibrary({
     return [...sorted.filter((item) => fresh.has(item.key)), ...sorted.filter((item) => !fresh.has(item.key))];
   }, [filters, fresh, items, sort]);
 
-  const selected = visible.find((item) => item.key === selectedKey) ?? visible[0] ?? null;
+  // Filters or sort send the list back to page one.
+  useEffect(() => setPage(1), [filters, sort]);
+  const paged = paginate(visible, page, PAGE_SIZE);
+
+  const selected = visible.find((item) => item.key === selectedKey) ?? paged.rows[0] ?? null;
   const loading = sims === null || pitches === null;
   const verticalOptions = [...new Set([...PRACTICE_VERTICALS, ...items.map((item) => item.vertical)])];
   const competencyOptions = [...new Set([...competencies, ...items.flatMap((item) => item.competencies)])];
+
+  function openItem(item: PracticeItem) {
+    setSelectedKey(item.key);
+    setEditing(item);
+  }
 
   function openNew() {
     setDuplicateOf(null);
@@ -261,6 +274,70 @@ export function PracticeLibrary({
         ]
     : [];
 
+  const seView = selected ? (
+    <>
+      <FlightStrip
+        compact
+        numeral={selected.duration.value}
+        numeralCaption={selected.duration.unit}
+        stubLabel={selected.kind === "sim" ? "Sim" : "Pitch"}
+      >
+        <span className="text-[17px] leading-[1.2] font-extrabold text-ink">{selected.name}</span>
+        <span className="line-clamp-4 text-[13px] leading-normal text-ink-2">{selected.summary}</span>
+        <span className="text-[13px] text-muted">
+          {selected.sim
+            ? `${selected.passLabel.charAt(0).toUpperCase()}${selected.passLabel.slice(1)}`
+            : `Pass at ${selected.pitch?.passingGrade} of 5`}
+        </span>
+      </FlightStrip>
+      <dl className="flex flex-col">
+        {definitions.map((row) => (
+          <div className="flex justify-between gap-4 border-t border-divider py-2.5 text-sm" key={row.term}>
+            <dt className="text-muted">{row.term}</dt>
+            <dd className="text-right font-semibold text-ink">{row.value}</dd>
+          </div>
+        ))}
+        {selected.sim ? (
+          <div className="flex justify-between gap-4 border-t border-divider py-2.5 text-sm">
+            <dt className="text-muted">Practice rounds</dt>
+            <dd className="text-right font-semibold text-ink">{rounds(selected.sim.practiceRoundsBeforeSubmit)}</dd>
+          </div>
+        ) : null}
+      </dl>
+    </>
+  ) : null;
+
+  const itemActions = selected ? (
+    <>
+      <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2">
+        <LinkButton
+          onClick={() => {
+            setDuplicateOf(selected);
+            setWizardOpen(true);
+          }}
+        >
+          Duplicate
+        </LinkButton>
+        {selected.sim ? <LinkButton onClick={() => setAssigning(selected)}>Assign to SEs</LinkButton> : null}
+      </div>
+      <div className="flex flex-wrap gap-x-3.5 gap-y-2">
+        {selected.pitch ? (
+          selected.pitch.active ? (
+            <LinkButton onClick={() => void setPitchActive(selected, false)} tone="danger">
+              Take out of queues
+            </LinkButton>
+          ) : (
+            <LinkButton onClick={() => void setPitchActive(selected, true)}>Make it live</LinkButton>
+          )
+        ) : (
+          <LinkButton onClick={() => void deleteSim(selected)} tone="danger">
+            Delete
+          </LinkButton>
+        )}
+      </div>
+    </>
+  ) : null;
+
   const aiNote = aiUsage ? (
     <>
       Practice runs on {PROVIDER_LABEL[aiUsage.provider] ?? aiUsage.provider} {aiUsage.model}.{" "}
@@ -359,7 +436,7 @@ export function PracticeLibrary({
           <LoadingState label="Loading the practice library…" />
         ) : (
           <TableCard minWidth={680}>
-            <caption className="sr-only">Practice items. Select a row to preview it.</caption>
+            <caption className="sr-only">Practice items. Open a row to edit it.</caption>
             <thead>
               <tr>
                 <th className={thCls} scope="col">
@@ -389,25 +466,34 @@ export function PracticeLibrary({
                   </td>
                 </tr>
               ) : (
-                visible.map((item, index) => {
+                paged.rows.map((item, index) => {
                   const isSelected = selected?.key === item.key;
                   return (
                     <tr
                       className={cn("cursor-pointer", isSelected ? rowHighlight.selected : "hover:bg-bg")}
                       key={item.key}
-                      onClick={() => setSelectedKey(item.key)}
+                      onClick={() => openItem(item)}
                     >
                       <td className={cn(tdCls, "py-3.5", index === 0 && "border-t-0")}>
                         <button
-                          aria-pressed={isSelected}
-                          className="flex w-full min-w-0 items-center gap-2 text-left"
+                          aria-label={`Open ${item.name}`}
+                          className="group flex w-full min-w-0 items-center gap-2 text-left"
                           onClick={(event) => {
                             event.stopPropagation();
-                            setSelectedKey(item.key);
+                            openItem(item);
                           }}
+                          onFocus={() => setSelectedKey(item.key)}
                           type="button"
                         >
-                          <TwoLineCell subline={item.subline} title={item.name} warning={item.warning} />
+                          <TwoLineCell
+                            subline={item.subline}
+                            title={
+                              <span className="decoration-blue decoration-2 underline-offset-4 group-hover:text-blue group-hover:underline">
+                                {item.name}
+                              </span>
+                            }
+                            warning={item.warning}
+                          />
                           {fresh.has(item.key) ? (
                             <Tag className="shrink-0" tone="warning">
                               New
@@ -432,69 +518,20 @@ export function PracticeLibrary({
             </tbody>
           </TableCard>
         )}
+        {!loading ? (
+          <DataTablePagination onPageChange={setPage} page={paged.page} pageCount={paged.pageCount} />
+        ) : null}
       </div>
 
       <aside aria-label="Selected practice" className="flex min-w-0 flex-col gap-[22px] pt-1.5">
         <p className="label-caps">As the SE sees it</p>
         {selected ? (
           <>
-            <FlightStrip
-              compact
-              numeral={selected.duration.value}
-              numeralCaption={selected.duration.unit}
-              stubLabel={selected.kind === "sim" ? "Sim" : "Pitch"}
-            >
-              <span className="text-[17px] leading-[1.2] font-extrabold text-ink">{selected.name}</span>
-              <span className="line-clamp-4 text-[13px] leading-normal text-ink-2">{selected.summary}</span>
-              <span className="text-[13px] text-muted">
-                {selected.sim
-                  ? `${selected.passLabel.charAt(0).toUpperCase()}${selected.passLabel.slice(1)}`
-                  : `Pass at ${selected.pitch?.passingGrade} of 5`}
-              </span>
-            </FlightStrip>
-            <dl className="flex flex-col">
-              {definitions.map((row) => (
-                <div className="flex justify-between gap-4 border-t border-divider py-2.5 text-sm" key={row.term}>
-                  <dt className="text-muted">{row.term}</dt>
-                  <dd className="text-right font-semibold text-ink">{row.value}</dd>
-                </div>
-              ))}
-              {selected.sim ? (
-                <div className="flex justify-between gap-4 border-t border-divider py-2.5 text-sm">
-                  <dt className="text-muted">Practice rounds</dt>
-                  <dd className="text-right font-semibold text-ink">{rounds(selected.sim.practiceRoundsBeforeSubmit)}</dd>
-                </div>
-              ) : null}
-            </dl>
-            <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2">
-              <button className="btn-secondary" onClick={() => setEditing(selected)} type="button">
-                Edit
-              </button>
-              <LinkButton
-                onClick={() => {
-                  setDuplicateOf(selected);
-                  setWizardOpen(true);
-                }}
-              >
-                Duplicate
-              </LinkButton>
-              {selected.sim ? <LinkButton onClick={() => setAssigning(selected)}>Assign to SEs</LinkButton> : null}
-            </div>
-            <div className="flex flex-wrap gap-x-3.5 gap-y-2">
-              {selected.pitch ? (
-                selected.pitch.active ? (
-                  <LinkButton onClick={() => void setPitchActive(selected, false)} tone="danger">
-                    Take out of queues
-                  </LinkButton>
-                ) : (
-                  <LinkButton onClick={() => void setPitchActive(selected, true)}>Make it live</LinkButton>
-                )
-              ) : (
-                <LinkButton onClick={() => void deleteSim(selected)} tone="danger">
-                  Delete
-                </LinkButton>
-              )}
-            </div>
+            {seView}
+            <button className="btn-secondary self-start" onClick={() => setEditing(selected)} type="button">
+              Edit
+            </button>
+            {itemActions}
             {selected.pitch ? (
               <p className="text-[13px] leading-normal text-muted">
                 Live pitch scenarios rotate into every SE&apos;s pitch queue, four at a time.
@@ -519,6 +556,12 @@ export function PracticeLibrary({
       <PracticeAssignDialog item={assigning} onClose={() => setAssigning(null)} people={people} />
       <SimTemplateEditor
         onClose={() => setEditing(null)}
+        side={
+          <>
+            {seView}
+            {itemActions}
+          </>
+        }
         onSaved={() => {
           setEditing(null);
           void load();
@@ -527,6 +570,12 @@ export function PracticeLibrary({
       />
       <PitchScenarioEditor
         onClose={() => setEditing(null)}
+        side={
+          <>
+            {seView}
+            {itemActions}
+          </>
+        }
         onSaved={() => {
           setEditing(null);
           void load();
