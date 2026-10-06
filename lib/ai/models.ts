@@ -1,14 +1,14 @@
 import type { AiProviderName } from "@/lib/ai/provider";
 
-/** Default model per provider. grok-3-mini retired in 2026; grok-4.5 is xAI's current general model. */
+/** Default model per provider. grok-3-mini retired in 2026; grok-4.3 is the same price, so the POC keeps costs flat. */
 export const DEFAULT_AI_MODELS: Record<AiProviderName, string> = {
-  xai: "grok-4.5",
+  xai: "grok-4.3",
   openai: "gpt-4.1-mini",
 };
 
 /** Models offered in Settings › AI, newest first. */
 export const AI_MODEL_OPTIONS: Record<AiProviderName, string[]> = {
-  xai: ["grok-4.5", "grok-4.7", "grok-4.3", "grok-4.20-0309-non-reasoning"],
+  xai: ["grok-4.3", "grok-4.20-0309-non-reasoning", "grok-4.5", "grok-4.7"],
   openai: ["gpt-4.1-mini", "gpt-4o-mini", "gpt-4o"],
 };
 
