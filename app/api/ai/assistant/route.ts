@@ -13,7 +13,7 @@ import {
   isClearlyOffTopic,
   pickContextArticles,
 } from "@/lib/help/assistant";
-import { docSourcesFrom, wantsDocsSearch } from "@/lib/help/sailpoint-docs";
+import { docSourcesFrom, stripCitations, wantsDocsSearch } from "@/lib/help/sailpoint-docs";
 import { helpArticlesFor, helpAudiencesForHats } from "@/lib/help";
 import { loadShellData } from "@/lib/shell/load-shell-data";
 
@@ -87,14 +87,16 @@ export async function POST(request: Request) {
     });
   }
 
-  // Live SailPoint docs only for product questions; the search itself is the costly part.
-  const searchDocs = Boolean(docsSearch) && wantsDocsSearch(question.content);
+  // The docs search is always on offer, so unfamiliar SailPoint names (e.g. a new product) get looked
+  // up rather than refused. Named products make the search mandatory; otherwise the model decides.
+  const searchDocs = Boolean(docsSearch);
+  const docsMode = !searchDocs ? "none" : wantsDocsSearch(question.content) ? "required" : "available";
 
   try {
     const result = await generateText({
       model: searchDocs ? docsSearch!.model : model,
       ...(searchDocs ? { tools: docsSearch!.tools } : {}),
-      system: assistantSystemPrompt(context, PORTAL_NAMES[portal], searchDocs),
+      system: assistantSystemPrompt(context, PORTAL_NAMES[portal], docsMode),
       messages: history.map((message) => ({ role: message.role, content: message.content })),
       maxOutputTokens: ASSISTANT_LIMITS.maxOutputTokens,
       temperature: 0.3,
@@ -107,7 +109,7 @@ export async function POST(request: Request) {
       usage: result.usage,
       tenantId,
     });
-    const answer = result.text.trim() || ASSISTANT_REFUSAL;
+    const answer = stripCitations(result.text) || ASSISTANT_REFUSAL;
     const refused = answer.startsWith(ASSISTANT_REFUSAL.slice(0, 40));
     return NextResponse.json({
       answer,

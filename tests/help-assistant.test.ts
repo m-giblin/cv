@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ASSISTANT_REFUSAL, BOSUN_DEFINITION, assistantSystemPrompt, isClearlyOffTopic, pickContextArticles } from "@/lib/help/assistant";
-import { docSourcesFrom, isSailPointDocUrl, wantsDocsSearch } from "@/lib/help/sailpoint-docs";
+import { docSourcesFrom, isSailPointDocUrl, stripCitations, titleFromDocUrl, wantsDocsSearch } from "@/lib/help/sailpoint-docs";
 import { articleAsText, searchHelp } from "@/lib/help/search";
 import type { HelpArticle } from "@/lib/help/types";
 
@@ -72,13 +72,16 @@ describe("assistant guardrails", () => {
     expect(prompt).toContain("You are Bosun");
     expect(prompt).toContain(BOSUN_DEFINITION);
     expect(prompt).not.toContain("web_search");
-    expect(assistantSystemPrompt([], "SE", true)).toContain("documentation.sailpoint.com and developer.sailpoint.com");
+    expect(assistantSystemPrompt([], "SE", "available")).toContain("documentation.sailpoint.com and developer.sailpoint.com");
+    expect(assistantSystemPrompt([], "SE", "available")).toContain("search the docs before deciding it's out of scope");
+    expect(assistantSystemPrompt([], "SE", "required")).toContain("search the docs before answering");
   });
 });
 
 describe("SailPoint docs sources", () => {
   it("searches docs only for product questions", () => {
     expect(wantsDocsSearch("How do I call the ISC transforms API?")).toBe(true);
+    expect(wantsDocsSearch("What is Entro?")).toBe(true);
     expect(wantsDocsSearch("How do I submit evidence for my ramp step?")).toBe(false);
   });
 
@@ -96,7 +99,17 @@ describe("SailPoint docs sources", () => {
     ]);
     expect(docs).toEqual([
       { title: "A", url: "https://developer.sailpoint.com/docs/a" },
-      { title: "/c", url: "https://documentation.sailpoint.com/c" },
+      { title: "C", url: "https://documentation.sailpoint.com/c" },
     ]);
+  });
+
+  it("turns numbered source titles into readable ones and strips inline citations", () => {
+    expect(titleFromDocUrl("https://documentation.sailpoint.com/entro/help/getting-started/about-entro.html")).toBe(
+      "Entro: About entro",
+    );
+    expect(docSourcesFrom([{ url: "https://developer.sailpoint.com/docs/api/v3/", title: "1" }])[0]!.title).toBe("V3");
+    expect(stripCitations("Entro finds secrets.[[1]](https://documentation.sailpoint.com/x) It scores risk [2].")).toBe(
+      "Entro finds secrets. It scores risk.",
+    );
   });
 });
