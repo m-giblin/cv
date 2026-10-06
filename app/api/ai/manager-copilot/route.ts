@@ -1,4 +1,5 @@
 import { generateText } from "ai";
+import { logAiUsage } from "@/lib/ai/log-usage";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { enforceAiRateLimit } from "@/lib/ai/enforce-rate-limit";
@@ -63,7 +64,7 @@ export async function POST(request: Request) {
  if (rateLimited) return rateLimited;
 
  const { strengths, gaps, transcript, context, managerSummary, recommendedImprovements } = parsed.data;
- const { model } = await resolveAiProviderForUser(session.supabase, session.user.id);
+ const { model, provider, modelName } = await resolveAiProviderForUser(session.supabase, session.user.id);
 
  if (!model) {
  return NextResponse.json({
@@ -90,6 +91,13 @@ Write manager-ready feedback in 3-5 sentences:
 Tone: direct, supportive, field-ready. No bullet lists. No markdown.`;
 
  const result = await generateText({ model, prompt });
+ await logAiUsage(session.supabase, {
+  feature: "manager_copilot",
+  provider,
+  model: modelName,
+  userId: session.user.id,
+  usage: result.usage,
+ });
 
  return NextResponse.json({ draft: result.text.trim(), source: "ai" });
 }

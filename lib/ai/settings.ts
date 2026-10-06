@@ -25,6 +25,11 @@ const FEATURE_LABELS: Record<string, string> = {
   deal_prep: "Deal prep briefs",
   challenge: "Challenge generation",
   isc_lab: "ISC Lab",
+  challenge_review: "Challenge grading",
+  corpus_suggest_tags: "Content tagging",
+  manager_coaching_brief: "Manager coaching briefs",
+  manager_copilot: "Manager copilot",
+  market_pulse: "Market Pulse quizzes",
 };
 
 function envFallback(): PlatformAiSettings {
