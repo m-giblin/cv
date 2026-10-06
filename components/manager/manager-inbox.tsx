@@ -284,6 +284,7 @@ export function ManagerInbox({
   const [saving, setSaving] = useState<"approve" | "reject" | "bulk" | null>(null);
   const signoff = useCoachingSignoffState();
   const workbenchTitleId = useId();
+  const [attemptedKey, setAttemptedKey] = useState<string | null>(null);
 
   useEffect(() => {
     void fetch("/api/mentor-reviews")
@@ -416,6 +417,7 @@ export function ManagerInbox({
   async function submitReview(item: InboxItem, decision: "approve" | "reject") {
     if (usesStructuredSignoff(item)) {
       if (!isSignoffReady(signoffTierForReview(signoffContextForItem(item)), signoff.value, decision)) {
+        setAttemptedKey(itemKey(item));
         toast.error(
           decision === "approve"
             ? "Complete the coaching sign-off fields before approving."
@@ -599,7 +601,18 @@ export function ManagerInbox({
                 const fresh = time ? now - new Date(time).getTime() < 3_600_000 : false;
                 const score = item.inboxType === "coaching" ? item.score : null;
                 return (
-                  <tr className={on ? rowHighlight.selected : fresh ? rowHighlight.ready : undefined} key={key}>
+                  <tr
+                    className={cn(
+                      "cursor-pointer",
+                      on ? rowHighlight.selected : fresh ? rowHighlight.ready : "hover:bg-[#FBF9F5]",
+                    )}
+                    key={key}
+                    onClick={(event) => {
+                      // The whole row opens the workbench; the checkbox and buttons keep their own clicks.
+                      if ((event.target as HTMLElement).closest("button, a, input, label")) return;
+                      setActiveKey(key);
+                    }}
+                  >
                     <td className={cn(tdCls, "py-3")}>
                       <Checkbox
                         aria-disabled={!eligible}
@@ -629,7 +642,13 @@ export function ManagerInbox({
                     </td>
                     <td className={cn(tdCls, "py-3 text-sm whitespace-nowrap text-ink-2")}>{typeTagLabel(item)}</td>
                     <td className={cn(tdCls, "max-w-0 py-3")}>
-                      <span className="block truncate font-bold text-ink">{itemTitle(item)}</span>
+                      <button
+                        className="block max-w-full cursor-pointer truncate text-left font-bold text-ink decoration-blue decoration-2 underline-offset-4 hover:text-blue hover:underline focus-visible:text-blue focus-visible:underline"
+                        onClick={() => setActiveKey(key)}
+                        type="button"
+                      >
+                        {itemTitle(item)}
+                      </button>
                     </td>
                     <td className={cn(tdCls, "py-3 text-sm text-ink")}>
                       <span className="block truncate">{itemPerson(item)}</span>
@@ -800,6 +819,7 @@ export function ManagerInbox({
                       onLiveAttestationChange={signoff.setLiveAttestation}
                       onNextActionChange={signoff.setNextAction}
                       onStrengthChange={signoff.setStrength}
+                      showErrors={attemptedKey === itemKey(activeItem)}
                       signoff={signoff.value}
                       tier={tier}
                     />

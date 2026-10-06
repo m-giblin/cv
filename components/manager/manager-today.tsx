@@ -91,7 +91,6 @@ export function ManagerToday({
               Open inbox
             </Link>
           }
-          className="items-end"
         >
           <HeaderStat
             label="Reviews waiting"

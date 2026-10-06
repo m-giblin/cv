@@ -149,6 +149,7 @@ export function CoachingSignoffForm({
   onLiveAttestationChange,
   onAttestationNoteChange,
   decision = "approve",
+  showErrors = true,
 }: {
   tier: SignoffTier;
   signoff: CoachingSignoffInput;
@@ -159,6 +160,8 @@ export function CoachingSignoffForm({
   onLiveAttestationChange: (value: boolean) => void;
   onAttestationNoteChange: (value: string) => void;
   decision?: "approve" | "reject";
+  /** False until the reviewer tries to approve, so an untouched form isn't already red. */
+  showErrors?: boolean;
 }) {
   const validation = useMemo(
     () => validateCoachingSignoff(tier, signoff, decision),
@@ -247,7 +250,7 @@ export function CoachingSignoffForm({
           ) : null}
         </>
       ) : null}
-      {!validation.ok && decision === "approve" ? (
+      {showErrors && !validation.ok && decision === "approve" ? (
         <ul className="space-y-1 rounded-[10px] bg-danger-soft px-3 py-2 text-sm font-semibold text-danger">
           {validation.errors.map((error) => (
             <li key={error}>{error}</li>
