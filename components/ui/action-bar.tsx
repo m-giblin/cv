@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-/** Sticky bottom bar for bulk actions and unsaved changes. Render only when there is something to act on. */
+/** Sticky navy bar for bulk actions and unsaved changes. Render only when there is something to act on. */
 export function ActionBar({
   count,
   summary,
@@ -17,15 +17,15 @@ export function ActionBar({
 }) {
   return (
     <div
+      aria-label="Actions"
       className={cn(
-        "sticky bottom-0 z-10 flex flex-wrap items-center gap-x-6 gap-y-2 bg-blue px-[var(--gutter)] py-3.5",
+        "on-navy sticky bottom-0 z-10 flex flex-wrap items-center gap-x-6 gap-y-2 bg-navy px-[var(--page-pad-x)] py-3.5 max-sm:px-4",
         className,
       )}
       role="region"
-      aria-label="Actions"
     >
       <span className="text-base font-bold text-white">{count}</span>
-      {summary ? <span className="font-mono text-xs text-on-blue uppercase">{summary}</span> : null}
+      {summary ? <span className="text-sm text-on-navy-muted">{summary}</span> : null}
       <span className="flex-1" />
       {secondary}
       {primary}

@@ -5,22 +5,24 @@ import { useEffect, useId, useRef, type ReactNode } from "react";
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-/** 440px side drawer: focus-trapped, Esc closes, focus returns to the trigger. */
-export function Drawer({
+/** Centered modal (wizard shell): paper background, focus trap, Esc closes, focus returns to the trigger. */
+export function Modal({
   open,
   onClose,
-  title,
+  labelledBy,
   children,
-  footer,
+  width = 980,
+  height = 700,
 }: {
   open: boolean;
   onClose: () => void;
-  title: ReactNode;
+  labelledBy?: string;
   children: ReactNode;
-  footer?: ReactNode;
+  width?: number;
+  height?: number;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
-  const titleId = useId();
+  const fallbackId = useId();
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
@@ -29,7 +31,6 @@ export function Drawer({
     const trigger = document.activeElement as HTMLElement | null;
     const panel = panelRef.current;
     panel?.querySelector<HTMLElement>(FOCUSABLE)?.focus();
-
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -59,30 +60,17 @@ export function Drawer({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-40">
-      <div aria-hidden className="absolute inset-0 bg-scrim" onClick={onClose} />
+    <div className="fixed inset-0 z-50 grid place-items-center p-4">
+      <div aria-hidden className="absolute inset-0 bg-[rgb(11_23_51/0.45)]" onClick={() => onCloseRef.current()} />
       <div
-        aria-labelledby={titleId}
+        aria-labelledby={labelledBy ?? fallbackId}
         aria-modal="true"
-        className="absolute inset-y-0 right-0 flex w-[440px] max-w-full flex-col border-l border-line bg-white shadow-[var(--shadow-drawer)]"
+        className="relative flex max-h-full max-w-full flex-col overflow-hidden rounded-[16px] border border-line bg-bg shadow-[var(--shadow-modal)]"
         ref={panelRef}
         role="dialog"
+        style={{ width, height }}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-divider px-6 py-5">
-          <h2 className="text-lg font-extrabold text-ink" id={titleId}>
-            {title}
-          </h2>
-          <button
-            aria-label="Close"
-            className="rounded-full px-2 text-lg text-muted hover:text-ink"
-            onClick={onClose}
-            type="button"
-          >
-            ✕
-          </button>
-        </div>
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">{children}</div>
-        {footer ? <div className="flex flex-wrap gap-3 border-t border-divider px-6 py-4">{footer}</div> : null}
+        {children}
       </div>
     </div>
   );

@@ -168,26 +168,27 @@ export function NotificationFlyout({
  >
  <Bell aria-hidden className="h-[18px] w-[18px]" strokeWidth={1.75} />
  {unread.length > 0 ? (
+ onDark ? (
+ <span aria-hidden className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full border-[1.5px] border-blue bg-signal" />
+ ) : (
  <span
  aria-hidden
- className={cn(
- "absolute -top-1 -right-1 min-w-[18px] rounded-full bg-signal px-1 text-center font-mono text-xs leading-[18px] font-medium text-ink",
- onDark ? "ring-2 ring-blue" : "ring-2 ring-white",
- )}
+ className="absolute -top-1 -right-1 min-w-[18px] rounded-full bg-signal px-1 text-center text-xs leading-[18px] font-bold text-ink ring-2 ring-white"
  >
  {unread.length > 9 ? "9+" : unread.length}
  </span>
+ )
  ) : null}
  </button>
 
  {open ? (
  <>
- <div aria-hidden className="fixed inset-0 z-40 bg-[rgba(10,26,63,0.25)] lg:bg-transparent" />
+ <div aria-hidden className="fixed inset-0 z-40 bg-scrim lg:bg-transparent" />
  <div
  aria-label="Notifications"
  className={cn(
- "fixed z-50 flex w-[min(24rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-[14px] border-[1.5px] border-ink bg-white text-ink",
- align === "sidebar" ? "bottom-4 left-4 lg:bottom-6 lg:left-[calc(var(--rail-width)+12px)]" : "top-16 right-4",
+ "fixed z-50 flex w-[min(24rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-[14px] border border-line bg-white text-ink shadow-[var(--shadow-drag)]",
+ align === "sidebar" ? "bottom-4 left-4 lg:bottom-6 lg:left-[calc(var(--sidebar-width)+12px)]" : "top-[calc(var(--topbar-height)+8px)] right-4",
  )}
  ref={panelRef}
  role="dialog"
@@ -195,7 +196,7 @@ export function NotificationFlyout({
  <div className="flex items-center justify-between gap-3 border-b border-divider px-5 py-3.5">
  <div>
  <p className="text-lg leading-[1.3] font-extrabold">Notifications</p>
- {unread.length > 0 ? <p className="label-mono">{unread.length} unread</p> : null}
+ {unread.length > 0 ? <p className="label-caps">{unread.length} unread</p> : null}
  </div>
  <div className="flex items-center gap-2">
  {unread.length > 0 ? (

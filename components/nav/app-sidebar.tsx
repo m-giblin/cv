@@ -2,22 +2,21 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { NotificationFlyout } from "@/components/notifications/notification-flyout";
-import { UserAccountMenu } from "@/components/nav/user-account-menu";
-import { WorkspaceSwitcher } from "@/components/workspace-switcher";
-import {
-  WORKSPACE_HAT_LABELS,
-  getWorkspaceHome,
-  type WorkspaceHat,
-} from "@/lib/auth/workspace";
+import type { WorkspaceHat } from "@/lib/auth/workspace";
 import { canonicalAdminHref } from "@/lib/admin/admin-routes";
 import { canonicalHref } from "@/lib/manager/manager-routes";
-import { canonicalPlatformHref } from "@/lib/platform/platform-routes";
 import { resolveActive, visibleNav } from "@/lib/navigation/nav-model";
-import { PRODUCT_NAME } from "@/lib/tenant/shell-branding-shared";
+import { canonicalPlatformHref } from "@/lib/platform/platform-routes";
 import type { PlatformFeatureFlags } from "@/lib/platform/settings-shared";
-import type { Notification, Profile } from "@/lib/types";
+import type { Notification } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+const GROUP_LABELS: Record<WorkspaceHat, string> = {
+  se: "My work",
+  manager: "Manager",
+  tenant_admin: "Admin",
+  platform: "Platform",
+};
 
 function unreadFor(notifications: Notification[], hrefs: string[]) {
   return notifications.filter(
@@ -32,90 +31,109 @@ function unreadFor(notifications: Notification[], hrefs: string[]) {
   ).length;
 }
 
-export function SidebarBrand({ workspace }: { workspace: WorkspaceHat }) {
-  return (
-    <Link
-      className="flex items-center gap-2.5 text-white no-underline"
-      href={getWorkspaceHome(workspace)}
-    >
-      <span
-        aria-hidden
-        className="grid h-[26px] w-[26px] place-items-center rounded-[8px] bg-signal font-mono text-xs font-medium text-ink"
-      >
-        SE
-      </span>
-      <span className="truncate text-base font-bold">{PRODUCT_NAME}</span>
-    </Link>
-  );
-}
+export type SidebarPerson = { id: string; name: string; role: string; href?: string };
 
+/** White sidebar: one group of nav items, sub-items under the active parent, optional counts. */
 export function SidebarContent({
   workspace,
-  workspaceHats,
-  currentUser,
   notifications,
   flags,
+  counts,
+  people,
   onNavigate,
-  onOpenPalette,
 }: {
   workspace: WorkspaceHat;
-  workspaceHats: WorkspaceHat[];
-  currentUser: Profile;
   notifications: Notification[];
   flags?: PlatformFeatureFlags;
+  /** Optional right-aligned counts by nav item id, e.g. { ramp: "5 of 10" }. */
+  counts?: Record<string, string | number>;
+  /** SE workspace "Team" group: manager and mentor. */
+  people?: SidebarPerson[];
   onNavigate?: () => void;
-  onOpenPalette: () => void;
 }) {
   const pathname = usePathname();
   const params = useSearchParams();
-  const { itemId } = resolveActive(workspace, pathname, params);
+  const { itemId, childId } = resolveActive(workspace, pathname, params);
   const items = visibleNav(workspace, flags);
-  const mine = notifications.filter((item) => item.userId === currentUser.id);
 
   return (
-    <div className="flex h-full flex-col gap-4 px-3.5 py-5">
-      <SidebarBrand workspace={workspace} />
-      <WorkspaceSwitcher activeHat={workspace} hats={workspaceHats} />
-      <button
-        className="flex items-center justify-between rounded-[10px] bg-blue-2 px-2.5 py-2 text-left text-[13px] text-on-blue-muted hover:bg-blue-line"
-        onClick={onOpenPalette}
-        type="button"
-      >
-        <span>Search</span>
-        <kbd className="font-mono text-xs">⌘K</kbd>
-      </button>
-      <nav aria-label={`${WORKSPACE_HAT_LABELS[workspace]} navigation`} className="flex flex-col gap-1">
+    <div className="flex flex-col gap-[26px] py-6">
+      <nav aria-label={`${GROUP_LABELS[workspace]} navigation`} className="flex flex-col gap-0.5">
+        <span className="label-caps px-6 pb-2">{GROUP_LABELS[workspace]}</span>
         {items.map((item) => {
           const active = item.id === itemId;
-          const unread = unreadFor(mine, [item.href, ...(item.children ?? []).map((c) => c.href)]);
+          const inbox = item.id === "inbox" ? unreadFor(notifications, [item.href]) : 0;
+          const count = counts?.[item.id];
+          const children = active ? (item.children ?? []) : [];
           return (
-            <Link
-              aria-current={active ? "page" : undefined}
-              className={cn(
-                "flex items-center justify-between gap-2 rounded-[10px] px-3 py-[9px] text-[15px] no-underline",
-                active
-                  ? "bg-signal font-bold text-ink"
-                  : "font-medium text-[#EAF0FC] hover:bg-blue-2",
-              )}
-              href={item.href}
-              key={item.id}
-              onClick={onNavigate}
-            >
-              <span className="truncate">{item.label}</span>
-              {unread > 0 ? (
-                <span className="rounded-full bg-signal px-2 font-mono text-xs leading-[18px] text-ink">
-                  {unread > 9 ? "9+" : unread}
-                </span>
+            <div key={item.id}>
+              <Link
+                aria-current={active && !childId ? "page" : undefined}
+                className={cn(
+                  "flex items-center justify-between gap-2 px-6 py-2 text-[15px] no-underline",
+                  active
+                    ? "bg-blue-soft font-bold text-blue shadow-[inset_3px_0_0_var(--color-blue)]"
+                    : "font-medium text-ink hover:bg-bg",
+                )}
+                href={item.href}
+                onClick={onNavigate}
+              >
+                <span className="truncate">{item.label}</span>
+                {inbox > 0 ? (
+                  <span className="num rounded-full bg-signal px-2.5 text-[13px] leading-[22px] font-bold text-ink">
+                    {inbox > 99 ? "99+" : inbox}
+                  </span>
+                ) : count !== undefined ? (
+                  <span className="num text-[13px] font-medium text-muted">{count}</span>
+                ) : null}
+              </Link>
+              {children.length > 1 ? (
+                <ul className="flex flex-col pb-1">
+                  {children.map((child) => {
+                    const childActive = child.id === childId;
+                    return (
+                      <li key={child.id}>
+                        <Link
+                          aria-current={childActive ? "page" : undefined}
+                          className={cn(
+                            "block py-1.5 pr-6 pl-10 text-sm no-underline",
+                            childActive ? "font-bold text-blue" : "font-medium text-ink-2 hover:text-ink",
+                          )}
+                          href={child.href}
+                          onClick={onNavigate}
+                        >
+                          {child.label}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
               ) : null}
-            </Link>
+            </div>
           );
         })}
       </nav>
-      <div className="flex-1" />
-      <div className="flex items-center gap-2.5 border-t border-blue-line pt-3">
-        <UserAccountMenu appearance="sidebar-dark" currentUser={currentUser} />
-        <NotificationFlyout align="sidebar" appearance="sidebar-dark" notifications={mine} />
-      </div>
+      {people && people.length > 0 ? (
+        <div className="flex flex-col gap-0.5">
+          <span className="label-caps px-6 pb-2">Team</span>
+          {people.map((person) =>
+            person.href ? (
+              <Link
+                className="truncate px-6 py-2 text-[15px] font-medium text-ink no-underline hover:bg-bg"
+                href={person.href}
+                key={person.id}
+                onClick={onNavigate}
+              >
+                {person.name}, {person.role}
+              </Link>
+            ) : (
+              <span className="truncate px-6 py-2 text-[15px] font-medium text-ink" key={person.id}>
+                {person.name}, {person.role}
+              </span>
+            ),
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Tag } from "@/components/ui/tag";
 import { cn } from "@/lib/utils";
 
 export type ScheduleRow = {
@@ -10,32 +11,25 @@ export type ScheduleRow = {
   gate?: boolean;
 };
 
-/** Blue list of dated rows. Gate rows get a signal date chip. */
+/** Date rows: month over day, a two-line cell, and a Gate badge where relevant. */
 export function Schedule({ rows, className }: { rows: ScheduleRow[]; className?: string }) {
   return (
-    <ul className={cn("flex flex-col gap-0.5 rounded-[14px] bg-blue p-1.5", className)}>
+    <ul className={cn("flex flex-col", className)}>
       {rows.map((row) => (
-        <li
-          className="grid grid-cols-[56px_minmax(0,1fr)_auto] items-center gap-3 rounded-[10px] px-2 py-1.5"
-          key={row.id}
-        >
-          <span
-            className={cn(
-              "grid h-12 w-12 place-content-center rounded-[10px] text-center",
-              row.gate ? "bg-signal text-ink" : "bg-blue-2 text-white",
-            )}
-          >
-            <span className="text-lg leading-none font-extrabold">{row.day}</span>
-            <span className={cn("font-mono text-xs uppercase", row.gate ? "text-ink" : "text-signal")}>
-              {row.month}
-            </span>
+        <li className="grid grid-cols-[64px_minmax(0,1fr)_auto] items-center gap-4 border-t border-line py-3.5" key={row.id}>
+          <span className="flex flex-col">
+            <span className="label-caps">{row.month}</span>
+            <span className="num text-[26px] leading-none font-extrabold">{row.day}</span>
           </span>
-          <span className="min-w-0 truncate text-[15px] font-semibold text-white">{row.title}</span>
-          {row.meta ? (
-            <span className="font-mono text-xs whitespace-nowrap text-on-blue uppercase">{row.meta}</span>
-          ) : null}
+          <span className="flex min-w-0 flex-col">
+            <span className="truncate text-[15px] font-bold text-ink">{row.title}</span>
+            {row.meta ? <span className="truncate text-[13px] text-muted">{row.meta}</span> : null}
+          </span>
+          {row.gate ? <Tag tone="blue">Gate</Tag> : <span />}
         </li>
       ))}
     </ul>
   );
 }
+
+export { Schedule as DateRows };

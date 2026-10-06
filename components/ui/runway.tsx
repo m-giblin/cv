@@ -4,93 +4,87 @@ import { cn } from "@/lib/utils";
 export type RunwaySegment = {
   label: string;
   weeks: number;
-  /** Gate at the end of this segment has been passed. */
   gatePassed?: boolean;
 };
 
 /**
- * 13-week runway: done weeks blue, current week signal with an ink outline, future weeks dashed.
- * Diamonds mark the gate at the end of each segment.
+ * 13-week runway. On paper: done blue, current amber with an ink outline, upcoming track.
+ * On navy: done amber, current white, upcoming #2A3A63.
  */
 export function Runway({
   segments,
   currentWeek,
-  endLabel = "FIELD READY",
+  endLabel = "Field ready",
+  onNavy = false,
+  showLabels = true,
   className,
 }: {
   segments: RunwaySegment[];
-  /** 1-based. */
   currentWeek: number;
   endLabel?: string;
+  onNavy?: boolean;
+  showLabels?: boolean;
   className?: string;
 }) {
   const total = segments.reduce((sum, segment) => sum + segment.weeks, 0);
   let week = 0;
-  const currentSegment = (() => {
-    let acc = 0;
-    for (let i = 0; i < segments.length; i += 1) {
-      acc += segments[i]!.weeks;
-      if (currentWeek <= acc) return i;
-    }
-    return segments.length - 1;
-  })();
-  const pad = (n: number) => String(n).padStart(2, "0");
+  let acc = 0;
+  const currentSegment = segments.findIndex((segment) => {
+    acc += segment.weeks;
+    return currentWeek <= acc;
+  });
 
   return (
-    <div
-      aria-label={`Week ${currentWeek} of ${total}`}
-      className={cn("flex flex-col gap-1.5", className)}
-      role="img"
-    >
-      <div
-        className="grid gap-1.5 font-mono text-xs text-muted uppercase"
-        style={{ gridTemplateColumns: segments.map((s) => `${s.weeks}fr`).join(" ") }}
-      >
-        {segments.map((segment, index) => (
-          <span className={index === currentSegment ? "font-medium text-ink" : undefined} key={segment.label}>
-            {segment.label}
-          </span>
-        ))}
-      </div>
+    <div aria-label={`Week ${currentWeek} of ${total}`} className={cn("flex flex-col gap-2", className)} role="img">
       <div className="flex items-center gap-1">
-        {segments.map((segment) => (
+        {segments.map((segment, s) => (
           <Fragment key={segment.label}>
+            {s > 0 ? <span className="w-1" /> : null}
             {Array.from({ length: segment.weeks }, () => {
               week += 1;
               const n = week;
               return (
                 <div
                   className={cn(
-                    "h-3 flex-1 rounded-[4px]",
-                    n < currentWeek && "bg-blue",
-                    n === currentWeek && "bg-signal outline-2 outline-offset-2 outline-ink",
-                    n > currentWeek && "border-[1.5px] border-dashed border-dash",
+                    "h-2 flex-1 rounded-[2px]",
+                    onNavy
+                      ? n < currentWeek
+                        ? "bg-signal"
+                        : n === currentWeek
+                          ? "bg-white"
+                          : "bg-[#2A3A63]"
+                      : n < currentWeek
+                        ? "bg-blue"
+                        : n === currentWeek
+                          ? "bg-signal outline-2 outline-offset-1 outline-ink"
+                          : "bg-track",
                   )}
                   key={n}
                 />
               );
             })}
-            <div
-              className={cn(
-                "mx-0.5 h-2.5 w-2.5 shrink-0 rotate-45",
-                segment.gatePassed ? "bg-blue" : "border-2 border-blue",
-              )}
-            />
           </Fragment>
         ))}
       </div>
-      <div className="relative flex font-mono text-xs whitespace-nowrap text-muted">
-        <span>W01</span>
-        <span
-          className="absolute font-medium text-ink"
-          style={{ left: `calc(${((currentWeek - 1) / total) * 100}% )` }}
+      {showLabels ? (
+        <div
+          className={cn("grid gap-2 text-[13px]", onNavy ? "text-on-navy-muted" : "text-muted")}
+          style={{ gridTemplateColumns: segments.map((s) => `${s.weeks}fr`).join(" ") }}
         >
-          ▲ W{pad(currentWeek)} · YOU ARE HERE
-        </span>
-        <span className="ml-auto">
-          W{pad(total)} · {endLabel}
-        </span>
-      </div>
+          {segments.map((segment, index) => (
+            <span
+              className={cn(
+                "truncate",
+                index === currentSegment && (onNavy ? "font-bold text-white" : "font-bold text-ink"),
+                index === segments.length - 1 && "text-right",
+              )}
+              key={segment.label}
+            >
+              {index === segments.length - 1 && index !== currentSegment ? `${segment.label} · ${endLabel}` : segment.label}
+            </span>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

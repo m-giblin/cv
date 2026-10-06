@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 type Option = { id: string; label: string; href?: string };
 
-/** Pill toggle ("LIST | CALENDAR"). Uses links when options carry hrefs, buttons otherwise. */
+/** View toggle: white pill, active segment ink with white text. */
 export function SegmentedToggle({
   options,
   value,
@@ -20,16 +20,12 @@ export function SegmentedToggle({
   className?: string;
 }) {
   return (
-    <div
-      aria-label={label}
-      className={cn("inline-flex overflow-hidden rounded-full border-[1.5px] border-ink bg-white", className)}
-      role="group"
-    >
+    <div aria-label={label} className={cn("inline-flex gap-0.5 rounded-full border border-line bg-white p-[3px]", className)} role="group">
       {options.map((option) => {
         const active = option.id === value;
         const cls = cn(
-          "px-4 py-1.5 font-mono text-xs font-medium uppercase no-underline",
-          active ? "bg-blue text-white" : "text-ink hover:bg-blue-soft",
+          "rounded-full px-4 py-1.5 text-sm font-semibold whitespace-nowrap no-underline",
+          active ? "bg-ink text-white" : "text-ink-2 hover:text-ink",
         );
         return option.href ? (
           <Link aria-current={active ? "page" : undefined} className={cls} href={option.href} key={option.id}>
@@ -44,3 +40,5 @@ export function SegmentedToggle({
     </div>
   );
 }
+
+export { SegmentedToggle as ViewToggle };

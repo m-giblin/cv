@@ -2,6 +2,7 @@ import { DEFAULT_TENANT_ID } from "@/lib/tenant/types";
 
 /** The product's name, kept in one place so it can change in one place. */
 export const PRODUCT_NAME = "SE Enablement";
+export const PRODUCT_TAGLINE = "Field readiness";
 
 export type TenantShellBranding = {
   tenantId: string | null;

@@ -1,6 +1,7 @@
 import { cookies, headers } from "next/headers";
 import { ReactNode } from "react";
 import { AppShellView } from "@/components/app-shell-view";
+import type { SidebarPerson } from "@/components/nav/app-sidebar";
 import { getEffectiveAccess } from "@/lib/auth/effective-access";
 import { SHADOW_CEILING_COOKIE, parseShadowMode } from "@/lib/auth/shadow-tenant";
 import {
@@ -10,7 +11,36 @@ import {
 } from "@/lib/auth/workspace";
 import { isForgeConfigured } from "@/lib/forge/config";
 import { getTenantShellBranding } from "@/lib/tenant/shell-branding";
+import { createClient } from "@/lib/supabase/server";
 import { Notification, Profile } from "@/lib/types";
+
+/** Manager and mentor for the SE sidebar "Team" group. Best effort: failures just hide the group. */
+async function loadSeTeam(currentUser: Profile): Promise<SidebarPerson[]> {
+  try {
+    const supabase = await createClient();
+    if (!supabase) return [];
+    const { data: assignment } = await supabase
+      .from("plan_assignments")
+      .select("mentor_id")
+      .eq("user_id", currentUser.id)
+      .not("mentor_id", "is", null)
+      .limit(1)
+      .maybeSingle();
+    const ids = [currentUser.managerId, assignment?.mentor_id].filter((id): id is string => Boolean(id));
+    if (ids.length === 0) return [];
+    const { data: rows } = await supabase.from("profiles").select("id, full_name").in("id", ids);
+    const name = (id: string | null | undefined) => rows?.find((row) => row.id === id)?.full_name;
+    const people: SidebarPerson[] = [];
+    const manager = name(currentUser.managerId);
+    if (manager && currentUser.managerId) people.push({ id: currentUser.managerId, name: manager, role: "manager" });
+    const mentorId = assignment?.mentor_id;
+    const mentor = name(mentorId);
+    if (mentor && mentorId && mentorId !== currentUser.managerId) people.push({ id: mentorId, name: mentor, role: "mentor" });
+    return people;
+  } catch {
+    return [];
+  }
+}
 
 export async function AppShell({
   children,
@@ -47,6 +77,8 @@ export async function AppShell({
     shadowMode: enterMode,
   });
 
+  const people = workspace === "se" ? await loadSeTeam(currentUser) : undefined;
+
   return (
     <AppShellView
       branding={branding}
@@ -54,6 +86,7 @@ export async function AppShell({
       currentUser={currentUser}
       forgeEnabled={isForgeConfigured()}
       notifications={notifications}
+      people={people}
       shadowMode={access.isShadowing ? (access.shadowMode ?? "admin") : null}
       shadowTenantName={
         access.isShadowing ? (access.shadowTenantName ?? branding.productName) : null

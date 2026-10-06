@@ -70,7 +70,7 @@ export function CommandPalette({
       <div
         aria-label="Go to"
         aria-modal="true"
-        className="w-full max-w-[520px] overflow-hidden rounded-[14px] border-[1.5px] border-ink bg-white"
+        className="w-full max-w-[520px] overflow-hidden rounded-[14px] border border-line bg-white shadow-[var(--shadow-modal)]"
         onKeyDown={onKeyDown}
         role="dialog"
       >
@@ -107,7 +107,7 @@ export function CommandPalette({
                 role="option"
               >
                 <span>{entry.label}</span>
-                {entry.section ? <span className="label-mono">{entry.section}</span> : null}
+                {entry.section ? <span className="text-[13px] text-muted">{entry.section}</span> : null}
               </li>
             ))
           )}

@@ -2,14 +2,14 @@
 
 import { usePathname, useSearchParams } from "next/navigation";
 import { CSSProperties, ReactNode, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { SidebarContent, type SidebarPerson } from "@/components/nav/app-sidebar";
 import { CommandPalette } from "@/components/nav/command-palette";
-import { SidebarBrand, SidebarContent } from "@/components/nav/app-sidebar";
-import { SectionTabs } from "@/components/nav/section-tabs";
+import { TopBar } from "@/components/nav/top-bar";
 import { useNavFlags } from "@/components/nav/use-nav-flags";
-import { NotificationFlyout } from "@/components/notifications/notification-flyout";
 import { ShadowTenantBanner } from "@/components/platform/shadow-tenant-banner";
 import { TenantBrandingProvider } from "@/components/tenant/tenant-branding-provider";
 import { UatBugTracker } from "@/components/uat/uat-bug-tracker";
+import { WorkspaceSwitcher } from "@/components/workspace-switcher";
 import type { AccessTier } from "@/lib/auth/rbac";
 import type { WorkspaceHat } from "@/lib/auth/workspace";
 import { pageTitle, paletteEntries } from "@/lib/navigation/nav-model";
@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 function DocumentTitle({ workspace }: { workspace: WorkspaceHat }) {
   const pathname = usePathname();
   const params = useSearchParams();
+
   useEffect(() => {
     document.title = pageTitle(workspace, pathname, params, PRODUCT_NAME);
   }, [workspace, pathname, params]);
@@ -61,13 +62,18 @@ function MobileDrawer({
       <div
         aria-label="Navigation"
         aria-modal="true"
-        className="absolute inset-y-0 left-0 w-[260px] max-w-[85vw] overflow-y-auto bg-blue"
+        className="absolute inset-y-0 left-0 w-[280px] max-w-[85vw] overflow-y-auto border-r border-line bg-white"
         role="dialog"
       >
         {children}
       </div>
     </div>
   );
+}
+
+function isTypingTarget(target: EventTarget | null) {
+  const el = target as HTMLElement | null;
+  return Boolean(el && (el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName)));
 }
 
 export function AppShellView({
@@ -80,6 +86,8 @@ export function AppShellView({
   shadowTenantName,
   shadowMode,
   branding,
+  people,
+  navCounts,
   forgeEnabled = false,
 }: {
   children: ReactNode;
@@ -92,6 +100,8 @@ export function AppShellView({
   shadowTenantName: string | null;
   shadowMode: "admin" | "manager" | "se" | null;
   branding: TenantShellBranding;
+  people?: SidebarPerson[];
+  navCounts?: Record<string, string | number>;
   forgeEnabled?: boolean;
 }) {
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -107,6 +117,9 @@ export function AppShellView({
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
         setPaletteOpen((value) => !value);
+      } else if (event.key === "/" && !isTypingTarget(event.target)) {
+        event.preventDefault();
+        setPaletteOpen(true);
       }
     };
     window.addEventListener("keydown", onKey);
@@ -116,16 +129,12 @@ export function AppShellView({
   const sidebar = (onNavigate?: () => void) => (
     <Suspense fallback={null}>
       <SidebarContent
-        currentUser={currentUser}
+        counts={navCounts}
         flags={flags}
-        notifications={notifications}
+        notifications={myNotifications}
         onNavigate={onNavigate}
-        onOpenPalette={() => {
-          onNavigate?.();
-          setPaletteOpen(true);
-        }}
+        people={workspace === "se" ? people : undefined}
         workspace={workspace}
-        workspaceHats={workspaceHats}
       />
     </Suspense>
   );
@@ -134,7 +143,7 @@ export function AppShellView({
     <TenantBrandingProvider branding={branding}>
       <div className="min-h-screen bg-bg" style={shellStyle}>
         <a
-          className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-full focus:bg-signal focus:px-4 focus:py-2 focus:text-ink"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-full focus:bg-signal focus:px-4 focus:py-2 focus:text-ink"
           href="#main-content"
         >
           Skip to main content
@@ -143,64 +152,57 @@ export function AppShellView({
           <DocumentTitle workspace={workspace} />
         </Suspense>
 
-        <header className="flex items-center justify-between gap-3 bg-blue px-4 py-3 lg:hidden">
-          <button
-            aria-expanded={drawerOpen}
-            aria-label="Open navigation"
-            className="rounded-[10px] border border-blue-line px-3 py-2 text-white"
-            onClick={() => setDrawerOpen(true)}
-            type="button"
-          >
-            <span aria-hidden>☰</span>
-          </button>
-          <SidebarBrand workspace={workspace} />
-          <NotificationFlyout
-            align="header"
-            appearance="sidebar-dark"
-            notifications={myNotifications}
-          />
-        </header>
+        <TopBar
+          currentUser={currentUser}
+          menuOpen={drawerOpen}
+          notifications={myNotifications}
+          onOpenMenu={() => setDrawerOpen(true)}
+          onOpenPalette={() => setPaletteOpen(true)}
+          workspace={workspace}
+          workspaceHats={workspaceHats}
+        />
+
         <MobileDrawer onClose={closeDrawer} open={drawerOpen}>
+          {workspaceHats.length > 1 ? (
+            <div className="border-b border-line bg-blue px-6 py-4 sm:hidden">
+              <WorkspaceSwitcher activeHat={workspace} hats={workspaceHats} />
+            </div>
+          ) : null}
           {sidebar(closeDrawer)}
         </MobileDrawer>
 
-        <aside className="fixed inset-y-0 left-0 z-20 hidden w-[var(--rail-width)] overflow-y-auto bg-blue lg:block">
-          {sidebar()}
-        </aside>
+        <div className="flex">
+          <aside className="sticky top-[var(--topbar-height)] hidden h-[calc(100vh-var(--topbar-height))] w-[var(--sidebar-width)] shrink-0 overflow-y-auto border-r border-line bg-white lg:block">
+            {sidebar()}
+          </aside>
 
-        <div className="lg:pl-[var(--rail-width)]">
-          {shadowTenantName && shadowMode ? (
-            <ShadowTenantBanner mode={shadowMode} tenantName={shadowTenantName} />
-          ) : null}
-          <Suspense fallback={null}>
-            <SectionTabs flags={flags} workspace={workspace} />
-          </Suspense>
-          <main
-            className={cn(
-              "px-0 py-0 pb-6 outline-none",
-              contentWidth === "full"
-                ? "w-full"
-                : contentWidth === "wide"
-                  ? "mx-auto w-full max-w-[1600px]"
-                  : "mx-auto w-full max-w-7xl",
-            )}
-            id="main-content"
-            tabIndex={-1}
-          >
-            {children}
-          </main>
-          <UatBugTracker
-            enabled={forgeEnabled}
-            reporterEmail={currentUser.email}
-            reporterName={currentUser.fullName}
-          />
+          <div className="min-w-0 flex-1">
+            {shadowTenantName && shadowMode ? (
+              <ShadowTenantBanner mode={shadowMode} tenantName={shadowTenantName} />
+            ) : null}
+            <main
+              className={cn(
+                "pb-7 outline-none",
+                contentWidth === "full"
+                  ? "w-full"
+                  : contentWidth === "wide"
+                    ? "mx-auto w-full max-w-[1600px]"
+                    : "mx-auto w-full max-w-[1400px]",
+              )}
+              id="main-content"
+              tabIndex={-1}
+            >
+              {children}
+            </main>
+            <UatBugTracker
+              enabled={forgeEnabled}
+              reporterEmail={currentUser.email}
+              reporterName={currentUser.fullName}
+            />
+          </div>
         </div>
 
-        <CommandPalette
-          entries={entries}
-          onClose={() => setPaletteOpen(false)}
-          open={paletteOpen}
-        />
+        <CommandPalette entries={entries} onClose={() => setPaletteOpen(false)} open={paletteOpen} />
       </div>
     </TenantBrandingProvider>
   );

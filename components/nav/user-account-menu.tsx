@@ -22,7 +22,7 @@ export function UserAccountMenu({
  appearance = "header",
 }: {
  currentUser: Profile;
- appearance?: "header" | "sidebar-dark";
+ appearance?: "header" | "sidebar-dark" | "topbar";
 }) {
  const router = useRouter();
  const [open, setOpen] = useState(false);
@@ -74,21 +74,28 @@ export function UserAccountMenu({
  ];
 
  const isSidebar = appearance === "sidebar-dark";
+ const isTopbar = appearance === "topbar";
 
  return (
- <div className="relative min-w-0 flex-1">
+ <div className={cn("relative", isTopbar ? "shrink-0" : "min-w-0 flex-1")}>
  <button
  aria-expanded={open}
  aria-haspopup="menu"
  aria-label={`Account menu for ${currentUser.fullName}`}
  className={cn(
- "flex w-full min-w-0 items-center gap-2.5 rounded-[10px] px-1.5 py-1.5 text-left transition-colors",
- isSidebar ? "hover:bg-blue-2" : "hover:bg-blue-soft",
+ isTopbar
+ ? "grid h-8 w-8 place-items-center rounded-full bg-white text-[13px] font-bold text-blue"
+ : "flex w-full min-w-0 items-center gap-2.5 rounded-[10px] px-1.5 py-1.5 text-left transition-colors",
+ !isTopbar && (isSidebar ? "hover:bg-blue-2" : "hover:bg-blue-soft"),
  )}
  onClick={() => setOpen((current) => !current)}
  ref={triggerRef}
  type="button"
  >
+ {isTopbar ? (
+ <span aria-hidden>{initials(currentUser.fullName)}</span>
+ ) : (
+ <>
  <span
  aria-hidden
  className={cn(
@@ -102,7 +109,7 @@ export function UserAccountMenu({
  <span className={cn("block truncate text-sm font-semibold", isSidebar ? "text-white" : "text-ink")}>
  {currentUser.fullName}
  </span>
- <span className={cn("block truncate font-mono text-xs", isSidebar ? "text-on-blue-muted" : "text-muted")}>
+ <span className={cn("block truncate text-[13px]", isSidebar ? "text-on-blue-muted" : "text-muted")}>
  {currentUser.email}
  </span>
  </span>
@@ -114,23 +121,25 @@ export function UserAccountMenu({
  open && "rotate-180",
  )}
  />
+ </>
+ )}
  </button>
 
  {open ? (
  <>
- <div aria-hidden className="fixed inset-0 z-40 bg-[rgba(10,26,63,0.25)] lg:bg-transparent" />
+ <div aria-hidden className="fixed inset-0 z-40 bg-scrim lg:bg-transparent" />
  <div
  aria-label="Account menu"
  className={cn(
- "absolute z-50 w-[min(15rem,calc(100vw-2rem))] overflow-hidden rounded-[14px] border-[1.5px] border-ink bg-white",
- isSidebar ? "bottom-full left-0 mb-2" : "top-[calc(100%+6px)] right-0",
+ "absolute z-50 w-[min(15rem,calc(100vw-2rem))] overflow-hidden rounded-[14px] border border-line bg-white shadow-[var(--shadow-drag)]",
+ isSidebar ? "bottom-full left-0 mb-2" : "top-[calc(100%+10px)] right-0",
  )}
  ref={panelRef}
  role="menu"
  >
  <div className="border-b border-divider px-4 py-3">
  <p className="truncate text-sm font-bold text-ink">{currentUser.fullName}</p>
- <p className="truncate font-mono text-xs text-muted">{currentUser.email}</p>
+ <p className="truncate text-[13px] text-muted">{currentUser.email}</p>
  </div>
  <div className="p-1.5">
  {items.map((item) => {
