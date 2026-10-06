@@ -273,7 +273,8 @@ export function canAccessRoute(
     return true;
   }
 
-  if (pathname.startsWith("/account")) {
+  // Account and the Help Center are open to every signed-in tier; help content is gated per article.
+  if (pathname.startsWith("/account") || pathname === "/help" || pathname.startsWith("/help/")) {
     return true;
   }
 

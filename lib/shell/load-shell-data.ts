@@ -6,6 +6,8 @@ import { SHADOW_CEILING_COOKIE, parseShadowMode } from "@/lib/auth/shadow-tenant
 import { WORKSPACE_HAT_COOKIE, resolveSessionWorkspaceHats, type WorkspaceHat } from "@/lib/auth/workspace";
 import { getAuthenticatedUser } from "@/lib/data/get-authenticated-user";
 import { isForgeConfigured } from "@/lib/forge/config";
+import { isFeatureEnabled } from "@/lib/platform/feature-flags";
+import { loadPlatformSettings } from "@/lib/platform/settings";
 import { createClient } from "@/lib/supabase/server";
 import { getTenantShellBranding, type TenantShellBranding } from "@/lib/tenant/shell-branding";
 import type { Notification, Profile, ProfileRole, SeLevel } from "@/lib/types";
@@ -20,6 +22,8 @@ export type ShellData = {
   shadowTenantName: string | null;
   people: SidebarPerson[];
   forgeEnabled: boolean;
+  /** AI assistant switched on for this tenant (operator flag plus the AI master switch). */
+  assistantEnabled: boolean;
 };
 
 type ProfileRow = {
@@ -115,10 +119,16 @@ export const loadShellData = cache(async (): Promise<ShellData | null> => {
   });
   const brandingTenantId = access.isShadowing ? access.tenantId : (currentUser.tenantId ?? access.tenantId);
 
-  const [branding, people] = await Promise.all([
+  const [branding, people, settings] = await Promise.all([
     getTenantShellBranding(brandingTenantId),
     workspaceHats.includes("se") ? loadSeTeam(supabase, currentUser) : Promise.resolve([]),
+    loadPlatformSettings(brandingTenantId ?? undefined).catch(() => null),
   ]);
+  const assistantEnabled = Boolean(
+    settings &&
+      isFeatureEnabled(settings.featureFlags, "ai-features") &&
+      isFeatureEnabled(settings.featureFlags, "ai-assistant"),
+  );
 
   const notifications: Notification[] = (notificationsResult.data ?? []).map((item) => ({
     id: item.id,
@@ -140,5 +150,6 @@ export const loadShellData = cache(async (): Promise<ShellData | null> => {
     shadowTenantName: access.isShadowing ? (access.shadowTenantName ?? branding.productName) : null,
     people,
     forgeEnabled: isForgeConfigured(),
+    assistantEnabled,
   };
 });

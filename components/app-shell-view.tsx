@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname, useSearchParams } from "next/navigation";
+import { AssistantWidget } from "@/components/help/assistant-widget";
 import { CSSProperties, ReactNode, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { SidebarContent, type SidebarPerson } from "@/components/nav/app-sidebar";
 import { CommandPalette } from "@/components/nav/command-palette";
@@ -99,6 +100,7 @@ export function AppShellView({
   people,
   navCounts,
   forgeEnabled = false,
+  assistantEnabled = false,
 }: {
   children: ReactNode;
   currentUser: Profile;
@@ -116,6 +118,7 @@ export function AppShellView({
   people?: SidebarPerson[];
   navCounts?: Record<string, string | number>;
   forgeEnabled?: boolean;
+  assistantEnabled?: boolean;
 }) {
   const pathname = usePathname();
   // The layout stays mounted across navigations, so the active workspace and width follow the URL.
@@ -212,6 +215,7 @@ export function AppShellView({
             >
               {children}
             </main>
+            {assistantEnabled ? <AssistantWidget workspace={workspace} /> : null}
             <UatBugTracker
               enabled={forgeEnabled}
               reporterEmail={currentUser.email}

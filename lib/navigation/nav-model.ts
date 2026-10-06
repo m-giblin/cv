@@ -67,6 +67,7 @@ export const NAV: Record<WorkspaceHat, NavItem[]> = {
         { id: "lab", label: "ISC Lab", href: "/learn/lab" },
       ],
     },
+    { id: "help-center", label: "Help", href: "/help" },
   ],
   manager: [
     { id: "today", label: "Today", href: "/manager" },
@@ -103,6 +104,7 @@ export const NAV: Record<WorkspaceHat, NavItem[]> = {
         { id: "certifications", label: "Certifications", href: "/certifications" },
       ],
     },
+    { id: "help-center", label: "Help", href: "/help" },
   ],
   tenant_admin: [
     {
@@ -111,7 +113,7 @@ export const NAV: Record<WorkspaceHat, NavItem[]> = {
       href: "/admin",
       children: [
         { id: "overview", label: "Overview", href: "/admin" },
-        { id: "help", label: "Help", href: "/admin/help" },
+        { id: "help", label: "Support", href: "/admin/help" },
       ],
     },
     { id: "people", label: "People", href: "/admin/people" },
@@ -157,6 +159,7 @@ export const NAV: Record<WorkspaceHat, NavItem[]> = {
         { id: "retention", label: "Data retention", href: "/admin/settings/retention" },
       ],
     },
+    { id: "help-center", label: "Help", href: "/help" },
   ],
   platform: [
     { id: "now", label: "Now", href: "/platform" },
@@ -189,6 +192,7 @@ export const NAV: Record<WorkspaceHat, NavItem[]> = {
         { id: "global-audit", label: "Global audit", href: "/platform/settings/audit" },
       ],
     },
+    { id: "help-center", label: "Help", href: "/help" },
   ],
 };
 

@@ -275,6 +275,16 @@ export const PLATFORM_FEATURE_FLAG_DEFS: PlatformFeatureFlagDef[] = [
     routePrefixes: ["/api/ai"],
   },
   {
+    id: "ai-assistant",
+    label: "AI assistant",
+    description: "The floating assistant that answers platform how-to and SailPoint questions from the Help Center.",
+    category: "integrations",
+    defaultEnabled: true,
+    kind: "ops",
+    dependsOn: ["ai-features"],
+    routePrefixes: ["/api/ai/assistant"],
+  },
+  {
     id: "gong-integration",
     label: "Gong integration",
     description: "Gong OAuth and call intel in deal prep.",

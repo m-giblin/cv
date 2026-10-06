@@ -215,7 +215,7 @@ export function resolveActiveWorkspace(params: {
 
 /** Whether this hat may open the given app path (UI gate; APIs still use role tier). */
 export function workspaceCanAccessPath(hat: WorkspaceHat, pathname: string): boolean {
-  if (pathname.startsWith("/account") || pathname.startsWith("/auth")) return true;
+  if (pathname.startsWith("/account") || pathname.startsWith("/auth") || pathname.startsWith("/help")) return true;
 
   switch (hat) {
     case "platform":

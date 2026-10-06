@@ -14,6 +14,7 @@ export default async function SignedInLayout({ children }: { children: ReactNode
 
   return (
     <AppShellView
+      assistantEnabled={shell.assistantEnabled}
       branding={shell.branding}
       currentUser={shell.currentUser}
       forgeEnabled={shell.forgeEnabled}
