@@ -276,7 +276,7 @@ export const PLATFORM_FEATURE_FLAG_DEFS: PlatformFeatureFlagDef[] = [
   },
   {
     id: "ai-assistant",
-    label: "AI assistant",
+    label: "Bosun (AI assistant)",
     description: "The floating assistant that answers platform how-to and SailPoint questions from the Help Center.",
     category: "integrations",
     defaultEnabled: true,

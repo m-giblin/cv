@@ -7,18 +7,23 @@ import type { WorkspaceHat } from "@/lib/auth/workspace";
 import { ASSISTANT_LIMITS } from "@/lib/help/assistant";
 import { cn } from "@/lib/utils";
 
-type Message = { role: "user" | "assistant"; content: string; sources?: { id: string; title: string }[] };
+type Message = {
+  role: "user" | "assistant";
+  content: string;
+  sources?: { id: string; title: string }[];
+  docs?: { title: string; url: string }[];
+};
 
 const STARTERS: Record<WorkspaceHat, string[]> = {
-  se: ["How do I submit evidence for a step?", "How are simulations scored?", "Help me explain identity governance to a CISO"],
-  manager: ["How do I bulk approve sim cards?", "How do I enroll someone in a program?", "What does at risk mean?"],
+  se: ["How do I submit evidence for a step?", "How do I create a source with the ISC API?", "Help me explain identity governance to a CISO"],
+  manager: ["How do I bulk approve sim cards?", "How do certification campaigns work in ISC?", "What does at risk mean?"],
   tenant_admin: ["How do I create a program?", "How do I invite people?", "Where do I see AI cost?"],
   platform: ["How do tenant feature flags work?", "How do I shadow a tenant?", "Where do I see AI cost?"],
 };
 
 /**
- * Floating assistant. Answers platform how-to and SailPoint questions only, grounded in the Help
- * Center the person can read; the server enforces scope, daily caps and cost limits.
+ * Bosun, the floating assistant. Answers platform how-to and SailPoint questions only, grounded in the
+ * Help Center the person can read and SailPoint's public docs; the server enforces scope and cost caps.
  */
 export function AssistantWidget({ workspace }: { workspace: WorkspaceHat }) {
   const [open, setOpen] = useState(false);
@@ -65,37 +70,37 @@ export function AssistantWidget({ workspace }: { workspace: WorkspaceHat }) {
     }).catch(() => null);
     setBusy(false);
     const body = (await response?.json().catch(() => null)) as
-      | { answer?: string; sources?: Message["sources"]; remaining?: number; error?: string }
+      | { answer?: string; sources?: Message["sources"]; docs?: Message["docs"]; remaining?: number; error?: string }
       | null;
     if (!response?.ok || !body?.answer) {
       setError(
         response?.status === 403 || response?.status === 404
-          ? "The assistant is turned off for your organization."
-          : (body?.error ?? "The assistant couldn't answer just now."),
+          ? "Bosun is turned off for your organization."
+          : (body?.error ?? "Bosun couldn't answer just now."),
       );
       return;
     }
     if (typeof body.remaining === "number") setRemaining(body.remaining);
-    setMessages([...next, { role: "assistant", content: body.answer, sources: body.sources }]);
+    setMessages([...next, { role: "assistant", content: body.answer, sources: body.sources, docs: body.docs }]);
   }
 
   return (
     <>
       {!open ? (
         <button
-          aria-label="Ask the assistant"
+          aria-label="Ask the Bosun"
           className="fixed right-4 bottom-5 z-[60] inline-flex items-center gap-2 rounded-full bg-navy px-4 py-2.5 text-sm font-bold text-white shadow-[var(--shadow-navy)] hover:bg-[#13224a]"
           onClick={() => setOpen(true)}
           type="button"
         >
           <Sparkles aria-hidden className="h-4 w-4 text-signal" />
-          Ask
+          Ask the Bosun
         </button>
       ) : null}
 
       {open ? (
         <section
-          aria-label="Enablement assistant"
+          aria-label="Bosun"
           className="fixed right-4 bottom-4 z-[70] flex h-[min(620px,calc(100vh-96px))] w-[min(420px,calc(100vw-32px))] flex-col overflow-hidden rounded-[16px] border border-line bg-white shadow-[var(--shadow-modal)]"
           role="dialog"
         >
@@ -103,12 +108,12 @@ export function AssistantWidget({ workspace }: { workspace: WorkspaceHat }) {
             <span className="flex flex-col gap-0.5">
               <span className="flex items-center gap-2 text-[16px] font-extrabold text-white">
                 <Sparkles aria-hidden className="h-4 w-4 text-signal" />
-                Enablement assistant
+                The Bosun
               </span>
-              <span className="text-[12px] text-on-navy-muted">Platform how-to and SailPoint topics only.</span>
+              <span className="text-[12px] text-on-navy-muted">Your enablement guide. Platform and SailPoint topics only.</span>
             </span>
             <button
-              aria-label="Close assistant"
+              aria-label="Close Bosun"
               className="grid h-8 w-8 place-items-center rounded-full text-white hover:bg-white/10"
               onClick={() => setOpen(false)}
               type="button"
@@ -121,7 +126,7 @@ export function AssistantWidget({ workspace }: { workspace: WorkspaceHat }) {
             {messages.length === 0 ? (
               <div className="flex flex-col gap-3">
                 <p className="text-sm text-ink-2">
-                  Ask how something in the platform works, or for help with a SailPoint or SE skill topic.
+                  Ask how something in the platform works, or about SailPoint products and SE skills. Product questions are checked against documentation.sailpoint.com and developer.sailpoint.com.
                 </p>
                 <div className="flex flex-col gap-2">
                   {STARTERS[workspace].map((starter) => (
@@ -161,6 +166,16 @@ export function AssistantWidget({ workspace }: { workspace: WorkspaceHat }) {
                       ))}
                     </span>
                   ) : null}
+                  {message.docs?.length ? (
+                    <span className="mt-2 flex flex-col gap-1 border-t border-divider pt-2">
+                      <span className="text-[11px] font-bold tracking-wide text-muted uppercase">From SailPoint docs</span>
+                      {message.docs.map((doc) => (
+                        <a className="link text-[13px]" href={doc.url} key={doc.url} rel="noopener noreferrer" target="_blank">
+                          {doc.title}
+                        </a>
+                      ))}
+                    </span>
+                  ) : null}
                 </div>
               ))
             )}
@@ -194,7 +209,7 @@ export function AssistantWidget({ workspace }: { workspace: WorkspaceHat }) {
                     void ask(draft);
                   }
                 }}
-                placeholder="Ask about the platform or SailPoint"
+                placeholder="Ask Bosun about the platform or SailPoint"
                 ref={inputRef}
                 rows={1}
                 value={draft}
@@ -204,7 +219,7 @@ export function AssistantWidget({ workspace }: { workspace: WorkspaceHat }) {
               </button>
             </div>
             <span className="flex justify-between text-[11px] text-muted">
-              <span>Answers can be wrong; check the Help Center for steps.</span>
+              <span>Answers can be wrong; check the linked sources.</span>
               <span className="num">
                 {remaining !== null ? `${remaining} left today` : `${draft.length}/${ASSISTANT_LIMITS.maxQuestionChars}`}
               </span>

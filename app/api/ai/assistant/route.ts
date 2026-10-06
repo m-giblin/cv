@@ -13,6 +13,7 @@ import {
   isClearlyOffTopic,
   pickContextArticles,
 } from "@/lib/help/assistant";
+import { docSourcesFrom, wantsDocsSearch } from "@/lib/help/sailpoint-docs";
 import { helpArticlesFor, helpAudiencesForHats } from "@/lib/help";
 import { loadShellData } from "@/lib/shell/load-shell-data";
 
@@ -26,7 +27,7 @@ const requestSchema = z.object({
 
 const PORTAL_NAMES = { se: "SE", manager: "Manager", tenant_admin: "Admin", platform: "Platform" } as const;
 
-/** In-app assistant: platform how-to and SailPoint topics only, grounded in the Help Center. */
+/** Bosun, the in-app assistant: platform how-to and SailPoint topics only, grounded in the Help Center. */
 export async function POST(request: Request) {
   const session = await requireAuthenticatedSession();
   if (session instanceof NextResponse) return session;
@@ -60,7 +61,7 @@ export async function POST(request: Request) {
     .gte("created_at", startOfDay.toISOString());
   if ((count ?? 0) >= ASSISTANT_LIMITS.dailyQuestions) {
     return NextResponse.json(
-      { error: `You've reached today's ${ASSISTANT_LIMITS.dailyQuestions} assistant questions. The Help Center is always available.` },
+      { error: `You've reached today's ${ASSISTANT_LIMITS.dailyQuestions} Bosun questions. The Help Center is always available.` },
       { status: 429 },
     );
   }
@@ -76,20 +77,24 @@ export async function POST(request: Request) {
 
   // The tenant being viewed (the shadowed one for operators) pays for and sees the usage.
   const tenantId = (await resolveTenantContext())?.tenantId ?? shell?.currentUser.tenantId ?? null;
-  const { model, provider, modelName } = await resolveAiProviderForTenant(tenantId);
+  const { model, provider, modelName, docsSearch } = await resolveAiProviderForTenant(tenantId);
   if (!model) {
     return NextResponse.json({
       answer: context.length
-        ? "The AI assistant isn't configured here yet, but these Help Center articles should help."
-        : "The AI assistant isn't configured here yet. Try the Help Center.",
+        ? "Bosun isn't configured here yet, but these Help Center articles should help."
+        : "Bosun isn't configured here yet. Try the Help Center.",
       sources: context.map((article) => ({ id: article.id, title: article.title })),
     });
   }
 
+  // Live SailPoint docs only for product questions; the search itself is the costly part.
+  const searchDocs = Boolean(docsSearch) && wantsDocsSearch(question.content);
+
   try {
     const result = await generateText({
-      model,
-      system: assistantSystemPrompt(context, PORTAL_NAMES[portal]),
+      model: searchDocs ? docsSearch!.model : model,
+      ...(searchDocs ? { tools: docsSearch!.tools } : {}),
+      system: assistantSystemPrompt(context, PORTAL_NAMES[portal], searchDocs),
       messages: history.map((message) => ({ role: message.role, content: message.content })),
       maxOutputTokens: ASSISTANT_LIMITS.maxOutputTokens,
       temperature: 0.3,
@@ -108,6 +113,7 @@ export async function POST(request: Request) {
       answer,
       refused,
       sources: refused ? [] : context.map((article) => ({ id: article.id, title: article.title })),
+      docs: refused ? [] : docSourcesFrom(result.sources as { sourceType?: string; url?: string; title?: string }[]),
       remaining: Math.max(0, ASSISTANT_LIMITS.dailyQuestions - (count ?? 0) - 1),
     });
   } catch {

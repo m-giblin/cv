@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { ASSISTANT_REFUSAL, assistantSystemPrompt, isClearlyOffTopic, pickContextArticles } from "@/lib/help/assistant";
+import { ASSISTANT_REFUSAL, BOSUN_DEFINITION, assistantSystemPrompt, isClearlyOffTopic, pickContextArticles } from "@/lib/help/assistant";
+import { docSourcesFrom, isSailPointDocUrl, wantsDocsSearch } from "@/lib/help/sailpoint-docs";
 import { articleAsText, searchHelp } from "@/lib/help/search";
 import type { HelpArticle } from "@/lib/help/types";
 
@@ -64,5 +65,38 @@ describe("assistant guardrails", () => {
     expect(prompt).toContain(ASSISTANT_REFUSAL);
     expect(prompt).toContain("Submit evidence for a step");
     expect(prompt).toContain("SE portal");
+  });
+
+  it("names Bosun and explains the name", () => {
+    const prompt = assistantSystemPrompt([], "SE");
+    expect(prompt).toContain("You are Bosun");
+    expect(prompt).toContain(BOSUN_DEFINITION);
+    expect(prompt).not.toContain("web_search");
+    expect(assistantSystemPrompt([], "SE", true)).toContain("documentation.sailpoint.com and developer.sailpoint.com");
+  });
+});
+
+describe("SailPoint docs sources", () => {
+  it("searches docs only for product questions", () => {
+    expect(wantsDocsSearch("How do I call the ISC transforms API?")).toBe(true);
+    expect(wantsDocsSearch("How do I submit evidence for my ramp step?")).toBe(false);
+  });
+
+  it("only cites the two SailPoint doc sites over https", () => {
+    expect(isSailPointDocUrl("https://developer.sailpoint.com/docs/api/v3")).toBe(true);
+    expect(isSailPointDocUrl("https://documentation.sailpoint.com/saas/help/")).toBe(true);
+    expect(isSailPointDocUrl("https://evil.com/?q=developer.sailpoint.com")).toBe(false);
+    expect(isSailPointDocUrl("https://developer.sailpoint.com.evil.com/")).toBe(false);
+    expect(isSailPointDocUrl("http://developer.sailpoint.com/")).toBe(false);
+    const docs = docSourcesFrom([
+      { url: "https://developer.sailpoint.com/docs/a", title: "A" },
+      { url: "https://developer.sailpoint.com/docs/a", title: "A again" },
+      { url: "https://example.com/b", title: "B" },
+      { url: "https://documentation.sailpoint.com/c" },
+    ]);
+    expect(docs).toEqual([
+      { title: "A", url: "https://developer.sailpoint.com/docs/a" },
+      { title: "/c", url: "https://documentation.sailpoint.com/c" },
+    ]);
   });
 });
