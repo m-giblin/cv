@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
-import { useEffect, useId, useState } from "react";
-import { toast } from "sonner";
+import { useId, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { allowedEmailError } from "@/lib/auth/email-domain";
 import { mapAuthErrorMessage } from "@/lib/auth/errors";
@@ -19,15 +18,9 @@ export function LoginForm({ initialError }: { initialError?: string | null }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(initialError ?? null);
 
-  useEffect(() => {
-    if (initialError) {
-      toast.error(initialError);
-    }
-  }, [initialError]);
-
+  // Errors show in the card's alert box (design), not as toasts.
   function fail(message: string) {
     setError(message);
-    toast.error(message);
   }
 
   async function handleSsoSignIn() {
@@ -55,6 +48,15 @@ export function LoginForm({ initialError }: { initialError?: string | null }) {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())) {
+      fail("Enter your work email address.");
+      return;
+    }
+    if (!password) {
+      fail("Enter your password.");
+      return;
+    }
 
     const domainError = allowedEmailError(email);
 
@@ -113,9 +115,9 @@ export function LoginForm({ initialError }: { initialError?: string | null }) {
   }
 
   return (
-    <form aria-describedby={error ? errorId : undefined} className="space-y-5" onSubmit={handleSubmit}>
+    <form aria-describedby={error ? errorId : undefined} className="flex flex-col gap-3.5" noValidate onSubmit={handleSubmit}>
       {error ? (
-        <p className="rounded-[10px] border border-danger/30 bg-danger-soft px-3.5 py-2.5 text-sm text-danger" id={errorId} role="alert">
+        <p className="m-0 rounded-[10px] border border-danger bg-danger-soft px-3.5 py-2.5 text-sm leading-[1.45] text-danger" id={errorId} role="alert">
           {error}
         </p>
       ) : null}
@@ -123,7 +125,7 @@ export function LoginForm({ initialError }: { initialError?: string | null }) {
       {ssoEnabled ? (
         <>
           <button
-            className="btn-secondary w-full"
+            className="w-full rounded-full border border-line-strong bg-white px-[18px] py-[11px] text-[15px] font-bold text-ink hover:border-ink"
             disabled={isSubmitting}
             onClick={() => void handleSsoSignIn()}
             type="button"
@@ -139,7 +141,7 @@ export function LoginForm({ initialError }: { initialError?: string | null }) {
       ) : null}
 
       <div>
-        <label className="mb-1.5 block text-sm font-semibold text-ink" htmlFor={emailId}>
+        <label className="mb-1.5 block text-sm font-bold text-ink" htmlFor={emailId}>
           Work email
         </label>
         <Input
@@ -155,7 +157,7 @@ export function LoginForm({ initialError }: { initialError?: string | null }) {
 
       <div>
         <div className="mb-1.5 flex items-baseline justify-between gap-3">
-          <label className="block text-sm font-semibold text-ink" htmlFor={passwordId}>
+          <label className="block text-sm font-bold text-ink" htmlFor={passwordId}>
             Password
           </label>
           <Link className="link text-sm" href="/login/forgot-password">
@@ -172,7 +174,7 @@ export function LoginForm({ initialError }: { initialError?: string | null }) {
         />
       </div>
 
-      <button className="btn-primary inline-flex w-full items-center justify-center gap-2" disabled={isSubmitting} type="submit">
+      <button className="btn-primary inline-flex w-full items-center justify-center gap-2 !py-3" disabled={isSubmitting} type="submit">
         {isSubmitting ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
         {isSubmitting ? "Signing in…" : "Sign in"}
       </button>

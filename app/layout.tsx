@@ -30,10 +30,9 @@ export default function RootLayout({
  children: React.ReactNode;
 }>) {
  return (
- <html lang="en">
- <body
- className={`${bricolage.variable} ${instrumentSerif.variable} font-[family-name:var(--font-bricolage)] antialiased`}
- >
+ // Font variables live on <html> so the :root tokens (--font-ui, --font-accent) can resolve them.
+ <html className={`${bricolage.variable} ${instrumentSerif.variable}`} lang="en">
+ <body className="font-[family-name:var(--font-bricolage)] antialiased">
  <ForgeSdkLoader />
  <Providers>{children}</Providers>
  </body>

@@ -1,6 +1,6 @@
 import { AuthShell } from "@/components/auth/auth-shell";
 import { LoginForm } from "@/components/auth/login-form";
-import { ALLOWED_EMAIL_DOMAIN, allowedEmailDomainsLabel } from "@/lib/auth/email-domain";
+import { ALLOWED_EMAIL_DOMAIN } from "@/lib/auth/email-domain";
 
 const LOGIN_ERRORS: Record<string, string> = {
   unauthorized_domain: `Only @${ALLOWED_EMAIL_DOMAIN} email addresses can access this platform.`,
@@ -17,9 +17,9 @@ export default async function LoginPage({
 
   return (
     <AuthShell
-      description={`Use your work email (${allowedEmailDomainsLabel()}). You'll confirm with your authenticator next.`}
+      description="Use your work email. You'll confirm with your authenticator next."
       eyebrow="Step 1 of 2 / Sign in"
-      title="Welcome back"
+      title="Welcome back."
     >
       <LoginForm initialError={initialError} />
     </AuthShell>
