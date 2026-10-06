@@ -137,6 +137,8 @@ export type TenantUsageFleetRow = {
   activeUsers: number;
   aiCalls30d: number;
   aiTokens30d: number;
+  /** Estimated USD at list price. */
+  aiCost30d: number;
   simulationSessions30d: number;
   seatQuota: number | null;
   billingStatus: TenantBillingStatus;
@@ -148,6 +150,7 @@ export type TenantUsageFleet = {
     totalUsers: number;
     aiCalls30d: number;
     aiTokens30d: number;
+    aiCost30d: number;
     simulationSessions30d: number;
   };
   tenants: TenantUsageFleetRow[];

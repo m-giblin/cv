@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { formatUsd } from "@/lib/ai/models";
 import {
   BillingStatusTag,
   ROW_LINK,
@@ -47,6 +48,7 @@ export function PlatformUsagePanel({
           { label: "Active users", value: data.totals.totalUsers.toLocaleString() },
           { label: "AI calls 30d", value: data.totals.aiCalls30d.toLocaleString() },
           { label: "AI tokens 30d", value: data.totals.aiTokens30d.toLocaleString() },
+          { label: "Est. AI cost 30d", value: formatUsd(data.totals.aiCost30d) },
           { label: "Sim sessions 30d", value: data.totals.simulationSessions30d.toLocaleString() },
         ]}
       />
@@ -62,6 +64,7 @@ export function PlatformUsagePanel({
                 <th className={`${TH} text-right`} scope="col">Seat quota</th>
                 <th className={`${TH} text-right`} scope="col">AI calls 30d</th>
                 <th className={`${TH} text-right`} scope="col">AI tokens 30d</th>
+                <th className={`${TH} text-right`} scope="col">Est. AI cost</th>
                 <th className={`${TH} text-right`} scope="col">Sims 30d</th>
               </tr>
             </thead>
@@ -89,6 +92,7 @@ export function PlatformUsagePanel({
                     </td>
                     <td className={`${TD_MUTED} text-right num`}>{row.aiCalls30d.toLocaleString()}</td>
                     <td className={`${TD_MUTED} text-right num`}>{row.aiTokens30d.toLocaleString()}</td>
+                    <td className={`${TD} text-right num font-semibold`}>{formatUsd(row.aiCost30d)}</td>
                     <td className={`${TD_MUTED} text-right num`}>{row.simulationSessions30d.toLocaleString()}</td>
                   </tr>
                 );

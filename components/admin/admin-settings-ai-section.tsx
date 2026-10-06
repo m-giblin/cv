@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useId, useState } from "react";
-import { AI_MODEL_OPTIONS, DEFAULT_AI_MODELS } from "@/lib/ai/models";
+import { AI_MODEL_OPTIONS, DEFAULT_AI_MODELS, formatUsd } from "@/lib/ai/models";
+import { TableCard, tdCls, thCls } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Field, LineCard, LoadingState, SelectInput, TextInput } from "@/components/admin/admin-ui";
 import { GlobalAiSettingsToggles } from "@/components/admin/global-ai-settings-toggles";
@@ -17,17 +19,53 @@ export function AdminSettingsAiSection({ usage = null }: { usage?: AiUsageSummar
   return (
     <>
       {usage ? (
-        <StatStrip>
-          <Stat label="Requests, 30 days" value={usage.requests30d.toLocaleString("en-US")} />
-          <Stat label="Requests today" value={usage.requestsToday.toLocaleString("en-US")} />
-          <Stat label="Tokens, 30 days" value={formatTokenCount(usage.tokens30d)} />
-          <Stat
-            label="Busiest feature"
-            note={usage.byFeature[0] ? `${usage.byFeature[0].count.toLocaleString("en-US")} requests` : undefined}
-            tone="ink"
-            value={<span className="text-2xl">{usage.byFeature[0]?.label ?? "None yet"}</span>}
-          />
-        </StatStrip>
+        <>
+          <StatStrip>
+            <Stat label="Requests, 30 days" note={`${usage.requestsToday.toLocaleString("en-US")} today`} value={usage.requests30d.toLocaleString("en-US")} />
+            <Stat label="Tokens, 30 days" value={formatTokenCount(usage.tokens30d)} />
+            <Stat label="Est. cost, 30 days" note={`${formatUsd(usage.costToday)} today`} value={formatUsd(usage.cost30d)} />
+            <Stat
+              label="Busiest feature"
+              note={usage.byFeature[0] ? `${usage.byFeature[0].count.toLocaleString("en-US")} requests` : undefined}
+              tone="ink"
+              value={<span className="text-2xl">{usage.byFeature[0]?.label ?? "None yet"}</span>}
+            />
+          </StatStrip>
+          {usage.byFeature.length > 0 ? (
+            <TableCard minWidth={560}>
+              <caption className="sr-only">AI usage by feature, last 30 days</caption>
+              <thead>
+                <tr>
+                  <th className={thCls} scope="col">
+                    Feature
+                  </th>
+                  <th className={cn(thCls, "text-right")} scope="col">
+                    Requests
+                  </th>
+                  <th className={cn(thCls, "text-right")} scope="col">
+                    Tokens
+                  </th>
+                  <th className={cn(thCls, "text-right")} scope="col">
+                    Est. cost
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {usage.byFeature.map((row) => (
+                  <tr key={row.feature}>
+                    <td className={cn(tdCls, "text-sm font-bold text-ink")}>{row.label}</td>
+                    <td className={cn(tdCls, "num text-right text-sm text-ink-2")}>{row.count.toLocaleString("en-US")}</td>
+                    <td className={cn(tdCls, "num text-right text-sm text-ink-2")}>{formatTokenCount(row.tokens)}</td>
+                    <td className={cn(tdCls, "num text-right text-sm font-semibold text-ink")}>{formatUsd(row.cost)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </TableCard>
+          ) : null}
+          <p className="text-[13px] text-muted">
+            Costs are estimates at list price for each call&apos;s model and tokens. Your provider&apos;s invoice is the source of truth.
+          </p>
+        </>
       ) : null}
       <AiProviderForm />
       <GlobalAiSettingsToggles />

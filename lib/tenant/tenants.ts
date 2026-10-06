@@ -1,5 +1,5 @@
 import "server-only";
-import { DEFAULT_AI_MODELS } from "@/lib/ai/models";
+import { DEFAULT_AI_MODELS, estimateAiCostUsd } from "@/lib/ai/models";
 
 import type { Database } from "@/lib/database.types";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -591,7 +591,7 @@ export async function updateTenantFeatureFlags(
 export async function getTenantUsageSummary(tenantId: string) {
   const admin = createAdminClient();
   if (!admin) {
-    return { activeUsers: 0, aiCalls: 0, aiTokens: 0, simulationSessions: 0 };
+    return { activeUsers: 0, aiCalls: 0, aiTokens: 0, aiCost: 0, simulationSessions: 0 };
   }
 
   const thirtyDaysAgo = new Date();
@@ -606,7 +606,7 @@ export async function getTenantUsageSummary(tenantId: string) {
       .gte("created_at", thirtyDaysAgo.toISOString()),
     admin
       .from("ai_usage_logs")
-      .select("total_tokens")
+      .select("model, prompt_tokens, completion_tokens, total_tokens")
       .eq("tenant_id", tenantId)
       .gte("created_at", thirtyDaysAgo.toISOString()),
     admin
@@ -617,11 +617,16 @@ export async function getTenantUsageSummary(tenantId: string) {
   ]);
 
   const tokens30d = (aiTokens.data ?? []).reduce((sum, row) => sum + (row.total_tokens ?? 0), 0);
+  const cost30d = (aiTokens.data ?? []).reduce(
+    (sum, row) => sum + estimateAiCostUsd(row.model, row.prompt_tokens ?? 0, row.completion_tokens ?? 0),
+    0,
+  );
 
   return {
     activeUsers: profiles.count ?? 0,
     aiCalls: aiUsage.count ?? 0,
     aiTokens: tokens30d,
+    aiCost: cost30d,
     simulationSessions: sims.count ?? 0,
   };
 }
