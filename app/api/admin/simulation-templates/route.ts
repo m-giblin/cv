@@ -106,5 +106,5 @@ export async function POST(request: Request) {
  name: parsed.data.name,
  }, session.tenantId);
 
- return NextResponse.json({ success: true });
+ return NextResponse.json({ success: true, id: created.id });
 }

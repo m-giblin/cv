@@ -5,7 +5,10 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { EmptyState, Field, LoadingState, SelectInput, TextInput } from "@/components/admin/admin-ui";
 import { PlanPreviewDrawer } from "@/components/plans/plan-builder-preview";
-import { Tag } from "@/components/ui/tag";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Chip } from "@/components/ui/chip";
+import { PageBody, PageHeader } from "@/components/ui/page-header";
+import { PersonCell, TableCard, TwoLineCell, rowHighlight, tdCls, thCls } from "@/components/ui/table";
 import { templateToBuilderSteps, type DbTemplate } from "@/lib/admin/plan-builder";
 import { addDaysToIsoDate, sortPlanTemplates, templateDurationDays } from "@/lib/plans/template-catalog";
 import type { Profile, UserPlan } from "@/lib/types";
@@ -24,18 +27,30 @@ function nextMondayIso(now = new Date()): string {
 }
 
 function formatDay(iso: string, withWeekday = false): string {
-  return new Date(`${iso}T12:00:00`).toLocaleDateString(undefined, {
+  const date = new Date(`${iso}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return "Not set";
+  return date.toLocaleDateString("en-US", {
     weekday: withWeekday ? "short" : undefined,
     month: "short",
     day: "numeric",
+    year: date.getFullYear() === new Date().getFullYear() ? undefined : "numeric",
   });
+}
+
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]!.toUpperCase())
+    .join("");
 }
 
 function firstName(name: string): string {
   return name.split(" ")[0] ?? name;
 }
 
-/** Programs › Assign (handoff 14a): pick a plan, pick who, set when. Uses the existing assignments API. */
+/** Programs › Assign (handoff 14a): pick a plan, pick people, set when. Uses the existing assignments API. */
 export function AssignPlanView({
   assignees,
   mentors,
@@ -125,8 +140,7 @@ export function AssignPlanView({
 
   const selectedPeople = people.filter((profile) => selected.has(profile.id));
   const managerName = (profile: Profile) =>
-    profiles.find((entry) => entry.id === profile.managerId)?.fullName ?? "—";
-  const reviewerCount = new Set(selectedPeople.map((profile) => profile.managerId).filter(Boolean)).size;
+    profiles.find((entry) => entry.id === profile.managerId)?.fullName ?? "None";
   const firstDue = builderSteps.length ? Math.min(...builderSteps.map((step) => step.dueOffsetDays)) : null;
   const duration = template ? templateDurationDays(template.steps) : null;
 
@@ -200,20 +214,20 @@ export function AssignPlanView({
   }
 
   const stageCells: { stage: Stage; label: string }[] = [
-    { stage: 1, label: template ? `01 Plan · ${template.name}` : "01 Plan" },
-    { stage: 2, label: stage > 2 && selectedPeople.length ? `02 Who · ${selectedPeople.length} SEs` : "02 Who" },
-    { stage: 3, label: "03 When" },
+    { stage: 1, label: "1. Plan" },
+    { stage: 2, label: "2. People" },
+    { stage: 3, label: "3. When" },
   ];
 
   const canAdvance = stage === 1 ? Boolean(template) : stage === 2 ? selectedPeople.length > 0 : selectedPeople.length > 0 && Boolean(startDate);
   const primaryLabel =
     stage === 1
-      ? "Next: who"
+      ? "Next: people"
       : stage === 2
         ? "Next: when"
         : assigning
           ? "Assigning…"
-          : `Assign ${selectedPeople.length} SE${selectedPeople.length === 1 ? "" : "s"}`;
+          : `Assign to ${selectedPeople.length} SE${selectedPeople.length === 1 ? "" : "s"}`;
 
   function advance() {
     if (stage === 1) setStage(2);
@@ -222,12 +236,19 @@ export function AssignPlanView({
   }
 
   const previewPerson = selectedPeople[0];
+  const reviewerNames = [...new Set(selectedPeople.map((person) => managerName(person)).filter((name) => name !== "None"))];
+  const mentorName = mentors.find((mentor) => mentor.id === mentorId)?.fullName;
+  const chips = [
+    { id: "no-plan" as const, label: "No plan", count: counts["no-plan"] },
+    { id: "basic" as const, label: "Basic", count: counts.basic },
+    { id: "recent" as const, label: "Joined in the last 30 days", count: counts.recent },
+  ];
 
   return (
     <div className="flex flex-col">
-      <header className="flex flex-col gap-3.5 px-[var(--gutter)] pt-7 pb-[18px]">
-        <h1 className="text-[30px] leading-[1.1] font-extrabold tracking-[-0.02em] text-ink">Assign a ramp plan</h1>
-        <ol aria-label="Steps" className="flex flex-col gap-1.5 font-mono text-xs uppercase sm:flex-row">
+      <PageHeader accent="Three steps." eyebrow="Programs / Assign" title="Assign a plan." />
+      <PageBody className="flex flex-col gap-[22px] pb-10">
+        <ol aria-label="Steps" className="flex max-w-[720px] gap-3">
           {stageCells.map((cell) => {
             const done = cell.stage < stage;
             const current = cell.stage === stage;
@@ -235,274 +256,259 @@ export function AssignPlanView({
               <li className="flex-1" key={cell.stage}>
                 <button
                   aria-current={current ? "step" : undefined}
-                  className={cn(
-                    "w-full truncate rounded-[10px] px-3 py-2 text-left",
-                    done && "bg-blue text-white",
-                    current && "border-[1.5px] border-ink bg-signal text-ink",
-                    !done && !current && "border-[1.5px] border-dashed border-dash text-muted",
-                  )}
+                  className="flex w-full flex-col gap-2 text-left disabled:cursor-default"
                   disabled={!done}
                   onClick={() => setStage(cell.stage)}
                   type="button"
                 >
-                  {done ? "✓ " : current ? "● " : "○ "}
-                  {cell.label}
+                  <span aria-hidden className={cn("h-2 rounded-[2px]", done ? "bg-blue" : current ? "bg-signal" : "bg-track")} />
+                  <span className={cn("text-sm", done || current ? "font-bold text-ink" : "font-medium text-muted")}>
+                    {cell.label}
+                    {cell.stage === 1 && template && stage > 1 ? <span className="font-medium text-muted">: {template.name}</span> : null}
+                    <span className="sr-only">{done ? " (done)" : current ? " (current)" : ""}</span>
+                  </span>
                 </button>
               </li>
             );
           })}
         </ol>
-      </header>
 
-      <div className="grid gap-7 px-[var(--gutter)] pb-7 min-[1100px]:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="flex min-w-0 flex-col gap-3">
-          {templates === null ? <LoadingState label="Loading plans…" /> : null}
+        <div className="grid items-start gap-8 min-[1100px]:grid-cols-[minmax(0,1fr)_380px]">
+          <div className="flex min-w-0 flex-col gap-3.5">
+            {templates === null ? <LoadingState label="Loading plans…" /> : null}
 
-          {templates && stage === 1 ? (
-            <fieldset className="overflow-hidden rounded-[14px] border border-line bg-white">
-              <legend className="sr-only">Choose a plan</legend>
-              {templates.length === 0 ? (
-                <EmptyState>No plans yet. Build one in the Plan builder first.</EmptyState>
-              ) : (
-                templates.map((entry) => {
-                  const days = templateDurationDays(entry.steps);
-                  const assigned = localPlans.filter(
-                    (plan) => plan.planTemplateId === entry.id && plan.status !== "completed",
-                  ).length;
-                  const checked = entry.id === planId;
-                  return (
-                    <label
-                      className={cn(
-                        "grid cursor-pointer grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-3 border-b border-divider px-[18px] py-[13px] text-sm last:border-b-0",
-                        checked && "bg-signal-soft",
-                      )}
-                      key={entry.id}
+            {templates && stage === 1 ? (
+              <fieldset className="overflow-hidden rounded-[14px] border border-line bg-white">
+                <legend className="sr-only">Choose a plan</legend>
+                {templates.length === 0 ? (
+                  <EmptyState>No plans yet. Build one in the Plan builder first.</EmptyState>
+                ) : (
+                  templates.map((entry) => {
+                    const days = templateDurationDays(entry.steps);
+                    const assigned = localPlans.filter(
+                      (plan) => plan.planTemplateId === entry.id && plan.status !== "completed",
+                    ).length;
+                    const checked = entry.id === planId;
+                    return (
+                      <label
+                        className={cn(
+                          "grid cursor-pointer grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-4 border-t border-divider px-5 py-[13px] first:border-t-0",
+                          checked ? rowHighlight.selected : "hover:bg-bg",
+                        )}
+                        key={entry.id}
+                      >
+                        <input
+                          checked={checked}
+                          className="h-[18px] w-[18px] accent-[var(--color-blue)]"
+                          name="assign-plan"
+                          onChange={() => choosePlan(entry.id)}
+                          type="radio"
+                        />
+                        <TwoLineCell subline={entry.description ?? undefined} title={entry.name} />
+                        <span className="text-[13px] whitespace-nowrap text-muted">
+                          {entry.steps.length} steps over {Math.ceil(days / 7)} weeks, {assigned} active
+                        </span>
+                      </label>
+                    );
+                  })
+                )}
+              </fieldset>
+            ) : null}
+
+            {templates && stage === 2 ? (
+              <>
+                <div className="flex flex-wrap items-center gap-2">
+                  {chips.map((chip) => (
+                    <Chip
+                      active={filter === chip.id}
+                      count={chip.count}
+                      key={chip.id}
+                      onClick={() => setFilter(filter === chip.id ? null : chip.id)}
                     >
-                      <input
-                        checked={checked}
-                        className="h-[18px] w-[18px] accent-[var(--color-blue)]"
-                        name="assign-plan"
-                        onChange={() => choosePlan(entry.id)}
-                        type="radio"
-                      />
-                      <span className="flex min-w-0 flex-col gap-0.5">
-                        <span className="truncate text-[15px] font-bold text-ink">{entry.name}</span>
-                        {entry.description ? <span className="truncate text-[13px] text-ink-2">{entry.description}</span> : null}
-                      </span>
-                      <span className="font-mono text-xs whitespace-nowrap text-muted uppercase">
-                        {entry.steps.length} steps · {Math.ceil(days / 7)} wks · {assigned} active
-                      </span>
-                    </label>
-                  );
-                })
-              )}
-            </fieldset>
-          ) : null}
-
-          {templates && stage === 2 ? (
-            <>
-              <div className="flex flex-wrap items-center gap-2 text-[13px] font-semibold">
-                {(
-                  [
-                    { id: "no-plan", label: `No plan · ${counts["no-plan"]}` },
-                    { id: "basic", label: `Basic · ${counts.basic}` },
-                    { id: "recent", label: `Joined last 30 days · ${counts.recent}` },
-                  ] as const
-                ).map((chip) => (
-                  <button
-                    aria-pressed={filter === chip.id}
-                    className={cn(
-                      "rounded-full px-3 py-1.5",
-                      filter === chip.id ? "bg-ink text-white" : "border-[1.5px] border-line-strong text-ink hover:bg-blue-soft",
-                    )}
-                    key={chip.id}
-                    onClick={() => setFilter(filter === chip.id ? null : chip.id)}
-                    type="button"
-                  >
-                    {chip.label}
-                  </button>
-                ))}
-                <TextInput
-                  aria-label="Search people"
-                  className="ml-auto w-[200px] py-1.5 text-[13px] font-normal"
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Search people"
-                  type="search"
-                  value={query}
-                />
-              </div>
-              <div className="overflow-hidden rounded-[14px] border border-line bg-white">
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[640px] border-collapse text-left text-sm">
-                    <caption className="sr-only">SEs to assign</caption>
-                    <thead>
-                      <tr className="border-b border-line font-mono text-xs text-muted uppercase">
-                        <th className="w-[54px] py-2.5 pr-3 pl-[18px] font-medium" scope="col">
-                          <input
-                            aria-label="Select all shown"
-                            checked={allVisibleSelected}
-                            className="h-[18px] w-[18px] align-middle accent-[var(--color-blue)]"
-                            disabled={selectable.length === 0}
-                            onChange={() =>
-                              setSelected((current) => {
-                                const next = new Set(current);
-                                for (const profile of selectable) {
-                                  if (allVisibleSelected) next.delete(profile.id);
-                                  else next.add(profile.id);
-                                }
-                                return next;
-                              })
-                            }
-                            type="checkbox"
-                          />
-                        </th>
-                        <th className="px-3 py-2.5 font-medium" scope="col">SE</th>
-                        <th className="w-[110px] px-3 py-2.5 font-medium" scope="col">Level</th>
-                        <th className="w-[130px] px-3 py-2.5 font-medium" scope="col">Joined</th>
-                        <th className="w-[160px] py-2.5 pr-[18px] pl-3 font-medium" scope="col">Manager</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {visible.length === 0 ? (
-                        <tr>
-                          <td colSpan={5}>
-                            <EmptyState>No SEs match this filter.</EmptyState>
-                          </td>
-                        </tr>
-                      ) : (
-                        visible.map((profile) => {
-                          const already = hasThisPlan(profile.id);
-                          const isSelected = selected.has(profile.id);
-                          return (
-                            <tr
-                              className={cn("border-b border-divider last:border-b-0", isSelected && "bg-signal-soft")}
-                              key={profile.id}
-                            >
-                              <td className="py-[13px] pr-3 pl-[18px]">
-                                <input
-                                  aria-label={`Select ${profile.fullName}`}
-                                  checked={isSelected}
-                                  className="h-[18px] w-[18px] align-middle accent-[var(--color-blue)]"
-                                  disabled={already}
-                                  onChange={() => toggle(profile.id)}
-                                  type="checkbox"
-                                />
-                              </td>
-                              <td className="px-3 py-[13px]">
-                                <span className={cn("text-ink", isSelected && "font-bold")}>{profile.fullName}</span>
-                                {already ? (
-                                  <Tag className="ml-2" tone="blue">
-                                    ✓ Has this plan
-                                  </Tag>
-                                ) : null}
-                              </td>
-                              <td className="px-3 py-[13px] text-ink">{profile.level}</td>
-                              <td className="px-3 py-[13px] font-mono text-[13px] text-ink uppercase">
-                                {formatDay(profile.createdAt.slice(0, 10))}
-                              </td>
-                              <td className="py-[13px] pr-[18px] pl-3 text-ink">{managerName(profile)}</td>
-                            </tr>
-                          );
-                        })
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              <p className="text-[13px] text-muted">Gate and step reviews go to each SE&apos;s own manager.</p>
-            </>
-          ) : null}
-
-          {templates && stage === 3 ? (
-            <div className="flex flex-col gap-4 rounded-[14px] border border-line bg-white px-5 py-5">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field
-                  hint="The SE gets the plan on Today the morning of this date."
-                  htmlFor="assign-start"
-                  label="Start date"
-                >
+                      {chip.label}
+                    </Chip>
+                  ))}
                   <TextInput
-                    id="assign-start"
-                    min={new Date().toISOString().slice(0, 10)}
-                    onChange={(event) => setStartDate(event.target.value)}
-                    required
-                    type="date"
-                    value={startDate}
+                    aria-label="Search people"
+                    className="ml-auto w-[220px] rounded-full py-[7px] text-sm max-sm:ml-0 max-sm:w-full"
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Search people"
+                    type="search"
+                    value={query}
                   />
-                </Field>
-                <Field hint="Optional. Applies to every SE in this assignment." htmlFor="assign-mentor" label="Mentor">
-                  <SelectInput id="assign-mentor" onChange={(event) => setMentorId(event.target.value)} value={mentorId}>
-                    <option value="">No mentor</option>
-                    {mentors.map((mentor) => (
-                      <option key={mentor.id} value={mentor.id}>
-                        {mentor.fullName}
-                      </option>
-                    ))}
-                  </SelectInput>
-                </Field>
-              </div>
-              <ul className="flex flex-col text-sm">
-                {selectedPeople.map((person) => (
-                  <li className="flex justify-between border-b border-divider py-2 last:border-b-0" key={person.id}>
-                    <span className="font-semibold text-ink">{person.fullName}</span>
-                    <span className="text-ink-2">Reviews: {managerName(person)}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-        </div>
+                </div>
+                <TableCard minWidth={680}>
+                  <caption className="sr-only">SEs to assign</caption>
+                  <thead>
+                    <tr>
+                      <th className={cn(thCls, "w-[52px]")} scope="col">
+                        <Checkbox
+                          checked={allVisibleSelected}
+                          disabled={selectable.length === 0}
+                          label="Select everyone shown"
+                          onChange={() =>
+                            setSelected((current) => {
+                              const next = new Set(current);
+                              for (const profile of selectable) {
+                                if (allVisibleSelected) next.delete(profile.id);
+                                else next.add(profile.id);
+                              }
+                              return next;
+                            })
+                          }
+                        />
+                      </th>
+                      <th className={thCls} scope="col">
+                        Name
+                      </th>
+                      <th className={cn(thCls, "w-[110px]")} scope="col">
+                        Level
+                      </th>
+                      <th className={cn(thCls, "w-[140px]")} scope="col">
+                        Manager
+                      </th>
+                      <th className={cn(thCls, "w-[100px]")} scope="col">
+                        Joined
+                      </th>
+                      <th className={cn(thCls, "w-[150px]")} scope="col">
+                        Plan
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visible.length === 0 ? (
+                      <tr>
+                        <td colSpan={6}>
+                          <EmptyState>No SEs match this filter.</EmptyState>
+                        </td>
+                      </tr>
+                    ) : (
+                      visible.map((profile, index) => {
+                        const already = hasThisPlan(profile.id);
+                        const isSelected = selected.has(profile.id);
+                        const current = activePlansByUser.get(profile.id)?.[0];
+                        const cell = cn(tdCls, index === 0 && "border-t-0");
+                        return (
+                          <tr className={isSelected ? rowHighlight.ready : undefined} key={profile.id}>
+                            <td className={cell}>
+                              <Checkbox
+                                checked={isSelected}
+                                disabled={already}
+                                label={`Select ${profile.fullName}`}
+                                onChange={() => toggle(profile.id)}
+                              />
+                            </td>
+                            <td className={cell}>
+                              <PersonCell initials={initials(profile.fullName)} name={profile.fullName} />
+                            </td>
+                            <td className={cn(cell, "text-sm text-ink-2")}>{profile.level}</td>
+                            <td className={cn(cell, "text-sm text-ink-2")}>{managerName(profile)}</td>
+                            <td className={cn(cell, "text-sm text-muted")}>{formatDay(profile.createdAt.slice(0, 10))}</td>
+                            <td className={cn(cell, "text-sm")}>
+                              {already ? (
+                                <span className="text-ink-2">Has this plan</span>
+                              ) : current ? (
+                                <span className="text-ink-2">{current.name}</span>
+                              ) : (
+                                <span className="font-semibold text-warning">No plan</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </TableCard>
+                <p className="text-[13px] text-muted">Gate and step reviews go to each SE&apos;s own manager.</p>
+              </>
+            ) : null}
 
-        <aside
-          aria-label="Assignment summary"
-          className="flex flex-col gap-3.5 self-start rounded-[18px] bg-badge p-[22px] text-white"
-        >
-          <span className="font-mono text-xs text-signal uppercase">Summary</span>
-          <p className="text-xl leading-[1.35] font-bold">
-            Assign <span className="text-signal">{template?.name ?? "a plan"}</span> to{" "}
-            <span className="text-signal">
-              {selectedPeople.length} SE{selectedPeople.length === 1 ? "" : "s"}
-            </span>
-            , starting <span className="text-signal">{formatDay(startDate, true)}</span>.
-          </p>
-          <dl className="m-0 grid grid-cols-[1fr_auto] gap-x-3 gap-y-2 border-t border-dashed border-badge-line pt-3 text-sm text-on-blue">
-            <dt>First step due</dt>
-            <dd className="m-0 text-white">
-              {firstDue !== null ? formatDay(addDaysToIsoDate(startDate, firstDue), true) : "—"}
-            </dd>
-            <dt>Field ready by</dt>
-            <dd className="m-0 text-white">{duration !== null ? formatDay(addDaysToIsoDate(startDate, duration)) : "—"}</dd>
-            <dt>Reviewers</dt>
-            <dd className="m-0 text-white">
-              {selectedPeople.length ? `${reviewerCount} manager${reviewerCount === 1 ? "" : "s"}` : "—"}
-            </dd>
-          </dl>
-          <div className="mt-1 flex flex-wrap items-center gap-4">
-            <button
-              className="btn-primary"
-              disabled={!canAdvance || assigning}
-              onClick={advance}
-              style={
-                canAdvance && !assigning
-                  ? { padding: "9px 20px", fontSize: 14, borderColor: "var(--color-signal)", boxShadow: "3px 3px 0 var(--color-blue)" }
-                  : { padding: "9px 20px", fontSize: 14 }
-              }
-              type="button"
-            >
-              {primaryLabel}
-            </button>
-            {template && previewPerson ? (
-              <button
-                className="text-sm font-bold text-white underline decoration-signal decoration-2 underline-offset-[3px] hover:decoration-white"
-                onClick={() => setPreviewOpen(true)}
-                type="button"
-              >
-                Preview as {firstName(previewPerson.fullName)}
-              </button>
+            {templates && stage === 3 ? (
+              <div className="flex flex-col gap-4 rounded-[14px] border border-line bg-white px-[22px] py-5">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field
+                    hint="The SE gets the plan on Today the morning of this date."
+                    htmlFor="assign-start"
+                    label="Start date"
+                  >
+                    <TextInput
+                      id="assign-start"
+                      min={new Date().toISOString().slice(0, 10)}
+                      onChange={(event) => setStartDate(event.target.value)}
+                      required
+                      type="date"
+                      value={startDate}
+                    />
+                  </Field>
+                  <Field hint="Optional. Applies to everyone in this assignment." htmlFor="assign-mentor" label="Mentor">
+                    <SelectInput id="assign-mentor" onChange={(event) => setMentorId(event.target.value)} value={mentorId}>
+                      <option value="">No mentor</option>
+                      {mentors.map((mentor) => (
+                        <option key={mentor.id} value={mentor.id}>
+                          {mentor.fullName}
+                        </option>
+                      ))}
+                    </SelectInput>
+                  </Field>
+                </div>
+                <ul className="flex flex-col text-sm">
+                  {selectedPeople.map((person) => (
+                    <li className="flex justify-between gap-4 border-t border-divider py-2.5 first:border-t-0" key={person.id}>
+                      <span className="font-semibold text-ink">{person.fullName}</span>
+                      <span className="text-ink-2">Reviewed by {managerName(person)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ) : null}
           </div>
-        </aside>
-      </div>
+
+          <aside
+            aria-label="Assignment summary"
+            className="on-navy flex flex-col gap-[18px] rounded-[16px] bg-navy p-[26px] text-white"
+          >
+            <p className="text-[22px] leading-[1.4] font-bold">
+              Assign <span className="text-signal">{template?.name ?? "a plan"}</span> to{" "}
+              <span className="text-signal">
+                {selectedPeople.length} SE{selectedPeople.length === 1 ? "" : "s"}
+              </span>
+              , starting <span className="text-signal">{formatDay(startDate, true)}</span>.
+            </p>
+            <dl className="m-0 flex flex-col">
+              {[
+                {
+                  term: "First step due",
+                  value: firstDue !== null ? formatDay(addDaysToIsoDate(startDate, firstDue), true) : "Pick a plan",
+                },
+                {
+                  term: "Field ready by",
+                  value: duration !== null ? formatDay(addDaysToIsoDate(startDate, duration), true) : "Pick a plan",
+                },
+                {
+                  term: "Reviewers",
+                  value: reviewerNames.length ? reviewerNames.join(", ") : selectedPeople.length ? "No manager set" : "Pick people",
+                },
+                { term: "Mentor", value: mentorName ?? (stage < 3 ? "Set in the next step" : "None") },
+              ].map((row) => (
+                <div className="flex justify-between gap-3 border-t border-navy-line py-2.5 text-sm" key={row.term}>
+                  <dt className="text-on-navy-muted">{row.term}</dt>
+                  <dd className="m-0 text-right font-semibold text-white">{row.value}</dd>
+                </div>
+              ))}
+            </dl>
+            <div className="flex flex-wrap items-center gap-4">
+              <button className="btn-primary" disabled={!canAdvance || assigning} onClick={advance} type="button">
+                {primaryLabel}
+              </button>
+              {template && previewPerson ? (
+                <button className="link text-sm" onClick={() => setPreviewOpen(true)} type="button">
+                  Preview as {firstName(previewPerson.fullName)}
+                </button>
+              ) : null}
+            </div>
+          </aside>
+        </div>
+      </PageBody>
 
       <PlanPreviewDrawer
         name={template?.name ?? ""}

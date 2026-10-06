@@ -1,14 +1,23 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { GripVertical } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Field, LinkButton, SelectInput, TextArea, TextInput } from "@/components/admin/admin-ui";
 import { usePlanBuilderData, type LibraryItem } from "@/components/plans/plan-builder-data";
 import { PlanPreviewDrawer, StepFlightPreview } from "@/components/plans/plan-builder-preview";
 import { PlanWeeksView } from "@/components/plans/plan-builder-weeks";
+import { Chip } from "@/components/ui/chip";
+import { Checkbox } from "@/components/ui/checkbox";
 import { SegmentedToggle } from "@/components/ui/segmented-toggle";
 import {
   BUILDER_STEP_TYPES,
+  builderTypeLabel,
+  gateNumbers,
+  pad2,
+  planChecklist,
+  segmentWeeksLabel,
   EVIDENCE_OPTIONS,
   PLAN_WEEKS,
   REVIEWER_OPTIONS,
@@ -23,7 +32,6 @@ import {
   minutesPerWeek,
   offsetFor,
   outlineGroups,
-  segmentRangeLabel,
   stepIssues,
   stepWarnings,
   stepsEqual,
@@ -84,6 +92,10 @@ export function PlanBuilder() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [initialised, setInitialised] = useState(false);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [savedAt, setSavedAt] = useState<string | null>(null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const handledAdd = useRef(false);
 
   const template = data.templates.find((entry) => entry.id === planId) ?? null;
   const dirty =
@@ -104,6 +116,33 @@ export function PlanBuilder() {
     openPlan(data.templates[0] ?? null);
     setInitialised(true);
   }, [data.loading, data.templates, initialised, openPlan]);
+
+  // "Add to a ramp plan" from the practice wizard lands here with ?addPractice=sim:<id>&title=<name>.
+  useEffect(() => {
+    if (!initialised || handledAdd.current) return;
+    const raw = searchParams.get("addPractice");
+    if (!raw) return;
+    handledAdd.current = true;
+    const [kind, id = ""] = raw.split(":");
+    const title = searchParams.get("title")?.trim() || "New practice";
+    const lastDue = steps.reduce((max, step) => Math.max(max, step.dueOffsetDays), 0);
+    const dueOffsetDays = Math.min(PLAN_WEEKS * 7, lastDue + 7) || 5;
+    const step =
+      kind === "sim"
+        ? emptyBuilderStep({ title, stepType: "simulation", simulationTemplateId: id, dueOffsetDays, estimatedMinutes: 15 })
+        : emptyBuilderStep({
+            title,
+            stepType: "custom",
+            description: `Record the "${title}" pitch in Practice and submit it for review.`,
+            dueOffsetDays,
+          });
+    step.segmentIndex = steps.at(-1)?.segmentIndex ?? null;
+    setSteps((current) => [...current, step]);
+    setSelectedKey(step.key);
+    setView("outline");
+    toast.success(`${title} added as a new step. Fill in the rest, then publish the plan.`);
+    router.replace("/admin/programs");
+  }, [initialised, router, searchParams, steps]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -229,6 +268,7 @@ export function PlanBuilder() {
     const body = (await response.json().catch(() => ({}))) as { id?: string };
     const savedId = planId ?? body.id ?? null;
     toast.success("Plan published.");
+    setSavedAt(new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }));
     const fresh = await data.loadTemplates();
     const saved = fresh.find((entry) => entry.id === savedId);
     if (saved) openPlan(saved);
@@ -248,76 +288,78 @@ export function PlanBuilder() {
     openPlan(fresh[0] ?? null);
   }
 
-  const status = !planId ? "NEW PLAN" : dirty ? "UNPUBLISHED CHANGES" : template && isLockedTemplate(template) ? "LOCKED" : "PUBLISHED";
-
-  const headerControls = (
-    <div className="flex flex-wrap items-center gap-[18px]">
-      <SegmentedToggle
-        label="Builder view"
-        onChange={(id) => setView(id as View)}
-        options={[
-          { id: "outline", label: "Outline" },
-          { id: "weeks", label: "W01–W13" },
-        ]}
-        value={view}
-      />
-      {view === "outline" ? (
-        incomplete.length > 0 ? (
-          <button
-            className="font-mono text-xs text-muted uppercase underline decoration-signal decoration-2 underline-offset-[3px] hover:text-ink"
-            onClick={selectFirstIncomplete}
-            type="button"
-          >
-            {incomplete.length} incomplete
-          </button>
-        ) : (
-          <span className="font-mono text-xs text-muted uppercase">{steps.length ? "All steps complete" : "No steps"}</span>
-        )
-      ) : null}
-      <LinkButton onClick={() => setPreviewOpen(true)}>Preview as SE</LinkButton>
-      <button
-        aria-describedby={incomplete.length ? "plan-incomplete-note" : undefined}
-        className="btn-primary"
-        disabled={!publishable}
-        onClick={() => void publish()}
-        style={{ padding: "9px 20px", fontSize: 14 }}
-        type="button"
-      >
-        {saving ? "Publishing…" : "Publish plan"}
-      </button>
-      {incomplete.length ? (
-        <span className="sr-only" id="plan-incomplete-note">
-          Publishing is blocked until every step has a type, done-when criteria, evidence and a reviewer.
-        </span>
-      ) : null}
-    </div>
-  );
-
-  const titleBlock = (size: "outline" | "weeks") => (
-    <div className="flex min-w-0 flex-1 flex-col gap-1">
-      <span className="font-mono text-xs text-muted uppercase">Programs / Ramp plans / {status}</span>
-      <h1 className="m-0">
-        <input
-          aria-label="Plan name"
-          className={cn(
-            "w-full min-w-[240px] rounded-[6px] bg-transparent font-extrabold text-ink placeholder:text-faint",
-            size === "outline" ? "text-2xl tracking-[-0.015em]" : "text-[26px] leading-[1.1] tracking-[-0.02em]",
-          )}
-          onChange={(event) => setName(event.target.value)}
-          placeholder="Name this plan"
-          value={name}
-        />
-      </h1>
-    </div>
-  );
+  const status = !planId
+    ? "New plan"
+    : dirty
+      ? "Unpublished changes"
+      : template && isLockedTemplate(template)
+        ? "Locked"
+        : "Published";
 
   if (data.loading && !initialised) {
     return (
-      <p aria-busy="true" className="label-mono px-[var(--gutter)] py-16 text-center" role="status">
-        Loading plan builder…
+      <p aria-busy="true" className="px-[var(--page-pad-x)] py-16 text-center text-sm text-muted" role="status">
+        Loading the plan builder…
       </p>
     );
   }
+
+  const header = (
+    <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-line bg-white px-8 py-4 max-sm:px-4">
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <p className="text-[13px] text-muted">
+          Programs / Ramp plans / <b className="font-bold text-ink">{status}</b>
+          {savedAt && !dirty ? `, saved at ${savedAt}` : ""}
+        </p>
+        <h1 className="m-0">
+          <input
+            aria-label="Plan name"
+            className="w-full min-w-[240px] rounded-[6px] bg-transparent text-2xl font-extrabold tracking-[-0.015em] text-ink placeholder:text-muted"
+            onChange={(event) => setName(event.target.value)}
+            placeholder="Name this plan"
+            value={name}
+          />
+        </h1>
+      </div>
+      <div className="flex flex-wrap items-center gap-[18px]">
+        <SegmentedToggle
+          label="Builder view"
+          onChange={(id) => setView(id as View)}
+          options={[
+            { id: "outline", label: "Outline" },
+            { id: "weeks", label: "Weeks" },
+          ]}
+          value={view}
+        />
+        {incomplete.length > 0 ? (
+          <button
+            className="text-sm font-semibold text-warning underline-offset-4 hover:underline"
+            onClick={selectFirstIncomplete}
+            type="button"
+          >
+            {incomplete.length} step{incomplete.length === 1 ? "" : "s"} incomplete
+          </button>
+        ) : (
+          <span className="text-sm text-muted">{steps.length ? "Every step is complete" : "No steps yet"}</span>
+        )}
+        <LinkButton onClick={() => setPreviewOpen(true)}>Preview as SE</LinkButton>
+        <button
+          aria-describedby={!publishable ? "plan-publish-note" : undefined}
+          className="btn-primary"
+          disabled={!publishable}
+          onClick={() => void publish()}
+          type="button"
+        >
+          {saving ? "Publishing…" : "Publish"}
+        </button>
+        {!publishable ? (
+          <span className="sr-only" id="plan-publish-note">
+            Publishing needs a plan name and, on every step, a type, done-when criteria, evidence and a reviewer.
+          </span>
+        ) : null}
+      </div>
+    </header>
+  );
 
   const preview = (
     <PlanPreviewDrawer name={name} onClose={() => setPreviewOpen(false)} open={previewOpen} steps={steps} />
@@ -325,14 +367,9 @@ export function PlanBuilder() {
 
   if (view === "weeks") {
     return (
-      <>
+      <div className="flex min-h-[640px] flex-col">
+        {header}
         <PlanWeeksView
-          header={
-            <header className="flex flex-wrap items-end justify-between gap-5 px-7 pt-[22px] pb-4">
-              {titleBlock("weeks")}
-              {headerControls}
-            </header>
-          }
           library={data.library}
           minutesPerWeek={hours}
           onAddFromLibrary={addFromLibrary}
@@ -345,27 +382,25 @@ export function PlanBuilder() {
           steps={steps}
         />
         {preview}
-      </>
+      </div>
     );
   }
 
   const groups = outlineGroups(steps);
   const selectedSegment = selected?.segmentIndex ?? null;
+  const gates = gateNumbers(steps);
 
   return (
     <div className="flex min-h-[640px] flex-col">
-      <header className="flex flex-wrap items-center justify-between gap-5 border-b-[1.5px] border-ink bg-white px-7 py-5">
-        {titleBlock("outline")}
-        {headerControls}
-      </header>
+      {header}
 
-      <div className="grid flex-1 grid-cols-1 xl:grid-cols-[270px_minmax(0,1fr)_300px]">
+      <div className="grid flex-1 grid-cols-1 xl:grid-cols-[280px_minmax(0,1fr)_320px]">
         {/* Outline */}
         <nav
           aria-label="Plan outline"
-          className="flex flex-col gap-1 border-b border-line bg-white px-3 py-4 text-sm xl:border-r xl:border-b-0"
+          className="flex flex-col border-b border-line bg-white px-3.5 py-2 xl:border-r xl:border-b-0"
         >
-          <div className="mb-2 px-2">
+          <div className="px-2.5 pt-3.5 pb-1">
             <Field htmlFor="plan-picker" label="Plan">
               <SelectInput
                 className="py-2 text-sm"
@@ -378,15 +413,15 @@ export function PlanBuilder() {
                     {entry.name}
                   </option>
                 ))}
-                <option value={NEW_PLAN}>+ New plan</option>
+                <option value={NEW_PLAN}>New plan</option>
               </SelectInput>
             </Field>
           </div>
 
-          {groups.map((group, groupIndex) => (
+          {groups.map((group) => (
             <div className="flex flex-col gap-0.5" key={group.segmentIndex ?? "none"}>
-              <div
-                className={cn("flex justify-between px-2", groupIndex === 0 ? "py-1" : "pt-3 pb-1")}
+              <p
+                className="px-2.5 pt-3.5 pb-1.5"
                 onDragOver={(event) => dragIndex !== null && event.preventDefault()}
                 onDrop={(event) => {
                   event.preventDefault();
@@ -396,29 +431,20 @@ export function PlanBuilder() {
                   setDragIndex(null);
                 }}
               >
-                <span
-                  className={cn(
-                    "font-mono text-xs uppercase",
-                    group.segmentIndex === selectedSegment ? "font-medium text-ink" : "text-muted",
-                  )}
-                >
-                  {segmentRangeLabel(group)}
-                </span>
-                <span className="font-mono text-xs text-muted">{group.steps.length}</span>
-              </div>
+                <span className="th">{group.name}</span>{" "}
+                <span className="text-xs font-medium text-muted">{segmentWeeksLabel(group)}</span>
+              </p>
               {group.steps.map(({ step, index }) => {
                 const isSelected = step.key === selectedKey;
                 const issues = stepIssues(step);
                 const label = step.title || "Untitled step";
+                const gateNumber = gates.get(step.key);
                 return (
                   <div
                     className={cn(
-                      "group flex items-center justify-between gap-2",
-                      isSelected
-                        ? "rounded-[10px] border-[1.5px] border-blue bg-blue-soft px-2.5 py-[9px] font-bold text-blue"
-                        : "px-2 py-[7px] text-ink-2",
-                      step.isSegmentGate && !isSelected && "font-semibold text-ink",
-                      dragIndex === index && "opacity-40",
+                      "grid grid-cols-[16px_28px_minmax(0,1fr)] items-center gap-2 rounded-[8px] border px-2.5 py-2",
+                      isSelected ? "border-blue bg-blue-soft" : "border-transparent hover:bg-bg",
+                      dragIndex === index && "rotate-[-1.5deg] bg-white shadow-[var(--shadow-drag)]",
                     )}
                     draggable
                     key={step.key}
@@ -436,10 +462,20 @@ export function PlanBuilder() {
                       setDragIndex(null);
                     }}
                   >
+                    <GripVertical aria-hidden className="h-4 w-4 cursor-grab text-faint" />
+                    {step.isSegmentGate ? (
+                      <span aria-hidden className="grid h-5 place-items-center">
+                        <span className={cn("h-[9px] w-[9px] rotate-45", issues.length === 0 ? "bg-blue" : "border-2 border-blue")} />
+                      </span>
+                    ) : (
+                      <span aria-hidden className="num text-sm font-extrabold text-faint">
+                        {pad2(index + 1)}
+                      </span>
+                    )}
                     <button
                       aria-current={isSelected ? "true" : undefined}
                       aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
-                      className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                      className="flex min-w-0 flex-col text-left"
                       onClick={() => setSelectedKey(step.key)}
                       onKeyDown={(event) => {
                         if (!event.altKey) return;
@@ -453,33 +489,26 @@ export function PlanBuilder() {
                       }}
                       type="button"
                     >
-                      {step.isSegmentGate ? (
-                        <span
-                          aria-hidden
-                          className={cn(
-                            "h-[9px] w-[9px] shrink-0 rotate-45",
-                            issues.length === 0 ? "bg-blue" : "border-2 border-blue",
-                          )}
-                        />
+                      <span className={cn("truncate text-sm text-ink", isSelected ? "font-bold" : "font-semibold")}>
+                        {label}
+                        <span className="sr-only">, step {index + 1}</span>
+                      </span>
+                      {issues.length > 0 ? (
+                        <span className="truncate text-xs text-warning">
+                          Missing {issues.map(issueLabel).join(", ")}
+                        </span>
                       ) : (
-                        <span aria-hidden className="cursor-grab text-faint">
-                          ⋮⋮
+                        <span className="truncate text-xs text-muted">
+                          {step.isSegmentGate ? `Gate ${gateNumber ?? ""}`.trim() : builderTypeLabel(step.stepType)}
                         </span>
                       )}
-                      <span className="truncate">
-                        {label}
-                        {step.isSegmentGate ? <span className="sr-only"> (gate)</span> : null}
-                      </span>
                     </button>
-                    {issues.length > 0 && !isSelected ? (
-                      <span className="shrink-0 font-mono text-xs text-warning uppercase">{issues.length} missing</span>
-                    ) : null}
                   </div>
                 );
               })}
-              {(group.segmentIndex === selectedSegment || (selectedSegment === null && groupIndex === groups.length - 1)) ? (
+              {group.segmentIndex === selectedSegment || (selectedSegment === null && group === groups.at(-1)) ? (
                 <button
-                  className="mx-2 my-1 rounded-[10px] border-[1.5px] border-dashed border-line-strong p-2 text-center font-bold text-blue hover:bg-blue-soft"
+                  className="self-start px-2.5 py-2.5 text-sm font-bold text-blue hover:underline"
                   onClick={() => addStep(group.segmentIndex)}
                   type="button"
                 >
@@ -489,16 +518,12 @@ export function PlanBuilder() {
             </div>
           ))}
           {groups.length === 0 ? (
-            <button
-              className="mx-2 my-1 rounded-[10px] border-[1.5px] border-dashed border-line-strong p-2 text-center font-bold text-blue hover:bg-blue-soft"
-              onClick={() => addStep(1)}
-              type="button"
-            >
+            <button className="self-start px-2.5 py-2.5 text-sm font-bold text-blue hover:underline" onClick={() => addStep(1)} type="button">
               + Add step
             </button>
           ) : null}
 
-          <div className="mt-auto flex flex-col gap-3 border-t border-divider px-2 pt-4">
+          <div className="mt-auto flex flex-col gap-3 border-t border-divider px-2.5 pt-4 pb-3">
             <Field htmlFor="plan-description" label="Plan description">
               <TextArea
                 className="min-h-16 text-sm"
@@ -516,12 +541,12 @@ export function PlanBuilder() {
         </nav>
 
         {/* Step editor */}
-        <section aria-label="Step editor" className="flex min-w-0 flex-col gap-4 px-7 py-[22px]">
+        <section aria-label="Step editor" className="flex min-w-0 flex-col gap-4 px-8 py-6 max-sm:px-4">
           {selected ? (
             <StepEditor
-              competencies={data.competencies}
               assets={data.assets}
               challenges={data.challenges}
+              competencies={data.competencies}
               onChange={(patch) => patchStep(selected.key, patch)}
               onRemove={() => removeStep(selected.key)}
               simTemplates={data.simTemplates}
@@ -535,15 +560,29 @@ export function PlanBuilder() {
         {/* Live preview */}
         <aside
           aria-label="Live preview"
-          className="flex flex-col gap-3 border-t border-line bg-surface-2 px-5 py-[22px] xl:border-t-0 xl:border-l"
+          className="flex flex-col gap-4 border-t border-line px-[22px] py-6 xl:border-t-0 xl:border-l"
         >
-          <span className="font-mono text-xs text-muted uppercase">Live preview · what the SE sees</span>
-          {selected ? <StepFlightPreview index={selectedIndex} step={selected} /> : null}
+          <p className="label-caps">As the SE sees it</p>
+          {selected ? <StepFlightPreview index={selectedIndex} step={selected} total={steps.length} /> : null}
           <ReadyChecklist onSelect={setSelectedKey} selected={selected} steps={steps} />
         </aside>
       </div>
       {preview}
     </div>
+  );
+}
+
+function CheckDot({ done, blocking }: { done: boolean; blocking: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full",
+        done ? "bg-blue" : blocking ? "border-2 border-warning-dot" : "border-2 border-line-strong",
+      )}
+    >
+      {done ? <span className="block h-2 w-1 -translate-y-px rotate-45 border-r-2 border-b-2 border-white" /> : null}
+    </span>
   );
 }
 
@@ -556,58 +595,43 @@ function ReadyChecklist({
   selected: BuilderStep | null;
   onSelect: (key: string) => void;
 }) {
-  const rows: { ok: boolean; text: string; key?: string }[] = [];
-  if (selected) {
-    const issues = stepIssues(selected);
-    const basics = issues.filter((issue) => issue === "type" || issue === "title");
-    rows.push({
-      ok: basics.length === 0 && Boolean(selected.description.trim()),
-      text:
-        basics.length === 0
-          ? selected.description.trim()
-            ? "Type, title, instructions"
-            : "Add instructions for the SE"
-          : `Missing ${basics.map(issueLabel).join(", ")}`,
-    });
-    const review = issues.filter((issue) => issue === "criteria" || issue === "evidence" || issue === "reviewer");
-    const criteriaCount = selected.criteria.filter((item) => item.trim()).length;
-    rows.push({
-      ok: review.length === 0,
-      text:
-        review.length === 0
-          ? `${criteriaCount} ${criteriaCount === 1 ? "criterion" : "criteria"}, evidence, reviewer`
-          : `Missing ${review.map(issueLabel).join(", ")}`,
-    });
-    for (const warning of stepWarnings(selected)) rows.push({ ok: false, text: `This step ${warning}` });
-  }
-  for (const step of steps) {
-    if (step.key === selected?.key) continue;
-    const issues = stepIssues(step);
-    const name = step.title || "Untitled step";
-    if (issues.length) rows.push({ ok: false, text: `${name} has no ${issues.map(issueLabel).join(", ")}`, key: step.key });
-    else for (const warning of stepWarnings(step)) rows.push({ ok: false, text: `${name} ${warning}`, key: step.key });
-  }
-
+  const rows = planChecklist(steps);
+  const warnings = selected ? stepWarnings(selected) : [];
   return (
-    <div className="mt-1.5 flex flex-col gap-1.5 text-[13px] text-ink">
-      <span className="font-mono text-xs text-muted uppercase">Ready to publish?</span>
-      {rows.length === 0 ? <span className="text-muted">Add a step to start.</span> : null}
-      {rows.slice(0, 8).map((row, i) => (
-        <span className="flex gap-2" key={`${row.text}-${i}`}>
-          <span aria-hidden className={cn("font-bold", row.ok ? "text-success" : "text-warning")}>
-            {row.ok ? "✓" : "!"}
-          </span>
-          <span className="sr-only">{row.ok ? "Done:" : "Needs attention:"}</span>
-          {row.key ? (
-            <button className="text-left hover:underline" onClick={() => onSelect(row.key!)} type="button">
-              {row.text}
-            </button>
-          ) : (
-            row.text
-          )}
-        </span>
-      ))}
-      {rows.length > 8 ? <span className="text-muted">+{rows.length - 8} more</span> : null}
+    <div className="flex flex-col gap-1.5">
+      <p className="text-base font-extrabold text-ink">Ready to publish?</p>
+      {steps.length === 0 ? <p className="text-sm text-muted">Add a step to start.</p> : null}
+      <ul className="flex flex-col">
+        {rows.map((row) => {
+          const tone = row.done ? "text-ink" : row.blocking ? "text-warning" : "text-muted";
+          const content = (
+            <>
+              <CheckDot blocking={row.blocking} done={row.done} />
+              <span>
+                {row.label}
+                <span className="sr-only">{row.done ? ", done" : row.blocking ? ", blocks publishing" : ", advice"}</span>
+              </span>
+            </>
+          );
+          return (
+            <li className={cn("border-t border-divider py-2 text-sm", tone)} key={row.id}>
+              {!row.done && row.stepKeys[0] ? (
+                <button className="flex items-center gap-2.5 text-left hover:underline" onClick={() => onSelect(row.stepKeys[0]!)} type="button">
+                  {content}
+                </button>
+              ) : (
+                <span className="flex items-center gap-2.5">{content}</span>
+              )}
+            </li>
+          );
+        })}
+        {warnings.map((warning) => (
+          <li className="flex items-center gap-2.5 border-t border-divider py-2 text-sm text-muted" key={warning}>
+            <CheckDot blocking={false} done={false} />
+            <span>This step {warning}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -638,24 +662,12 @@ function StepEditor({
     <>
       <fieldset className="flex flex-col gap-1.5">
         <legend className="mb-1.5 text-sm font-bold text-ink">Step type</legend>
-        <div className="flex flex-wrap gap-1.5 text-[13px] font-semibold">
-          {BUILDER_STEP_TYPES.map((option) => {
-            const active = step.stepType === option.type;
-            return (
-              <button
-                aria-pressed={active}
-                className={cn(
-                  "rounded-full border-[1.5px] px-3 py-1.5",
-                  active ? "border-blue bg-blue text-white" : "border-line-strong text-ink hover:bg-blue-soft",
-                )}
-                key={option.type}
-                onClick={() => onChange({ stepType: option.type })}
-                type="button"
-              >
-                {option.label}
-              </button>
-            );
-          })}
+        <div className="flex flex-wrap gap-1.5">
+          {BUILDER_STEP_TYPES.map((option) => (
+            <Chip active={step.stepType === option.type} key={option.type} onClick={() => onChange({ stepType: option.type })}>
+              {option.label}
+            </Chip>
+          ))}
         </div>
       </fieldset>
 
@@ -676,25 +688,29 @@ function StepEditor({
         <legend className="mb-1.5 text-sm font-bold text-ink">Done when</legend>
         <div className="flex flex-col gap-1.5 text-sm">
           {criteria.map((criterion, index) => (
-            <div className="flex items-center gap-2" key={index}>
+            <div
+              className="flex items-center gap-2.5 rounded-[10px] border border-line bg-white py-1 pr-2 pl-3"
+              key={index}
+            >
+              <Checkbox aria-hidden disabled tabIndex={-1} />
               <input
                 aria-label={`Criterion ${index + 1}`}
-                className="min-w-0 flex-1 rounded-[10px] border border-line bg-white px-3 py-2 text-sm text-ink placeholder:text-muted"
+                className="min-w-0 flex-1 bg-transparent py-1.5 text-sm text-ink placeholder:text-muted"
                 onChange={(event) =>
                   onChange({ criteria: criteria.map((item, i) => (i === index ? event.target.value : item)) })
                 }
-                placeholder="Observable result, e.g. walkthrough recorded under 6 min"
+                placeholder="Observable result, for example a walkthrough recorded under 6 minutes"
                 value={criterion}
               />
               {criteria.length > 1 ? (
-                <button
+                <LinkButton
                   aria-label={`Remove criterion ${index + 1}`}
-                  className="rounded-full px-2 text-muted hover:text-danger"
+                  className="text-[13px]"
                   onClick={() => onChange({ criteria: criteria.filter((_, i) => i !== index) })}
-                  type="button"
+                  tone="danger"
                 >
-                  ✕
-                </button>
+                  Remove
+                </LinkButton>
               ) : null}
             </div>
           ))}
@@ -809,7 +825,7 @@ function StepEditor({
               {simTemplates.map((sim) => (
                 <option key={sim.id} value={sim.id}>
                   {sim.name}
-                  {sim.persona ? ` · ${sim.persona}` : ""}
+                  {sim.persona ? `, ${sim.persona}` : ""}
                 </option>
               ))}
             </SelectInput>
@@ -856,18 +872,18 @@ function StepEditor({
           <label className="flex items-center gap-2 text-sm font-bold text-ink" htmlFor={id("gate")}>
             <input
               checked={step.isSegmentGate}
-              className="h-[18px] w-[18px] rounded-[5px] accent-[var(--color-blue)]"
+              className="h-[18px] w-[18px] shrink-0 rounded-[5px] accent-[var(--color-blue)]"
               id={id("gate")}
               onChange={(event) => onChange({ isSegmentGate: event.target.checked })}
               type="checkbox"
             />
-            Gate: clearing it unlocks the next segment
+            This step is a gate. Clearing it unlocks the next segment.
           </label>
         </div>
       </div>
 
       <div className="flex items-center justify-between border-t border-divider pt-3">
-        <span className="font-mono text-xs text-muted uppercase">Due W{String(week).padStart(2, "0")}</span>
+        <span className="text-[13px] text-muted">Due in week {week}</span>
         <LinkButton onClick={onRemove} tone="danger">
           Remove step
         </LinkButton>

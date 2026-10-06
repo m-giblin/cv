@@ -3,14 +3,16 @@
 import dynamic from "next/dynamic";
 import { usePathname, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
-import { AdminBody, KpiStrip, LoadingState } from "@/components/admin/admin-ui";
+import { AdminBody, LoadingState } from "@/components/admin/admin-ui";
+import { AdminSettingsHeader } from "@/components/admin/admin-settings-header";
 import { PageHeader } from "@/components/ui/page-header";
 import {
   adminRouteFromPath,
   type AdminSettingsSectionId,
   type AdminTabId,
 } from "@/lib/admin/admin-routes";
-import { formatTokenCount, type AiUsageSummary } from "@/lib/ai/settings-shared";
+import type { PracticeUsage } from "@/lib/admin/practice-library";
+import type { AiUsageSummary } from "@/lib/ai/settings-shared";
 import type { PendingReviewBreakdown } from "@/lib/data/get-pending-review-breakdown";
 import type { ActivityLog, Profile, ProfileRole, SeLevel, UserPlan } from "@/lib/types";
 
@@ -42,11 +44,9 @@ const ContentAssetManagement = dynamic(
   () => import("@/components/admin/content-asset-management").then((mod) => mod.ContentAssetManagement),
   { loading },
 );
-const SimulationTemplateManagement = dynamic(() =>
-  import("@/components/admin/simulation-template-management").then((mod) => mod.SimulationTemplateManagement),
-);
-const PitchScenarioManagement = dynamic(() =>
-  import("@/components/admin/pitch-scenario-management").then((mod) => mod.PitchScenarioManagement),
+const PracticeLibrary = dynamic(
+  () => import("@/components/admin/practice-library").then((mod) => mod.PracticeLibrary),
+  { loading },
 );
 const CorpusRoutingAdmin = dynamic(() =>
   import("@/components/corpus/corpus-routing-admin").then((mod) => mod.CorpusRoutingAdmin),
@@ -109,6 +109,7 @@ const LEGACY_TABS: AdminTabId[] = [
   "content-portal",
   "reviews",
   "analytics",
+  "practice",
   "ai",
   "corpus",
   "routing",
@@ -130,25 +131,23 @@ type InitialAdminUser = {
   created_at: string;
 };
 
-const HEADERS: Partial<Record<AdminTabId, { eyebrow: string; title: string }>> = {
-  competencies: { eyebrow: "Programs", title: "Competencies" },
-  "content-portal": { eyebrow: "Content", title: "Library" },
-  corpus: { eyebrow: "Content", title: "Corpus" },
+const HEADERS: Partial<Record<AdminTabId, { eyebrow: string; title: string; subtitle?: string }>> = {
+  competencies: {
+    eyebrow: "Programs",
+    title: "Competencies",
+    subtitle: "What readiness is measured against. Plans, practice and certification gates all point here.",
+  },
+  "content-portal": {
+    eyebrow: "Content",
+    title: "Library",
+    subtitle: "Modules, battle cards and guides SEs find in Learn and plans link to as steps.",
+  },
+  corpus: { eyebrow: "Content", title: "Corpus", subtitle: "The source material behind answers, and where unanswered questions go." },
   routing: { eyebrow: "Content", title: "Q&A routing" },
-  ai: { eyebrow: "Content", title: "AI & sims" },
-  reviews: { eyebrow: "Content", title: "Reviews" },
-  analytics: { eyebrow: "Insights", title: "Analytics" },
-  audit: { eyebrow: "Insights", title: "Audit log" },
-  security: { eyebrow: "Settings", title: "Security" },
-  help: { eyebrow: "Overview", title: "Help" },
-};
-
-const SETTINGS_TITLES: Record<AdminSettingsSectionId, string> = {
-  flags: "Features",
-  integrations: "Integrations",
-  ai: "AI",
-  basic: "General",
-  retention: "Data retention",
+  reviews: { eyebrow: "Content", title: "Reviews", subtitle: "Work waiting on a reviewer across the tenant." },
+  analytics: { eyebrow: "Insights", title: "Analytics", subtitle: "How SEs are ramping, and whether readiness tracks with deals." },
+  audit: { eyebrow: "Insights", title: "Audit log", subtitle: "Who changed what, and when." },
+  help: { eyebrow: "Overview", title: "Help", subtitle: "Ask the platform team, and see what you asked before." },
 };
 
 /** Tenant admin console. The path picks the view; each view brings its own header and body. */
@@ -162,6 +161,7 @@ export function AdminConsole({
   pendingReviewBreakdown,
   aiUsage,
   initialUsers,
+  practiceUsage = null,
 }: {
   assignees: Profile[];
   mentors: Profile[];
@@ -172,13 +172,15 @@ export function AdminConsole({
   pendingReviewBreakdown?: PendingReviewBreakdown;
   aiUsage?: AiUsageSummary | null;
   initialUsers?: InitialAdminUser[];
+  practiceUsage?: PracticeUsage | null;
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const route = adminRouteFromPath(pathname);
   // The route decides the view; `?tab=` is only read for legacy URLs that have not redirected yet.
   const legacyTab = searchParams.get("tab") as AdminTabId | null;
-  const tab: AdminTabId = route?.tab ?? (legacyTab && LEGACY_TABS.includes(legacyTab) ? legacyTab : "overview");
+  const resolved: AdminTabId = route?.tab ?? (legacyTab && LEGACY_TABS.includes(legacyTab) ? legacyTab : "overview");
+  const tab: AdminTabId = resolved === "ai" ? "practice" : resolved;
   const legacySection = searchParams.get("section") as AdminSettingsSectionId | null;
   const section: AdminSettingsSectionId =
     route?.section ?? (legacySection && SETTINGS_SECTIONS.includes(legacySection) ? legacySection : "flags");
@@ -188,21 +190,41 @@ export function AdminConsole({
   if (tab === "assign") {
     return <AssignPlanView assignees={assignees} mentors={mentors} plans={plans} profiles={profiles} />;
   }
+  if (tab === "practice") return <PracticeLibrary aiUsage={aiUsage ?? null} people={assignees} usage={practiceUsage} />;
+  if (tab === "overview") {
+    return <AdminOverview activity={activity} pendingReviews={pendingReviews} plans={plans} profiles={profiles} />;
+  }
   if (tab === "settings" && section === "flags") return <AdminSettingsFeatures />;
+  if (tab === "settings" || tab === "security") {
+    const active = tab === "security" ? "security" : section;
+    return (
+      <>
+        <AdminSettingsHeader active={active} />
+        <AdminBody>
+          {tab === "security" ? (
+            <AdminSecurityPanel />
+          ) : section === "integrations" ? (
+            <AdminSettingsIntegrationsSection />
+          ) : section === "ai" ? (
+            <AdminSettingsAiSection usage={aiUsage ?? null} />
+          ) : section === "basic" ? (
+            <AdminSettingsBasicSection />
+          ) : (
+            <AdminSettingsRetentionSection />
+          )}
+        </AdminBody>
+      </>
+    );
+  }
 
-  let eyebrow = HEADERS[tab]?.eyebrow ?? "";
+  const eyebrow = HEADERS[tab]?.eyebrow ?? "";
   let title = HEADERS[tab]?.title ?? "";
+  const subtitle = HEADERS[tab]?.subtitle;
   let actions: ReactNode = null;
   let body: ReactNode = null;
 
   switch (tab) {
-    case "overview":
-      eyebrow = `${profiles.length} users · last 30 days`;
-      title = "Overview";
-      body = <AdminOverview activity={activity} pendingReviews={pendingReviews} plans={plans} profiles={profiles} />;
-      break;
     case "users":
-      eyebrow = `${initialUsers?.length ?? profiles.length} people`;
       title = "People";
       body = (
         <>
@@ -227,32 +249,13 @@ export function AdminConsole({
     case "analytics":
       actions = (
         <a className="btn-secondary no-underline" href="/api/admin/analytics?format=csv">
-          Export CSV
+          Export as CSV
         </a>
       );
       body = (
         <>
           <AnalyticsDashboard />
           <ReadinessOutcomeCorrelation />
-        </>
-      );
-      break;
-    case "ai":
-      body = (
-        <>
-          {aiUsage ? (
-            <KpiStrip
-              items={[
-                { label: "Requests · 30d", value: aiUsage.requests30d },
-                { label: "Requests today", value: aiUsage.requestsToday },
-                { label: "Tokens · 30d", value: formatTokenCount(aiUsage.tokens30d) },
-                { label: "Model", value: <span className="text-2xl">{aiUsage.model}</span> },
-              ]}
-            />
-          ) : null}
-          <AdminSettingsAiSection />
-          <SimulationTemplateManagement />
-          <PitchScenarioManagement />
         </>
       );
       break;
@@ -267,34 +270,22 @@ export function AdminConsole({
     case "routing":
       body = <CorpusRoutingAdmin />;
       break;
-    case "security":
-      body = <AdminSecurityPanel />;
-      break;
     case "audit":
       body = <AuditLogPanel profiles={profiles} />;
       break;
     case "help":
       body = <AdminHelpPanel />;
       break;
-    case "settings":
-      eyebrow = "Settings";
-      title = SETTINGS_TITLES[section];
-      body =
-        section === "integrations" ? (
-          <AdminSettingsIntegrationsSection />
-        ) : section === "ai" ? (
-          <AdminSettingsAiSection />
-        ) : section === "basic" ? (
-          <AdminSettingsBasicSection />
-        ) : (
-          <AdminSettingsRetentionSection />
-        );
-      break;
   }
 
   return (
     <>
-      <PageHeader actions={actions} eyebrow={eyebrow} title={title} />
+      <PageHeader
+        actions={actions}
+        eyebrow={tab === "users" ? `${initialUsers?.length ?? profiles.length} people` : eyebrow}
+        subtitle={tab === "users" ? "Everyone in the tenant, their role, and who they report to." : subtitle}
+        title={title}
+      />
       <AdminBody>{body}</AdminBody>
     </>
   );

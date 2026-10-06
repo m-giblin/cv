@@ -1,7 +1,7 @@
 "use client";
 
 import { format } from "date-fns";
-import { useEffect, useMemo, useRef, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, type CSSProperties, type KeyboardEvent } from "react";
 import { addCalendarDays, buildDayHeaders } from "@/lib/plans/business-days";
 import {
   GANTT_DAY_PX,
@@ -9,22 +9,19 @@ import {
   GANTT_TOTAL_DAYS,
   HEALTH_TAG,
   layoutGanttRow,
-  rampColor,
   type GanttBarLayout,
   type GanttSeRow,
 } from "@/lib/plans/plan-calendar-gantt";
-import { Tag } from "@/components/ui/tag";
+import { HEALTH_WORD, RAMP_FILL_CLS } from "@/components/plans/plan-calendar-team-view";
+import { StatusPill } from "@/components/ui/status-pill";
 import { BAR_STYLES } from "@/lib/plans/plan-calendar-colors";
-import { AVATAR_CLASSNAME } from "@/lib/se/avatar-gradients";
 import { cn } from "@/lib/utils";
 
 function Avatar({ initials: label, size = 30 }: { initials: string; size?: number }) {
   return (
     <div
-      className={cn(
-        "flex shrink-0 items-center justify-center rounded-full font-mono text-xs font-medium",
-        AVATAR_CLASSNAME,
-      )}
+      aria-hidden
+      className="flex shrink-0 items-center justify-center rounded-full bg-blue-soft text-[12px] font-bold text-blue"
       style={{ width: size, height: size }}
     >
       {label}
@@ -32,24 +29,21 @@ function Avatar({ initials: label, size = 30 }: { initials: string; size?: numbe
   );
 }
 
-function RampBar({ pct, color, height = 4 }: { pct: number; color: string; height?: number }) {
+function RampBar({ pct, fillClassName }: { pct: number; fillClassName: string }) {
   return (
-    <div className="overflow-hidden rounded-full bg-surface-2" style={{ height }}>
-      <div
-        className="rounded-full transition-all duration-300"
-        style={{ height, width: `${pct}%`, background: color }}
-      />
+    <div aria-hidden className="h-1.5 overflow-hidden rounded-[3px] bg-track">
+      <div className={cn("h-full rounded-[3px] transition-all duration-300", fillClassName)} style={{ width: `${pct}%` }} />
     </div>
   );
 }
 
-/** Small "conflict" marker: a symbol in a danger circle so it never relies on colour alone. */
+/** Small "conflict" marker: an exclamation in a danger circle, named for assistive tech. */
 function ConflictMarker({ className, style }: { className?: string; style?: CSSProperties }) {
   return (
     <span
       aria-label="Conflict"
       className={cn(
-        "flex h-3.5 w-3.5 items-center justify-center rounded-full border border-white bg-danger font-mono text-xs leading-none text-white",
+        "flex h-4 w-4 items-center justify-center rounded-full border border-white bg-danger text-[12px] leading-none font-bold text-white",
         className,
       )}
       role="img"
@@ -58,6 +52,13 @@ function ConflictMarker({ className, style }: { className?: string; style?: CSSP
       !
     </span>
   );
+}
+
+function shortDate(iso: string) {
+  const date = new Date(`${iso}T12:00:00`);
+  const opts: Intl.DateTimeFormatOptions = { weekday: "short", month: "short", day: "numeric" };
+  if (date.getFullYear() !== new Date().getFullYear()) opts.year = "numeric";
+  return date.toLocaleDateString("en-US", opts);
 }
 
 function buildMonthHeaders(timelineStart: string, totalDays: number) {
@@ -141,7 +142,7 @@ export function PlanCalendarGanttView({
         origLeft,
         currentLeft: origLeft,
       };
-      bar.style.opacity = "0.6";
+      bar.style.boxShadow = "var(--shadow-drag)";
       bar.style.cursor = "grabbing";
       bar.style.zIndex = "50";
     };
@@ -157,7 +158,7 @@ export function PlanCalendarGanttView({
       if (!drag) return;
       const snappedDay = Math.round(drag.currentLeft / GANTT_DAY_PX);
       drag.el.style.left = `${snappedDay * GANTT_DAY_PX}px`;
-      drag.el.style.opacity = "";
+      drag.el.style.boxShadow = "";
       drag.el.style.cursor = "";
       drag.el.style.zIndex = "";
       onBarMove(drag.seId, drag.barId, snappedDay);
@@ -179,30 +180,26 @@ export function PlanCalendarGanttView({
     const leftPx = bar.startDay * GANTT_DAY_PX;
     const hasConflict = conflictBarIds.has(bar.id);
 
+    const nudge = (event: KeyboardEvent<HTMLDivElement>) => {
+      if (!canEdit) return;
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+      event.preventDefault();
+      const step = event.shiftKey ? 5 : 1;
+      const next = Math.max(0, bar.startDay + (event.key === "ArrowLeft" ? -step : step));
+      onBarMove(se.id, bar.id, next);
+    };
+
     if (bar.type === "gate") {
       return (
-        <div key={bar.id}>
-          <div
-            className="pointer-events-none absolute z-[8]"
-            style={{ left: leftPx - 7, top: bar.topPx }}
-            title={bar.label}
-          >
-            <div
-              className={cn("h-3.5 w-3.5 rotate-45", hasConflict ? "bg-danger" : "bg-ink")}
-            />
-          </div>
-          <div
-            className={cn(
-              "pointer-events-none absolute z-[8] max-w-[96px] truncate whitespace-nowrap font-mono text-xs",
-              hasConflict ? "text-danger" : "text-ink",
-            )}
-            style={{ left: leftPx - 10, top: bar.topPx + 16 }}
-          >
-            ◆ {bar.label}
-          </div>
-          {hasConflict ? (
-            <ConflictMarker className="pointer-events-none absolute z-20" style={{ left: leftPx - 3, top: bar.topPx - 8 }} />
-          ) : null}
+        <div
+          className="pointer-events-none absolute z-[8] flex items-center gap-1.5"
+          key={bar.id}
+          style={{ left: Math.max(0, leftPx - 4), top: bar.topPx - 2 }}
+          title={`Gate: ${bar.label}`}
+        >
+          <span className="rounded-[6px] bg-blue px-1.5 py-px text-[12px] leading-[16px] font-bold text-white">Gate</span>
+          <span className="max-w-[120px] truncate text-[12px] font-semibold whitespace-nowrap text-ink">{bar.label}</span>
+          {hasConflict ? <ConflictMarker className="shrink-0" /> : null}
         </div>
       );
     }
@@ -212,13 +209,19 @@ export function PlanCalendarGanttView({
     const progressWidth = Math.round((pct * widthPx) / 100);
     const showLabel = widthPx >= 40;
     const shortLabel = bar.label.length > 20 ? `${bar.label.slice(0, 18)}…` : bar.label;
+    const accessibleName = `${bar.label}, ${pct}% done${hasConflict ? ", has a conflict" : ""}${
+      canEdit ? ". Use the left and right arrow keys to move it a day; hold Shift to move five days" : ""
+    }`;
 
     return (
       <div
-        className="absolute select-none overflow-hidden rounded-[6px] border-[1.5px]"
+        aria-label={accessibleName}
+        className="absolute overflow-hidden rounded-[8px] border select-none"
         data-bar-id={bar.id}
         data-se-id={se.id}
         key={bar.id}
+        onKeyDown={canEdit ? nudge : undefined}
+        role={canEdit ? "button" : "img"}
         style={{
           left: leftPx,
           width: widthPx,
@@ -230,7 +233,8 @@ export function PlanCalendarGanttView({
           zIndex: bar.track === "content" ? 3 : 5,
           cursor: canEdit ? "grab" : "default",
         }}
-        title={`${bar.label} · ${pct}%`}
+        tabIndex={canEdit ? 0 : undefined}
+        title={`${bar.label}, ${pct}% done`}
       >
         {pct < 100 ? (
           <div
@@ -239,11 +243,11 @@ export function PlanCalendarGanttView({
           />
         ) : null}
         {showLabel ? (
-          <div className="absolute inset-0 flex items-center overflow-hidden pl-1 pr-4">
-            <span className="truncate font-mono text-xs leading-none">{shortLabel}</span>
+          <div className="absolute inset-0 flex items-center overflow-hidden pr-4 pl-1.5">
+            <span className="truncate text-[12px] leading-none font-semibold">{shortLabel}</span>
           </div>
         ) : null}
-        {hasConflict ? <ConflictMarker className="absolute right-0.5 top-1/2 z-20 -translate-y-1/2" /> : null}
+        {hasConflict ? <ConflictMarker className="absolute top-1/2 right-0.5 z-20 -translate-y-1/2" /> : null}
       </div>
     );
   };
@@ -252,24 +256,25 @@ export function PlanCalendarGanttView({
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <div className="min-h-0 flex-1 overflow-x-auto overflow-y-auto">
         <div className="flex min-w-full flex-col" style={{ minWidth: ganttTotalWidth }}>
-          <div className="sticky top-0 z-20 flex border-b border-line bg-surface-2">
+          <div className="sticky top-0 z-20 flex border-b border-line bg-white">
             <div
-              className="sticky left-0 z-[21] flex shrink-0 items-end border-r border-line bg-surface-2 px-3.5 pb-1.5"
+              className="sticky left-0 z-[21] flex shrink-0 items-end gap-2 border-r border-line bg-white px-3.5 pb-2"
               style={{ width: GANTT_LABEL_WIDTH }}
             >
-              <span className="label-mono">
-                My team · {rows.length} SE{rows.length === 1 ? "" : "s"}
+              <span className="th">My team</span>
+              <span className="num text-[13px] text-muted">
+                {rows.length} {rows.length === 1 ? "person" : "people"}
               </span>
             </div>
             <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
-              <div className="relative flex h-[24px] border-b border-line">
+              <div className="relative flex h-[28px] border-b border-divider">
                 {headerMonths.map((month) => (
                   <div
-                    className="absolute top-0 flex h-[24px] items-center border-r border-line-strong px-2"
+                    className="absolute top-0 flex h-[28px] items-center border-r border-line px-2"
                     key={month.label}
                     style={{ left: month.leftPx, width: month.widthPx }}
                   >
-                    <span className="whitespace-nowrap font-mono text-xs font-medium text-ink-2">
+                    <span className="text-[13px] font-semibold whitespace-nowrap text-ink-2">
                       {month.label}
                     </span>
                   </div>
@@ -280,15 +285,15 @@ export function PlanCalendarGanttView({
                   <div
                     className={cn(
                       "flex h-[26px] shrink-0 items-center justify-center border-r border-divider",
-                      header.isToday ? "bg-signal" : header.isWeekend ? "bg-bg" : "bg-transparent",
+                      header.isToday ? "bg-ink" : header.isWeekend ? "bg-bg" : "bg-transparent",
                     )}
                     key={header.iso}
                     style={{ width: GANTT_DAY_PX }}
                   >
                     <span
                       className={cn(
-                        "font-mono text-xs",
-                        header.isToday ? "font-bold text-ink" : header.isWeekend ? "text-muted" : "text-ink-2",
+                        "num text-[12px]",
+                        header.isToday ? "font-bold text-white" : "text-muted",
                       )}
                     >
                       {header.day}
@@ -302,10 +307,8 @@ export function PlanCalendarGanttView({
           <div ref={ganttRowsRef}>
             {rows.length === 0 ? (
               <div className="px-5 py-12 text-center">
-                <p className="text-sm font-semibold text-ink">No ramp plans to display</p>
-                <p className="mt-1 text-[13px] text-muted">
-                  Assign onboarding plans to see the team Gantt timeline.
-                </p>
+                <p className="text-[15px] font-bold text-ink">No ramp plans to show</p>
+                <p className="mt-1 text-sm text-muted">Assign a ramp plan to see the team timeline.</p>
               </div>
             ) : (
               rows.map((se) => {
@@ -318,26 +321,23 @@ export function PlanCalendarGanttView({
                   style={{ minHeight: rowLayout.rowHeightPx }}
                 >
                   <div
-                    className="sticky left-0 z-10 shrink-0 cursor-pointer border-r border-line bg-white px-3.5 py-2.5 hover:bg-blue-soft"
+                    className="sticky left-0 z-10 flex shrink-0 flex-col gap-2 border-r border-line bg-white px-3.5 py-2.5"
                     style={{ width: GANTT_LABEL_WIDTH, minHeight: rowLayout.rowHeightPx }}
                   >
-                    <div className="mb-1.5 flex items-center gap-2">
+                    <div className="flex items-center gap-2">
                       <Avatar initials={se.initials} />
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-[13px] font-semibold text-ink">{se.name}</div>
-                        <div className="truncate font-mono text-xs text-muted">
-                          Day {se.dayInRamp} · {se.planName}
+                        <div className="truncate text-sm font-bold text-ink">{se.name}</div>
+                        <div className="truncate text-[12px] text-muted" title={se.planName}>
+                          Day {se.dayInRamp} of {se.planName}
                         </div>
                       </div>
                     </div>
-                    <div className="mb-1.5 flex items-center justify-between gap-2">
-                      <Tag tone={healthTag.tone}>
-                        <span aria-hidden="true">{healthTag.symbol}</span>
-                        {se.healthLabel}
-                      </Tag>
-                      <span className="font-mono text-xs font-medium text-ink-2">{se.rampPct}%</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <StatusPill tone={healthTag.tone}>{HEALTH_WORD[se.health]}</StatusPill>
+                      <span className="num text-[13px] font-semibold text-ink-2">{se.rampPct}%</span>
                     </div>
-                    <RampBar color={rampColor(se.health)} pct={se.rampPct} />
+                    <RampBar fillClassName={RAMP_FILL_CLS[se.health]} pct={se.rampPct} />
                   </div>
 
                   <div
@@ -354,11 +354,12 @@ export function PlanCalendarGanttView({
                       ) : null,
                     )}
                     <div
-                      className="pointer-events-none absolute bottom-0 top-0 z-[9] w-0.5 bg-blue"
+                      aria-hidden
+                      className="pointer-events-none absolute top-0 bottom-0 z-[9] w-0.5 bg-ink"
                       style={{ left: todayDay * GANTT_DAY_PX }}
                     >
-                      <span className="absolute left-[3px] top-0.5 whitespace-nowrap bg-white/90 px-0.5 font-mono text-xs font-medium text-blue">
-                        TODAY
+                      <span className="absolute top-0.5 left-[4px] rounded-[4px] bg-white/90 px-1 text-[12px] font-bold whitespace-nowrap text-ink">
+                        Today
                       </span>
                     </div>
                     {rowLayout.bars.map((bar) => renderBar(bar, se))}
@@ -368,25 +369,25 @@ export function PlanCalendarGanttView({
               })
             )}
 
-            <div className="flex h-8 border-t border-line bg-surface-2">
+            <div className="flex h-9 border-t border-line bg-white">
               <div
-                className="sticky left-0 z-10 flex shrink-0 items-center border-r border-line bg-surface-2 px-3.5"
+                className="sticky left-0 z-10 flex shrink-0 items-center border-r border-line bg-white px-3.5"
                 style={{ width: GANTT_LABEL_WIDTH }}
               >
-                <span className="label-mono">Segments</span>
+                <span className="th">Segments</span>
               </div>
               <div className="relative min-w-0 flex-1">
                 {[
-                  { label: "SEG 1 · Days 1–30", left: 0 },
-                  { label: "SEG 2 · Days 31–60", left: 30 * GANTT_DAY_PX },
-                  { label: "SEG 3 · Days 61–90", left: 60 * GANTT_DAY_PX },
+                  { label: "Segment 1, days 1 to 30", left: 0 },
+                  { label: "Segment 2, days 31 to 60", left: 30 * GANTT_DAY_PX },
+                  { label: "Segment 3, days 61 to 90", left: 60 * GANTT_DAY_PX },
                 ].map((seg) => (
                   <div
-                    className="absolute inset-y-0 flex items-center border-r border-dashed border-dash pl-2"
+                    className="absolute inset-y-0 flex items-center border-r border-dashed border-line-strong pl-2"
                     key={seg.label}
                     style={{ left: seg.left, width: 30 * GANTT_DAY_PX }}
                   >
-                    <span className="whitespace-nowrap font-mono text-xs text-ink-2">
+                    <span className="text-[13px] whitespace-nowrap text-muted">
                       {seg.label}
                     </span>
                   </div>
@@ -397,13 +398,10 @@ export function PlanCalendarGanttView({
         </div>
       </div>
 
-      <div className="flex h-[32px] shrink-0 items-center justify-end border-t border-line bg-white px-5">
-        <div className="flex items-center gap-1.5">
-          <span className="font-mono text-xs text-muted">
-            {format(new Date(`${timelineStart}T12:00:00`), "MMM d")} –{" "}
-            {format(new Date(`${timelineEnd}T12:00:00`), "MMM d, yyyy")} · {GANTT_TOTAL_DAYS} days
-          </span>
-        </div>
+      <div className="flex min-h-[36px] shrink-0 items-center justify-end border-t border-line bg-white px-5 py-2">
+        <span className="text-[13px] text-muted">
+          Showing {GANTT_TOTAL_DAYS} days, {shortDate(timelineStart)} to {shortDate(timelineEnd)}.
+        </span>
       </div>
     </div>
   );

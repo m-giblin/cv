@@ -27,19 +27,19 @@ export function canEditTemplateStructure(role: ProfileRole, locked: boolean): bo
 export function templateAccentGradient(name: string): string {
   const lower = name.toLowerCase();
   if (lower.includes("senior")) {
-    return "#0A1A3F";
+    return "var(--color-ink)";
   }
-  return "#0033A1";
+  return "var(--color-blue)";
 }
 
 const STEP_TYPE_PILL: Record<string, { label: string; bg: string; color: string }> = {
-  content_review: { label: "Content", bg: "#E5ECFA", color: "#0033A1" },
-  challenge: { label: "Challenge", bg: "#0A1A3F", color: "#FFFFFF" },
-  simulation: { label: "Sim", bg: "#0033A1", color: "#FFFFFF" },
-  deal_prep: { label: "Deal prep", bg: "#FFF6E0", color: "#0A1A3F" },
-  shadow_meeting_log: { label: "Shadow", bg: "#E9EDF5", color: "#2B3A5C" },
-  mentor_review: { label: "Review", bg: "#E7F4EC", color: "#12703F" },
-  custom: { label: "Custom", bg: "#E9EDF5", color: "#4A5878" },
+  content_review: { label: "Content", bg: "var(--color-blue-soft)", color: "var(--color-blue)" },
+  challenge: { label: "Challenge", bg: "var(--color-ink)", color: "#fff" },
+  simulation: { label: "Sim", bg: "var(--color-blue)", color: "#fff" },
+  deal_prep: { label: "Deal prep", bg: "var(--color-signal-soft)", color: "var(--color-ink)" },
+  shadow_meeting_log: { label: "Shadow", bg: "var(--color-divider)", color: "var(--color-ink-2)" },
+  mentor_review: { label: "Review", bg: "var(--color-success-soft)", color: "var(--color-success)" },
+  custom: { label: "Custom", bg: "var(--color-divider)", color: "var(--color-muted)" },
 };
 
 export function stepTypePills(steps: { step_type: string }[]) {
@@ -56,13 +56,13 @@ export function stepTypePills(steps: { step_type: string }[]) {
 
 export function stepTypeIcon(type: string): { icon: string; iconBg: string } {
   const map: Record<string, { icon: string; iconBg: string }> = {
-    content_review: { icon: "≡", iconBg: "#E5ECFA" },
-    challenge: { icon: "▲", iconBg: "#E9EDF5" },
-    simulation: { icon: "●", iconBg: "#E5ECFA" },
-    deal_prep: { icon: "◆", iconBg: "#FFF6E0" },
-    mentor_review: { icon: "✓", iconBg: "#E7F4EC" },
-    shadow_meeting_log: { icon: "○", iconBg: "#E9EDF5" },
-    custom: { icon: "•", iconBg: "#F2F4F8" },
+    content_review: { icon: "≡", iconBg: "var(--color-blue-soft)" },
+    challenge: { icon: "▲", iconBg: "var(--color-divider)" },
+    simulation: { icon: "●", iconBg: "var(--color-blue-soft)" },
+    deal_prep: { icon: "◆", iconBg: "var(--color-signal-soft)" },
+    mentor_review: { icon: "✓", iconBg: "var(--color-success-soft)" },
+    shadow_meeting_log: { icon: "○", iconBg: "var(--color-divider)" },
+    custom: { icon: "•", iconBg: "var(--color-bg)" },
   };
   return map[type] ?? map.custom;
 }

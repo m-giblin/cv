@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { EmptyState, KpiStrip, LineCard, LoadingState, Mono, Notice } from "@/components/admin/admin-ui";
+import { EmptyState, KpiStrip, LineCard, LoadingState, Meta, Notice } from "@/components/admin/admin-ui";
 import type { AnalyticsData } from "@/lib/data/get-analytics-data";
 
 type ManagerProgressRow = {
@@ -49,7 +49,7 @@ export function AnalyticsDashboard() {
  }
 
  if (!data) {
- return <Notice>Analytics unavailable.</Notice>;
+ return <Notice>Analytics are unavailable right now. Try again in a few minutes.</Notice>;
  }
 
  const managerRows = data.managerProgress ?? [];
@@ -66,15 +66,15 @@ export function AnalyticsDashboard() {
  { label: "Active plans", value: data.activePlans },
  { label: "Pending reviews", value: data.pendingReviews },
  {
- label: "Avg time-to-ready",
+ label: "Avg time to ready",
  value: data.avgDaysToComplete !== null ? data.avgDaysToComplete : "—",
- suffix: data.avgDaysToComplete !== null ? "d" : undefined,
+ suffix: data.avgDaysToComplete !== null ? " days" : undefined,
  },
  ]}
  />
 
  <div className="grid items-start gap-6 lg:grid-cols-2">
- <LineCard meta="Ramp completeness" title="Avg plan progress by manager">
+ <LineCard meta="Ramp completeness" title="Average plan progress by manager">
  {managerRows.length === 0 ? (
  <EmptyState className="py-4">No manager cohort data available.</EmptyState>
  ) : (
@@ -95,9 +95,9 @@ export function AnalyticsDashboard() {
  >
  <div className="h-full rounded-full bg-blue" style={{ width: `${row.avgProgress}%` }} />
  </div>
- <Mono className="mt-1 block text-muted">
- {row.seCount} SEs · {row.planCount} plans
- </Mono>
+ <Meta className="mt-1 block text-muted">
+ {row.seCount} SEs, {row.planCount} plans
+ </Meta>
  </li>
  ))}
  </ul>
@@ -115,8 +115,8 @@ export function AnalyticsDashboard() {
  className="flex flex-col gap-1 border-b border-divider px-4 py-3.5 last:border-b-0 sm:border-r sm:border-b-0 sm:last:border-r-0"
  key={stat.label}
  >
- <dt className="label-mono">{stat.label}</dt>
- <dd className="text-[28px] leading-none font-extrabold tracking-[-0.03em] text-blue">{stat.value}</dd>
+ <dt className="label-caps whitespace-nowrap">{stat.label}</dt>
+ <dd className="num text-4xl leading-none font-extrabold tracking-[-0.03em] text-blue">{stat.value}</dd>
  </div>
  ))}
  </dl>
@@ -146,14 +146,14 @@ export function AnalyticsDashboard() {
  actions={
  simTrend.length >= 2 ? (
  <p className="flex items-baseline gap-2">
- <span className="text-2xl font-extrabold text-blue tabular-nums">{latestAvg}</span>
- <span className={`font-mono text-xs font-medium ${trend >= 0 ? "text-success" : "text-danger"}`}>
- {trend >= 0 ? "▲" : "▼"} {Math.abs(trend)}
+ <span className="num text-2xl font-extrabold text-blue">{latestAvg}</span>
+ <span className={`text-[13px] font-semibold ${trend > 0 ? "text-success" : trend < 0 ? "text-danger" : "text-muted"}`}>
+ {trend > 0 ? `Up ${trend} on last week` : trend < 0 ? `Down ${Math.abs(trend)} on last week` : "No change on last week"}
  </span>
  </p>
  ) : null
  }
- meta="4-week rolling avg"
+ meta="Four-week rolling average"
  title="Simulation score trend"
  >
  {simTrend.length >= 2 ? (
@@ -176,7 +176,7 @@ export function AnalyticsDashboard() {
  </svg>
  ) : (
  <EmptyState className="py-4">
- Sim trend data is not available yet — scores will appear after coaching cards are reviewed.
+ There is no simulation trend yet. Scores appear after coaching cards are reviewed.
  </EmptyState>
  )}
  </LineCard>

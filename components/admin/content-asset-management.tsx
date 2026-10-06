@@ -8,7 +8,7 @@ import {
   Field,
   LinkButton,
   LoadingState,
-  Mono,
+  Meta,
   SecondaryButton,
   SelectInput,
   Td,
@@ -17,6 +17,7 @@ import {
 } from "@/components/admin/admin-ui";
 import { Chip } from "@/components/ui/chip";
 import { Drawer } from "@/components/ui/drawer";
+import { rowHighlight, TwoLineCell } from "@/components/ui/table";
 import { Tag } from "@/components/ui/tag";
 import { cn } from "@/lib/utils";
 
@@ -48,9 +49,10 @@ function humanize(value: string) {
 
 function formatDate(value: string) {
   const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? "—"
-    : date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  if (Number.isNaN(date.getTime())) return "—";
+  const options: Intl.DateTimeFormatOptions = { weekday: "short", month: "short", day: "numeric" };
+  if (date.getFullYear() !== new Date().getFullYear()) options.year = "numeric";
+  return date.toLocaleDateString("en-US", options);
 }
 
 function paginate<T>(items: T[], page: number, pageSize: number) {
@@ -237,7 +239,7 @@ export function ContentAssetManagement() {
           Assets appear in plan steps and on the SE Resources page. Managers pick them when building onboarding plans.
         </p>
         <button className="btn-primary" onClick={openCreate} type="button">
-          + Add content
+          Add content
         </button>
       </div>
 
@@ -250,22 +252,27 @@ export function ContentAssetManagement() {
               aria-label="Search content"
               className="max-w-sm"
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search title, category, URL, tags…"
+              placeholder="Search title, category, URL or tags"
               type="search"
               value={search}
             />
-            <span className="label-mono">
-              {filtered.length} of {assets.length}
+            <span className="text-sm text-muted">
+              Showing {filtered.length} of {assets.length}
             </span>
           </div>
 
           {assetTypes.length > 1 ? (
             <div aria-label="Filter by type" className="flex flex-wrap gap-2" role="group">
-              <Chip active={typeFilter === null} onClick={() => setTypeFilter(null)}>
+              <Chip active={typeFilter === null} count={assets.length} onClick={() => setTypeFilter(null)}>
                 All
               </Chip>
               {assetTypes.map((type) => (
-                <Chip active={typeFilter === type} key={type} onClick={() => setTypeFilter(type)}>
+                <Chip
+                  active={typeFilter === type}
+                  count={assets.filter((asset) => asset.assetType === type).length}
+                  key={type}
+                  onClick={() => setTypeFilter(type)}
+                >
                   {humanize(type)}
                 </Chip>
               ))}
@@ -279,7 +286,7 @@ export function ContentAssetManagement() {
                 <Th>Type</Th>
                 <Th>Category</Th>
                 <Th>Updated</Th>
-                <Th>
+                <Th className="text-right">
                   <span className="sr-only">Actions</span>
                 </Th>
               </tr>
@@ -295,22 +302,21 @@ export function ContentAssetManagement() {
                 </tr>
               ) : (
                 rows.map((asset) => {
-                  const tags = [...asset.projectTags, ...asset.moduleTags].join(" · ");
+                  const tags = [...asset.projectTags, ...asset.moduleTags].join(", ");
                   return (
-                    <tr className={cn(showForm && editingId === asset.id && "bg-blue-soft")} key={asset.id}>
+                    <tr className={cn(showForm && editingId === asset.id && rowHighlight.selected)} key={asset.id}>
                       <Td className="max-w-[420px]">
-                        <p className="font-bold text-ink">{asset.title}</p>
-                        <p className="mt-0.5 truncate text-[13px] text-muted" title={asset.url}>
-                          {asset.url}
-                        </p>
-                        {tags ? <p className="mt-0.5 truncate text-[13px] text-ink-2">{tags}</p> : null}
+                        <span title={asset.url}>
+                          <TwoLineCell subline={asset.url} title={asset.title} />
+                        </span>
+                        {tags ? <p className="mt-0.5 truncate text-[13px] text-ink-2">Tags: {tags}</p> : null}
                       </Td>
                       <Td>
                         <Tag tone="blue">{humanize(asset.assetType)}</Tag>
                       </Td>
                       <Td className="text-ink-2">{humanize(asset.category)}</Td>
                       <Td>
-                        <Mono>{formatDate(asset.updatedAt)}</Mono>
+                        <Meta>{formatDate(asset.updatedAt)}</Meta>
                       </Td>
                       <Td className="text-right whitespace-nowrap">
                         <div className="inline-flex gap-4">
@@ -330,7 +336,7 @@ export function ContentAssetManagement() {
 
           {pageCount > 1 ? (
             <div className="flex items-center justify-end gap-3">
-              <span className="label-mono">
+              <span className="text-sm text-muted">
                 Page {safePage} of {pageCount}
               </span>
               <SecondaryButton disabled={safePage <= 1} onClick={() => setPage(safePage - 1)}>
@@ -381,7 +387,7 @@ export function ContentAssetManagement() {
             <Field hint="Optional. If chosen, the file is uploaded and used instead of the URL." htmlFor={`${formId}-file`} label="Upload file">
               <input
                 accept=".pdf,.ppt,.pptx,.doc,.docx,.mp4,.mov"
-                className="text-sm text-ink-2 file:mr-3 file:rounded-full file:border-[1.5px] file:border-line-strong file:bg-white file:px-3 file:py-1.5 file:text-sm file:font-bold file:text-ink"
+                className="text-sm text-ink-2 file:mr-3 file:rounded-full file:border file:border-line-strong file:bg-white file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-ink"
                 id={`${formId}-file`}
                 onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                 type="file"
@@ -433,7 +439,7 @@ export function ContentAssetManagement() {
             />
           </Field>
           <div>
-            <SecondaryButton onClick={() => void suggestTags()}>AI suggest tags</SecondaryButton>
+            <SecondaryButton onClick={() => void suggestTags()}>Suggest tags with AI</SecondaryButton>
           </div>
         </form>
       </Drawer>

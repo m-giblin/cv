@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { LoadingState, Switch } from "@/components/admin/admin-ui";
+import { LoadingState, Notice } from "@/components/admin/admin-ui";
+import { AdminSettingsHeader } from "@/components/admin/admin-settings-header";
 import { ActionBar } from "@/components/ui/action-bar";
+import { Toggle } from "@/components/ui/checkbox";
 import { Chip } from "@/components/ui/chip";
-import { PageHeader } from "@/components/ui/page-header";
+import { TableCard, rowHighlight, tdCls, thCls } from "@/components/ui/table";
 import {
   FEATURE_AREA_LABELS,
   changedFeatureIds,
@@ -23,9 +25,11 @@ import {
 import { cn } from "@/lib/utils";
 
 const AREAS = [...new Set(PLATFORM_FEATURE_FLAG_DEFS.map((def) => def.category))] as FeatureFlagCategory[];
-const COLUMNS = "grid grid-cols-[minmax(0,1fr)_120px_150px_150px_70px] gap-3.5 px-[18px]";
 
-/** Settings › Features (handoff 12b), generated from PLATFORM_FEATURE_FLAG_DEFS. */
+/**
+ * Settings › Features (handoff 12b), generated from PLATFORM_FEATURE_FLAG_DEFS. Feature flags stay operator-managed:
+ * while TENANT_ADMINS_CAN_EDIT_FEATURES is false the API reports every feature as locked and rejects changes.
+ */
 export function AdminSettingsFeatures() {
   const [saved, setSaved] = useState<PlatformFeatureFlags | null>(null);
   const [draft, setDraft] = useState<PlatformFeatureFlags>({});
@@ -101,131 +105,127 @@ export function AdminSettingsFeatures() {
     toast.success(`${changed.length} change${changed.length === 1 ? "" : "s"} saved.`);
   }
 
-  const summary = changed
-    .map((id) => `${featureLabel(id)} ${isFlagEffectivelyEnabled(draft, id) ? "on" : "off"}`)
-    .join(" · ");
+  const summaryParts = changed.map((id, index) => {
+    const label = featureLabel(id);
+    const text = `${index === 0 ? label : label.charAt(0).toLowerCase() + label.slice(1)} ${isFlagEffectivelyEnabled(draft, id) ? "on" : "off"}`;
+    return text;
+  });
+  const summary = summaryParts.length ? `${summaryParts.join(", ")}.` : "";
+  const allLocked = saved !== null && locked.length >= PLATFORM_FEATURE_FLAG_DEFS.length;
+  const areaCount = (entry: FeatureFlagCategory | "all") =>
+    entry === "all" ? PLATFORM_FEATURE_FLAG_DEFS.length : PLATFORM_FEATURE_FLAG_DEFS.filter((def) => def.category === entry).length;
 
   return (
-    <div className="flex min-h-full flex-col">
-      <PageHeader
-        actions={
+    <div className={cn("flex min-h-full flex-col", changed.length > 0 && "pb-0")}>
+      <AdminSettingsHeader
+        active="flags"
+        subtitle={
+          saved
+            ? `${onCount} of ${PLATFORM_FEATURE_FLAG_DEFS.length} features are on.`
+            : "Loading features…"
+        }
+      />
+
+      <div className="flex flex-1 flex-col gap-[22px] px-[var(--page-pad-x)] pb-10 max-sm:px-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <div aria-label="Area" className="flex flex-wrap gap-2" role="group">
+            <Chip active={area === "all"} count={areaCount("all")} onClick={() => setArea("all")}>
+              All
+            </Chip>
+            {AREAS.map((entry) => (
+              <Chip active={area === entry} count={areaCount(entry)} key={entry} onClick={() => setArea(entry)}>
+                {FEATURE_AREA_LABELS[entry]}
+              </Chip>
+            ))}
+          </div>
           <input
             aria-label="Search features"
-            className="w-[240px] rounded-full border-[1.5px] border-ink bg-white px-4 py-2 text-sm text-ink placeholder:text-muted"
+            className="ml-auto w-[220px] rounded-full border border-line-strong bg-white px-4 py-[7px] text-sm text-ink placeholder:text-muted max-sm:ml-0 max-sm:w-full"
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search features"
             type="search"
             value={query}
           />
-        }
-        className="pb-3.5"
-        eyebrow={saved ? `${onCount} of ${PLATFORM_FEATURE_FLAG_DEFS.length} features on` : "Features"}
-        title="Settings"
-      />
+        </div>
 
-      <div aria-label="Area" className="flex flex-wrap gap-1.5 px-[var(--gutter)] pb-2.5" role="group">
-        <Chip active={area === "all"} onClick={() => setArea("all")}>
-          All
-        </Chip>
-        {AREAS.map((entry) => (
-          <Chip active={area === entry} key={entry} onClick={() => setArea(entry)}>
-            {FEATURE_AREA_LABELS[entry]}
-          </Chip>
-        ))}
-      </div>
+        {allLocked ? (
+          <Notice>
+            Your platform operator manages which features are on for this tenant, so every switch here is locked. Ask them
+            through Help if something should change.
+          </Notice>
+        ) : null}
 
-      <div className="flex-1 px-[var(--gutter)] pb-10">
         {saved === null ? (
           <LoadingState label="Loading features…" />
         ) : (
-          <div className="overflow-hidden rounded-[14px] border border-line bg-white">
-            <div className="overflow-x-auto">
-              <div className="min-w-[760px]" role="table" aria-label="Features">
-                <div role="rowgroup">
-                  <div
-                    className={cn(COLUMNS, "bg-blue py-[11px] font-mono text-xs text-white uppercase")}
-                    role="row"
-                  >
-                    <span role="columnheader">Feature</span>
-                    <span role="columnheader">Area</span>
-                    <span role="columnheader">Who sees it</span>
-                    <span role="columnheader">Depends on</span>
-                    <span className="text-right" role="columnheader">
-                      On
-                    </span>
-                  </div>
-                </div>
-                <div role="rowgroup">
-                  {rows.length === 0 ? (
-                    <p className="px-5 py-8 text-center text-sm text-muted">No features match.</p>
-                  ) : null}
-                  {rows.map((def) => {
-                    const isLocked = locked.includes(def.id);
-                    const isChanged = changed.includes(def.id);
-                    const on = isFlagEffectivelyEnabled(draft, def.id);
-                    return (
-                      <div
-                        className={cn(
-                          COLUMNS,
-                          "items-center border-b border-divider py-3 text-[15px] last:border-b-0",
-                          isChanged && "bg-signal-soft",
-                        )}
-                        key={def.id}
-                        role="row"
-                      >
-                        <span className="min-w-0" role="cell">
-                          <span className="font-bold text-ink" title={def.description}>
-                            {def.label}
-                          </span>
-                          {isChanged ? (
-                            <span className="ml-1.5 rounded-[4px] bg-signal px-1.5 py-px font-mono text-xs text-ink uppercase">
-                              Changed
-                            </span>
-                          ) : null}
-                          <span className="sr-only">. {def.description}</span>
+          <TableCard minWidth={760}>
+            <caption className="sr-only">Features</caption>
+            <thead>
+              <tr>
+                <th className={thCls} scope="col">
+                  Feature
+                </th>
+                <th className={cn(thCls, "w-[130px]")} scope="col">
+                  Area
+                </th>
+                <th className={cn(thCls, "w-[150px]")} scope="col">
+                  Who sees it
+                </th>
+                <th className={cn(thCls, "w-[160px]")} scope="col">
+                  Depends on
+                </th>
+                <th className={cn(thCls, "w-[96px] text-right")} scope="col">
+                  On
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.length === 0 ? (
+                <tr>
+                  <td className="px-5 py-8 text-center text-sm text-muted" colSpan={5}>
+                    No features match.
+                  </td>
+                </tr>
+              ) : null}
+              {rows.map((def, index) => {
+                const isLocked = locked.includes(def.id);
+                const isChanged = changed.includes(def.id);
+                const on = isFlagEffectivelyEnabled(draft, def.id);
+                const cell = cn(tdCls, "py-3", index === 0 && "border-t-0");
+                return (
+                  <tr className={isChanged ? rowHighlight.ready : undefined} key={def.id}>
+                    <td className={cell}>
+                      <span className="flex min-w-0 flex-col gap-[3px]">
+                        <span className="text-[15px] font-bold text-ink">{def.label}</span>
+                        <span className="text-[13px] text-muted">{def.description}</span>
+                      </span>
+                    </td>
+                    <td className={cn(cell, "text-sm text-ink-2")}>{FEATURE_AREA_LABELS[def.category]}</td>
+                    <td className={cn(cell, "text-sm text-ink-2")}>{featureAudience(def)}</td>
+                    <td className={cn(cell, "text-sm", def.dependsOn?.length ? "text-ink-2" : "text-muted")}>
+                      {def.dependsOn?.length ? def.dependsOn.map(featureLabel).join(", ") : "None"}
+                    </td>
+                    <td className={cn(cell, "text-right")}>
+                      {isLocked ? (
+                        <span className="text-[13px] whitespace-nowrap text-muted">
+                          {on ? "On" : "Off"}, locked
                         </span>
-                        <span role="cell">
-                          <span className="inline-block rounded-full border-[1.5px] border-line-strong px-[9px] py-0.5 font-mono text-xs whitespace-nowrap text-ink-2 uppercase">
-                            {FEATURE_AREA_LABELS[def.category]}
-                          </span>
+                      ) : (
+                        <span className="inline-flex justify-end">
+                          <Toggle
+                            changed={isChanged}
+                            checked={on}
+                            label={`${def.label}${isChanged ? " (changed)" : ""}`}
+                            onChange={(next) => toggle(def.id, next)}
+                          />
                         </span>
-                        <span className="text-ink-2" role="cell">
-                          {featureAudience(def)}
-                        </span>
-                        <span
-                          className={cn(
-                            "font-mono text-xs uppercase",
-                            isLocked || def.dependsOn?.length ? "text-ink-2" : "text-dash",
-                          )}
-                          role="cell"
-                        >
-                          {isLocked
-                            ? "Platform plan"
-                            : def.dependsOn?.length
-                              ? def.dependsOn.map(featureLabel).join(", ")
-                              : "—"}
-                        </span>
-                        <span className="justify-self-end" role="cell">
-                          {isLocked ? (
-                            <span className="font-mono text-xs text-muted uppercase">
-                              Locked<span className="sr-only">, {on ? "on" : "off"}</span>
-                            </span>
-                          ) : (
-                            <Switch
-                              changed={isChanged}
-                              checked={on}
-                              label={`${def.label}${isChanged ? " (changed)" : ""}`}
-                              onChange={(next) => toggle(def.id, next)}
-                            />
-                          )}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </TableCard>
         )}
       </div>
 
@@ -239,7 +239,7 @@ export function AdminSettingsFeatures() {
           }
           secondary={
             <button
-              className="text-sm font-bold text-white hover:underline"
+              className="text-sm font-bold text-white underline decoration-white decoration-2 underline-offset-4 hover:decoration-signal"
               disabled={saving}
               onClick={() => saved && setDraft(saved)}
               type="button"

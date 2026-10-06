@@ -7,7 +7,7 @@ import {
  Field,
  LineCard,
  LinkButton,
- Mono,
+ Meta,
  Switch,
  TextArea,
  TextInput,
@@ -79,7 +79,7 @@ export function CompetencyManagement() {
  <div className="flex flex-col gap-6">
  <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
  <LineCard title="Add competency">
- <p className="mb-4 text-sm text-muted">Framework spine for goals, coaching cards, and gap analysis.</p>
+ <p className="mb-4 text-sm text-muted">Competencies are the spine for goals, coaching cards, and gap analysis.</p>
  <form className="flex flex-col gap-4" onSubmit={create}>
  <Field htmlFor="competency-name" label="Name">
  <TextInput id="competency-name" onChange={(e) => setName(e.target.value)} required value={name} />
@@ -107,7 +107,7 @@ export function CompetencyManagement() {
  </form>
  </LineCard>
 
- <LineCard bodyClassName="p-0" meta={`${items.length} total`} title="Framework">
+ <LineCard bodyClassName="p-0" meta={`${items.length} in total`} title="Framework">
  {items.length === 0 ? (
  <EmptyState>No competencies yet.</EmptyState>
  ) : (
@@ -126,7 +126,7 @@ export function CompetencyManagement() {
  </div>
  <p className="text-sm leading-[1.5] text-ink-2">{item.description ?? "No description yet."}</p>
  </div>
- <Mono className="shrink-0 text-muted">{item.rubric.length} rubric levels</Mono>
+ <Meta className="shrink-0 text-muted">{item.rubric.length} rubric levels</Meta>
  <div className="flex shrink-0 items-center gap-4">
  <Switch
  checked={enabled}

@@ -112,5 +112,5 @@ export async function POST(request: Request) {
     session.tenantId,
   );
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true, id: created.id });
 }

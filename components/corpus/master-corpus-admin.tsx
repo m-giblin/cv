@@ -10,7 +10,7 @@ import {
   Field,
   KpiStrip,
   LoadingState,
-  Mono,
+  Meta,
   SecondaryButton,
   SectionHeading,
   Td,
@@ -18,6 +18,8 @@ import {
   Th,
 } from "@/components/admin/admin-ui";
 import { CorpusFeedbackAdmin } from "@/components/corpus/corpus-feedback-admin";
+import { StatusPill, type StatusTone } from "@/components/ui/status-pill";
+import { TwoLineCell } from "@/components/ui/table";
 import { Tag } from "@/components/ui/tag";
 import type { CorpusHealthItem } from "@/lib/corpus/health";
 
@@ -33,7 +35,6 @@ type CorpusAsset = {
   updatedAt: string;
 };
 
-type TagTone = "neutral" | "blue" | "success" | "warning" | "danger" | "signal";
 
 function typeLabel(assetType: string) {
   const lower = assetType.toLowerCase();
@@ -41,13 +42,22 @@ function typeLabel(assetType: string) {
   if (lower.includes("playbook")) return "Playbook";
   if (lower.includes("demo")) return "Demo guide";
   if (lower.includes("one") || lower.includes("pager")) return "One-pager";
-  return assetType.replaceAll("_", " ");
+  const text = assetType.replaceAll("_", " ");
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-function healthTag(status: string): { label: string; tone: TagTone; symbol: string } {
-  if (status === "broken") return { label: "Broken link", tone: "danger", symbol: "▲" };
-  if (status === "stale") return { label: "Stale", tone: "warning", symbol: "◆" };
-  return { label: "Healthy", tone: "success", symbol: "✓" };
+function formatDay(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  const options: Intl.DateTimeFormatOptions = { weekday: "short", month: "short", day: "numeric" };
+  if (date.getFullYear() !== new Date().getFullYear()) options.year = "numeric";
+  return date.toLocaleDateString("en-US", options);
+}
+
+function healthTag(status: string): { label: string; tone: StatusTone } {
+  if (status === "broken") return { label: "Broken link", tone: "danger" };
+  if (status === "stale") return { label: "Stale", tone: "warning" };
+  return { label: "Healthy", tone: "success" };
 }
 
 export function MasterCorpusAdmin() {
@@ -120,7 +130,7 @@ export function MasterCorpusAdmin() {
       return;
     }
     const body = (await response.json()) as { verified: number; broken: number };
-    toast.success(`Verified ${body.verified} links · ${body.broken} broken`);
+    toast.success(`Checked ${body.verified} links. ${body.broken} ${body.broken === 1 ? "is" : "are"} broken.`);
     void load();
   }
 
@@ -150,9 +160,9 @@ export function MasterCorpusAdmin() {
       <KpiStrip
         items={[
           { label: "Total assets", value: loading ? "—" : assets.length },
-          { label: "Stale 90d+", value: loading ? "—" : staleCount },
+          { label: "Stale 90+ days", value: loading ? "—" : staleCount },
           { label: "Broken links", value: loading ? "—" : brokenCount },
-          { label: "Pending feedback", value: loading ? "—" : pendingFeedback },
+          { label: "Feedback waiting", value: loading ? "—" : pendingFeedback },
         ]}
       />
 
@@ -183,9 +193,9 @@ export function MasterCorpusAdmin() {
                 <Th>Type</Th>
                 <Th>Tags</Th>
                 <Th>Health</Th>
-                <Th>Ver</Th>
+                <Th className="text-right">Version</Th>
                 <Th>Updated</Th>
-                <Th>
+                <Th className="text-right">
                   <span className="sr-only">Actions</span>
                 </Th>
               </tr>
@@ -193,31 +203,27 @@ export function MasterCorpusAdmin() {
             <tbody>
               {filtered.map((asset) => {
                 const health = healthTag(asset.healthStatus);
-                const tags = [...asset.projectTags, ...asset.moduleTags].join(" · ");
+                const tags = [...asset.projectTags, ...asset.moduleTags].join(", ");
                 return (
-                  <tr className="hover:bg-blue-soft" key={asset.id}>
+                  <tr className="hover:bg-bg" key={asset.id}>
                     <Td className="max-w-[320px]">
-                      <p className="truncate font-bold">{asset.title}</p>
-                      <p className="truncate text-[13px] text-muted">{asset.url}</p>
+                      <TwoLineCell subline={asset.url} title={asset.title} />
                     </Td>
                     <Td>
                       <Tag tone="blue">{typeLabel(asset.assetType)}</Tag>
                     </Td>
                     <Td className="max-w-[220px] truncate text-sm text-ink-2">{tags || "—"}</Td>
                     <Td>
-                      <Tag tone={health.tone}>
-                        <span aria-hidden>{health.symbol}</span>
-                        {health.label}
-                      </Tag>
+                      <StatusPill tone={health.tone}>{health.label}</StatusPill>
                     </Td>
-                    <Td>
-                      <Mono>v{asset.version}</Mono>
+                    <Td className="text-right">
+                      <Meta>{asset.version}</Meta>
                     </Td>
-                    <Td>
-                      <Mono>{new Date(asset.updatedAt).toLocaleDateString()}</Mono>
+                    <Td className="whitespace-nowrap">
+                      <Meta>{formatDay(asset.updatedAt)}</Meta>
                     </Td>
-                    <Td>
-                      <Link className="link text-sm" href="/admin/content">
+                    <Td className="text-right">
+                      <Link aria-label={`Edit ${asset.title}`} className="link text-sm" href="/admin/content">
                         Edit
                       </Link>
                     </Td>

@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { AppShell } from "@/components/app-shell";
 import { AdminConsole } from "@/components/admin/admin-console";
 import { LoadingState } from "@/components/admin/admin-ui";
+import { loadPracticeUsage } from "@/lib/admin/practice-usage";
 import { loadAiUsageSummary } from "@/lib/ai/settings";
 import { getAccessTier } from "@/lib/auth/rbac";
 import { requireAdminPageAccess } from "@/lib/auth/require-access";
@@ -14,11 +15,17 @@ import {
 import { getDemoDashboardData } from "@/lib/demo-data";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export async function AdminSectionPage() {
+/** `practice` loads library usage figures; only the Content › Practice route needs them. */
+export async function AdminSectionPage({ practice = false }: { practice?: boolean } = {}) {
  const adminClient = createAdminClient();
  const { data, source, tenantId } = await requireAdminPageAccess();
  const aiUsage = adminClient
  ? await loadAiUsageSummary(adminClient, tenantId ?? data.currentUser.tenantId ?? undefined)
+ : null;
+
+ const practiceUsage =
+ practice && adminClient && (tenantId ?? data.currentUser.tenantId)
+ ? await loadPracticeUsage(adminClient, (tenantId ?? data.currentUser.tenantId)!).catch(() => null)
  : null;
 
  const assignees = data.profiles.filter((profile) => getAccessTier(profile.role) === "se");
@@ -68,6 +75,7 @@ export async function AdminSectionPage() {
  pendingReviews={pendingReviews}
  pendingReviewBreakdown={pendingReviewBreakdown}
  plans={data.plans}
+ practiceUsage={practiceUsage}
  profiles={data.profiles}
  />
  </Suspense>

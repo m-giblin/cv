@@ -70,10 +70,10 @@ const HEALTH_STYLES: Record<
   GanttHealth,
   { label: string; color: string; bg: string }
 > = {
-  critical: { label: "CRITICAL", color: "#B42318", bg: "#FCEBEA" },
-  behind: { label: "BEHIND", color: "#8A5300", bg: "#FBF1DF" },
-  "on-pace": { label: "ON PACE", color: "#12703F", bg: "#E7F4EC" },
-  ahead: { label: "AHEAD", color: "#0033A1", bg: "#E5ECFA" },
+  critical: { label: "Critical", color: "var(--color-danger)", bg: "var(--color-danger-soft)" },
+  behind: { label: "Behind", color: "var(--color-warning)", bg: "var(--color-warning-soft)" },
+  "on-pace": { label: "On pace", color: "var(--color-success)", bg: "var(--color-success-soft)" },
+  ahead: { label: "Ahead", color: "var(--color-blue)", bg: "var(--color-blue-soft)" },
 };
 
 /** Tag tone + leading symbol for each health state, so status never relies on colour alone. */
@@ -235,10 +235,10 @@ export function computeHealth(progress: number, dayInRamp: number): GanttHealth 
 }
 
 export function rampColor(health: GanttHealth): string {
-  if (health === "critical") return "#B42318";
-  if (health === "behind") return "#8A5300";
-  if (health === "ahead") return "#0033A1";
-  return "#12703F";
+  if (health === "critical") return "var(--color-danger)";
+  if (health === "behind") return "var(--color-warning)";
+  if (health === "ahead") return "var(--color-blue)";
+  return "var(--color-success)";
 }
 
 function stepToBar(step: CalendarStep, row: CalendarPlanRow, timelineStart: string): GanttBar {

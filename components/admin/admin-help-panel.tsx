@@ -7,20 +7,28 @@ import {
  Field,
  LineCard,
  LoadingState,
- Mono,
+ Meta,
  SelectInput,
  TextArea,
  TextInput,
 } from "@/components/admin/admin-ui";
-import { Tag } from "@/components/ui/tag";
+import { StatusPill, type StatusTone } from "@/components/ui/status-pill";
 import type { SupportRequest, SupportPriority, SupportStatus } from "@/lib/tenant/types";
 
-const STATUS_TAG: Record<SupportStatus, { tone: "blue" | "warning" | "success" | "neutral"; symbol: string }> = {
- open: { tone: "blue", symbol: "●" },
- in_progress: { tone: "warning", symbol: "◆" },
- resolved: { tone: "success", symbol: "✓" },
- closed: { tone: "neutral", symbol: "•" },
+const STATUS_TAG: Record<SupportStatus, { tone: StatusTone; label: string }> = {
+ open: { tone: "blue", label: "Open" },
+ in_progress: { tone: "warning", label: "In progress" },
+ resolved: { tone: "success", label: "Resolved" },
+ closed: { tone: "neutral", label: "Closed" },
 };
+
+function formatDay(value: string) {
+ const date = new Date(value);
+ if (Number.isNaN(date.getTime())) return "—";
+ const options: Intl.DateTimeFormatOptions = { weekday: "short", month: "short", day: "numeric" };
+ if (date.getFullYear() !== new Date().getFullYear()) options.year = "numeric";
+ return date.toLocaleDateString("en-US", options);
+}
 
 export function AdminHelpPanel() {
  const [tickets, setTickets] = useState<SupportRequest[]>([]);
@@ -49,7 +57,7 @@ export function AdminHelpPanel() {
  async function handleSubmit(event: React.FormEvent) {
  event.preventDefault();
  if (!subject.trim() || body.trim().length < 10) {
- toast.error("Subject and a detailed message (10+ chars) are required.");
+ toast.error("Add a subject and a message of at least 10 characters.");
  return;
  }
  setSubmitting(true);
@@ -84,7 +92,7 @@ export function AdminHelpPanel() {
  <div className="flex max-w-3xl flex-col gap-6">
  <LineCard title="New request">
  <p className="mb-4 text-sm text-muted">
- Contact the platform operator for entitlements, integrations, or access issues.
+ Contact the platform operator about entitlements, integrations or access issues.
  </p>
  <form className="flex flex-col gap-4" onSubmit={(e) => void handleSubmit(e)}>
  <Field htmlFor="support-subject" label="Subject">
@@ -107,7 +115,7 @@ export function AdminHelpPanel() {
  className="min-h-[120px]"
  id="support-message"
  onChange={(e) => setBody(e.target.value)}
- placeholder="Describe what you need help with…"
+ placeholder="Describe what you need help with"
  value={body}
  />
  </Field>
@@ -119,7 +127,7 @@ export function AdminHelpPanel() {
  </form>
  </LineCard>
 
- <LineCard bodyClassName="p-0" meta={tickets.length > 0 ? `${tickets.length}` : undefined} title="Your requests">
+ <LineCard bodyClassName="p-0" meta={tickets.length > 0 ? `${tickets.length} in total` : undefined} title="Your requests">
  {tickets.length === 0 ? (
  <EmptyState>No support requests yet.</EmptyState>
  ) : (
@@ -130,15 +138,16 @@ export function AdminHelpPanel() {
  <li className="border-b border-divider px-5 py-3.5 last:border-b-0" key={ticket.id}>
  <div className="flex flex-wrap items-center justify-between gap-3">
  <p className="text-[15px] font-bold text-ink">{ticket.subject}</p>
- <Tag tone={status.tone}>
- {status.symbol} {ticket.status.replace("_", " ")}
- </Tag>
+ <StatusPill tone={status.tone}>{status.label}</StatusPill>
  </div>
- <Mono className="mt-1 block text-muted">
- {ticket.priority} priority · {new Date(ticket.createdAt).toLocaleDateString()}
- </Mono>
+ <Meta className="mt-1 block text-muted">
+ {ticket.priority.charAt(0).toUpperCase() + ticket.priority.slice(1)} priority, opened {formatDay(ticket.createdAt)}
+ </Meta>
  {ticket.operatorReply ? (
- <p className="mt-2.5 rounded-[10px] bg-blue-soft px-3 py-2 text-sm text-ink">{ticket.operatorReply}</p>
+ <div className="mt-2.5 rounded-[10px] bg-blue-soft px-3.5 py-2.5 text-sm text-ink">
+ <p className="label-caps label-caps--blue mb-1">Reply from the platform team</p>
+ <p>{ticket.operatorReply}</p>
+ </div>
  ) : null}
  </li>
  );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { AdminTable, EmptyState, LoadingState, Mono, SectionHeading, Td, Th } from "@/components/admin/admin-ui";
+import { AdminTable, EmptyState, LoadingState, Meta, SectionHeading, Td, Th } from "@/components/admin/admin-ui";
 import { Tag } from "@/components/ui/tag";
 
 type LaunchRow = {
@@ -33,7 +33,7 @@ export function ReleaseLaunchAnalytics() {
 
   return (
     <div className="flex flex-col gap-3">
-      <SectionHeading meta="Enrolled · started · completed" title="Release launch analytics" />
+      <SectionHeading meta="Enrolled, started and completed" title="Release launch analytics" />
       {loading ? (
         <div className="rounded-[14px] border border-line bg-white">
           <LoadingState label="Loading launches…" />
@@ -61,13 +61,13 @@ export function ReleaseLaunchAnalytics() {
                   <Tag tone="blue">{row.project_tag}</Tag>
                 </Td>
                 <Td className="text-right">
-                  <Mono className="text-ink">{row.enrolled}</Mono>
+                  <Meta className="text-ink">{row.enrolled}</Meta>
                 </Td>
                 <Td className="text-right">
-                  <Mono className="text-ink">{row.started}</Mono>
+                  <Meta className="text-ink">{row.started}</Meta>
                 </Td>
                 <Td className="text-right">
-                  <Mono className="text-ink">{row.completed}</Mono>
+                  <Meta className="text-ink">{row.completed}</Meta>
                 </Td>
               </tr>
             ))}

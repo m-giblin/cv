@@ -14,13 +14,13 @@ export function AdminReviewsPanel({
       label: "Challenge submissions",
       count: pendingReviewBreakdown.challengeSubmissions,
       href: "/manager/inbox",
-      description: "Field scenario evidence awaiting manager or admin review.",
+      description: "Field scenario evidence waiting for a manager or admin review.",
     },
     {
       label: "Simulation coaching cards",
       count: pendingReviewBreakdown.simulationCards,
       href: "/manager/inbox",
-      description: "AI roleplay sessions pending manager feedback.",
+      description: "AI roleplay sessions waiting for manager feedback.",
     },
     {
       label: "Plan step reviews",
@@ -32,7 +32,7 @@ export function AdminReviewsPanel({
       label: "Certification sign-offs",
       count: pendingReviewBreakdown.certSignoffs,
       href: "/manager/inbox",
-      description: "Readiness certification gates awaiting approval.",
+      description: "Readiness certification gates waiting for approval.",
     },
   ];
 
@@ -42,7 +42,7 @@ export function AdminReviewsPanel({
     <div className="flex flex-col gap-6">
       <KpiStrip items={items.map((item) => ({ label: item.label, value: item.count }))} />
 
-      <LineCard bodyClassName="p-0" meta={`${total} pending`} title="Review queues">
+      <LineCard bodyClassName="p-0" meta={`${total} waiting`} title="Review queues">
         <ul>
           {items.map((item) => (
             <li
@@ -58,7 +58,7 @@ export function AdminReviewsPanel({
                   className={
                     item.count > 0
                       ? "text-lg font-extrabold text-blue tabular-nums"
-                      : "text-lg font-extrabold text-faint tabular-nums"
+                      : "text-lg font-extrabold text-muted tabular-nums"
                   }
                 >
                   {item.count}

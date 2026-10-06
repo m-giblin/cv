@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { LineCard, LineRow, LoadingState } from "@/components/admin/admin-ui";
-import { Tag } from "@/components/ui/tag";
+import { StatusPill } from "@/components/ui/status-pill";
 
 type StatusBody = {
   signals?: Array<{ provider: string; status: string }>;
@@ -41,8 +41,8 @@ export function AdminSettingsIntegrationsSection() {
     const response = await fetch("/api/integrations/gong/oauth/start");
     if (!response.ok) {
       const body = (await response.json().catch(() => ({}))) as { hint?: string };
-      toast.message("Gong workspace key or OAuth required", {
-        description: body.hint ?? "Ask your admin to set GONG_API_KEY or complete Gong OAuth app registration.",
+      toast.message("Gong needs a workspace key or OAuth", {
+        description: body.hint ?? "Ask your admin to set GONG_API_KEY or finish registering the Gong OAuth app.",
       });
       setConnecting(false);
       return;
@@ -60,7 +60,7 @@ export function AdminSettingsIntegrationsSection() {
     {
       name: "Gong",
       description: gongConnected
-        ? "Pre-call intel and call briefs in Deal Prep. Briefs merge into prep when you generate."
+        ? "Pre-call intel and call briefs in Deal Prep. Briefs merge into prep when you generate it."
         : "Pre-call intel and call briefs in Deal Prep.",
       connected: gongConnected,
       statusLabel: gongConnected ? "Connected" : "Not connected",
@@ -74,11 +74,11 @@ export function AdminSettingsIntegrationsSection() {
       name: "Slack",
       description: "Q&A routing and SME escalations.",
       connected: slackConnected,
-      statusLabel: slackConnected ? "Connected" : "Configure token",
+      statusLabel: slackConnected ? "Connected" : "Needs a token",
     },
     {
       name: "Supabase",
-      description: "Auth, profiles, encrypted settings.",
+      description: "Auth, profiles and encrypted settings.",
       connected: true,
       statusLabel: "Active",
     },
@@ -99,9 +99,7 @@ export function AdminSettingsIntegrationsSection() {
               <p className="text-[15px] font-bold text-ink">{row.name}</p>
               <p className="mt-0.5 text-sm text-muted">{row.description}</p>
             </div>
-            <Tag tone={row.connected ? "success" : "warning"}>
-              {row.connected ? "✓" : "▲"} {row.statusLabel}
-            </Tag>
+            <StatusPill tone={row.connected ? "success" : "warning"}>{row.statusLabel}</StatusPill>
             {row.action}
           </LineRow>
         ))}

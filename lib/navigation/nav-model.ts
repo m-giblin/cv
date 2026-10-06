@@ -132,8 +132,8 @@ export const NAV: Record<WorkspaceHat, NavItem[]> = {
       href: "/admin/content",
       children: [
         { id: "library", label: "Library", href: "/admin/content" },
+        { id: "practice", label: "Practice", href: "/admin/content/practice" },
         { id: "corpus", label: "Corpus", href: "/admin/content/corpus" },
-        { id: "ai", label: "AI & sims", href: "/admin/content/ai" },
         { id: "reviews", label: "Reviews", href: "/admin/content/reviews" },
       ],
     },

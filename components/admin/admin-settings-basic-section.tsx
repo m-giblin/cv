@@ -55,7 +55,7 @@ export function AdminSettingsBasicSection() {
     <form className="flex max-w-3xl flex-col gap-6" onSubmit={handleSave}>
       <LineCard meta="Applies to every signed-in user" title="Sessions">
         <Field
-          hint={`Sign out after inactivity. Default ${DEFAULT_SESSION_IDLE_MINUTES} minutes; increase for UAT (${MIN_SESSION_IDLE_MINUTES}–${MAX_SESSION_IDLE_MINUTES}).`}
+          hint={`Users are signed out after this much inactivity. The default is ${DEFAULT_SESSION_IDLE_MINUTES} minutes; raise it for UAT. Allowed range is ${MIN_SESSION_IDLE_MINUTES} to ${MAX_SESSION_IDLE_MINUTES}.`}
           htmlFor={`${id}-idle`}
           label="Session idle timeout (minutes)"
         >

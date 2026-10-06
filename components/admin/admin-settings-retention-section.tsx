@@ -89,14 +89,14 @@ export function AdminSettingsRetentionSection() {
 
   return (
     <form className="flex max-w-3xl flex-col gap-6" onSubmit={handleSave}>
-      <LineCard meta={`${MIN_RETENTION_DAYS}–${MAX_RETENTION_DAYS} days`} title="Retention windows">
+      <LineCard meta={`${MIN_RETENTION_DAYS} to ${MAX_RETENTION_DAYS} days`} title="Retention windows">
         <div className="flex flex-col gap-5">
           <p className="text-sm text-muted">
-            Target retention for audit logs, activity feed, and AI usage telemetry. Purge jobs use these values.
+            How long to keep audit logs, the activity feed and AI usage telemetry. Purge jobs use these values.
           </p>
           {fields.map((field) => (
             <Field
-              hint={`Default ${field.fallback} days.`}
+              hint={`The default is ${field.fallback} days.`}
               htmlFor={`${id}-${field.key}`}
               key={field.key}
               label={field.label}

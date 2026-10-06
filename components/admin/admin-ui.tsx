@@ -2,12 +2,12 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 /**
- * Admin console building blocks on the v2 system (tokens only, no raw hex).
- * Line cards and tables follow the handoff: white, 1px line border, radius 14, blue table headers.
+ * Admin console building blocks on the v3 system (tokens only, no raw hex, no monospace).
+ * Cards and tables: white, 1px warm line, radius 14. Table headers are 11px caps labels on white.
  */
 
 export function AdminBody({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("flex flex-col gap-6 px-[var(--gutter)] pb-10", className)} {...props} />;
+  return <div className={cn("flex flex-col gap-6 px-[var(--page-pad-x)] pb-10 max-sm:px-4", className)} {...props} />;
 }
 
 export function SectionHeading({
@@ -26,8 +26,8 @@ export function SectionHeading({
   return (
     <div className={cn("flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2", className)}>
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <Tag className="text-lg leading-[1.3] font-extrabold text-ink">{title}</Tag>
-        {meta ? <span className="label-mono">{meta}</span> : null}
+        <Tag className="text-xl leading-[1.3] font-extrabold text-ink">{title}</Tag>
+        {meta ? <span className="text-sm text-muted">{meta}</span> : null}
       </div>
       {actions ? <div className="flex flex-wrap items-center gap-3">{actions}</div> : null}
     </div>
@@ -55,11 +55,11 @@ export function LineCard({
   return (
     <section className={cn("overflow-hidden rounded-[14px] border border-line bg-white", className)} id={id}>
       {title ? (
-        <div className="border-b border-divider px-5 py-3.5">
+        <div className="border-b border-line px-[22px] py-[18px]">
           <SectionHeading actions={actions} meta={meta} title={title} />
         </div>
       ) : null}
-      {children !== undefined ? <div className={cn("px-5 py-4", bodyClassName)}>{children}</div> : null}
+      {children !== undefined ? <div className={cn("px-[22px] py-[18px]", bodyClassName)}>{children}</div> : null}
     </section>
   );
 }
@@ -68,7 +68,7 @@ export function LineCard({
 export function LineRow({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("border-b border-divider px-5 py-3 text-[15px] text-ink last:border-b-0", className)}
+      className={cn("border-b border-divider px-5 py-[13px] text-[15px] text-ink last:border-b-0", className)}
       {...props}
     />
   );
@@ -102,7 +102,7 @@ export function Th({ className, ...props }: React.ThHTMLAttributes<HTMLTableCell
   return (
     <th
       className={cn(
-        "bg-blue px-[18px] py-[11px] font-mono text-xs font-medium tracking-[0.03em] whitespace-nowrap text-white uppercase",
+        "th border-b border-line bg-white px-5 py-3 text-left align-bottom whitespace-nowrap",
         className,
       )}
       scope="col"
@@ -114,19 +114,25 @@ export function Th({ className, ...props }: React.ThHTMLAttributes<HTMLTableCell
 export function Td({ className, ...props }: React.TdHTMLAttributes<HTMLTableCellElement>) {
   return (
     <td
-      className={cn("border-b border-divider px-[18px] py-3 align-middle text-[15px] text-ink", className)}
+      className={cn(
+        "border-t border-divider px-5 py-[13px] align-middle text-[15px] text-ink [tr:first-child>&]:border-t-0",
+        className,
+      )}
       {...props}
     />
   );
 }
 
-/** Mono 12 cell text (dates, ids, counts). */
-export function Mono({ className, ...props }: React.HTMLAttributes<HTMLSpanElement>) {
-  return <span className={cn("font-mono text-xs text-ink-2 uppercase", className)} {...props} />;
+/** Secondary cell text (dates, ids, counts): 14px ink-2 with tabular numbers. No monospace in v3. */
+export function Meta({ className, ...props }: React.HTMLAttributes<HTMLSpanElement>) {
+  return <span className={cn("num text-sm text-ink-2", className)} {...props} />;
 }
 
+/** @deprecated v2 name; renders as {@link Meta}. */
+export const Mono = Meta;
+
 const fieldControl =
-  "w-full rounded-[10px] border-[1.5px] border-line-strong bg-white px-3 py-[9px] text-[15px] text-ink placeholder:text-muted disabled:bg-surface-2 disabled:text-muted";
+  "w-full rounded-[10px] border border-line-strong bg-white px-3.5 py-[9px] text-[15px] text-ink placeholder:text-muted disabled:bg-divider disabled:text-muted";
 
 export const TextInput = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
   function TextInput({ className, ...props }, ref) {
@@ -216,7 +222,7 @@ export function Switch({
   );
 }
 
-/** KPI strip: mono label over a 36/800 blue numeral with an optional faint suffix. */
+/** KPI strip: 11px caps label over a 36/800 blue numeral with an optional faint suffix. */
 export function KpiStrip({
   items,
   className,
@@ -227,14 +233,14 @@ export function KpiStrip({
   return (
     <dl
       className={cn(
-        "grid grid-cols-2 rounded-[14px] border border-line bg-white sm:grid-cols-4",
+        "grid grid-cols-2 overflow-hidden rounded-[14px] border border-line bg-white sm:grid-cols-4",
         className,
       )}
     >
       {items.map((item) => (
-        <div className="flex flex-col gap-1 px-[18px] py-4" key={item.label}>
-          <dt className="font-mono text-xs text-muted uppercase">{item.label}</dt>
-          <dd className="text-4xl leading-none font-extrabold tracking-[-0.03em] text-blue">
+        <div className="flex flex-col gap-1 border-divider px-5 py-[18px] [&+&]:border-l" key={item.label}>
+          <dt className="th whitespace-nowrap">{item.label}</dt>
+          <dd className="num text-4xl leading-none font-extrabold tracking-[-0.03em] text-blue">
             {item.href ? (
               <a className="no-underline hover:underline" href={item.href}>
                 {item.value}
@@ -243,7 +249,7 @@ export function KpiStrip({
               item.value
             )}
             {item.suffix !== undefined ? (
-              <span className="text-[15px] font-bold tracking-normal text-faint">{item.suffix}</span>
+              <span className="text-base font-extrabold tracking-normal text-faint">{item.suffix}</span>
             ) : null}
           </dd>
         </div>
@@ -252,11 +258,14 @@ export function KpiStrip({
   );
 }
 
-/** Quiet bordered note (info, empty states). */
+/** Quiet dashed aside for context the admin does not have to act on. */
 export function Notice({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("rounded-[14px] border border-line bg-surface-2 px-4 py-3 text-sm leading-[1.5] text-ink-2", className)}
+      className={cn(
+        "rounded-[12px] border border-dashed border-line-strong px-[18px] py-4 text-sm leading-normal text-ink-2",
+        className,
+      )}
       {...props}
     />
   );
@@ -268,7 +277,7 @@ export function EmptyState({ className, ...props }: React.HTMLAttributes<HTMLPar
 
 export function LoadingState({ label = "Loading…", className }: { label?: string; className?: string }) {
   return (
-    <p aria-busy="true" className={cn("label-mono px-5 py-8 text-center", className)} role="status">
+    <p aria-busy="true" className={cn("px-5 py-8 text-center text-sm text-muted", className)} role="status">
       {label}
     </p>
   );

@@ -3,16 +3,41 @@
 import { useCallback, useEffect, useId, useState } from "react";
 import { toast } from "sonner";
 import { Field, LineCard, LoadingState, SelectInput, TextInput } from "@/components/admin/admin-ui";
-import { Tag } from "@/components/ui/tag";
+import { GlobalAiSettingsToggles } from "@/components/admin/global-ai-settings-toggles";
+import { Stat, StatStrip } from "@/components/ui/stat";
+import { StatusPill } from "@/components/ui/status-pill";
 import type { AiProviderName } from "@/lib/ai/provider";
-import type { PublicAiSettings } from "@/lib/ai/settings-shared";
+import { formatTokenCount, type AiUsageSummary, type PublicAiSettings } from "@/lib/ai/settings-shared";
 
 const MODEL_HINTS: Record<AiProviderName, string[]> = {
   xai: ["grok-3-mini", "grok-2-latest", "grok-beta"],
   openai: ["gpt-4.1-mini", "gpt-4o-mini", "gpt-4o"],
 };
 
-export function AdminSettingsAiSection() {
+/** Settings › AI: usage over 30 days, the provider form, and the global AI switches (moved here from Content). */
+export function AdminSettingsAiSection({ usage = null }: { usage?: AiUsageSummary | null }) {
+  return (
+    <>
+      {usage ? (
+        <StatStrip>
+          <Stat label="Requests, 30 days" value={usage.requests30d.toLocaleString("en-US")} />
+          <Stat label="Requests today" value={usage.requestsToday.toLocaleString("en-US")} />
+          <Stat label="Tokens, 30 days" value={formatTokenCount(usage.tokens30d)} />
+          <Stat
+            label="Busiest feature"
+            note={usage.byFeature[0] ? `${usage.byFeature[0].count.toLocaleString("en-US")} requests` : undefined}
+            tone="ink"
+            value={<span className="text-2xl">{usage.byFeature[0]?.label ?? "None yet"}</span>}
+          />
+        </StatStrip>
+      ) : null}
+      <AiProviderForm />
+      <GlobalAiSettingsToggles />
+    </>
+  );
+}
+
+function AiProviderForm() {
   const id = useId();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -78,16 +103,16 @@ export function AdminSettingsAiSection() {
   }
 
   const status = settings?.hasApiKey ? (
-    <Tag tone="success">✓ Connected</Tag>
+    <StatusPill tone="success">Connected</StatusPill>
   ) : (
-    <Tag tone="warning">▲ No key</Tag>
+    <StatusPill tone="warning">No key</StatusPill>
   );
 
   return (
     <LineCard actions={status} title="AI provider">
       <form className="flex flex-col gap-4" onSubmit={handleSave}>
-        <p className="text-sm text-muted">
-          Vendor, model, and API key for sims, deal prep, and coaching cards. Keys are encrypted before storage.
+        <p className="text-sm text-ink-2">
+          Vendor, model and API key for simulations, deal prep and coaching cards. Keys are encrypted before storage.
           {settings?.source === "env" && !settings.hasApiKey ? " Currently falling back to server env vars." : null}
         </p>
 
@@ -129,7 +154,7 @@ export function AdminSettingsAiSection() {
             id={`${id}-key`}
             onChange={(event) => setApiKey(event.target.value)}
             placeholder={
-              settings?.hasApiKey ? `Saved (${settings.keyPreview ?? "configured"}). Enter to replace` : "Paste API key"
+              settings?.hasApiKey ? `Saved (${settings.keyPreview ?? "configured"}). Type a new key to replace it` : "Paste an API key"
             }
             type="password"
             value={apiKey}
@@ -141,9 +166,9 @@ export function AdminSettingsAiSection() {
             {saving ? "Saving…" : "Save AI settings"}
           </button>
           {settings?.hasApiKey ? (
-            <span className="font-mono text-xs text-ink-2">
-              {settings.provider} / {settings.model}
-              {settings.keyPreview ? ` · ${settings.keyPreview}` : ""}
+            <span className="text-sm text-ink-2">
+              Using {settings.provider === "openai" ? "OpenAI" : "xAI"} {settings.model}
+              {settings.keyPreview ? `, key ending ${settings.keyPreview.slice(-4)}` : ""}.
             </span>
           ) : (
             <span className="text-[13px] text-warning">No key configured. AI features run in demo mode.</span>

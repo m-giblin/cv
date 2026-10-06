@@ -1,5 +1,7 @@
-import { AdminSectionPage } from "@/components/admin/admin-section-page";
+import { redirect } from "next/navigation";
+import { LEGACY_ADMIN_PATHS } from "@/lib/admin/admin-routes";
 
+/** "AI & sims" became Content › Practice; provider settings moved to Settings › AI. */
 export default function Page() {
-  return <AdminSectionPage />;
+  redirect(LEGACY_ADMIN_PATHS["/admin/content/ai"]!);
 }

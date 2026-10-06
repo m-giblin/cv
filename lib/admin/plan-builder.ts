@@ -238,11 +238,16 @@ export function pad2(n: number): string {
 }
 
 export function dueLabel(dueOffsetDays: number): string {
-  return `Week ${weekOf(dueOffsetDays)} · day ${dayOf(dueOffsetDays)}`;
+  return `Week ${weekOf(dueOffsetDays)}, day ${dayOf(dueOffsetDays)}`;
 }
 
+/** @deprecated v2 code style; same as {@link dueLabel}. */
 export function shortDueLabel(dueOffsetDays: number): string {
-  return `W${pad2(weekOf(dueOffsetDays))} D${dayOf(dueOffsetDays)}`;
+  return dueLabel(dueOffsetDays);
+}
+
+export function builderTypeLabel(type: PlanStepType | null): string {
+  return BUILDER_STEP_TYPES.find((entry) => entry.type === type)?.label ?? "No type yet";
 }
 
 export function builderTypeShort(type: PlanStepType | null): string {
@@ -295,6 +300,57 @@ export function segmentRangeLabel(group: Pick<OutlineGroup, "startWeek" | "endWe
       ? `W${pad2(group.startWeek)}`
       : `W${pad2(group.startWeek)}–${pad2(group.endWeek)}`;
   return `${range} · ${group.name}`.toUpperCase();
+}
+
+/** "weeks 1 to 4" (or "week 5"), shown beside the segment name in the outline. */
+export function segmentWeeksLabel(group: Pick<OutlineGroup, "startWeek" | "endWeek">): string {
+  return group.startWeek === group.endWeek ? `week ${group.startWeek}` : `weeks ${group.startWeek} to ${group.endWeek}`;
+}
+
+export type ChecklistRow = { id: string; label: string; done: boolean; blocking: boolean; stepKeys: string[] };
+
+function stepNumbers(steps: BuilderStep[], keys: string[]): string {
+  const numbers = keys.map((key) => pad2(steps.findIndex((step) => step.key === key) + 1));
+  const shown = numbers.slice(0, 3).join(", ");
+  const more = numbers.length > 3 ? ` and ${numbers.length - 3} more` : "";
+  return `${numbers.length === 1 ? "step" : "steps"} ${shown}${more}`;
+}
+
+/** Plan-level "Ready to publish?" rows (13a). The first four block publishing; the gate row is advice. */
+export function planChecklist(steps: BuilderStep[]): ChecklistRow[] {
+  const missing = (issue: StepIssue) => steps.filter((step) => stepIssues(step).includes(issue)).map((step) => step.key);
+  const row = (id: string, label: string, keys: string[], blocking = true): ChecklistRow => ({
+    id,
+    label: keys.length ? `${label} (${stepNumbers(steps, keys)})` : label,
+    done: steps.length > 0 && keys.length === 0,
+    blocking,
+    stepKeys: keys,
+  });
+  const titled = [...missing("type"), ...missing("title")];
+  const segments = outlineGroups(steps).filter((group) => group.segmentIndex !== null);
+  const ungated = segments.filter((group) => !group.steps.some(({ step }) => step.isSegmentGate));
+  return [
+    row("type", "Every step has a type and title", [...new Set(titled)]),
+    row("criteria", "Every step has done-when criteria", missing("criteria")),
+    row("evidence", "Every step asks for evidence", missing("evidence")),
+    row("reviewer", "Every step has a reviewer", missing("reviewer")),
+    {
+      id: "gates",
+      label: ungated.length
+        ? `Every segment ends in a gate (${ungated.map((group) => group.name.toLowerCase()).join(", ")} has none)`
+        : "Every segment ends in a gate",
+      done: segments.length > 0 && ungated.length === 0,
+      blocking: false,
+      stepKeys: ungated.flatMap((group) => group.steps.map(({ step }) => step.key)).slice(0, 1),
+    },
+  ];
+}
+
+/** Gate number (1-based, in plan order) for each gate step key. */
+export function gateNumbers(steps: BuilderStep[]): Map<string, number> {
+  const map = new Map<string, number>();
+  steps.filter((step) => step.isSegmentGate).forEach((step, index) => map.set(step.key, index + 1));
+  return map;
 }
 
 export type GridBlock = { step: BuilderStep; index: number; startWeek: number; endWeek: number; row: number };

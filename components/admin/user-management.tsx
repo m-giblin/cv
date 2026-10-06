@@ -8,7 +8,7 @@ import {
  KpiStrip,
  LinkButton,
  LoadingState,
- Mono,
+ Meta,
  Notice,
  SecondaryButton,
  SelectInput,
@@ -16,8 +16,10 @@ import {
  TextInput,
  Th,
 } from "@/components/admin/admin-ui";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Chip } from "@/components/ui/chip";
 import { Drawer } from "@/components/ui/drawer";
+import { PersonCell, rowHighlight } from "@/components/ui/table";
 import { Tag } from "@/components/ui/tag";
 import { allowedEmailDomainsLabel } from "@/lib/auth/email-domain";
 import { ProfileRole, SeLevel } from "@/lib/types";
@@ -72,6 +74,18 @@ function roleBadge(role: ProfileRole): { tone: RoleTone; label: string } {
  admin: { tone: "signal", label: "Admin" },
  };
  return map[role] ?? { tone: "neutral", label: role.replaceAll("_", " ") };
+}
+
+function sentenceCase(value: string) {
+ return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function formatDay(value: string) {
+ const date = new Date(value);
+ if (Number.isNaN(date.getTime())) return "—";
+ const options: Intl.DateTimeFormatOptions = { weekday: "short", month: "short", day: "numeric" };
+ if (date.getFullYear() !== new Date().getFullYear()) options.year = "numeric";
+ return date.toLocaleDateString("en-US", options);
 }
 
 function paginate<T>(items: T[], page: number, pageSize: number) {
@@ -323,9 +337,9 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  <Notice className="border-signal bg-signal-soft">
  <p className="text-sm font-bold text-ink">Temporary password</p>
  <p className="mt-0.5 text-[13px] text-ink-2">
- Share securely. User must change it on first login and enroll MFA.
+ Share it securely. They must change it on first sign-in and enroll in MFA.
  </p>
- <p className="mt-2.5 font-mono text-lg font-bold text-ink">{tempPasswordShown}</p>
+ <p className="mt-2.5 text-lg font-bold tracking-[0.02em] text-ink select-all">{tempPasswordShown}</p>
  </Notice>
  ) : null}
 
@@ -333,7 +347,12 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  <div className="flex flex-wrap items-center justify-between gap-3">
  <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by role">
  {["All roles", ...ROLE_FILTER_OPTIONS].map((option) => (
- <Chip active={roleFilter === option} key={option} onClick={() => setRoleFilter(option)}>
+ <Chip
+ active={roleFilter === option}
+ count={users.filter((user) => matchesRoleFilter(user.role, option)).length}
+ key={option}
+ onClick={() => setRoleFilter(option)}
+ >
  {option === "All roles" ? "All" : option}
  </Chip>
  ))}
@@ -347,7 +366,7 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  aria-label="Search users"
  className="max-w-[320px] flex-1"
  onChange={(e) => setSearch(e.target.value)}
- placeholder="Search by name or email…"
+ placeholder="Search by name or email"
  type="search"
  value={search}
  />
@@ -373,9 +392,9 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  <option key={manager.id}>{manager.full_name}</option>
  ))}
  </SelectInput>
- <Mono className="ml-auto text-muted">
- {filteredUsers.length} of {users.length} users
- </Mono>
+ <span className="ml-auto text-sm text-muted">
+ Showing {filteredUsers.length} of {users.length} users
+ </span>
  </div>
  </div>
 
@@ -388,7 +407,7 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  <Th>Level</Th>
  <Th>Manager</Th>
  <Th>Joined</Th>
- <Th>
+ <Th className="text-right">
  <span className="sr-only">Actions</span>
  </Th>
  </tr>
@@ -404,17 +423,9 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  rows.map((user) => {
  const badge = roleBadge(user.role);
  return (
- <tr className={editingId === user.id ? "bg-blue-soft" : "hover:bg-surface-2"} key={user.id}>
+ <tr className={editingId === user.id ? rowHighlight.selected : "hover:bg-bg"} key={user.id}>
  <Td>
- <div className="flex items-center gap-2.5">
- <span
- aria-hidden
- className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full bg-blue-soft text-xs font-bold text-blue"
- >
- {initials(user.full_name)}
- </span>
- <span className="font-bold">{user.full_name}</span>
- </div>
+ <PersonCell initials={initials(user.full_name)} name={user.full_name} subline={sentenceCase(user.role.replaceAll("_", " "))} />
  </Td>
  <Td className="text-sm text-ink-2">{user.email}</Td>
  <Td>
@@ -425,7 +436,7 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  {user.manager_id ? managerNameById.get(user.manager_id) ?? "—" : "—"}
  </Td>
  <Td>
- <Mono>{new Date(user.created_at).toLocaleDateString()}</Mono>
+ <Meta>{formatDay(user.created_at)}</Meta>
  </Td>
  <Td>
  <div className="flex justify-end gap-4">
@@ -453,9 +464,9 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  <SecondaryButton disabled={safePage <= 1} onClick={() => setPage(safePage - 1)}>
  Previous
  </SecondaryButton>
- <Mono>
+ <Meta>
  Page {safePage} of {pageCount}
- </Mono>
+ </Meta>
  <SecondaryButton disabled={safePage >= pageCount} onClick={() => setPage(safePage + 1)}>
  Next
  </SecondaryButton>
@@ -508,7 +519,7 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  >
  {ROLES.map((role) => (
  <option key={role} value={role}>
- {role.replaceAll("_", " ")}
+ {sentenceCase(role.replaceAll("_", " "))}
  </option>
  ))}
  </SelectInput>
@@ -556,14 +567,13 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  />
  </Field>
  <label className="flex items-start gap-2.5 text-sm text-ink-2" htmlFor="admin-user-invite">
- <input
+ <Checkbox
  checked={form.sendInvite}
- className="mt-0.5 h-4 w-4 accent-[var(--color-blue)]"
+ className="mt-0.5"
  id="admin-user-invite"
  onChange={(event) => setForm((current) => ({ ...current, sendInvite: event.target.checked }))}
- type="checkbox"
  />
- Email password setup link instead of showing temp password
+ Email a password setup link instead of showing a temporary password
  </label>
  </>
  ) : null}

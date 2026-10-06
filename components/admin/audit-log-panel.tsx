@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { AdminTable, EmptyState, LoadingState, Mono, Td, Th } from "@/components/admin/admin-ui";
+import { AdminTable, EmptyState, LoadingState, Meta, Td, Th } from "@/components/admin/admin-ui";
 import { Chip } from "@/components/ui/chip";
 import { Tag } from "@/components/ui/tag";
 import type { Profile } from "@/lib/types";
@@ -35,6 +35,21 @@ function auditType(action: string): AuditType {
  return "Config";
  }
  return "Admin";
+}
+
+function formatDateTime(value: string) {
+ const date = new Date(value);
+ if (Number.isNaN(date.getTime())) return "—";
+ const options: Intl.DateTimeFormatOptions = { weekday: "short", month: "short", day: "numeric" };
+ if (date.getFullYear() !== new Date().getFullYear()) options.year = "numeric";
+ const day = date.toLocaleDateString("en-US", options);
+ const time = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+ return `${day}, ${time}`;
+}
+
+function humanizeAction(action: string) {
+ const text = action.replaceAll(/[._:-]+/g, " ").trim();
+ return text ? text.charAt(0).toUpperCase() + text.slice(1).toLowerCase() : "—";
 }
 
 function resolveActorName(actorId: string | null, profiles: Profile[]): string {
@@ -92,7 +107,12 @@ export function AuditLogPanel({ profiles = [] }: { profiles?: Profile[] }) {
  <div className="flex flex-wrap items-center justify-between gap-3">
  <div aria-label="Filter by event type" className="flex flex-wrap gap-2" role="group">
  {(["All", ...AUDIT_TYPES] as const).map((option) => (
- <Chip active={typeFilter === option} key={option} onClick={() => setTypeFilter(option)}>
+ <Chip
+ active={typeFilter === option}
+ count={option === "All" ? logs.length : logs.filter((log) => auditType(log.action) === option).length}
+ key={option}
+ onClick={() => setTypeFilter(option)}
+ >
  {option}
  </Chip>
  ))}
@@ -108,7 +128,7 @@ export function AuditLogPanel({ profiles = [] }: { profiles?: Profile[] }) {
  <AdminTable caption="Audit log" minWidth={820}>
  <thead>
  <tr>
- <Th>Timestamp</Th>
+ <Th>When</Th>
  <Th>Actor</Th>
  <Th>Event</Th>
  <Th>Target</Th>
@@ -124,17 +144,19 @@ export function AuditLogPanel({ profiles = [] }: { profiles?: Profile[] }) {
  </tr>
  ) : (
  visibleLogs.map((log) => (
- <tr className="hover:bg-surface-2" key={log.id}>
+ <tr className="hover:bg-bg" key={log.id}>
  <Td className="whitespace-nowrap">
- <Mono className="tabular-nums">{new Date(log.created_at).toLocaleString()}</Mono>
+ <Meta>{formatDateTime(log.created_at)}</Meta>
  </Td>
  <Td className="max-w-[180px] truncate text-sm font-bold">
  {resolveActorName(log.actor_id, profiles)}
  </Td>
- <Td className="max-w-[260px] truncate font-mono text-[13px]">{log.action}</Td>
+ <Td className="max-w-[260px] truncate text-sm" title={log.action}>
+ {humanizeAction(log.action)}
+ </Td>
  <Td className="max-w-[220px] truncate text-sm text-ink-2">
  {log.target_type}
- {log.target_id ? ` · ${log.target_id.slice(0, 8)}…` : ""}
+ {log.target_id ? `, ${log.target_id.slice(0, 8)}…` : ""}
  </Td>
  <Td>
  <Tag>{auditType(log.action)}</Tag>

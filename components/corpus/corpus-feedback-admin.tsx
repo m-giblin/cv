@@ -12,6 +12,7 @@ import {
   SecondaryButton,
   TextArea,
 } from "@/components/admin/admin-ui";
+import { StatusPill } from "@/components/ui/status-pill";
 import { Tag } from "@/components/ui/tag";
 
 type FeedbackRow = {
@@ -28,20 +29,23 @@ type FeedbackRow = {
 
 function slaTag(createdAt: string) {
   const hoursLeft = 48 - (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60);
+  const hours = Math.max(0, Math.round(hoursLeft));
+  const label = hours === 0 ? "Overdue" : `${hours} ${hours === 1 ? "hour" : "hours"} left`;
   if (hoursLeft > 24) {
-    return { label: `${Math.round(hoursLeft)}h left`, tone: "success" as const, symbol: "●" };
+    return { label, tone: "success" as const };
   }
   if (hoursLeft > 8) {
-    return { label: `${Math.round(hoursLeft)}h left`, tone: "warning" as const, symbol: "◆" };
+    return { label, tone: "warning" as const };
   }
-  return { label: `${Math.max(0, Math.round(hoursLeft))}h left`, tone: "danger" as const, symbol: "▲" };
+  return { label, tone: "danger" as const };
 }
 
 function formatTimeAgo(createdAt: string) {
   const hours = Math.floor((Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60));
   if (hours < 1) return "Just now";
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
+  if (hours < 24) return `${hours} ${hours === 1 ? "hour" : "hours"} ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} ${days === 1 ? "day" : "days"} ago`;
 }
 
 export function CorpusFeedbackAdmin() {
@@ -90,9 +94,9 @@ export function CorpusFeedbackAdmin() {
 
   return (
     <LineCard
-      actions={<Tag tone={items.length > 0 ? "signal" : "neutral"}>{items.length} pending · 48h SLA</Tag>}
+      actions={<Tag tone={items.length > 0 ? "warning" : "neutral"}>{items.length} waiting</Tag>}
       bodyClassName="p-0"
-      meta="Lab questions that need an SME answer"
+      meta="Lab questions that need an SME answer within 48 hours"
       title="SE feedback queue"
     >
       {loading ? (
@@ -112,14 +116,11 @@ export function CorpusFeedbackAdmin() {
                     {item.comment ?? item.content_assets?.title ?? "No question provided."}
                   </p>
                   <p className="mt-0.5 text-[13px] text-muted">
-                    {item.profiles?.full_name ?? "Unknown SE"} · {formatTimeAgo(item.created_at)} · Mode:{" "}
-                    {item.is_confusing ? "Confusing" : "Question"}
+                    {item.profiles?.full_name ?? "Unknown SE"}, {formatTimeAgo(item.created_at).toLowerCase()}.{" "}
+                    {item.is_confusing ? "Flagged as confusing." : "Asked a question."}
                   </p>
                 </div>
-                <Tag tone={sla.tone}>
-                  <span aria-hidden>{sla.symbol}</span>
-                  {sla.label}
-                </Tag>
+                <StatusPill tone={sla.tone}>{sla.label}</StatusPill>
               </div>
               <div className="grid gap-3 md:grid-cols-2">
                 <Field htmlFor={answerId} label="SME answer to publish (optional)">
@@ -144,7 +145,7 @@ export function CorpusFeedbackAdmin() {
               <div>
                 <SecondaryButton disabled={resolvingId === item.id} onClick={() => void resolveItem(item.id)}>
                   {resolvingId === item.id ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
-                  Answer &amp; resolve
+                  Answer and resolve
                 </SecondaryButton>
               </div>
             </LineRow>

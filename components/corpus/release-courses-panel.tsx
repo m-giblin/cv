@@ -10,12 +10,15 @@ import {
   LineRow,
   LinkButton,
   LoadingState,
-  Mono,
+  Meta,
   SecondaryButton,
   SelectInput,
   TextArea,
   TextInput,
 } from "@/components/admin/admin-ui";
+import { Checkbox } from "@/components/ui/checkbox";
+import { StatusPill } from "@/components/ui/status-pill";
+import { rowHighlight } from "@/components/ui/table";
 import { Tag } from "@/components/ui/tag";
 import { cn } from "@/lib/utils";
 import type { Profile } from "@/lib/types";
@@ -161,12 +164,12 @@ export function ReleaseCoursesPanel({
       }),
     });
     if (!response.ok) {
-      toast.error("Assignment failed — link a plan template to the course first.");
+      toast.error("Assignment failed. Link a plan template to the course first.");
       return;
     }
     const body = (await response.json()) as { assigned: number; skipped: number };
     toast.success(
-      `Assigned ${body.assigned} SE${body.assigned === 1 ? "" : "s"}${body.skipped ? ` · ${body.skipped} already enrolled` : ""}.`,
+      `Assigned ${body.assigned} SE${body.assigned === 1 ? "" : "s"}.${body.skipped ? ` ${body.skipped} ${body.skipped === 1 ? "was" : "were"} already enrolled.` : ""}`,
     );
     setAssignCourseId(null);
     void load();
@@ -174,7 +177,7 @@ export function ReleaseCoursesPanel({
 
   return (
     <div className="flex flex-col gap-6">
-      <LineCard meta="Plan template → release course" title="Release training">
+      <LineCard meta="Turn a plan template into a release course" title="Release training">
         <p className="mb-4 text-sm leading-[1.5] text-ink-2">
           Package a plan template as a just-in-time release course and assign it to selected team members.
         </p>
@@ -183,7 +186,7 @@ export function ReleaseCoursesPanel({
             <TextInput
               id="release-course-name"
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. AIS Q3 Release"
+              placeholder="For example, AIS Q3 release"
               required
               value={name}
             />
@@ -218,7 +221,7 @@ export function ReleaseCoursesPanel({
               ))}
             </SelectInput>
           </Field>
-          <Field htmlFor="release-course-lab-mode" hint="e.g. battlecard, pre_call_brief" label="Lab mode">
+          <Field htmlFor="release-course-lab-mode" hint="For example, battlecard or pre_call_brief." label="Lab mode">
             <TextInput id="release-course-lab-mode" onChange={(e) => setLabMode(e.target.value)} value={labMode} />
           </Field>
           <Field htmlFor="release-course-pitch" label="Pitch topic (optional)">
@@ -241,7 +244,7 @@ export function ReleaseCoursesPanel({
         </form>
       </LineCard>
 
-      <LineCard bodyClassName="p-0" meta={loading ? undefined : `${courses.length} total`} title="Release courses">
+      <LineCard bodyClassName="p-0" meta={loading ? undefined : `${courses.length} in total`} title="Release courses">
         {loading ? (
           <LoadingState label="Loading courses…" />
         ) : courses.length === 0 ? (
@@ -251,23 +254,23 @@ export function ReleaseCoursesPanel({
             const selected = course.id === assignCourseId;
             return (
               <LineRow
-                className={cn("flex flex-wrap items-center justify-between gap-3", selected && "bg-blue-soft")}
+                className={cn("flex flex-wrap items-center justify-between gap-3", selected && rowHighlight.selected)}
                 key={course.id}
               >
                 <div className="min-w-0">
-                  <p className="font-bold">{course.name}</p>
+                  <p className="text-[15px] font-bold text-ink">{course.name}</p>
                   <div className="mt-1 flex flex-wrap items-center gap-2">
                     <Tag tone="blue">{course.project_tag}</Tag>
-                    <Tag tone={course.plan_id ? "success" : "warning"}>
-                      <span aria-hidden>{course.plan_id ? "✓" : "◆"}</span>
+                    <StatusPill tone={course.plan_id ? "success" : "warning"}>
                       {course.plan_id ? "Plan linked" : "No plan linked"}
-                    </Tag>
+                    </StatusPill>
                     {course.enrolled_user_ids?.length ? (
-                      <Mono>{course.enrolled_user_ids.length} enrolled</Mono>
+                      <Meta className="text-muted">{course.enrolled_user_ids.length} enrolled</Meta>
                     ) : null}
                   </div>
                 </div>
                 <SecondaryButton
+                  aria-label={`Assign ${course.name}`}
                   aria-pressed={selected}
                   disabled={!course.plan_id}
                   onClick={() => setAssignCourseId(course.id)}
@@ -297,20 +300,18 @@ export function ReleaseCoursesPanel({
                     <label
                       className={cn(
                         "flex items-center gap-3 px-4 py-2.5 text-[15px]",
-                        person.alreadyEnrolled ? "text-muted" : "cursor-pointer text-ink hover:bg-blue-soft",
+                        person.alreadyEnrolled ? "text-muted" : "cursor-pointer text-ink hover:bg-bg",
                       )}
                       htmlFor={checkboxId}
                     >
-                      <input
+                      <Checkbox
                         checked={selectedUserIds.has(person.id)}
-                        className="h-4 w-4 accent-blue"
                         disabled={person.alreadyEnrolled}
                         id={checkboxId}
                         onChange={() => toggleUser(person.id)}
-                        type="checkbox"
                       />
                       <span className="min-w-0 flex-1 truncate">{person.fullName}</span>
-                      {person.alreadyEnrolled ? <Mono className="text-muted">Already enrolled</Mono> : null}
+                      {person.alreadyEnrolled ? <span className="text-[13px] text-muted">Already enrolled</span> : null}
                     </label>
                   </li>
                 );

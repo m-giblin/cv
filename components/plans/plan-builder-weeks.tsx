@@ -4,30 +4,31 @@ import Link from "next/link";
 import { useMemo, useRef, useState, type ReactNode } from "react";
 import type { LibraryItem, LibraryKind } from "@/components/plans/plan-builder-data";
 import { TextInput } from "@/components/admin/admin-ui";
+import { Chip } from "@/components/ui/chip";
 import {
   PLAN_WEEKS,
   WEEKLY_HOURS_TARGET,
-  builderTypeShort,
+  builderTypeLabel,
   freeRowFor,
+  gateNumbers,
   layoutGrid,
   outlineGroups,
-  pad2,
   type BuilderStep,
 } from "@/lib/admin/plan-builder";
 import { cn } from "@/lib/utils";
 
-const KIND_LABEL: Record<LibraryKind, string> = { sim: "SIM", challenge: "CHALLENGE", module: "MODULE" };
+const KIND_LABEL: Record<LibraryKind, string> = { sim: "Simulation", challenge: "Challenge", module: "Module" };
 const FILTERS: { id: "all" | LibraryKind; label: string }[] = [
   { id: "all", label: "All" },
   { id: "sim", label: "Sims" },
-  { id: "challenge", label: "Challenges" },
   { id: "module", label: "Modules" },
+  { id: "challenge", label: "Challenges" },
 ];
 const WEEK_COLUMNS = { gridTemplateColumns: `repeat(${PLAN_WEEKS}, minmax(0, 1fr))` };
 
 type Drag = { kind: "library"; item: LibraryItem } | { kind: "step"; key: string; span: number };
 
-/** 13b: content library on the left, segment bands + 13-week grid + hours row on the right. */
+/** 13b: content library on the left; segment bands, the 13-week grid and the hours row on the right. */
 export function PlanWeeksView({
   header,
   steps,
@@ -38,7 +39,8 @@ export function PlanWeeksView({
   onAddFromLibrary,
   onMoveStep,
 }: {
-  header: ReactNode;
+  /** Optional; the builder renders its header bar above both views. */
+  header?: ReactNode;
   steps: BuilderStep[];
   library: LibraryItem[];
   selectedKey: string | null;
@@ -94,38 +96,39 @@ export function PlanWeeksView({
 
   const gridRows = Math.max(rows, drop ? drop.row + 1 : 0) + 1;
 
+  const gates = gateNumbers(steps);
+  const overWeeks = minutesPerWeek
+    .map((minutes, i) => ({ week: i + 1, over: minutes !== null && minutes / 60 > WEEKLY_HOURS_TARGET }))
+    .filter((entry) => entry.over)
+    .map((entry) => entry.week);
+  const gateLegend = steps
+    .filter((step) => step.isSegmentGate)
+    .map((step) => `${gates.get(step.key)} ${step.title || "untitled"}`)
+    .join(", ");
+
   return (
-    <div className="grid min-h-[640px] grid-cols-1 lg:grid-cols-[250px_minmax(0,1fr)]">
+    <div className="grid flex-1 grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)]">
       <aside
         aria-label="Content library"
-        className="flex flex-col gap-2.5 border-b border-line bg-white px-3.5 py-5 lg:border-r lg:border-b-0"
+        className="flex flex-col gap-2.5 border-b border-line bg-white px-4 py-[18px] lg:border-r lg:border-b-0"
       >
-        <h2 className="text-lg font-extrabold text-ink">Content library</h2>
+        <h2 className="text-base font-extrabold text-ink">Content library</h2>
         <TextInput
-          aria-label="Search content library"
-          className="py-2 text-sm"
+          aria-label="Search the content library"
+          className="rounded-full py-2 text-sm"
           onChange={(event) => setQuery(event.target.value)}
           placeholder={`Search ${library.length} items`}
           type="search"
           value={query}
         />
-        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Content type">
+        <div aria-label="Content type" className="flex flex-wrap gap-1.5" role="group">
           {FILTERS.map((option) => (
-            <button
-              aria-pressed={filter === option.id}
-              className={cn(
-                "rounded-full px-2.5 py-1 text-xs font-semibold",
-                filter === option.id ? "bg-ink text-white" : "border-[1.5px] border-line-strong text-ink hover:bg-blue-soft",
-              )}
-              key={option.id}
-              onClick={() => setFilter(option.id)}
-              type="button"
-            >
+            <Chip active={filter === option.id} key={option.id} onClick={() => setFilter(option.id)}>
               {option.label}
-            </button>
+            </Chip>
           ))}
         </div>
-        <ul className="mt-1 flex max-h-[520px] flex-col gap-1.5 overflow-y-auto pr-1">
+        <ul className="mt-1 flex max-h-[560px] flex-col gap-2 overflow-y-auto p-1">
           {visibleLibrary.length === 0 ? (
             <li className="py-4 text-sm text-muted">No content matches.</li>
           ) : (
@@ -134,10 +137,10 @@ export function PlanWeeksView({
               return (
                 <li key={item.key}>
                   <button
-                    aria-label={`Add ${item.title} to week ${pad2(Math.min(PLAN_WEEKS, lastWeek + 1 || 1))}`}
+                    aria-label={`Add ${item.title} to week ${Math.min(PLAN_WEEKS, lastWeek + 1 || 1)}`}
                     className={cn(
-                      "flex w-full cursor-grab flex-col gap-0.5 rounded-[10px] bg-white px-2.5 py-[9px] text-left active:cursor-grabbing",
-                      dragging ? "border-[1.5px] border-ink shadow-[var(--shadow-press)]" : "border border-line hover:border-blue",
+                      "flex w-full cursor-grab flex-col gap-0.5 rounded-[10px] border bg-white px-3 py-2.5 text-left transition-transform active:cursor-grabbing",
+                      dragging ? "rotate-[-1.5deg] border-ink shadow-[var(--shadow-drag)]" : "border-line hover:border-blue",
                     )}
                     draggable
                     onClick={() => onAddFromLibrary(item, Math.min(PLAN_WEEKS, lastWeek + 1 || 1))}
@@ -152,12 +155,11 @@ export function PlanWeeksView({
                     }}
                     type="button"
                   >
-                    <span className="font-mono text-xs text-muted uppercase">
+                    <span className="text-sm font-bold text-ink">{item.title}</span>
+                    <span className="text-xs text-muted">
                       {KIND_LABEL[item.kind]}
-                      {item.minutes !== null ? ` · ${item.minutes}M` : ""}
-                      {dragging ? " · DRAGGING" : ""}
+                      {item.minutes !== null ? `, ${item.minutes} min` : ""}
                     </span>
-                    <span className="text-sm font-semibold text-ink">{item.title}</span>
                   </button>
                 </li>
               );
@@ -165,34 +167,34 @@ export function PlanWeeksView({
           )}
         </ul>
         <Link className="link mt-1 text-sm" href="/admin/content">
-          + Create new content
+          Add content to the library
         </Link>
       </aside>
 
       <div className="flex min-w-0 flex-col">
         {header}
-        <div className="flex flex-col gap-2 px-7 pb-6">
+        <div className="flex flex-col gap-2.5 px-7 py-[22px] max-sm:px-4">
           <div className="overflow-x-auto">
-            <div className="flex min-w-[720px] flex-col gap-2">
-              <div className="grid gap-2 font-mono text-xs" style={WEEK_COLUMNS}>
+            <div className="flex min-w-[720px] flex-col gap-2.5">
+              <div className="grid gap-1.5" style={WEEK_COLUMNS}>
                 {groups.map((group) => (
                   <span
-                    className="truncate rounded-[8px] bg-blue px-2.5 py-1.5 text-white uppercase"
+                    className="truncate rounded-[8px] bg-blue px-3 py-2 text-[13px] font-bold text-white"
                     key={group.segmentIndex}
                     style={{ gridColumn: `${group.startWeek} / ${group.endWeek + 1}` }}
                   >
-                    {group.name} ◆
+                    {group.name}
                   </span>
                 ))}
               </div>
-              <div aria-hidden className="grid gap-1 text-center font-mono text-xs text-muted" style={WEEK_COLUMNS}>
+              <div aria-hidden className="grid gap-1.5 text-center text-xs font-bold text-muted" style={WEEK_COLUMNS}>
                 {Array.from({ length: PLAN_WEEKS }, (_, i) => (
-                  <span key={i}>W{pad2(i + 1)}</span>
+                  <span key={i}>Wk {i + 1}</span>
                 ))}
               </div>
               <div
                 aria-label="Plan weeks"
-                className="relative grid gap-1 py-1"
+                className="relative grid gap-2 py-1.5"
                 onDragLeave={(event) => {
                   if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDrop(null);
                 }}
@@ -200,12 +202,12 @@ export function PlanWeeksView({
                 onDrop={handleDrop}
                 ref={gridRef}
                 role="list"
-                style={{ ...WEEK_COLUMNS, gridAutoRows: "62px" }}
+                style={{ ...WEEK_COLUMNS, gridAutoRows: "minmax(64px, auto)" }}
               >
                 {Array.from({ length: PLAN_WEEKS }, (_, i) => (
                   <span
                     aria-hidden
-                    className="pointer-events-none -mr-[3px] border-r border-line"
+                    className="pointer-events-none -mr-[5px] border-r border-divider"
                     key={`col-${i}`}
                     style={{ gridColumn: i + 1, gridRow: `1 / ${gridRows + 1}` }}
                   />
@@ -213,17 +215,19 @@ export function PlanWeeksView({
                 {blocks.map((block) => {
                   const selected = block.step.key === selectedKey;
                   const gate = block.step.isSegmentGate;
+                  const dragging = drag?.kind === "step" && drag.key === block.step.key;
+                  const label = gate ? `Gate ${gates.get(block.step.key) ?? ""}`.trim() : block.step.title || "Untitled step";
                   return (
                     <button
-                      aria-label={`${block.step.title || "Untitled step"}, due week ${block.endWeek}. Open in outline.`}
+                      aria-label={`${gate ? `${label}, ${block.step.title || "untitled"}` : label}, ${builderTypeLabel(block.step.stepType).toLowerCase()}, due week ${block.endWeek}. Open in the outline.`}
                       className={cn(
-                        "relative flex min-w-0 flex-col gap-0.5 overflow-hidden rounded-[10px] p-2 text-left",
+                        "relative min-w-0 overflow-hidden rounded-[8px] px-2.5 py-2 text-left text-[13px] leading-[1.25] font-bold break-words",
                         gate
                           ? "bg-blue text-white"
                           : selected
-                            ? "border-[1.5px] border-blue bg-blue-soft"
-                            : "border border-line bg-white hover:border-blue",
-                        drag?.kind === "step" && drag.key === block.step.key && "opacity-40",
+                            ? "border-[1.5px] border-blue bg-blue-soft text-blue"
+                            : "border border-line bg-white text-ink hover:border-blue",
+                        dragging && "rotate-[-1.5deg] shadow-[var(--shadow-drag)]",
                       )}
                       draggable
                       key={block.step.key}
@@ -239,38 +243,31 @@ export function PlanWeeksView({
                       }}
                       role="listitem"
                       style={{ gridColumn: `${block.startWeek} / ${block.endWeek + 1}`, gridRow: block.row + 1 }}
+                      title={block.step.title || undefined}
                       type="button"
                     >
-                      <span
-                        className={cn(
-                          "font-mono text-xs uppercase",
-                          gate ? "text-signal" : selected ? "text-blue" : "text-muted",
-                        )}
-                      >
-                        {gate ? "GATE" : builderTypeShort(block.step.stepType)}
-                      </span>
-                      <span className={cn("truncate text-[13px]", selected ? "font-bold" : "font-semibold")}>
-                        {block.step.title || "Untitled step"}
-                      </span>
+                      {label}
                     </button>
                   );
                 })}
                 {drop ? (
                   <span
-                    className="pointer-events-none flex items-center justify-center rounded-[10px] border-2 border-dashed border-signal bg-signal-soft p-2 text-center text-[13px] font-bold text-ink"
+                    className="pointer-events-none flex items-center justify-center rounded-[8px] border-2 border-dashed border-signal bg-signal-soft p-2 text-center text-[13px] font-bold text-warning"
                     style={{ gridColumn: `${drop.week} / ${drop.week + drop.span}`, gridRow: drop.row + 1 }}
                   >
-                    Drop here · W{pad2(drop.week)}
-                    {drop.span > 1 ? `–${pad2(drop.week + drop.span - 1)}` : ""}
+                    Drop here
                   </span>
                 ) : null}
               </div>
-              <div className="mt-1 grid gap-1 text-center font-mono text-xs text-ink-2" style={WEEK_COLUMNS}>
+              <div
+                className="num grid gap-1.5 border-t border-line pt-2.5 text-center text-[13px] font-bold"
+                style={WEEK_COLUMNS}
+              >
                 {minutesPerWeek.map((minutes, i) => {
                   if (minutes === null) {
                     return (
-                      <span aria-label={`Week ${i + 1}: no estimate`} className="text-faint" key={i}>
-                        —
+                      <span aria-label={`Week ${i + 1}: no estimate`} className="font-medium text-muted" key={i}>
+                        None
                       </span>
                     );
                   }
@@ -278,21 +275,24 @@ export function PlanWeeksView({
                   const over = minutes / 60 > WEEKLY_HOURS_TARGET;
                   return (
                     <span
-                      aria-label={`Week ${i + 1}: ${hours} hours${over ? ", over target" : ""}`}
-                      className={over ? "font-medium text-warning" : undefined}
+                      aria-label={`Week ${i + 1}: ${hours} hours${over ? ", over the guideline" : ""}`}
+                      className={over ? "text-warning" : "text-ink-2"}
                       key={i}
                     >
-                      {hours}H{over ? " !" : ""}
+                      {hours}h{over ? " !" : ""}
                     </span>
                   );
                 })}
               </div>
             </div>
           </div>
-          <p className="mt-1 text-[13px] text-muted">
-            The bottom row shows estimated hours per week from linked content. Weeks above {WEEKLY_HOURS_TARGET} hours
-            are flagged for a ramping SE. Drag content onto a week to add a step, drag a block to move it, or click any
-            block to open it in the step editor.
+          <p className="text-[13px] text-muted">
+            Hours per week.{" "}
+            {overWeeks.length
+              ? `Week${overWeeks.length === 1 ? "" : "s"} ${overWeeks.join(", ")} ${overWeeks.length === 1 ? "runs" : "run"} over the ${WEEKLY_HOURS_TARGET}-hour guideline. `
+              : `Every week is within the ${WEEKLY_HOURS_TARGET}-hour guideline. `}
+            {gateLegend ? `Blue blocks are gates: ${gateLegend}. ` : ""}
+            Drag content onto a week to add a step, drag a block to move it, or select one to edit it.
           </p>
         </div>
       </div>

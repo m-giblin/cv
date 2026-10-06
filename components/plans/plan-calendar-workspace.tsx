@@ -18,8 +18,11 @@ import { toast } from "sonner";
 import { PlanCalendarGanttView } from "@/components/plans/plan-calendar-gantt-view";
 import { PlanCalendarIntelStrip } from "@/components/plans/plan-calendar-intel-strip";
 import { PlanCalendarTeamView } from "@/components/plans/plan-calendar-team-view";
-import { TABLE_HEAD_CLS } from "@/components/se/form-classes";
+import { SelectInput } from "@/components/admin/admin-ui";
 import { SegmentedToggle } from "@/components/ui/segmented-toggle";
+import { StatusPill } from "@/components/ui/status-pill";
+import { thCls } from "@/components/ui/table";
+import { Tag } from "@/components/ui/tag";
 import type { AccessTier } from "@/lib/auth/rbac";
 import { addCalendarDays, bizToDate } from "@/lib/plans/business-days";
 import { detectPlanCalendarConflicts } from "@/lib/plans/plan-calendar-conflicts";
@@ -40,7 +43,7 @@ type CalendarRole = "manager" | "se" | "mentor";
 
 const ROLE_OPTIONS: { id: CalendarRole; label: string }[] = [
   { id: "manager", label: "Manager" },
-  { id: "se", label: "SE view" },
+  { id: "se", label: "SE" },
   { id: "mentor", label: "Mentor" },
 ];
 
@@ -212,7 +215,7 @@ export function PlanCalendarWorkspace({
 
   const saveChanges = async () => {
     if (!pending) {
-      toast.message("No pending changes");
+      toast.message("Nothing to save yet");
       return;
     }
     setSaving(true);
@@ -304,7 +307,9 @@ export function PlanCalendarWorkspace({
       if (!response.ok) throw new Error("Failed to block day");
       const body = (await response.json()) as PlanHoliday;
       setHolidays((prev) => [...prev.filter((h) => h.date !== body.date), body]);
-      toast.success(`Blocked ${format(parseISO(dateIso), "MMM d")}`);
+      toast.success(
+        `Blocked ${parseISO(dateIso).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}`,
+      );
     } catch {
       toast.error("Could not block day");
     }
@@ -334,13 +339,15 @@ export function PlanCalendarWorkspace({
   };
 
   const dragHint =
-    roleView === "manager" && canEdit ? "Drag bars to shift dates" : "Read-only view";
+    roleView === "manager" && canEdit
+      ? "Drag a bar, or focus it and use the arrow keys, to shift its dates."
+      : "Read only.";
 
   return (
     <div className="flex min-h-[calc(100vh-12rem)] flex-col overflow-hidden rounded-[14px] border border-line bg-white">
       {/* Topbar */}
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-2.5">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3">
+        <div className="flex flex-wrap items-center gap-3">
           {tier !== "se" ? (
             <SegmentedToggle
               label="Calendar perspective"
@@ -350,9 +357,9 @@ export function PlanCalendarWorkspace({
             />
           ) : null}
           {roleView === "se" && tier !== "se" && orgProfiles.length > 1 ? (
-            <select
-              aria-label="Preview SE"
-              className="cursor-pointer rounded-[10px] border-[1.5px] border-line-strong bg-white px-3 py-1.5 text-sm text-ink focus:border-blue"
+            <SelectInput
+              aria-label="Preview as"
+              className="w-auto cursor-pointer py-1.5 text-sm"
               onChange={(e) => setPreviewUserId(e.target.value)}
               value={previewUserId ?? orgProfiles[0]?.id ?? ""}
             >
@@ -361,13 +368,13 @@ export function PlanCalendarWorkspace({
                   {person.fullName}
                 </option>
               ))}
-            </select>
+            </SelectInput>
           ) : null}
         </div>
         {canEdit ? (
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-3">
             <button className="btn-secondary" onClick={() => void blockDay()} type="button">
-              + Block / Holiday
+              Block today
             </button>
             <button
               className="btn-primary"
@@ -390,36 +397,36 @@ export function PlanCalendarWorkspace({
       />
 
       {/* View tabs + legend */}
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-2.5">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3">
         <SegmentedToggle
           label="Calendar view"
           onChange={(id) => setView(id as CalendarView)}
           options={VIEW_OPTIONS}
           value={view}
         />
-        <ul aria-label="Legend" className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+        <ul aria-label="Legend" className="flex flex-wrap items-center gap-x-4 gap-y-2">
           {CALENDAR_LEGEND.map((item) => (
             <li className="flex items-center gap-1.5" key={item.label}>
               <span
                 aria-hidden="true"
-                className={cn("h-3 w-3 border-[1.5px]", item.diamond ? "rotate-45" : "rounded-[3px]")}
+                className="h-3 w-3 rounded-[3px] border"
                 style={{ background: item.color, borderColor: item.border }}
               />
-              <span className="text-xs text-ink-2">{item.label}</span>
+              <span className="text-[13px] text-ink-2">{item.label}</span>
             </li>
           ))}
           <li aria-hidden="true" className="h-4 w-px bg-line" />
           <li className="flex items-center gap-1.5">
             <span
               aria-hidden="true"
-              className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-danger font-mono text-xs leading-none text-white"
+              className="flex h-4 w-4 items-center justify-center rounded-full bg-danger text-[12px] leading-none font-bold text-white"
             >
               !
             </span>
-            <span className="text-xs text-ink-2">Conflict</span>
+            <span className="text-[13px] text-ink-2">Conflict</span>
           </li>
           <li aria-hidden="true" className="h-4 w-px bg-line" />
-          <li className="text-xs text-muted">{dragHint}</li>
+          <li className="text-[13px] text-muted">{dragHint}</li>
         </ul>
       </div>
 
@@ -440,28 +447,33 @@ export function PlanCalendarWorkspace({
 
       {view === "month" ? (
         <div className="min-h-0 flex-1 overflow-y-auto p-5">
-          <div className="mb-3.5 flex items-center gap-2.5">
+          <div className="mb-4 flex items-center gap-3">
             <button
+              aria-label="Previous month"
               className="btn-secondary"
               onClick={() => setMonthCursor((d) => addMonths(d, -1))}
               type="button"
             >
-              ← Prev
+              Previous
             </button>
-            <h2 className="text-lg font-extrabold text-ink">{format(monthCursor, "MMMM yyyy")}</h2>
+            <h2 aria-live="polite" className="min-w-[10ch] text-center text-xl font-extrabold text-ink">
+              {format(monthCursor, "MMMM yyyy")}
+            </h2>
             <button
+              aria-label="Next month"
               className="btn-secondary"
               onClick={() => setMonthCursor((d) => addMonths(d, 1))}
               type="button"
             >
-              Next →
+              Next
             </button>
           </div>
 
-          <div className="overflow-hidden rounded-[14px] border border-line">
-            <div className={cn("grid grid-cols-7", TABLE_HEAD_CLS)}>
-              {["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"].map((label) => (
-                <div className="px-2 py-2 text-center" key={label}>
+          <div className="overflow-x-auto rounded-[14px] border border-line bg-white">
+            <div className="min-w-[700px]">
+            <div className="grid grid-cols-7">
+              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((label) => (
+                <div className={cn(thCls, "px-2 text-center")} key={label}>
                   {label}
                 </div>
               ))}
@@ -480,31 +492,31 @@ export function PlanCalendarWorkspace({
                   <div
                     aria-current={isToday ? "date" : undefined}
                     className={cn(
-                      "min-h-[96px] p-1.5",
-                      isOther ? "bg-surface-2" : isToday ? "bg-signal-soft" : isWeekend ? "bg-bg" : "bg-white",
+                      "min-h-[104px] p-2",
+                      isOther || isWeekend ? "bg-bg" : "bg-white",
                     )}
                     key={iso}
                   >
                     <div
                       className={cn(
-                        "mb-1 flex h-6 w-6 items-center justify-center rounded-full font-mono text-xs",
+                        "num mb-1 flex h-6 w-6 items-center justify-center rounded-full text-[13px]",
                         isToday
-                          ? "border-[1.5px] border-ink bg-signal font-bold text-ink"
+                          ? "bg-ink font-bold text-white"
                           : isOther || isWeekend
                             ? "text-muted"
-                            : "text-ink",
+                            : "font-semibold text-ink",
                       )}
                     >
                       {format(day, "d")}
                     </div>
                     {isHoliday ? (
-                      <div className="mb-0.5 rounded-[6px] bg-warning-soft px-1.5 py-0.5 font-mono text-xs text-warning">
-                        ▲ Blocked
-                      </div>
+                      <Tag className="mb-1 px-2 py-0.5" tone="warning">
+                        Blocked
+                      </Tag>
                     ) : null}
                     {events.map((event, index) => (
                       <div
-                        className="mb-0.5 truncate rounded-[6px] border-[1.5px] px-1.5 py-0.5 font-mono text-xs"
+                        className="mb-1 truncate rounded-[8px] border px-1.5 py-0.5 text-[12px] font-semibold"
                         key={`${event.label}-${index}`}
                         style={{
                           background: event.style.fill,
@@ -520,22 +532,23 @@ export function PlanCalendarWorkspace({
                 );
               })}
             </div>
+            </div>
           </div>
         </div>
       ) : null}
 
       {/* Status bar */}
-      <div className="flex min-h-[32px] shrink-0 items-center justify-between border-t border-line px-5 py-1.5">
+      <div className="flex min-h-[36px] shrink-0 items-center justify-between border-t border-line px-5 py-2">
         <div className="flex flex-wrap items-center gap-4">
-          <span className="font-mono text-xs text-muted">
+          <span className="text-[13px] text-muted">
             {pendingCount > 0
               ? `${pendingCount} unsaved change${pendingCount === 1 ? "" : "s"}`
               : "No unsaved changes"}
           </span>
           {conflicts.length > 0 ? (
-            <span className="font-mono text-xs text-danger">
-              ▲ {conflicts.length} conflict{conflicts.length === 1 ? "" : "s"} need attention
-            </span>
+            <StatusPill tone="danger">
+              {conflicts.length} {conflicts.length === 1 ? "conflict needs" : "conflicts need"} attention
+            </StatusPill>
           ) : null}
         </div>
       </div>

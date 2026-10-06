@@ -12,7 +12,7 @@ import {
   LineRow,
   LinkButton,
   LoadingState,
-  Mono,
+  Meta,
   SecondaryButton,
   SectionHeading,
   SelectInput,
@@ -20,8 +20,8 @@ import {
   TextInput,
   Th,
 } from "@/components/admin/admin-ui";
+import { StatusPill, type StatusTone } from "@/components/ui/status-pill";
 import { Tag } from "@/components/ui/tag";
-import { cn } from "@/lib/utils";
 
 type Rule = {
   id: string;
@@ -43,10 +43,17 @@ type QaInquiry = {
   elapsedHours: number;
 };
 
-function elapsedClass(hours: number) {
-  if (hours > 36) return "text-danger";
-  if (hours >= 24) return "text-warning";
-  return "text-ink-2";
+function elapsedTone(hours: number): StatusTone {
+  if (hours > 36) return "danger";
+  if (hours >= 24) return "warning";
+  return "neutral";
+}
+
+function destinationLabel(type: string | null) {
+  if (!type) return "unknown channel";
+  if (type === "slack") return "Slack";
+  if (type === "email") return "email";
+  return type.replaceAll("_", " ");
 }
 
 export function CorpusRoutingAdmin() {
@@ -131,11 +138,11 @@ export function CorpusRoutingAdmin() {
       <SectionHeading
         actions={
           <SecondaryButton aria-expanded={showAddForm} onClick={() => setShowAddForm((open) => !open)}>
-            <Plus aria-hidden className="h-4 w-4" />
+            {showAddForm ? null : <Plus aria-hidden className="h-4 w-4" />}
             {showAddForm ? "Close" : "Add rule"}
           </SecondaryButton>
         }
-        meta="Tag rules · 48h SLA"
+        meta="Questions route by tag and should be answered within 48 hours"
         title="Q&A routing"
       />
 
@@ -192,7 +199,7 @@ export function CorpusRoutingAdmin() {
       ) : null}
 
       <div className="flex flex-col gap-3">
-        <SectionHeading as="h3" meta="Tag match → destination" title="Routing rules" />
+        <SectionHeading as="h3" meta="Each tag sends questions to one destination" title="Routing rules" />
         {loading ? (
           <div className="rounded-[14px] border border-line bg-white">
             <LoadingState label="Loading rules…" />
@@ -209,26 +216,28 @@ export function CorpusRoutingAdmin() {
                 <Th>Destination</Th>
                 <Th>SME</Th>
                 <Th>SLA</Th>
-                <Th>
+                <Th className="text-right">
                   <span className="sr-only">Actions</span>
                 </Th>
               </tr>
             </thead>
             <tbody>
               {rules.map((rule) => (
-                <tr className="hover:bg-blue-soft" key={rule.id}>
+                <tr className="hover:bg-bg" key={rule.id}>
                   <Td>
                     <Tag tone="blue">{rule.tag}</Tag>
                   </Td>
                   <Td className="max-w-[280px]">
-                    <span className="flex min-w-0 items-center gap-2">
-                      <Mono className="shrink-0 text-muted">{rule.destination_type}</Mono>
-                      <span className="truncate font-bold">{rule.destination_address}</span>
+                    <span className="flex min-w-0 flex-col">
+                      <span className="truncate text-[15px] font-bold text-ink">{rule.destination_address}</span>
+                      <span className="text-[13px] text-muted">
+                        {rule.destination_type === "slack" ? "Slack channel" : rule.destination_type === "email" ? "Email" : rule.destination_type}
+                      </span>
                     </span>
                   </Td>
                   <Td className="text-ink-2">{rule.label ?? "—"}</Td>
                   <Td>
-                    <Mono>48h</Mono>
+                    <Meta>48 hours</Meta>
                   </Td>
                   <Td className="text-right">
                     <LinkButton
@@ -248,10 +257,10 @@ export function CorpusRoutingAdmin() {
 
       <LineCard
         actions={
-          <Tag tone={inquiries.length > 0 ? "signal" : "neutral"}>{inquiries.length} pending · 48h SLA</Tag>
+          <Tag tone={inquiries.length > 0 ? "warning" : "neutral"}>{inquiries.length} waiting</Tag>
         }
         bodyClassName="p-0"
-        meta="Lab questions awaiting an SME"
+        meta="Lab questions waiting for an SME"
         title="Active escalations"
       >
         {inquiries.length === 0 ? (
@@ -262,14 +271,16 @@ export function CorpusRoutingAdmin() {
               <div className="min-w-0 flex-1">
                 <p className="font-bold text-ink">{row.question}</p>
                 <p className="mt-0.5 text-[13px] text-muted">
-                  {row.profiles?.full_name ?? "SE"} · Routed to {row.routed_destination_address ?? "unrouted"} ·{" "}
-                  {row.routed_destination_type ?? "—"}
+                  {row.profiles?.full_name ?? "An SE"} asked.{" "}
+                  {row.routed_destination_address
+                    ? `Routed to ${row.routed_destination_address} on ${destinationLabel(row.routed_destination_type)}.`
+                    : "Not routed yet."}
                 </p>
               </div>
-              <div className="shrink-0 text-right">
-                <p className={cn("font-mono text-xs uppercase", elapsedClass(row.elapsedHours))}>
-                  {row.elapsedHours}h elapsed
-                </p>
+              <div className="flex shrink-0 flex-col items-end">
+                <StatusPill tone={elapsedTone(row.elapsedHours)}>
+                  {row.elapsedHours} {row.elapsedHours === 1 ? "hour" : "hours"} waiting
+                </StatusPill>
                 <p className="mt-0.5 text-[13px] text-muted">{row.sla.label}</p>
               </div>
             </LineRow>

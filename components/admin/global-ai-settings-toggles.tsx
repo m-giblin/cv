@@ -41,7 +41,11 @@ export function GlobalAiSettingsToggles() {
   const [settings, setSettings] = useState(GLOBAL_AI_TOGGLES);
 
   return (
-    <LineCard bodyClassName="p-0" title="Global AI settings">
+    <LineCard
+      bodyClassName="p-0"
+      meta="Preview only. These switches are not saved yet."
+      title="Global AI settings"
+    >
       {settings.map((item) => {
         const initial = GLOBAL_AI_TOGGLES.find((row) => row.id === item.id)?.enabled;
         return (

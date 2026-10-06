@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 import { toast } from "sonner";
 import { CorpusFeedbackWidget } from "@/components/corpus/corpus-feedback-widget";
-import { FIELD_CLS, H2_CLS, LABEL_CLS, TEXTAREA_CLS } from "@/components/se/form-classes";
-import { Tag } from "@/components/ui/tag";
+import { TextArea, TextInput } from "@/components/admin/admin-ui";
+import { Checkbox } from "@/components/ui/checkbox";
+import { StatusPill } from "@/components/ui/status-pill";
 import { PlanStep } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -32,8 +33,10 @@ const DONE_WHEN: Record<string, string[]> = {
   default: ["Activity completed in the practice tool", "Result ready for manager or mentor validation"],
 };
 
+const H2_CLS = "text-xl font-extrabold text-ink";
+const LABEL_CLS = "text-sm font-bold text-ink";
 const NOTE_CLS = "text-[13px] text-muted";
-const EVIDENCE_CLS = "flex flex-col gap-3 rounded-[14px] border-[1.5px] border-dashed border-dash bg-white p-4";
+const EVIDENCE_CLS = "flex flex-col gap-3 rounded-[14px] border border-line bg-white p-[18px]";
 
 function DoneWhen({ criteria }: { criteria: string[] }) {
   const groupId = useId();
@@ -44,8 +47,8 @@ function DoneWhen({ criteria }: { criteria: string[] }) {
     <fieldset className="flex max-w-[680px] flex-col gap-2.5">
       <legend className="mb-2.5 flex w-full items-baseline justify-between gap-3">
         <span className={H2_CLS}>Done when</span>
-        <span aria-live="polite" className="font-mono text-xs uppercase tracking-[0.03em] text-muted" role="status">
-          {count} of {criteria.length}
+        <span aria-live="polite" className="num text-[13px] font-semibold text-muted" role="status">
+          {count} of {criteria.length} checked
         </span>
       </legend>
       {criteria.map((text, index) => {
@@ -54,33 +57,21 @@ function DoneWhen({ criteria }: { criteria: string[] }) {
         return (
           <label
             className={cn(
-              "flex cursor-pointer items-center gap-3 rounded-[12px] bg-white px-4 py-3 text-[15px] text-ink",
-              "has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-blue",
-              on ? "border-[1.5px] border-blue" : "border border-line",
+              "flex cursor-pointer items-center gap-3 rounded-[12px] border px-4 py-3 text-[15px] text-ink",
+              on ? "border-blue bg-blue-soft" : "border-line bg-white",
             )}
             htmlFor={id}
             key={text}
           >
-            <input
+            <Checkbox
               checked={on}
-              className="sr-only"
               id={id}
               onChange={(event) => {
                 const next = [...checked];
                 next[index] = event.target.checked;
                 setChecked(next);
               }}
-              type="checkbox"
             />
-            <span
-              aria-hidden="true"
-              className={cn(
-                "flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[6px] text-[13px] font-extrabold",
-                on ? "bg-blue text-white" : "border-[1.5px] border-faint",
-              )}
-            >
-              {on ? "✓" : ""}
-            </span>
             <span>{text}</span>
           </label>
         );
@@ -116,12 +107,14 @@ export function PlanStepActions({
 
   if (step.locked) {
     return (
-      <div className="flex max-w-[680px] flex-col gap-2 rounded-[14px] border-[1.5px] border-dashed border-line-strong p-5">
+      <div className="flex max-w-[680px] flex-col gap-2 rounded-[14px] border border-dashed border-line-strong p-5">
         <div>
-          <Tag tone="neutral">○ Locked</Tag>
+          <StatusPill tone="neutral">Locked</StatusPill>
         </div>
         <p className="text-[15px] text-ink-2">
-          Complete the prior segment gate to unlock this step (segment {step.segmentIndex ?? "?"}).
+          {step.segmentIndex != null
+            ? `This step is in segment ${step.segmentIndex}. Pass the gate at the end of the previous segment to unlock it.`
+            : "Pass the gate at the end of the previous segment to unlock this step."}
         </p>
       </div>
     );
@@ -146,7 +139,7 @@ export function PlanStepActions({
       return;
     }
 
-    toast.success("Submitted for manager/mentor review.");
+    toast.success("Submitted for review by your manager or mentor.");
     router.push("/my-plan");
     router.refresh();
   }
@@ -155,7 +148,7 @@ export function PlanStepActions({
     return (
       <div className="flex max-w-[680px] flex-col gap-2 rounded-[14px] border border-line bg-white p-5" role="status">
         <div>
-          <Tag tone="signal">● With reviewer</Tag>
+          <StatusPill tone="warning">With reviewer</StatusPill>
         </div>
         <p className="text-[15px] text-ink-2">
           Your work is submitted and awaiting validation from your manager or mentor. You&apos;ll be notified when
@@ -179,7 +172,7 @@ export function PlanStepActions({
           <div className={EVIDENCE_CLS}>
             {step.resourceUrl ? (
               <a className="link self-start text-sm" href={step.resourceUrl} rel="noreferrer" target="_blank">
-                Open resource →
+                Open resource
               </a>
             ) : (
               <p className="text-sm text-muted">Browse the resource library for related materials.</p>
@@ -188,8 +181,8 @@ export function PlanStepActions({
               <label className={LABEL_CLS} htmlFor={`${fieldId}-content-notes`}>
                 What did you learn?
               </label>
-              <textarea
-                className={TEXTAREA_CLS}
+              <TextArea
+                className="resize-y"
                 id={`${fieldId}-content-notes`}
                 onChange={(e) => setContentNotes(e.target.value)}
                 placeholder="Summarize key takeaways for your reviewer…"
@@ -252,8 +245,8 @@ export function PlanStepActions({
               <label className={LABEL_CLS} htmlFor={`${fieldId}-shadow-notes`}>
                 Shadow meeting log
               </label>
-              <textarea
-                className={TEXTAREA_CLS}
+              <TextArea
+                className="resize-y"
                 id={`${fieldId}-shadow-notes`}
                 onChange={(e) => setShadowNotes(e.target.value)}
                 placeholder="What did you observe? Key takeaways from the call…"
@@ -297,7 +290,7 @@ export function PlanStepActions({
         </section>
         <div>
           <Link className="btn-primary" href={prepHref}>
-            Open deal prep →
+            Open deal prep
           </Link>
         </div>
       </div>
@@ -327,7 +320,7 @@ export function PlanStepActions({
         }}
       >
         <StepIntro>
-          {step.description || "Manager-assigned task. Complete the work, then submit for manager live sign-off."}
+          {step.description || "Your manager assigned this task. Do the work, then submit it for your manager to sign off live."}
         </StepIntro>
         <DoneWhen criteria={DONE_WHEN.adhoc} />
         <section className="flex max-w-[680px] flex-col gap-2">
@@ -337,8 +330,8 @@ export function PlanStepActions({
               <label className={LABEL_CLS} htmlFor={`${fieldId}-task-notes`}>
                 What did you complete?
               </label>
-              <textarea
-                className={TEXTAREA_CLS}
+              <TextArea
+                className="resize-y"
                 id={`${fieldId}-task-notes`}
                 onChange={(e) => setContentNotes(e.target.value)}
                 placeholder="Summarize for your manager's live validation…"
@@ -393,8 +386,7 @@ export function PlanStepActions({
               <label className={LABEL_CLS} htmlFor={`${fieldId}-mentor-topic`}>
                 Topic for mentor discussion
               </label>
-              <input
-                className={FIELD_CLS}
+              <TextInput
                 id={`${fieldId}-mentor-topic`}
                 onChange={(e) => setMentorTopic(e.target.value)}
                 required
@@ -426,7 +418,7 @@ export function PlanStepActions({
       </section>
       <div>
         <Link className="btn-primary" href={stepLinkForType(step.type)}>
-          Continue →
+          Continue
         </Link>
       </div>
     </div>
