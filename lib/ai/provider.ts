@@ -1,4 +1,5 @@
 import { createOpenAI } from "@ai-sdk/openai";
+import { DEFAULT_AI_MODELS, resolveModelName } from "@/lib/ai/models";
 import { createXai } from "@ai-sdk/xai";
 import type { LanguageModel } from "ai";
 import { loadPlatformAiSettings } from "@/lib/ai/settings";
@@ -10,6 +11,8 @@ function buildFromCredentials(
   modelName: string,
   apiKey: string,
 ): { provider: AiProviderName; model: LanguageModel; modelName: string } {
+  // Saved settings may still name a retired model; run it on the current default.
+  modelName = resolveModelName(provider, modelName);
   if (provider === "openai") {
     const client = createOpenAI({ apiKey });
     return { provider, model: client(modelName), modelName };
@@ -28,12 +31,12 @@ export function getConfiguredProvider(): {
   const configuredProvider = (process.env.AI_PROVIDER ?? "xai").toLowerCase();
 
   if (configuredProvider === "openai" && process.env.OPENAI_API_KEY) {
-    const modelName = process.env.OPENAI_MODEL ?? "gpt-4.1-mini";
+    const modelName = process.env.OPENAI_MODEL || DEFAULT_AI_MODELS.openai;
     return buildFromCredentials("openai", modelName, process.env.OPENAI_API_KEY);
   }
 
   if (process.env.XAI_API_KEY) {
-    const modelName = process.env.XAI_MODEL ?? "grok-3-mini";
+    const modelName = process.env.XAI_MODEL || DEFAULT_AI_MODELS.xai;
     return buildFromCredentials("xai", modelName, process.env.XAI_API_KEY);
   }
 

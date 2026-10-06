@@ -1,4 +1,5 @@
 import "server-only";
+import { DEFAULT_AI_MODELS } from "@/lib/ai/models";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { openApiKey, sealApiKey } from "@/lib/crypto/api-key-storage";
@@ -32,8 +33,8 @@ function envFallback(): PlatformAiSettings {
     provider === "openai" ? process.env.OPENAI_API_KEY ?? null : process.env.XAI_API_KEY ?? process.env.OPENAI_API_KEY ?? null;
   const model =
     provider === "openai"
-      ? process.env.OPENAI_MODEL ?? "gpt-4.1-mini"
-      : process.env.XAI_MODEL ?? "grok-3-mini";
+      ? process.env.OPENAI_MODEL || DEFAULT_AI_MODELS.openai
+      : process.env.XAI_MODEL || DEFAULT_AI_MODELS.xai;
 
   return {
     provider,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useState } from "react";
+import { AI_MODEL_OPTIONS, DEFAULT_AI_MODELS } from "@/lib/ai/models";
 import { toast } from "sonner";
 import { Field, LineCard, LoadingState, SelectInput, TextInput } from "@/components/admin/admin-ui";
 import { GlobalAiSettingsToggles } from "@/components/admin/global-ai-settings-toggles";
@@ -9,10 +10,7 @@ import { StatusPill } from "@/components/ui/status-pill";
 import type { AiProviderName } from "@/lib/ai/provider";
 import { formatTokenCount, type AiUsageSummary, type PublicAiSettings } from "@/lib/ai/settings-shared";
 
-const MODEL_HINTS: Record<AiProviderName, string[]> = {
-  xai: ["grok-3-mini", "grok-2-latest", "grok-beta"],
-  openai: ["gpt-4.1-mini", "gpt-4o-mini", "gpt-4o"],
-};
+const MODEL_HINTS: Record<AiProviderName, string[]> = AI_MODEL_OPTIONS;
 
 /** Settings › AI: usage over 30 days, the provider form, and the global AI switches (moved here from Content). */
 export function AdminSettingsAiSection({ usage = null }: { usage?: AiUsageSummary | null }) {
@@ -43,7 +41,7 @@ function AiProviderForm() {
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<PublicAiSettings | null>(null);
   const [provider, setProvider] = useState<AiProviderName>("xai");
-  const [model, setModel] = useState("grok-3-mini");
+  const [model, setModel] = useState(DEFAULT_AI_MODELS.xai);
   const [apiKey, setApiKey] = useState("");
 
   const load = useCallback(async () => {

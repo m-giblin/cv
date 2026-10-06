@@ -1,4 +1,5 @@
 import "server-only";
+import { DEFAULT_AI_MODELS } from "@/lib/ai/models";
 
 import type { Database } from "@/lib/database.types";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -140,7 +141,7 @@ export async function createTenant(
     id: crypto.randomUUID(),
     tenant_id: tenant.id,
     provider: "xai",
-    model: "grok-3-mini",
+    model: DEFAULT_AI_MODELS.xai,
     feature_flags: defaultFeatureFlags(),
   });
 
