@@ -29,11 +29,16 @@ const UserManagement = dynamic(
 const BulkUserImport = dynamic(() =>
   import("@/components/admin/bulk-user-import").then((mod) => mod.BulkUserImport),
 );
-const PlanBuilder = dynamic(() => import("@/components/plans/plan-builder").then((mod) => mod.PlanBuilder), {
-  loading,
-});
-const AssignPlanView = dynamic(
-  () => import("@/components/admin/assign-plan-view").then((mod) => mod.AssignPlanView),
+const ProgramsWorkspace = dynamic(
+  () => import("@/components/programs/programs-workspace").then((mod) => mod.ProgramsWorkspace),
+  { loading },
+);
+const ReleaseCoursesPanel = dynamic(
+  () => import("@/components/corpus/release-courses-panel").then((mod) => mod.ReleaseCoursesPanel),
+  { loading },
+);
+const ReleaseLaunchAnalytics = dynamic(
+  () => import("@/components/corpus/release-launch-analytics").then((mod) => mod.ReleaseLaunchAnalytics),
   { loading },
 );
 const CompetencyManagement = dynamic(
@@ -186,9 +191,17 @@ export function AdminConsole({
     route?.section ?? (legacySection && SETTINGS_SECTIONS.includes(legacySection) ? legacySection : "flags");
 
   // Full-bleed views with their own headers.
-  if (tab === "plans") return <PlanBuilder />;
-  if (tab === "assign") {
-    return <AssignPlanView assignees={assignees} mentors={mentors} plans={plans} profiles={profiles} />;
+  if (tab === "plans" || tab === "assign") {
+    return (
+      <>
+        <ProgramsWorkspace mentors={mentors} mode="admin" people={assignees} plans={plans} />
+        <section className="flex flex-col gap-6 px-[var(--page-pad-x)] pt-4 pb-10 max-sm:px-4">
+          <h2 className="label-caps">Release courses</h2>
+          <ReleaseCoursesPanel assignees={assignees} />
+          <ReleaseLaunchAnalytics />
+        </section>
+      </>
+    );
   }
   if (tab === "practice") return <PracticeLibrary aiUsage={aiUsage ?? null} people={assignees} usage={practiceUsage} />;
   if (tab === "overview") {

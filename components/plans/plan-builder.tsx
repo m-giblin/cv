@@ -75,7 +75,19 @@ function segmentForWeek(steps: BuilderStep[], week: number): number | null {
  * template through /api/plans/templates and is blocked while any step lacks type, criteria, evidence
  * or reviewer.
  */
-export function PlanBuilder() {
+export function PlanBuilder({
+  lockedPlanId,
+  embedded = false,
+  onPublished,
+  onDeleted,
+}: {
+  /** Open one program (or null for a new one) and hide the plan picker; used inside the program workbench. */
+  lockedPlanId?: string | null;
+  /** Inside a workbench: drop the page breadcrumb. */
+  embedded?: boolean;
+  onPublished?: (id: string) => void;
+  onDeleted?: () => void;
+} = {}) {
   const data = usePlanBuilderData();
   const [planId, setPlanId] = useState<string | null>(null);
   const [name, setName] = useState("");
@@ -113,9 +125,13 @@ export function PlanBuilder() {
 
   useEffect(() => {
     if (initialised || data.loading) return;
-    openPlan(data.templates[0] ?? null);
+    openPlan(
+      lockedPlanId !== undefined
+        ? (data.templates.find((entry) => entry.id === lockedPlanId) ?? null)
+        : (data.templates[0] ?? null),
+    );
     setInitialised(true);
-  }, [data.loading, data.templates, initialised, openPlan]);
+  }, [data.loading, data.templates, initialised, lockedPlanId, openPlan]);
 
   // "Add to a ramp plan" from the practice wizard lands here with ?addPractice=sim:<id>&title=<name>.
   useEffect(() => {
@@ -141,7 +157,12 @@ export function PlanBuilder() {
     setSelectedKey(step.key);
     setView("outline");
     toast.success(`${title} added as a new step. Fill in the rest, then publish the plan.`);
-    router.replace("/admin/programs");
+    // Drop only the hand-off parameters so an open program workbench stays open.
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("addPractice");
+    params.delete("title");
+    const query = params.toString();
+    router.replace(query ? `/admin/programs?${query}` : "/admin/programs", { scroll: false });
   }, [initialised, router, searchParams, steps]);
 
   useEffect(() => {
@@ -249,7 +270,7 @@ export function PlanBuilder() {
 
   async function publish() {
     if (!canPublish(name, steps)) {
-      if (name.trim().length < 3) toast.error("Give the plan a name of at least 3 characters.");
+      if (name.trim().length < 3) toast.error("Give the program a name of at least 3 characters.");
       else selectFirstIncomplete();
       return;
     }
@@ -267,11 +288,12 @@ export function PlanBuilder() {
     }
     const body = (await response.json().catch(() => ({}))) as { id?: string };
     const savedId = planId ?? body.id ?? null;
-    toast.success("Plan published.");
+    toast.success("Program published.");
     setSavedAt(new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }));
     const fresh = await data.loadTemplates();
     const saved = fresh.find((entry) => entry.id === savedId);
     if (saved) openPlan(saved);
+    if (savedId) onPublished?.(savedId);
   }
 
   async function deletePlan() {
@@ -283,13 +305,14 @@ export function PlanBuilder() {
       toast.error(body?.error ?? "Could not delete plan.");
       return;
     }
-    toast.success("Plan deleted.");
+    toast.success("Program deleted.");
     const fresh = await data.loadTemplates();
     openPlan(fresh[0] ?? null);
+    onDeleted?.();
   }
 
   const status = !planId
-    ? "New plan"
+    ? "New program"
     : dirty
       ? "Unpublished changes"
       : template && isLockedTemplate(template)
@@ -308,15 +331,16 @@ export function PlanBuilder() {
     <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-line bg-white px-8 py-4 max-sm:px-4">
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <p className="text-[13px] text-muted">
-          Programs / Ramp plans / <b className="font-bold text-ink">{status}</b>
+          {embedded ? "Outline / " : "Programs / "}
+          <b className="font-bold text-ink">{status}</b>
           {savedAt && !dirty ? `, saved at ${savedAt}` : ""}
         </p>
         <h1 className="m-0">
           <input
-            aria-label="Plan name"
+            aria-label="Program name"
             className="w-full min-w-[240px] rounded-[6px] bg-transparent text-2xl font-extrabold tracking-[-0.015em] text-ink placeholder:text-muted"
             onChange={(event) => setName(event.target.value)}
-            placeholder="Name this plan"
+            placeholder="Name this program"
             value={name}
           />
         </h1>
@@ -354,7 +378,7 @@ export function PlanBuilder() {
         </button>
         {!publishable ? (
           <span className="sr-only" id="plan-publish-note">
-            Publishing needs a plan name and, on every step, a type, done-when criteria, evidence and a reviewer.
+            Publishing needs a program name and, on every step, a type, done-when criteria, evidence and a reviewer.
           </span>
         ) : null}
       </div>
@@ -400,8 +424,8 @@ export function PlanBuilder() {
           aria-label="Plan outline"
           className="flex flex-col border-b border-line bg-white px-3.5 py-2 xl:border-r xl:border-b-0"
         >
-          <div className="px-2.5 pt-3.5 pb-1">
-            <Field htmlFor="plan-picker" label="Plan">
+          <div className={lockedPlanId !== undefined ? "hidden" : "px-2.5 pt-3.5 pb-1"}>
+            <Field htmlFor="plan-picker" label="Program">
               <SelectInput
                 className="py-2 text-sm"
                 id="plan-picker"
@@ -413,7 +437,7 @@ export function PlanBuilder() {
                     {entry.name}
                   </option>
                 ))}
-                <option value={NEW_PLAN}>New plan</option>
+                <option value={NEW_PLAN}>New program</option>
               </SelectInput>
             </Field>
           </div>

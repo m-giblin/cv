@@ -30,6 +30,7 @@ export function Drawer({
   mainLabel,
   sideLabel,
   size = "full",
+  bodyWidth = "reading",
 }: {
   open: boolean;
   onClose: () => void;
@@ -43,6 +44,8 @@ export function Drawer({
   mainLabel?: string;
   sideLabel?: string;
   size?: "full" | "form";
+  /** Single-column bodies keep a reading width by default; "full" uses the whole workbench for grids. */
+  bodyWidth?: "reading" | "full";
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
@@ -140,7 +143,7 @@ export function Drawer({
           </div>
         ) : (
           <div className="min-h-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8">
-            <div className={isForm ? "w-full" : "mx-auto w-full max-w-[920px]"}>{children}</div>
+            <div className={isForm || bodyWidth === "full" ? "w-full" : "mx-auto w-full max-w-[920px]"}>{children}</div>
           </div>
         )}
 

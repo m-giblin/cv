@@ -234,9 +234,9 @@ function rampCell(planProgress: number, tenureDays: number, firstName: string): 
     segmentUnlocked: null,
     segmentTotal: null,
     actions: [
-      { title: "Open Assign Plans", description: "Review or adjust ramp plan steps", href: "/plans" },
+      { title: "Open programs", description: "Review the program outline or enroll", href: "/manager/programs" },
       { title: "Plan Calendar", description: "Shift step dates on the timeline", href: "/plan-calendar" },
-      { title: "Program Tracker", description: "See segment and milestone progress", href: "/manager/programs" },
+      { title: "Program progress", description: "See phase progress and what is overdue", href: "/manager/programs" },
     ],
     confidence: "high",
   };
@@ -297,7 +297,7 @@ function segmentsCell(unlocked: number, tenureDays: number, firstName: string): 
     segmentUnlocked: unlocked,
     segmentTotal: SEGMENT_TOTAL,
     actions: [
-      { title: "Program Tracker", description: "View segment gates and milestones", href: "/manager/programs" },
+      { title: "Program progress", description: "See phase progress and gates", href: "/manager/programs" },
       { title: "Plan Calendar", description: "Align segment timing on the calendar", href: "/plan-calendar" },
       { title: "Team Roster", description: "Open full SE coaching profile", href: "/manager/team" },
     ],

@@ -98,8 +98,7 @@ export const NAV: Record<WorkspaceHat, NavItem[]> = {
       href: "/manager/programs",
       match: ["/plans"],
       children: [
-        { id: "tracker", label: "Tracker", href: "/manager/programs" },
-        { id: "assign", label: "Assign", href: "/plans" },
+        { id: "programs", label: "Programs", href: "/manager/programs" },
         { id: "calendar", label: "Calendar", href: "/plan-calendar" },
         { id: "certifications", label: "Certifications", href: "/certifications" },
       ],
@@ -121,8 +120,7 @@ export const NAV: Record<WorkspaceHat, NavItem[]> = {
       label: "Programs",
       href: "/admin/programs",
       children: [
-        { id: "plans", label: "Plan builder", href: "/admin/programs" },
-        { id: "assign", label: "Assign", href: "/admin/programs/assign" },
+        { id: "plans", label: "Programs", href: "/admin/programs" },
         { id: "competencies", label: "Competencies", href: "/admin/programs/competencies" },
       ],
     },

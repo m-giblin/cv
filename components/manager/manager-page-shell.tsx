@@ -3,15 +3,14 @@
 import { usePathname, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { CertReviewItem } from "@/components/manager/cert-review-item";
-import { ManagerCohortView } from "@/components/manager/cohort-view";
 import type { DealPrepReviewItem } from "@/components/manager/deal-prep-review-item";
-import { ManagerAssignPlansSection } from "@/components/manager/manager-assign-plans-section";
 import { ManagerCoachingCadencePanel } from "@/components/manager/manager-coaching-cadence-panel";
 import { ManagerDevelopmentPlansPanel } from "@/components/manager/manager-development-plans-panel";
 import { ManagerInbox } from "@/components/manager/manager-inbox";
 import { ManagerLeaderboard } from "@/components/manager/manager-leaderboard";
 import { ManagerMenteesPanel } from "@/components/manager/manager-mentees-panel";
-import { ManagerProgramTrackerPanel } from "@/components/manager/manager-program-tracker-panel";
+import { ProgramsWorkspace } from "@/components/programs/programs-workspace";
+import { getAccessTier } from "@/lib/auth/rbac";
 import { ManagerReviewHistory, type ReviewHistoryEntry } from "@/components/manager/manager-review-history";
 import { ManagerSeDetailPanel, type SeManagerSnapshot } from "@/components/manager/manager-se-detail-panel";
 import { ManagerTeamRoster } from "@/components/manager/manager-team-roster";
@@ -87,10 +86,8 @@ export function ManagerPageShell({
   coachingByUser,
   challenges,
   mentors,
-  approvedCertCountByUser,
   managerFirstName,
   mentees = [],
-  viewerRole = "manager",
   readinessAvailable = true,
   featureFlags,
 }: {
@@ -229,40 +226,12 @@ export function ManagerPageShell({
       break;
     case "program":
       content = (
-        <>
-          <PageHeader accent="Every ramp in one place." eyebrow="Programs" title="Tracker." />
-          <Body>
-            <div className="flex flex-col gap-7">
-              <ManagerProgramTrackerPanel
-                activity={activity}
-                approvedCertCountByUser={approvedCertCountByUser}
-                certReviewItems={certReviewItems}
-                coachingByUser={coachingByUser}
-                developmentPlans={developmentPlans}
-                org={org}
-                planSteps={planSteps}
-                plans={plans}
-              />
-              <ManagerCohortView org={org} plans={plans} />
-            </div>
-          </Body>
-        </>
-      );
-      break;
-    case "assign":
-      content = (
-        <>
-          <PageHeader eyebrow="Programs" title="Assign plans." />
-          <Body>
-            <ManagerAssignPlansSection
-              assignees={assignees}
-              mentors={mentors}
-              org={org}
-              plans={plans}
-              viewerRole={viewerRole}
-            />
-          </Body>
-        </>
+        <ProgramsWorkspace
+          mentors={mentors}
+          mode="manager"
+          people={assignees.filter((person) => getAccessTier(person.role) === "se")}
+          plans={plans}
+        />
       );
       break;
     case "mentees":

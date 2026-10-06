@@ -1,5 +1,6 @@
-import { AdminSectionPage } from "@/components/admin/admin-section-page";
+import { redirect } from "next/navigation";
 
+/** Enrolling now happens in each program's People tab. */
 export default function Page() {
-  return <AdminSectionPage />;
+  redirect("/admin/programs");
 }
