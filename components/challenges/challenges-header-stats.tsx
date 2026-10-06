@@ -1,6 +1,6 @@
 "use client";
 
-import { Tag } from "@/components/ui/tag";
+import { StatusPill } from "@/components/ui/status-pill";
 import type { Challenge, ChallengeSubmission } from "@/lib/types";
 
 export function ChallengesHeaderStats({
@@ -22,11 +22,11 @@ export function ChallengesHeaderStats({
 
  return (
  <div className="flex flex-wrap items-center gap-2">
- <span className="font-mono text-xs font-medium uppercase tracking-[0.03em] text-muted">
- {challenges.length} challenges{earned > 0 ? ` · ${earned} earned` : ""}
+ <span className="text-[13px] text-muted">
+ {challenges.length} challenges{earned > 0 ? `, ${earned} earned` : ""}
  </span>
- {inFlight > 0 ? <Tag tone="blue">● {inFlight} in progress</Tag> : null}
- {redo > 0 ? <Tag tone="danger">▲ {redo} redo requested</Tag> : null}
+ {inFlight > 0 ? <StatusPill tone="blue">{inFlight} in progress</StatusPill> : null}
+ {redo > 0 ? <StatusPill tone="danger">{redo} redo requested</StatusPill> : null}
  </div>
  );
 }

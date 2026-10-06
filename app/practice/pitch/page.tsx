@@ -1,6 +1,8 @@
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { PitchStudioShell } from "@/components/pitch/pitch-studio-shell";
+import { PageBody, PageHeader } from "@/components/ui/page-header";
 import { requirePitchPageAccess } from "@/lib/auth/require-access";
 
 const loadingBlock = () => (
@@ -31,20 +33,34 @@ export default async function PitchPage({ searchParams }: PitchPageProps) {
   return (
     <AppShell contentWidth="full" currentUser={data.currentUser} notifications={data.notifications}>
       {params.review ? (
-        <section
-          aria-label="Peer pitch review"
-          className="mx-[var(--gutter)] mt-6 flex flex-col gap-4 rounded-[14px] border-[1.5px] border-ink bg-white p-6"
-        >
-          <PitchPlaybackViewer submissionId={params.review} />
-          <PitchPeerReviewForm pitchId={params.review} />
-        </section>
-      ) : null}
-      <PitchStudioShell
-        initialScenarioId={params.scenario}
-        peerPitches={data.peerPitches}
-        testMode={testMode}
-        tier={tier}
-      />
+        <div className="flex flex-col pb-7">
+          <PageHeader
+            eyebrow={
+              <>
+                <Link className="link" href="/practice/pitch">
+                  Pitch Studio
+                </Link>
+                &nbsp;/&nbsp;Peer review
+              </>
+            }
+            subtitle="Watch the pitch, then score it against the rubric."
+            title="Peer review."
+          />
+          <PageBody>
+            <section aria-label="Peer pitch review" className="flex max-w-[860px] flex-col gap-4 rounded-[14px] border border-line bg-white p-6">
+              <PitchPlaybackViewer submissionId={params.review} />
+              <PitchPeerReviewForm pitchId={params.review} />
+            </section>
+          </PageBody>
+        </div>
+      ) : (
+        <PitchStudioShell
+          initialScenarioId={params.scenario}
+          peerPitches={data.peerPitches}
+          testMode={testMode}
+          tier={tier}
+        />
+      )}
     </AppShell>
   );
 }

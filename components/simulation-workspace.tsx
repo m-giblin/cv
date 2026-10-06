@@ -13,7 +13,7 @@ import { SimulationCoachingRail } from "@/components/simulation/simulation-coach
 import { SimulationScenarioBrief } from "@/components/simulation/simulation-scenario-brief";
 import { SimulationSpeechInput } from "@/components/simulation/speech-input";
 import { CARD_CLS, LABEL_CLS, TEXTAREA_CLS } from "@/components/se/form-classes";
-import { Tag } from "@/components/ui/tag";
+import { StatusPill } from "@/components/ui/status-pill";
 import { SimulationAssignment } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -391,11 +391,10 @@ export function SimulationWorkspace({
           >
             <span
               className={cn(
-                "font-mono text-xs font-medium uppercase tracking-[0.03em]",
+                "text-[13px] font-semibold",
                 isSe ? "text-blue" : isCoach ? "text-ink" : "text-muted",
               )}
             >
-              {isCoach ? "◆ " : null}
               {speakerLabel}
             </span>
             <div
@@ -452,7 +451,7 @@ export function SimulationWorkspace({
         />
         {form.formState.errors.message ? (
           <p className="text-[13px] text-danger" role="alert">
-            ▲ {form.formState.errors.message.message}
+            {form.formState.errors.message.message}
           </p>
         ) : null}
         <div className="flex flex-wrap items-center gap-2">
@@ -488,7 +487,7 @@ export function SimulationWorkspace({
         </div>
         {!isEmbedded && currentStep === 1 && messages.length > 0 ? (
           <p className="text-[13px] text-muted">
-            Tip: type <span className="font-mono text-xs font-medium text-ink">HINT:</span> for mid-call coaching
+            Tip: type <span className="font-semibold text-ink">HINT:</span> for mid-call coaching
           </p>
         ) : null}
       </form>
@@ -505,11 +504,11 @@ export function SimulationWorkspace({
         {coachingCard ? (
           <div className="flex items-start gap-4 border-t border-divider p-4">
             <div className="shrink-0">
-              <p className="text-[30px] font-extrabold leading-none tracking-[-0.03em] text-ink">{coachingCard.score}</p>
-              <p className="mt-1 font-mono text-xs uppercase tracking-[0.03em] text-muted">Score</p>
+              <p className="num text-[30px] font-extrabold leading-none tracking-[-0.03em] text-blue">{coachingCard.score}</p>
+              <p className="mt-1 text-[13px] text-muted">Score</p>
             </div>
             <div className="min-w-0">
-              <p className="label-mono">Next practice</p>
+              <p className="label-caps">Next practice</p>
               <p className="mt-1 text-sm leading-[1.5] text-ink-2">{coachingCard.recommendedNextPractice}</p>
             </div>
           </div>
@@ -535,13 +534,13 @@ export function SimulationWorkspace({
           <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-divider bg-white px-4 py-3 sm:px-5">
             <div className="min-w-0">
               <p className="truncate text-base font-bold text-ink">{assignment.persona}</p>
-              <p className="font-mono text-xs uppercase tracking-[0.03em] text-muted">
-                {aiRoleplay ? "AI persona active" : "Guided"} · {difficultyToPromptLabel(assignment.difficulty)}
+              <p className="text-[13px] text-muted">
+                {aiRoleplay ? "AI persona" : "Guided roleplay"}, {difficultyToPromptLabel(assignment.difficulty).toLowerCase()}
               </p>
             </div>
-            <Tag tone={roleplayEndedForInput ? "blue" : "signal"}>
-              {roleplayEndedForInput ? "✓ Roleplay complete" : "● Live session"}
-            </Tag>
+            <StatusPill tone={roleplayEndedForInput ? "success" : "warning"}>
+              {roleplayEndedForInput ? "Roleplay complete" : "Live session"}
+            </StatusPill>
           </header>
           {chatMessages}
           {chatInput}

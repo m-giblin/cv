@@ -3,7 +3,7 @@
 import { ChevronDown, ChevronRight, History, Loader2, Search, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { FIELD_CLS, LINE_CARD_CLS } from "@/components/se/form-classes";
-import { Tag } from "@/components/ui/tag";
+import { StatusPill } from "@/components/ui/status-pill";
 import { cn } from "@/lib/utils";
 import { PREP_SEARCH_THRESHOLD } from "@/lib/deal-prep/constants";
 import { meetingTypeLabel } from "@/lib/deal-prep/templates";
@@ -116,18 +116,18 @@ export function DealPrepHistory({
         <p className="text-base font-bold text-ink">Saved prep by account</p>
         <p className="text-sm leading-[1.5] text-muted" role="status">
           {hasHistory
-            ? "Private to you — grouped by account with version history."
+            ? "Private to you, grouped by account with version history."
             : "Saved briefs appear here after you generate prep."}
           {historyMeta && hasHistory
             ? inBrowseAll
-              ? ` Showing ${historyMeta.showing} accounts · ${historyMeta.total} total briefs.`
+              ? ` Showing ${historyMeta.showing} accounts and ${historyMeta.total} briefs in all.`
               : ` ${historyMeta.total} saved briefs across your accounts.`
             : null}
         </p>
       </div>
 
       {!hasHistory && !historyLoading ? (
-        <p className="rounded-[14px] border-[1.5px] border-dashed border-line-strong p-7 text-center text-[15px] text-muted">
+        <p className="rounded-[14px] border border-dashed border-line-strong p-7 text-center text-[15px] text-muted">
           No saved preps yet. Generate a brief and it will show up here.
         </p>
       ) : null}
@@ -187,14 +187,14 @@ export function DealPrepHistory({
       {hasHistory ? (
         historyLoading ? (
           <p
-            className="flex items-center justify-center gap-2 rounded-[14px] border-[1.5px] border-dashed border-line-strong p-7 text-center text-[15px] text-muted"
+            className="flex items-center justify-center gap-2 rounded-[14px] border border-dashed border-line-strong p-7 text-center text-[15px] text-muted"
             role="status"
           >
             <Loader2 aria-hidden className="h-4 w-4 animate-spin" />
             Loading past briefs…
           </p>
         ) : groups.length === 0 ? (
-          <p className="rounded-[14px] border-[1.5px] border-dashed border-line-strong p-7 text-center text-[15px] text-muted">
+          <p className="rounded-[14px] border border-dashed border-line-strong p-7 text-center text-[15px] text-muted">
             No matches for that search.
           </p>
         ) : (
@@ -242,12 +242,12 @@ export function DealPrepHistory({
                       <span className="text-[15px] font-semibold text-ink">{group.accountName}</span>
                       <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-muted">
                         <span>{group.industry}</span>
-                        <span className="font-mono text-xs uppercase">
-                          v{group.versions[0]?.version_number ?? 1}
-                          {group.versionCount > 1 ? ` · ${group.versionCount} versions` : ""}
+                        <span>
+                          Version {group.versions[0]?.version_number ?? 1}
+                          {group.versionCount > 1 ? ` of ${group.versionCount}` : ""}
                         </span>
-                        {group.sharedWithManager ? <Tag tone="blue">✓ Shared</Tag> : null}
-                        {isActive ? <Tag tone="signal">● Open</Tag> : null}
+                        {group.sharedWithManager ? <StatusPill tone="blue">Shared</StatusPill> : null}
+                        {isActive ? <StatusPill tone="warning">Open</StatusPill> : null}
                       </span>
                     </button>
                     <button
@@ -279,10 +279,10 @@ export function DealPrepHistory({
                             type="button"
                           >
                             <span>
-                              v{version.version_number ?? 1} · {meetingTypeLabel(version.meeting_type)}
+                              Version {version.version_number ?? 1}, {meetingTypeLabel(version.meeting_type)}
                             </span>
-                            <span className="font-mono text-xs text-muted">
-                              {new Date(version.created_at).toLocaleDateString()}
+                            <span className="text-[13px] text-muted">
+                              {new Date(version.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                             </span>
                           </button>
                         </li>

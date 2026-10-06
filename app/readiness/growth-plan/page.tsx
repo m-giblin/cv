@@ -1,9 +1,11 @@
 import { AppShell } from "@/components/app-shell";
 import { DataSourceBanner } from "@/components/data-source-banner";
+import { ReadinessTabs } from "@/components/growth/readiness-tabs";
 import { SeGrowthPlanView } from "@/components/se/growth-plan/SeGrowthPlanView";
-import { PageHeader } from "@/components/ui/page-header";
+import { PageBody, PageHeader } from "@/components/ui/page-header";
 import { requireAppAccess } from "@/lib/auth/require-access";
 import { fetchSeGrowthPlanForUser } from "@/lib/se/fetch-se-growth-plan";
+import { feedbackItemCount } from "@/lib/se/readiness-tabs";
 
 export const metadata = { title: "Growth plan · Readiness" };
 
@@ -14,10 +16,16 @@ export default async function GrowthPlanPage() {
   return (
     <AppShell contentWidth="wide" currentUser={data.currentUser} notifications={data.notifications}>
       <DataSourceBanner source={source} />
-      <PageHeader eyebrow="Annual goals · quarterly check-ins with your manager" title="Growth plan" />
-      <div className="px-[var(--gutter)] pb-7">
+      <PageHeader
+        accent="The year, one quarter at a time."
+        eyebrow="Readiness"
+        subtitle="Annual goals with a quarterly check-in with your manager."
+        title="Growth plan."
+      />
+      <PageBody className="flex flex-col gap-[22px] pb-7">
+        <ReadinessTabs feedbackCount={feedbackItemCount(data)} value="growth-plan" />
         <SeGrowthPlanView initial={growthPlan} seUserId={data.currentUser.id} />
-      </div>
+      </PageBody>
     </AppShell>
   );
 }

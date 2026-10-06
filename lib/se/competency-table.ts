@@ -101,9 +101,10 @@ export function buildCompetencyRows(input: {
       delta,
       evidence: mine.length,
       status,
-      suggestion: status === "on_track" ? null : suggestedPractice(name),
+      suggestion: suggestedPractice(name),
     });
   }
 
-  return rows.sort((a, b) => a.score - b.score);
+  // Strongest first, as in the v3 artboard; the gap banner picks out the weakest.
+  return rows.sort((a, b) => b.score - a.score);
 }

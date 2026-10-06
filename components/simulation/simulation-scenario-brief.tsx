@@ -41,55 +41,50 @@ export function SimulationScenarioBrief({
 
   return (
     <aside className="flex min-h-0 flex-col overflow-y-auto border-b border-line bg-white lg:border-b-0 lg:border-r">
-      <div className="bg-blue px-[18px] py-4 text-white">
-        <p className="font-mono text-xs font-medium uppercase tracking-[0.03em] text-signal">Persona</p>
+      <div className="border-b border-line px-[18px] py-4">
+        <p className="label-caps label-caps--blue">Persona</p>
         <div className="mt-2 flex items-start gap-3">
           <div
             aria-hidden="true"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-signal font-mono text-xs font-medium text-ink"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-soft text-[13px] font-bold text-blue"
           >
             {personaInitials}
           </div>
           <div className="min-w-0">
-            <p className="text-base font-bold leading-tight text-white">{assignment.persona}</p>
-            <p className="mt-0.5 font-mono text-xs uppercase tracking-[0.03em] text-on-blue-muted">
-              {assignment.vertical} · {difficultyToPromptLabel(assignment.difficulty)}
+            <p className="text-base font-bold leading-tight text-ink">{assignment.persona}</p>
+            <p className="mt-0.5 text-[13px] text-muted">
+              {assignment.vertical}, {difficultyToPromptLabel(assignment.difficulty).toLowerCase()}
             </p>
           </div>
         </div>
         <div className="mt-3 flex flex-wrap gap-1.5">
           {[assignment.vertical, assignment.solutionFocus.split(" ")[0] ?? "ISC", "Discovery"].map((tag) => (
-            <span
-              className="rounded-full border-[1.5px] border-blue-line px-[9px] py-0.5 font-mono text-xs uppercase tracking-[0.03em] text-on-blue"
-              key={tag}
-            >
-              {tag}
-            </span>
+            <Tag key={tag}>{tag}</Tag>
           ))}
         </div>
-        <div className="mt-3 flex items-end justify-between gap-3 border-t border-blue-line pt-3">
-          <p className="text-[13px] leading-[1.45] text-on-blue">{assignment.solutionFocus}</p>
+        <div className="mt-3 flex items-end justify-between gap-3 border-t border-divider pt-3">
+          <p className="text-[13px] leading-[1.45] text-ink-2">{assignment.solutionFocus}</p>
           <div className="text-right">
-            <p className="text-[22px] font-extrabold leading-none tracking-[-0.03em] text-white">{turnCount}</p>
-            <p className="font-mono text-xs uppercase tracking-[0.03em] text-on-blue-muted">Turns</p>
+            <p className="num text-[22px] font-extrabold leading-none tracking-[-0.03em] text-blue">{turnCount}</p>
+            <p className="text-[13px] text-muted">Turns</p>
           </div>
         </div>
       </div>
 
       <div className="space-y-4 p-4">
         <div>
-          <p className="label-mono">Scenario</p>
+          <p className="label-caps">Scenario</p>
           <p className="mt-2 text-sm leading-[1.5] text-ink-2">{scenarioContext(assignment)}</p>
         </div>
 
         <div className="rounded-[10px] border-l-[3px] border-signal bg-signal-soft p-3">
-          <p className="font-mono text-xs font-medium uppercase tracking-[0.03em] text-ink">Your objective</p>
+          <p className="text-[13px] font-semibold text-ink">Your objective</p>
           <p className="mt-1.5 text-sm leading-[1.5] text-ink">{scenarioObjective(assignment)}</p>
         </div>
 
         <div>
           <div className="flex items-center justify-between gap-2">
-            <p className="label-mono">You&apos;ll be scored on</p>
+            <p className="label-caps">You&apos;ll be scored on</p>
             <Tag tone="neutral">{criteria.length} criteria</Tag>
           </div>
           <ul className="mt-2 overflow-hidden rounded-[14px] border border-line">

@@ -33,19 +33,17 @@ export function ObjectionPracticePanel({
   return (
     <aside
       aria-label="Objection practice"
-      className="flex min-h-0 flex-col rounded-[14px] border-[1.5px] border-ink bg-white"
+      className="flex min-h-0 flex-col rounded-[14px] border border-line bg-white"
     >
       <header className="flex shrink-0 items-start justify-between gap-3 border-b border-divider px-5 py-4">
         <div className="flex min-w-0 flex-col gap-2">
-          <span className="font-mono text-xs font-medium uppercase tracking-[0.03em] text-blue">
-            Practice this objection
-          </span>
+          <span className="label-caps label-caps--blue">Practice this objection</span>
           <h2 className="text-base font-bold text-ink">{accountName}</h2>
           <blockquote className="rounded-[10px] bg-blue-soft px-3 py-2 text-[15px] leading-[1.5] text-ink">
             &ldquo;{objection}&rdquo;
           </blockquote>
           <p className="text-[13px] leading-[1.45] text-muted">
-            Your prep brief stays open alongside — scroll it while you practice here.
+            Your prep brief stays open alongside, so you can scroll it while you practice.
           </p>
         </div>
         <button

@@ -4,7 +4,7 @@ import { Loader2, ThumbsUp } from "lucide-react";
 import { useEffect, useId, useState } from "react";
 import { toast } from "sonner";
 import { H2_CLS, LABEL_CLS, LINE_CARD_CLS, TEXTAREA_CLS } from "@/components/se/form-classes";
-import { Tag } from "@/components/ui/tag";
+import { StatusPill } from "@/components/ui/status-pill";
 
 function ScoreRow({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
   return (
@@ -16,8 +16,8 @@ function ScoreRow({ label, value, onChange }: { label: string; value: number; on
           <button
             aria-label={`${label} ${score} of 5`}
             aria-pressed={active}
-            className={`h-9 min-w-9 rounded-[10px] px-2 font-mono text-xs font-medium ${
-              active ? "bg-blue text-white" : "border-[1.5px] border-line-strong bg-white text-ink hover:bg-blue-soft"
+            className={`h-9 min-w-9 rounded-[10px] px-2 text-sm font-semibold ${
+              active ? "bg-ink text-white" : "border border-line-strong bg-white text-ink hover:bg-blue-soft"
             }`}
             key={score}
             onClick={() => onChange(score)}
@@ -77,9 +77,11 @@ export function PitchPeerReviewForm({ pitchId }: { pitchId: string }) {
     return (
       <div className={`${LINE_CARD_CLS} flex flex-wrap items-center justify-between gap-3 px-5 py-4`}>
         <h2 className={H2_CLS}>Your peer review</h2>
-        <Tag role="status" tone={existing.endorsed ? "success" : "blue"}>
-          {existing.endorsed ? "✓ Endorsed" : "✓ Feedback submitted"}
-        </Tag>
+        <span role="status">
+          <StatusPill tone={existing.endorsed ? "success" : "blue"}>
+            {existing.endorsed ? "Endorsed" : "Feedback submitted"}
+          </StatusPill>
+        </span>
       </div>
     );
   }
@@ -88,7 +90,7 @@ export function PitchPeerReviewForm({ pitchId }: { pitchId: string }) {
     <div className={LINE_CARD_CLS}>
       <div className="border-b border-divider px-5 py-4">
         <h2 className={H2_CLS}>Peer review</h2>
-        <p className="mt-1 text-sm text-ink-2">Structured rubric — Allego-style feedback without the social feed noise.</p>
+        <p className="mt-1 text-sm text-ink-2">Score it against the rubric. Your feedback goes to the presenter only.</p>
       </div>
       <div className="space-y-4 px-5 py-4">
         <ScoreRow label="Clarity" onChange={setClarity} value={clarity} />

@@ -5,7 +5,7 @@ import { useId } from "react";
 import type { CoachingCardOutput } from "@/lib/ai/schemas";
 import type { RubricCriterion } from "@/lib/simulations/session-rubric";
 import { LABEL_CLS, TEXTAREA_CLS } from "@/components/se/form-classes";
-import { Tag } from "@/components/ui/tag";
+import { StatusPill } from "@/components/ui/status-pill";
 import type { SimulationAssignment } from "@/lib/types";
 
 type TranscriptEntry = SimulationAssignment["transcript"][number];
@@ -15,17 +15,6 @@ function scoreFillClass(score: number) {
   if (score < 60) return "bg-danger";
   if (score < 70) return "bg-warning";
   return "bg-blue";
-}
-
-function estimateScores(messages: TranscriptEntry[], criteria: RubricCriterion[]) {
-  const seTurns = messages.filter((m) => m.speaker === "se").length;
-  const coachTurns = messages.filter((m) => m.speaker === "coach").length;
-  const base = Math.min(92, 52 + seTurns * 8 + coachTurns * 4);
-
-  return criteria.map((criterion, index) => ({
-    label: criterion.label,
-    score: Math.min(95, base - index * 3 + (index === 0 ? coachTurns * 2 : 0)),
-  }));
 }
 
 function lastCoachInsight(messages: TranscriptEntry[]) {
@@ -66,7 +55,6 @@ export function SimulationCoachingRail({
   onSubmit: () => void;
 }) {
   const reflectionId = useId();
-  const runningScores = estimateScores(messages, criteria);
   const lastSe = [...messages].reverse().find((m) => m.speaker === "se");
   const coachHint = lastCoachInsight(messages);
 
@@ -75,15 +63,15 @@ export function SimulationCoachingRail({
     return (
       <aside className="flex min-h-0 flex-col overflow-y-auto border-t border-line bg-white lg:border-l lg:border-t-0">
         <div className="border-b border-divider p-4">
-          <p className="label-mono">AI coaching report</p>
+          <p className="label-caps">AI coaching report</p>
           <div className="mt-2 flex items-end justify-between gap-3">
             <div>
               <p className="text-[30px] font-extrabold leading-none tracking-[-0.03em] text-ink">{score}</p>
-              <p className="mt-1 font-mono text-xs uppercase tracking-[0.03em] text-muted">Score / 100</p>
+              <p className="mt-1 text-[13px] text-muted">out of 100</p>
             </div>
-            <Tag tone={showReflectionPrompt ? "signal" : "blue"}>
-              {showReflectionPrompt ? "● Add reflection" : "◆ Review"}
-            </Tag>
+            <StatusPill tone={showReflectionPrompt ? "warning" : "blue"}>
+              {showReflectionPrompt ? "Add a reflection" : "Ready to review"}
+            </StatusPill>
           </div>
           <div aria-hidden="true" className="mt-3 h-2 overflow-hidden rounded-[4px] bg-divider">
             <div
@@ -96,20 +84,20 @@ export function SimulationCoachingRail({
         <div className="flex-1 space-y-3 p-4">
           <div className="overflow-hidden rounded-[14px] border border-line">
             <div className="px-4 py-3">
-              <p className="font-mono text-xs font-medium uppercase tracking-[0.03em] text-success">✓ Strength</p>
+              <p className="text-[13px] font-semibold text-success">Strength</p>
               <p className="mt-1 text-sm leading-[1.5] text-ink-2">{coachingCard.strengths[0]}</p>
             </div>
             <div className="border-t border-divider px-4 py-3">
-              <p className="font-mono text-xs font-medium uppercase tracking-[0.03em] text-danger">▲ Improve</p>
+              <p className="text-[13px] font-semibold text-danger">Improve</p>
               <p className="mt-1 text-sm leading-[1.5] text-ink-2">{coachingCard.gaps[0]}</p>
             </div>
             <div className="border-t border-divider px-4 py-3">
-              <p className="font-mono text-xs font-medium uppercase tracking-[0.03em] text-blue">→ Next practice</p>
+              <p className="text-[13px] font-semibold text-blue">Next practice</p>
               <p className="mt-1 text-sm leading-[1.5] text-ink-2">{coachingCard.recommendedNextPractice}</p>
             </div>
           </div>
           <div className="rounded-[14px] bg-surface-2 p-3.5">
-            <p className="label-mono">Manager summary</p>
+            <p className="label-caps">Manager summary</p>
             <p className="mt-1 text-sm leading-[1.5] text-ink-2">{coachingCard.managerSummary}</p>
           </div>
 
@@ -160,27 +148,24 @@ export function SimulationCoachingRail({
   return (
     <aside className="flex min-h-0 flex-col overflow-y-auto border-t border-line bg-white lg:border-l lg:border-t-0">
       <div className="border-b border-divider p-4">
-        <p className="label-mono">Live coaching</p>
+        <p className="label-caps">Live coaching</p>
         <p className="mt-1 text-[13px] text-muted">Real-time feedback on your last move</p>
       </div>
 
       <div className="space-y-4 p-4">
         {lastSe ? (
           <div className="rounded-[14px] border border-line p-3.5">
-            <p className="label-mono">Last move</p>
+            <p className="label-caps">Last move</p>
             <p className="mt-1 text-sm leading-[1.5] text-ink-2">{lastSe.message}</p>
-            <p className="mt-2 font-mono text-xs font-medium uppercase tracking-[0.03em] text-success">
-              ✓ +{Math.min(12, 4 + messages.length)} discovery pts
-            </p>
           </div>
         ) : (
-          <div className="rounded-[14px] border-[1.5px] border-dashed border-line-strong p-4 text-center text-sm text-muted">
+          <div className="rounded-[14px] border border-dashed border-line-strong p-4 text-center text-sm text-muted">
             Send your first response to unlock live coaching hints.
           </div>
         )}
 
         <div className="rounded-[14px] bg-signal-soft p-3.5">
-          <p className="font-mono text-xs font-medium uppercase tracking-[0.03em] text-ink">→ Next move</p>
+          <p className="text-[13px] font-semibold text-ink">Next move</p>
           <p className="mt-1 text-sm leading-[1.5] text-ink">
             {coachHint ??
               "Probe the approval chain — who signs off on identity governance spend and what audit date is driving urgency?"}
@@ -188,23 +173,16 @@ export function SimulationCoachingRail({
         </div>
 
         <div>
-          <p className="label-mono mb-2">Running scores</p>
-          <ul className="space-y-3">
-            {runningScores.map((item) => (
-              <li key={item.label}>
-                <div className="mb-1 flex items-center justify-between gap-2 text-[13px]">
-                  <span className="font-medium text-ink-2">{item.label}</span>
-                  <span className="font-mono text-xs font-medium text-ink">{item.score}</span>
-                </div>
-                <div aria-hidden="true" className="h-2 overflow-hidden rounded-[4px] bg-divider">
-                  <div
-                    className={`h-full rounded-[4px] ${scoreFillClass(item.score)}`}
-                    style={{ width: `${Math.max(0, Math.min(100, item.score))}%` }}
-                  />
-                </div>
+          <h3 className="label-caps mb-2">What the card scores</h3>
+          <ul className="flex flex-col divide-y divide-divider">
+            {criteria.map((item) => (
+              <li className="flex flex-col gap-0.5 py-2.5" key={item.label}>
+                <span className="text-sm font-bold text-ink">{item.label}</span>
+                <span className="text-[13px] leading-[1.45] text-muted">{item.description}</span>
               </li>
             ))}
           </ul>
+          <p className="mt-2 text-[13px] text-muted">Scores appear on the coaching card when you end the roleplay.</p>
         </div>
       </div>
     </aside>

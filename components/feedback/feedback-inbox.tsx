@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { LINE_CARD_CLS } from "@/components/se/form-classes";
 import { Chip } from "@/components/ui/chip";
 import { Stat } from "@/components/ui/stat";
+import { StatusPill } from "@/components/ui/status-pill";
 import { Tag } from "@/components/ui/tag";
 import { DashboardData } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -38,29 +39,33 @@ type ListItem = FeedbackRow & { awaiting: boolean };
 const REVISION_STATUSES = new Set(["needs_revision", "redo", "in_progress"]);
 const APPROVED_STATUSES = new Set(["reviewed", "approved"]);
 
+function capitalize(text: string) {
+ return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 function statusLabel(status: string) {
  return status.replaceAll("_", " ");
 }
 
 /** Status tag: symbol + text so meaning never relies on colour alone. */
 function statusTag(status: string, awaiting: boolean) {
- if (awaiting) return { tone: "blue" as const, text: "● Awaiting manager" };
- if (status === "needs_revision") return { tone: "danger" as const, text: "▲ Needs revision" };
- if (REVISION_STATUSES.has(status)) return { tone: "danger" as const, text: "▲ Redo requested" };
- if (APPROVED_STATUSES.has(status)) return { tone: "success" as const, text: `✓ ${statusLabel(status)}` };
- return { tone: "neutral" as const, text: `• ${statusLabel(status)}` };
+ if (awaiting) return { tone: "blue" as const, text: "Awaiting manager" };
+ if (status === "needs_revision") return { tone: "danger" as const, text: "Needs revision" };
+ if (REVISION_STATUSES.has(status)) return { tone: "danger" as const, text: "Redo requested" };
+ if (APPROVED_STATUSES.has(status)) return { tone: "success" as const, text: capitalize(statusLabel(status)) };
+ return { tone: "neutral" as const, text: capitalize(statusLabel(status)) };
 }
 
 /** Manager grades are out of 5; the v2 rule is danger <60%, warning 60–69%, blue ≥70%. */
 function gradeTone(grade: number) {
  const pct = (grade / 5) * 100;
- if (pct < 60) return { rule: "bg-danger", text: "text-danger", label: "▲ Below bar" };
- if (pct < 70) return { rule: "bg-warning", text: "text-warning", label: "• Close" };
- return { rule: "bg-blue", text: "text-blue", label: "✓ At bar" };
+ if (pct < 60) return { rule: "bg-danger", text: "text-danger", label: "Below bar" };
+ if (pct < 70) return { rule: "bg-warning", text: "text-warning", label: "Close" };
+ return { rule: "bg-blue", text: "text-blue", label: "At bar" };
 }
 
 const EMPTY_CLS =
- "rounded-[14px] border-[1.5px] border-dashed border-line-strong p-7 text-center text-[15px] text-muted";
+ "rounded-[14px] border border-dashed border-line-strong p-7 text-center text-[15px] text-muted";
 
 export function FeedbackInbox({ data }: { data: DashboardData }) {
  const userId = data.currentUser.id;
@@ -235,7 +240,7 @@ export function FeedbackInbox({ data }: { data: DashboardData }) {
  [key]: {
  canNudge: false,
  nextNudgeAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
- reason: "Reminder sent — available again in 7 days",
+ reason: "Reminder sent. You can send another in 7 days.",
  },
  }));
  } catch (error) {
@@ -304,10 +309,10 @@ export function FeedbackInbox({ data }: { data: DashboardData }) {
  label: "Redo requested",
  value: String(redoCount),
  danger: redoCount > 0,
- note: redoCount > 0 ? (revisionCards[0]?.simulationContext?.persona ?? "▲ Awaiting revision") : undefined,
+ note: redoCount > 0 ? (revisionCards[0]?.simulationContext?.persona ?? "Awaiting revision") : undefined,
  },
  { label: "Approved this month", value: String(approvedThisMonth) },
- { label: "Avg grade", value: avgGrade === "—" ? "—" : `${avgGrade}/5` },
+ { label: "Avg grade", value: avgGrade === "—" ? "–" : `${avgGrade}`, note: avgGrade === "—" ? undefined : "out of 5" },
  ].map((metric) => (
  <div key={metric.label}>
  <dt className="sr-only">{metric.label}</dt>
@@ -325,13 +330,13 @@ export function FeedbackInbox({ data }: { data: DashboardData }) {
 
  <section aria-labelledby="feedback-list-heading" className="flex flex-col gap-3">
  <div className="flex flex-wrap items-center justify-between gap-3">
- <h2 className="text-lg font-extrabold text-ink" id="feedback-list-heading">
+ <h2 className="text-xl font-extrabold text-ink" id="feedback-list-heading">
  Feedback
  </h2>
  <div aria-label="Filter feedback" className="flex flex-wrap gap-2" role="group">
  {filters.map((item) => (
- <Chip active={filter === item.id} key={item.id} onClick={() => setFilter(item.id)}>
- {item.label} · {item.count}
+ <Chip active={filter === item.id} count={item.count} key={item.id} onClick={() => setFilter(item.id)}>
+ {item.label}
  </Chip>
  ))}
  </div>
@@ -342,7 +347,7 @@ export function FeedbackInbox({ data }: { data: DashboardData }) {
 
  {allItems.length === 0 ? (
  <p className={EMPTY_CLS}>
- Submit a challenge or simulation — manager feedback will appear here after review.
+ Submit a challenge or simulation. Manager feedback shows up here after review.
  </p>
  ) : visibleItems.length === 0 ? (
  <p className={EMPTY_CLS}>Nothing in this view right now.</p>
@@ -379,7 +384,7 @@ export function FeedbackInbox({ data }: { data: DashboardData }) {
  <span className="text-[15px] font-semibold text-ink">{row.title}</span>
  <span className="flex flex-wrap items-center gap-1.5">
  <Tag>{row.kind === "challenge" ? "Challenge" : "Simulation"}</Tag>
- <Tag tone={tag.tone}>{tag.text}</Tag>
+ <StatusPill tone={tag.tone}>{tag.text}</StatusPill>
  </span>
  {row.feedback ? (
  <span className={cn("text-sm leading-[1.5] text-ink-2", isOpen ? "" : "line-clamp-2")}>
@@ -394,23 +399,22 @@ export function FeedbackInbox({ data }: { data: DashboardData }) {
  <>
  <span aria-hidden className={cn("w-[3px] rounded-full", tone.rule)} />
  <span className="flex flex-col">
- <span className="text-[22px] font-extrabold leading-none tracking-[-0.03em] text-ink">
+ <span className="num text-[22px] font-extrabold leading-none tracking-[-0.03em] text-ink">
  {row.grade}
- <span className="text-sm font-bold text-muted">/5</span>
+ <span className="text-sm font-bold text-muted"> of 5</span>
  </span>
- <span className={cn("mt-1 font-mono text-xs uppercase", tone.text)}>{tone.label}</span>
+ <span className={cn("mt-1 text-[13px] font-semibold", tone.text)}>{tone.label}</span>
  </span>
  </>
  ) : (
- <span className="font-mono text-xs text-muted">
- <span aria-hidden>—</span>
- <span className="sr-only">No grade yet</span>
+ <span className="text-[13px] text-muted">
+ No grade yet
  </span>
  )}
  </div>
 
- <span className="justify-self-end whitespace-nowrap text-right font-mono text-xs uppercase text-muted">
- {row.date ? new Date(row.date).toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+ <span className="justify-self-end whitespace-nowrap text-right text-[13px] text-muted">
+ {row.date ? new Date(row.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) : "–"}
  </span>
  </div>
 
@@ -423,8 +427,8 @@ export function FeedbackInbox({ data }: { data: DashboardData }) {
  <div className="flex flex-col gap-3">
  <p className="text-sm text-ink-2">
  Submitted{" "}
- {row.date ? formatDistanceToNow(new Date(row.date), { addSuffix: true }) : "recently"} · waiting on
- your manager.
+ {row.date ? formatDistanceToNow(new Date(row.date), { addSuffix: true }) : "recently"}, and it is
+ waiting on your manager.
  </p>
  {nudge && !nudge.canNudge && nudge.reason ? (
  <p className="text-[13px] text-muted">{nudge.reason}</p>
@@ -446,12 +450,12 @@ export function FeedbackInbox({ data }: { data: DashboardData }) {
  </div>
  ) : (
  <div className="flex flex-col gap-3">
- <p className="label-mono">
- Manager ·{" "}
+ <p className="text-[13px] text-muted">
+ From your manager,{" "}
  {row.date ? formatDistanceToNow(new Date(row.date), { addSuffix: true }) : "recently"}
  </p>
  {row.feedback ? null : (
- <p className="text-sm text-muted">No written comment — grade only.</p>
+ <p className="text-sm text-muted">No written comment, just a grade.</p>
  )}
  <div className="flex flex-wrap items-center gap-4">
  <Link className="btn-secondary no-underline" href={cta.href}>

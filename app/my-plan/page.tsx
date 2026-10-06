@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { DataSourceBanner } from "@/components/data-source-banner";
-import { MyRampList, RampHeader, RampStepDetail } from "@/components/my-plan/my-ramp";
-import { RampRunway } from "@/components/se/ramp-runway";
+import { MyRampList, RampHeader, RampRunwayRow, RampStepDetail } from "@/components/my-plan/my-ramp";
 import { SePlanCalendarView } from "@/components/se/se-plan-calendar-view";
+import { PageBody } from "@/components/ui/page-header";
 import { requireAppAccess } from "@/lib/auth/require-access";
 import { isFeatureEnabled } from "@/lib/platform/feature-flags";
 import { loadPlatformSettings } from "@/lib/platform/settings";
@@ -50,24 +50,30 @@ export default async function MyPlanPage({ searchParams }: MyPlanPageProps) {
   return (
     <AppShell contentWidth="wide" currentUser={data.currentUser} notifications={data.notifications}>
       <DataSourceBanner source={source} />
-      <RampHeader calendarEnabled={calendarEnabled} plan={plan} view={view} />
-      {model ? <RampRunway className="px-[var(--gutter)] pb-5" model={model} /> : null}
+      <RampHeader calendarEnabled={calendarEnabled} model={model} plan={plan} view={view} />
+      {model ? (
+        <PageBody className="pb-[22px]">
+          <RampRunwayRow model={model} />
+        </PageBody>
+      ) : null}
 
       {!plan || !model ? (
-        <div className="mx-[var(--gutter)] mb-7 rounded-[14px] border-[1.5px] border-dashed border-line-strong p-7 text-[15px] text-muted">
-          <p className="text-lg font-extrabold text-ink">No ramp plan yet</p>
-          <p className="mt-1">
-            {manager
-              ? `${manager.fullName} will assign your ramp plan. You can reach them at ${manager.email}.`
-              : "Your manager will assign a ramp plan when you join the program."}
-          </p>
-        </div>
+        <PageBody className="pb-7">
+          <div className="rounded-[14px] border border-dashed border-line-strong p-7 text-[15px] text-muted">
+            <h2 className="text-lg font-extrabold text-ink">No ramp plan yet</h2>
+            <p className="mt-1">
+              {manager
+                ? `${manager.fullName} will assign your ramp plan. You can reach them at ${manager.email}.`
+                : "Your manager will assign a ramp plan when you join the program."}
+            </p>
+          </div>
+        </PageBody>
       ) : view === "calendar" ? (
-        <div className="px-[var(--gutter)] pb-7">
+        <PageBody className="pb-7">
           <SePlanCalendarView initial={calendar ?? undefined} />
-        </div>
+        </PageBody>
       ) : (
-        <MyRampList model={model} plan={plan} reviewerFirst={reviewer?.fullName.split(" ")[0] ?? null} />
+        <MyRampList model={model} plan={plan} reviewer={reviewer} />
       )}
     </AppShell>
   );

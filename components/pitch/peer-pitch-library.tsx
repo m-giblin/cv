@@ -12,21 +12,14 @@ function pitchScore(pitch: PeerPitch) {
   return Math.round((((pitch.manager_grade ?? pitch.peer_avg ?? 0) / 5) * 100) || 0);
 }
 
-/** v2 score rule: danger <60, warning 60–69, blue ≥70. Always paired with the number. */
-function scoreFillClass(score: number) {
-  if (score < 60) return "bg-danger";
-  if (score < 70) return "bg-warning";
-  return "bg-blue";
-}
-
 function scoreTextClass(score: number) {
   if (score < 60) return "text-danger";
   if (score < 70) return "text-warning";
-  return "text-ink";
+  return "text-blue";
 }
 
 const EMPTY_CLS =
-  "rounded-[14px] border-[1.5px] border-dashed border-line-strong p-7 text-center text-[15px] text-muted";
+  "rounded-[14px] border border-dashed border-line-strong p-7 text-center text-[15px] text-muted";
 
 function FilterChips({
   filter,
@@ -37,7 +30,7 @@ function FilterChips({
 }) {
   return (
     <div aria-label="Filter peer pitches" className="flex flex-wrap items-center gap-2" role="group">
-      <span className="label-mono mr-1">Show</span>
+      <span className="label-caps mr-1">Show</span>
       <Chip active={filter === "all"} onClick={() => onChange("all")}>
         All
       </Chip>
@@ -77,10 +70,10 @@ export function PeerPitchLibrary({ initialPitches, variant = "default" }: PeerPi
   if (variant === "compact") {
     return (
       <div className="px-5 py-4">
-        <p className="mb-3 text-[15px] font-bold text-ink">Peer pitches — same scenario</p>
+        <h2 className="mb-3 text-[15px] font-bold text-ink">Peer pitches</h2>
         {filtered.length === 0 ? (
-          <p className="rounded-[14px] border-[1.5px] border-dashed border-line-strong p-4 text-center text-sm text-muted">
-            No pitches yet — record yours or review a teammate&apos;s after manager approval.
+          <p className="rounded-[14px] border border-dashed border-line-strong p-4 text-center text-sm text-muted">
+            No pitches yet. Record yours, or review a teammate&apos;s once a manager approves it.
           </p>
         ) : (
           <ul className="space-y-2">
@@ -95,25 +88,24 @@ export function PeerPitchLibrary({ initialPitches, variant = "default" }: PeerPi
                     <div className="relative flex h-20 items-center justify-center bg-ink">
                       <span
                         aria-hidden="true"
-                        className="flex h-8 w-8 items-center justify-center rounded-full border-[1.5px] border-on-blue-muted"
+                        className="flex h-8 w-8 items-center justify-center rounded-full border border-on-blue-muted"
                       >
                         <svg fill="currentColor" className="text-white" height="12" viewBox="0 0 12 12" width="12">
                           <polygon points="3,1.5 10,6 3,10.5" />
                         </svg>
                       </span>
-                      <span className="absolute bottom-1.5 right-2 font-mono text-xs text-on-blue-muted">1:00</span>
                       {score > 0 ? (
-                        <span className="absolute right-2 top-1.5 font-mono text-xs font-medium text-white">
-                          {score < 60 ? "▲ " : ""}
+                        <span className="num absolute right-2 top-1.5 text-[13px] font-bold text-white">
                           {score}
+                          <span className="sr-only"> out of 100</span>
                         </span>
                       ) : null}
                     </div>
                     <div className="px-3.5 py-2.5">
                       <p className="text-sm font-bold text-ink">{pitch.personName}</p>
-                      <p className="mt-0.5 font-mono text-xs uppercase tracking-[0.03em] text-muted">
-                        {pitch.title} ·{" "}
-                        {new Date(pitch.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                      <p className="mt-0.5 text-[13px] text-muted">
+                        {pitch.title},{" "}
+                        {new Date(pitch.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                       </p>
                     </div>
                   </Link>
@@ -137,7 +129,7 @@ export function PeerPitchLibrary({ initialPitches, variant = "default" }: PeerPi
             Peer pitch library
           </h2>
           <p className="mt-1 text-sm text-ink-2">
-            Manager-approved + peer-endorsed wins — structured rubric scores, inline playback, mentor picks.
+            Pitches your managers approved and your peers endorsed. Watch them inline.
           </p>
         </div>
         <FilterChips filter={filter} onChange={setFilter} />
@@ -145,7 +137,7 @@ export function PeerPitchLibrary({ initialPitches, variant = "default" }: PeerPi
 
       {filtered.length === 0 ? (
         <div className="p-5">
-          <p className={EMPTY_CLS}>No pitches yet — record yours or review a teammate&apos;s after manager approval.</p>
+          <p className={EMPTY_CLS}>No pitches yet. Record yours, or review a teammate&apos;s once a manager approves it.</p>
         </div>
       ) : (
         <ul>
@@ -159,19 +151,21 @@ export function PeerPitchLibrary({ initialPitches, variant = "default" }: PeerPi
                     <div className="mb-1 flex flex-wrap items-center gap-2">
                       <p className="text-[15px] font-bold text-ink">{pitch.title}</p>
                       {pitch.endorsement_count > 0 ? (
-                        <Tag tone="signal">◆ {pitch.endorsement_count} endorsements</Tag>
+                        <Tag tone="warning">
+                          {pitch.endorsement_count} {pitch.endorsement_count === 1 ? "endorsement" : "endorsements"}
+                        </Tag>
                       ) : null}
                     </div>
-                    <p className="font-mono text-xs uppercase tracking-[0.03em] text-muted">
-                      {pitch.personName} · {new Date(pitch.created_at).toLocaleDateString()}
+                    <p className="text-[13px] text-muted">
+                      {pitch.personName},{" "}
+                      {new Date(pitch.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                     </p>
                   </div>
                   <div className="shrink-0 text-right">
-                    <p className={`text-[30px] font-extrabold leading-none tracking-[-0.03em] ${scoreTextClass(score)}`}>
-                      {score < 60 ? "▲ " : ""}
+                    <p className={`num text-[30px] font-extrabold leading-none tracking-[-0.03em] ${scoreTextClass(score)}`}>
                       {score}
                     </p>
-                    <p className="mt-1 font-mono text-xs uppercase tracking-[0.03em] text-muted">Score</p>
+                    <p className="mt-1 text-[13px] text-muted">Score</p>
                   </div>
                   <div className="flex flex-wrap items-center gap-3">
                     <button
@@ -183,35 +177,23 @@ export function PeerPitchLibrary({ initialPitches, variant = "default" }: PeerPi
                       {expanded ? "Hide playback" : "Watch inline"}
                     </button>
                     <Link className="link text-sm" href={`/practice/pitch?review=${pitch.id}`}>
-                      Full review →
+                      Full review
                     </Link>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-x-4 gap-y-3 border-t border-divider bg-surface-2/40 px-5 py-3 md:grid-cols-4">
-                  {(pitch.competencies.length > 0
-                    ? pitch.competencies.slice(0, 4)
-                    : ["Clarity", "Value", "Objections", "Presence"]
-                  ).map((label, index) => {
-                    const pct = Math.max(30, Math.min(100, score - 12 + index * 7));
-                    return (
-                      <div key={`${pitch.id}-${label}`}>
-                        <div className="mb-1 flex justify-between gap-2">
-                          <span className="text-[13px] text-ink-2">{label}</span>
-                          <span className="font-mono text-xs font-medium text-ink">{pct}</span>
-                        </div>
-                        <div aria-hidden="true" className="h-2 overflow-hidden rounded-[4px] bg-divider">
-                          <div className={`h-full rounded-[4px] ${scoreFillClass(pct)}`} style={{ width: `${pct}%` }} />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                {pitch.competencies.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5 px-5 pb-1">
+                    {pitch.competencies.slice(0, 4).map((label) => (
+                      <Tag key={`${pitch.id}-${label}`}>{label}</Tag>
+                    ))}
+                  </div>
+                ) : null}
 
                 {pitch.manager_grade || pitch.peer_avg ? (
                   <div className="flex flex-wrap gap-1.5 px-5 pb-3 pt-1">
-                    {pitch.manager_grade ? <Tag tone="success">✓ Mgr {pitch.manager_grade}/5</Tag> : null}
-                    {pitch.peer_avg ? <Tag tone="blue">● Peers {pitch.peer_avg.toFixed(1)}/5</Tag> : null}
+                    {pitch.manager_grade ? <Tag tone="success">Manager {pitch.manager_grade} of 5</Tag> : null}
+                    {pitch.peer_avg ? <Tag tone="blue">Peers {pitch.peer_avg.toFixed(1)} of 5</Tag> : null}
                   </div>
                 ) : null}
                 {expanded ? (

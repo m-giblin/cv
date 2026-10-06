@@ -5,6 +5,8 @@ import { SeToday } from "@/components/se/se-today";
 import { getHomeRoute } from "@/lib/auth/rbac";
 import { requireDashboardPageAccess } from "@/lib/auth/require-access";
 import { fetchCertificationsForUsers } from "@/lib/data/get-certifications-data";
+import { isFeatureEnabled } from "@/lib/platform/feature-flags";
+import { loadPlatformSettings } from "@/lib/platform/settings";
 import { buildGateRows, toGateRecords } from "@/lib/se/gate-matrix";
 
 export default async function DashboardPage() {
@@ -19,7 +21,10 @@ export default async function DashboardPage() {
   }
 
   if (tier === "se") {
-    const userCerts = await fetchCertificationsForUsers([data.currentUser.id]);
+    const [userCerts, settings] = await Promise.all([
+      fetchCertificationsForUsers([data.currentUser.id]),
+      loadPlatformSettings(data.currentUser.tenantId ?? undefined),
+    ]);
     const manager = data.profiles.find((profile) => profile.id === data.currentUser.managerId);
     const gateRows = buildGateRows({
       records: toGateRecords(userCerts),
@@ -33,7 +38,11 @@ export default async function DashboardPage() {
     return (
       <AppShell contentWidth="wide" currentUser={data.currentUser} notifications={data.notifications}>
         <DataSourceBanner source={source} />
-        <SeToday data={data} gateRows={gateRows} />
+        <SeToday
+          calendarEnabled={isFeatureEnabled(settings.featureFlags, "plan-calendar")}
+          data={data}
+          gateRows={gateRows}
+        />
       </AppShell>
     );
   }

@@ -14,7 +14,7 @@ export const GATE_RULES: Record<
   CertType,
   { short: string; competencies: CanonicalCompetency[]; simsRequired: number; challengeRequired: number }
 > = {
-  solo_discovery: { short: "Disc.", competencies: ["Discovery"], simsRequired: 2, challengeRequired: 1 },
+  solo_discovery: { short: "Discovery", competencies: ["Discovery"], simsRequired: 2, challengeRequired: 1 },
   executive_demo: {
     short: "Exec demo",
     competencies: ["Executive Demo Storytelling"],
@@ -97,11 +97,11 @@ function countCell(met: number, required: number): MatrixCell {
   if (required <= 0) return { kind: "na" };
   const capped = Math.min(met, required);
   const state: StampState = capped >= required ? "earned" : capped > 0 ? "partial" : "none";
-  return { kind: "stamp", state, caption: `${capped}/${required}`, tone: capped === 0 ? "danger" : undefined };
+  return { kind: "stamp", state, caption: `${capped} of ${required}` };
 }
 
 export function buildGateRows(input: GateMatrixInput, order: CertType[] = CERT_ORDER): GateRow[] {
-  const reviewer = (input.reviewerFirstName ?? "manager").toUpperCase();
+  const reviewer = input.reviewerFirstName ?? "your manager";
   const cards = input.coachingCards.filter((card) => card.userId === input.userId && !card.isPractice);
   const reviewed = input.submissions.filter(
     (submission) => submission.userId === input.userId && submission.status === "reviewed",
@@ -148,19 +148,19 @@ export function buildGateRows(input: GateMatrixInput, order: CertType[] = CERT_O
                 : "not_started";
 
     const evidence: MatrixCell = record?.evidence_text
-      ? { kind: "stamp", state: "earned", caption: "ATTACHED" }
+      ? { kind: "stamp", state: "earned", caption: "Attached" }
       : status === "ready"
-        ? { kind: "stamp", state: "none", caption: "TO ADD" }
-        : { kind: "stamp", state: "none", caption: "MISSING", tone: "danger" };
+        ? { kind: "stamp", state: "none", caption: "To add" }
+        : { kind: "stamp", state: "none", caption: "Missing" };
 
     const signOff: MatrixCell =
       status === "cleared"
-        ? { kind: "stamp", state: "earned", caption: "SIGNED" }
+        ? { kind: "stamp", state: "earned", caption: "Signed" }
         : status === "submitted"
-          ? { kind: "stamp", state: "partial", caption: `WITH ${reviewer}` }
+          ? { kind: "stamp", state: "partial", caption: `With ${reviewer}` }
           : status === "ready"
-            ? { kind: "stamp", state: "ready", caption: "READY" }
-            : { kind: "stamp", state: "none", caption: status === "locked" ? "LOCKED" : "" };
+            ? { kind: "stamp", state: "ready", caption: "Ready" }
+            : { kind: "stamp", state: "none", caption: status === "locked" ? "Locked" : "" };
 
     const label = certLabel(type);
     const simsShort = Math.max(0, rules.simsRequired - simsMet);
@@ -188,8 +188,8 @@ export function buildGateRows(input: GateMatrixInput, order: CertType[] = CERT_O
         rules.challengeRequired === 0
           ? { kind: "na" }
           : challengeMet
-            ? { kind: "stamp", state: "earned", caption: "MET" }
-            : { kind: "stamp", state: "none", caption: "MISSING", tone: "danger" },
+            ? { kind: "stamp", state: "earned", caption: "Met" }
+            : { kind: "stamp", state: "none", caption: "Missing" },
       evidence,
       signOff,
       simsMet,
@@ -204,7 +204,7 @@ export function buildAgenticRows(input: GateMatrixInput): GateRow[] {
   return buildGateRows(input, AGENTIC_CERT_ORDER);
 }
 
-/** Stamp state for the ID badge (dark): cleared → earned, ready → ready, submitted/in progress → partial. */
+/** Summary stamp state: cleared → earned, ready → ready, submitted/in progress → partial. */
 export function badgeStampState(row: GateRow): StampState {
   switch (row.status) {
     case "cleared":

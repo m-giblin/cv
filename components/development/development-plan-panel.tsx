@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useId, useState } from "react";
 import { toast } from "sonner";
 import { GoalStatusBadge } from "@/components/development/goal-status-badge";
+import { StatusPill } from "@/components/ui/status-pill";
 import {
   CARD_CLS,
   FIELD_CLS,
@@ -30,9 +31,9 @@ function quarterCellState(review: GoalQuarterlyReview, activeQuarter: string): Q
 }
 
 const QUARTER_LABEL: Record<QuarterCellState, string> = {
-  attested: "✓ Attested",
-  active: "● Active",
-  upcoming: "○ Upcoming",
+  attested: "Attested",
+  active: "Active",
+  upcoming: "Upcoming",
 };
 
 export function DevelopmentPlanPanel({
@@ -165,7 +166,7 @@ export function DevelopmentPlanPanel({
                 Plan year
               </label>
               <input
-                className={cn(FIELD_CLS, "font-mono")}
+                className={cn(FIELD_CLS, "")}
                 id={`${fieldId}-year`}
                 onChange={(event) => setYear(Number(event.target.value))}
                 type="number"
@@ -179,7 +180,7 @@ export function DevelopmentPlanPanel({
               const base = `${fieldId}-goal-${index}`;
               return (
                 <li className={cn(LINE_CARD_CLS, "flex flex-col gap-3 p-4")} key={index}>
-                  <p className="label-mono">Goal {String(index + 1).padStart(2, "0")}</p>
+                  <p className="text-[15px] font-bold text-ink">Goal {index + 1}</p>
                   <div className="flex flex-col gap-1.5">
                     <label className={LABEL_CLS} htmlFor={`${base}-title`}>
                       Title
@@ -291,7 +292,7 @@ export function DevelopmentPlanPanel({
 
   if (!plan) {
     return (
-      <div className="rounded-[14px] border-[1.5px] border-dashed border-line-strong p-7 text-center">
+      <div className="rounded-[14px] border border-dashed border-line-strong p-7 text-center">
         <h2 className="text-base font-bold text-ink">No development plan for {year}</h2>
         <p className="mt-1.5 text-[15px] text-muted">
           {viewerRole === "se"
@@ -324,10 +325,10 @@ export function DevelopmentPlanPanel({
                   <p className="text-base font-bold text-ink">{goal.title}</p>
                   <GoalStatusBadge status={goal.overallStatus} />
                 </div>
-                <p className="mt-0.5 font-mono text-xs uppercase tracking-[0.03em] text-muted">
+                <p className="mt-0.5 text-[13px] text-muted">
                   {competency
-                    ? `Competency: ${competency.name} · FY${plan.year}`
-                    : `${goal.evidenceType.replaceAll("_", " ")} · FY${plan.year}`}
+                    ? `${competency.name}, FY${plan.year}`
+                    : `${goal.evidenceType.replaceAll("_", " ")}, FY${plan.year}`}
                 </p>
               </div>
               <button
@@ -357,22 +358,18 @@ export function DevelopmentPlanPanel({
                     )}
                     key={review.id}
                   >
-                    <p
-                      className={cn(
-                        "font-mono text-xs font-medium uppercase tracking-[0.03em]",
-                        state === "attested" && "text-success",
-                        state === "active" && "text-blue",
-                        state === "upcoming" && "text-muted",
-                      )}
-                    >
-                      {review.quarter} · {QUARTER_LABEL[state]}
+                    <p className="flex items-center gap-2 text-[15px] font-bold text-ink">
+                      {review.quarter}
+                      <StatusPill tone={state === "attested" ? "success" : state === "active" ? "blue" : "neutral"}>
+                        {QUARTER_LABEL[state]}
+                      </StatusPill>
                     </p>
                     <p className={cn("mt-1 text-sm leading-[1.5]", state === "upcoming" ? "text-muted" : "text-ink-2")}>
                       {review.seEvidence?.trim() || review.managerComments?.trim() || (review.reviewedAt ? (
                         "Checkpoint complete."
                       ) : (
                         <>
-                          Due <span className="font-mono text-xs">{review.dueDate}</span>
+                          Due {review.dueDate}
                         </>
                       ))}
                     </p>
@@ -428,7 +425,7 @@ function ReviewEditor({
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="label-mono">{review.quarter} checkpoint</p>
+      <p className="text-[15px] font-bold text-ink">{review.quarter} checkpoint</p>
       {!isManager ? (
         <>
           <div className="flex flex-col gap-1.5">
@@ -461,7 +458,7 @@ function ReviewEditor({
         <>
           {review.seEvidence ? (
             <div className="rounded-[10px] border border-line bg-surface-2 px-4 py-3">
-              <p className="label-mono">SE evidence</p>
+              <p className="text-sm font-bold text-ink">SE evidence</p>
               <p className="mt-1 text-sm text-ink-2">{review.seEvidence}</p>
             </div>
           ) : null}

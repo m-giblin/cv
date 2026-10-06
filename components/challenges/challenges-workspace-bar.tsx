@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
 import { SegmentedToggle } from "@/components/ui/segmented-toggle";
-import { Tag } from "@/components/ui/tag";
+import { StatusPill } from "@/components/ui/status-pill";
 import type { AccessTier } from "@/lib/auth/rbac";
 
 type PortalView = "browse" | "submissions" | "generate";
@@ -47,10 +47,10 @@ export function ChallengesWorkspaceBar({
 
   return (
     <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-3 pb-5">
-      <p className="font-mono text-xs font-medium uppercase tracking-[0.03em] text-muted">
-        {stats.total} available · {stats.earned} earned · {stats.inFlight} in flight
+      <p className="text-[13px] text-muted">
+        {stats.total} available. {stats.earned} earned, {stats.inFlight} in progress.
       </p>
-      {testMode ? <Tag tone="warning">• Test mode</Tag> : null}
+      {testMode ? <StatusPill tone="warning">Test mode</StatusPill> : null}
 
       <div className="ml-auto flex flex-wrap items-center gap-3">
         <SegmentedToggle

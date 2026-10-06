@@ -29,7 +29,7 @@ export function SePlanCalendarView({ initial }: { initial?: SePlanCalendarPayloa
   if (!calendar) {
     return (
       <div
-        className="rounded-[14px] border-[1.5px] border-dashed border-line-strong p-7 text-center text-[15px] text-muted"
+        className="rounded-[14px] border border-dashed border-line-strong p-7 text-center text-[15px] text-muted"
         role="status"
       >
         Loading your plan calendar…

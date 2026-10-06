@@ -1,5 +1,6 @@
 import { planStepTypeLabel } from "@/lib/plans/step-labels";
 import type { PlanStep, UserPlan } from "@/lib/types";
+import { planStepHref } from "@/lib/utils/plan-links";
 
 /**
  * Derived view of an SE's ramp plan for Today and My ramp: runway weeks, segments, next step,
@@ -173,77 +174,125 @@ export function buildRampModel(plan: UserPlan, now = new Date()): RampModel {
   };
 }
 
-/** "ON PACE" unless validated work is overdue. */
+/** "On pace" unless validated work is overdue. */
 export function paceLabel(model: Pick<RampModel, "overdue">): string {
-  return model.overdue > 0 ? `${model.overdue} OVERDUE` : "ON PACE";
+  return model.overdue > 0 ? `${model.overdue} overdue` : "On pace";
 }
 
-const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
-const WEEKDAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-/** "THU 09 OCT" */
-export function formatDueMono(iso: string | undefined | null): string | null {
+function parseDay(iso: string | undefined | null): Date | null {
   if (!iso) return null;
   const date = new Date(`${iso.slice(0, 10)}T12:00:00`);
-  if (Number.isNaN(date.getTime())) return null;
-  return `${WEEKDAYS[date.getDay()]} ${pad2(date.getDate())} ${MONTHS[date.getMonth()]}`;
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
-/** "09 OCT" */
+/** "Thu, Oct 9" */
+export function formatDay(iso: string | undefined | null): string | null {
+  const date = parseDay(iso);
+  if (!date) return null;
+  return `${WEEKDAYS[date.getDay()]}, ${MONTHS[date.getMonth()]} ${date.getDate()}`;
+}
+
+/** "Oct 9" */
 export function formatShortDate(iso: string | undefined | null): string | null {
-  if (!iso) return null;
-  const date = new Date(`${iso.slice(0, 10)}T12:00:00`);
-  if (Number.isNaN(date.getTime())) return null;
-  return `${pad2(date.getDate())} ${MONTHS[date.getMonth()]}`;
+  const date = parseDay(iso);
+  if (!date) return null;
+  return `${MONTHS[date.getMonth()]} ${date.getDate()}`;
 }
 
+/** Kept for older callers; same as `formatDay`. */
+export const formatDueMono = formatDay;
+
+/** Month ("Oct") over day ("9") for date rows. */
 export function dayAndMonth(iso: string | undefined | null): { day: string; month: string } {
-  if (!iso) return { day: "—", month: "TBD" };
-  const date = new Date(`${iso.slice(0, 10)}T12:00:00`);
-  if (Number.isNaN(date.getTime())) return { day: "—", month: "TBD" };
-  return { day: pad2(date.getDate()), month: MONTHS[date.getMonth()] ?? "" };
+  const date = parseDay(iso);
+  if (!date) return { day: "–", month: "TBD" };
+  return { day: String(date.getDate()), month: MONTHS[date.getMonth()] ?? "" };
+}
+
+/** Whole days from today to `iso` (negative when past). */
+export function daysUntil(iso: string | undefined | null, now = new Date()): number | null {
+  if (!iso) return null;
+  return Math.round((dayStart(iso) - todayStart(now)) / DAY_MS);
+}
+
+const NUMBER_WORDS = [
+  "zero",
+  "one",
+  "two",
+  "three",
+  "four",
+  "five",
+  "six",
+  "seven",
+  "eight",
+  "nine",
+  "ten",
+  "eleven",
+  "twelve",
+  "thirteen",
+  "fourteen",
+  "fifteen",
+  "sixteen",
+  "seventeen",
+  "eighteen",
+  "nineteen",
+  "twenty",
+];
+
+/** "five" for 5; digits past twenty. */
+export function numberWord(n: number): string {
+  return NUMBER_WORDS[n] ?? String(n);
 }
 
 export type LifecycleCell = { label: string; stage: "done" | "current" | "upcoming" };
 
-/** Flight-strip lifecycle row: requested → in progress → validated (by {reviewer}). */
+/** Step-card lifecycle: Requested → In progress → Validated (or "With {reviewer}" once submitted). */
 export function stepLifecycle(step: PlanStep, reviewerFirstName: string | null): LifecycleCell[] {
-  const reviewer = (reviewerFirstName ?? "manager").toUpperCase();
   const validated = isStepValidated(step.status);
   const withReviewer = isStepWithReviewer(step.status);
   return [
-    { label: "✓ REQUESTED", stage: "done" },
+    { label: "Requested", stage: "done" },
     validated || withReviewer
-      ? { label: "✓ SUBMITTED", stage: "done" }
-      : { label: step.status === "not_started" ? "● READY TO START" : "● IN PROGRESS", stage: "current" },
+      ? { label: "Submitted", stage: "done" }
+      : { label: step.status === "not_started" ? "Not started" : "In progress", stage: "current" },
     validated
-      ? { label: "✓ VALIDATED", stage: "done" }
+      ? { label: "Validated", stage: "done" }
       : withReviewer
-        ? { label: `● WITH ${reviewer}`, stage: "current" }
-        : { label: `○ VALIDATED BY ${reviewer}`, stage: "upcoming" },
+        ? { label: `With ${reviewerFirstName ?? "your manager"}`, stage: "current" }
+        : { label: "Validated", stage: "upcoming" },
   ];
 }
 
-/** Mono meta line for a step: "CHALLENGE · DUE THU 09 OCT". */
+/** Plain meta line for a step: "Challenge, due Thu, Oct 9". */
 export function stepMeta(step: PlanStep): string {
-  const due = formatDueMono(step.dueDate);
-  return [planStepTypeLabel(step.type).toUpperCase(), due ? `DUE ${due}` : null].filter(Boolean).join(" · ");
+  const due = formatDay(step.dueDate);
+  const type = planStepTypeLabel(step.type);
+  return due ? `${type}, due ${due}` : type;
 }
 
-export type StepTagInfo = { label: string; tone: "neutral" | "blue" | "success" | "warning" | "danger" };
+export type StepStatusInfo = { label: string; tone: "neutral" | "blue" | "success" | "warning" | "danger" };
 
-export function stepStatusTag(step: PlanStep): StepTagInfo {
-  if (step.locked) return { label: "LOCKED", tone: "neutral" };
+/** Dot + word status for a step (use with StatusPill). */
+export function stepStatusTag(step: PlanStep): StepStatusInfo {
+  if (step.locked) return { label: "Locked", tone: "neutral" };
   switch (step.status) {
     case "reviewed":
     case "completed":
-      return { label: "✓ VALIDATED", tone: "success" };
+      return { label: "Validated", tone: "success" };
     case "submitted":
     case "under_review":
-      return { label: "● IN REVIEW", tone: "blue" };
+      return { label: "In review", tone: "blue" };
     case "in_progress":
-      return { label: "● IN PROGRESS", tone: "blue" };
+      return { label: "In progress", tone: "blue" };
     default:
-      return { label: "NOT STARTED", tone: "neutral" };
+      return { label: "Not started", tone: "neutral" };
   }
+}
+
+/** Steps with an assignment open in place inside My ramp (`?step=`); others go to their practice tool. */
+export function stepDetailHref(step: PlanStep): string {
+  return step.assignmentStepId ? `/my-plan?step=${encodeURIComponent(step.assignmentStepId)}` : planStepHref(step);
 }

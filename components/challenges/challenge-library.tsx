@@ -4,6 +4,7 @@ import { ExternalLink } from "lucide-react";
 import { useMemo, useState } from "react";
 import { CARD_CLS, H2_CLS, LINE_CARD_CLS } from "@/components/se/form-classes";
 import { Chip } from "@/components/ui/chip";
+import { StatusPill } from "@/components/ui/status-pill";
 import { Tag } from "@/components/ui/tag";
 import type { AssignmentStatus, Challenge, ChallengeSubmission } from "@/lib/types";
 
@@ -55,20 +56,20 @@ function statusBucket(submission: ChallengeSubmission | undefined): Exclude<Stat
 
 function SubmissionStatusTag({ submission }: { submission?: ChallengeSubmission }) {
  const statusInfo = libraryStatusLabel(submission);
- if (!statusInfo.status) return <Tag tone="neutral">○ Not started</Tag>;
- if (statusInfo.label) return <Tag tone="danger">▲ Needs revision</Tag>;
+ if (!statusInfo.status) return <StatusPill tone="neutral">Not started</StatusPill>;
+ if (statusInfo.label) return <StatusPill tone="danger">Needs revision</StatusPill>;
  switch (statusInfo.status) {
  case "reviewed":
  case "completed":
- return <Tag tone="success">✓ Earned</Tag>;
+ return <StatusPill tone="success">Earned</StatusPill>;
  case "submitted":
- return <Tag tone="blue">◆ Submitted</Tag>;
+ return <StatusPill tone="blue">Submitted</StatusPill>;
  case "under_review":
- return <Tag tone="blue">◆ Under review</Tag>;
+ return <StatusPill tone="blue">Under review</StatusPill>;
  case "in_progress":
- return <Tag tone="blue">● In progress</Tag>;
+ return <StatusPill tone="blue">In progress</StatusPill>;
  default:
- return <Tag tone="neutral">○ Not started</Tag>;
+ return <StatusPill tone="neutral">Not started</StatusPill>;
  }
 }
 
@@ -99,8 +100,8 @@ function ChallengeDetail({
  <h2 className={H2_CLS} id="challenge-detail-title">
  {challenge.title}
  </h2>
- <p className="font-mono text-xs uppercase tracking-[0.03em] text-muted">
- {challenge.estimatedMinutes} min · {challenge.steps.length} steps · {challenge.successCriteria.length}{" "}
+ <p className="text-[13px] text-muted">
+ About {challenge.estimatedMinutes} min, {challenge.steps.length} steps and {challenge.successCriteria.length}{" "}
  success criteria
  </p>
  </div>
@@ -112,13 +113,13 @@ function ChallengeDetail({
 
  <div className="flex flex-col gap-5 px-5 py-4">
  <section>
- <h3 className="label-mono">Overview</h3>
+ <h3 className="text-[15px] font-bold text-ink">Overview</h3>
  <p className="mt-1.5 text-[15px] leading-[1.5] text-ink-2">{challenge.description}</p>
  </section>
 
  {challenge.steps.length > 0 ? (
  <section>
- <h3 className="label-mono">Steps</h3>
+ <h3 className="text-[15px] font-bold text-ink">Steps</h3>
  <ol className="mt-1.5 list-decimal space-y-1.5 pl-5 text-[15px] leading-[1.5] text-ink-2">
  {challenge.steps.map((step, index) => (
  <li key={index}>{step}</li>
@@ -129,13 +130,11 @@ function ChallengeDetail({
 
  {challenge.successCriteria.length > 0 ? (
  <section>
- <h3 className="label-mono">Success criteria</h3>
+ <h3 className="text-[15px] font-bold text-ink">Success criteria</h3>
  <ul className="mt-1.5 space-y-1.5">
  {challenge.successCriteria.map((criterion) => (
  <li className="flex gap-2 text-[15px] leading-[1.5] text-ink-2" key={criterion}>
- <span aria-hidden="true" className="font-bold text-success">
- ✓
- </span>
+ <span aria-hidden="true" className="mt-[7px] block h-2.5 w-1.5 shrink-0 rotate-45 border-r-2 border-b-2 border-success" />
  <span>{criterion}</span>
  </li>
  ))}
@@ -145,7 +144,7 @@ function ChallengeDetail({
 
  {challenge.linkedSolutions.length > 0 ? (
  <section>
- <h3 className="label-mono">Solutions</h3>
+ <h3 className="text-[15px] font-bold text-ink">Solutions</h3>
  <div className="mt-1.5 flex flex-wrap gap-1.5">
  {challenge.linkedSolutions.map((solution) => (
  <Tag key={solution} tone="neutral">
@@ -158,7 +157,7 @@ function ChallengeDetail({
 
  {challenge.linkedResources.length > 0 ? (
  <section>
- <h3 className="label-mono">Resources</h3>
+ <h3 className="text-[15px] font-bold text-ink">Resources</h3>
  <ul className="mt-1.5 space-y-1.5">
  {challenge.linkedResources.map((resource) => (
  <li key={resource}>
@@ -174,8 +173,8 @@ function ChallengeDetail({
  ) : null}
 
  {submission?.managerFeedback ? (
- <section className="rounded-[14px] border border-warning bg-warning-soft px-4 py-3">
- <h3 className="font-mono text-xs font-medium uppercase tracking-[0.03em] text-warning">▲ Manager feedback</h3>
+ <section className="rounded-[14px] bg-warning-soft px-4 py-3">
+ <h3 className="text-[13px] font-semibold text-warning">Manager feedback</h3>
  <p className="mt-1.5 text-[15px] leading-[1.5] text-ink">{submission.managerFeedback}</p>
  </section>
  ) : null}
@@ -260,13 +259,13 @@ export function ChallengeLibrary({
  </div>
  </div>
 
- <p className="font-mono text-xs uppercase tracking-[0.03em] text-muted" role="status">
+ <p className="text-[13px] text-muted" role="status">
  {visibleChallenges.length} of {sortedChallenges.length} challenges
  </p>
 
  <div className={`grid gap-6 ${detailChallenge ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]" : ""}`}>
  {visibleChallenges.length === 0 ? (
- <p className="rounded-[14px] border-[1.5px] border-dashed border-line-strong p-7 text-center text-[15px] text-muted">
+ <p className="rounded-[14px] border border-dashed border-line-strong p-7 text-center text-[15px] text-muted">
  No challenges match these filters.
  </p>
  ) : (
@@ -296,11 +295,11 @@ export function ChallengeLibrary({
  <p className="mt-0.5 line-clamp-1 text-[13px] text-muted">{challenge.description}</p>
  </div>
  <div className="flex flex-wrap items-center gap-1.5">
- {isActive ? <Tag tone="signal">● Selected</Tag> : null}
+ {isActive ? <StatusPill tone="warning">Selected</StatusPill> : null}
  <Tag tone="neutral">{challenge.difficulty}</Tag>
- {earned ? <Tag tone="success">✓ Earned</Tag> : <SubmissionStatusTag submission={submission} />}
+ {earned ? <StatusPill tone="success">Earned</StatusPill> : <SubmissionStatusTag submission={submission} />}
  </div>
- <span className="w-[64px] text-right font-mono text-xs text-muted">{challenge.estimatedMinutes} min</span>
+ <span className="w-[64px] text-right text-xs text-muted">{challenge.estimatedMinutes} min</span>
  </li>
  );
  })}

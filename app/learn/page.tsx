@@ -1,11 +1,12 @@
 import { AppShell } from "@/components/app-shell";
 import { LearnLibrary } from "@/components/learn/learn-library";
-import { PageHeader } from "@/components/ui/page-header";
+import { PageBody, PageHeader } from "@/components/ui/page-header";
 import { requireAppAccess } from "@/lib/auth/require-access";
 import { getUserReleaseProjectTags } from "@/lib/corpus/user-release-tags";
 import { GENAI_VS_AGENTIC_MODULES } from "@/lib/learn/agentic-curriculum";
 import { isFeatureEnabled } from "@/lib/platform/feature-flags";
 import { loadPlatformSettings } from "@/lib/platform/settings";
+import { isStepValidated } from "@/lib/se/ramp-model";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Learn" };
@@ -24,17 +25,23 @@ export default async function LearnPage() {
     ? GENAI_VS_AGENTIC_MODULES
     : GENAI_VS_AGENTIC_MODULES.filter((module) => !AGENTIC_TRACK_MODULE_IDS.has(module.id));
 
+  const plan = data.plans.find((item) => item.userId === data.currentUser.id);
+  const rampPicks = (plan?.steps ?? []).filter(
+    (step) => !step.locked && !isStepValidated(step.status) && Boolean(step.contentAssetId || step.resourceUrl),
+  ).length;
+
   return (
     <AppShell contentWidth="wide" currentUser={data.currentUser} notifications={data.notifications}>
-      <PageHeader eyebrow="Modules · battle cards · guides · ISC Lab" title="Learn" />
-      <div className="px-[var(--gutter)] pb-7">
+      <PageHeader accent="Find it in a minute." eyebrow="Learn" title="Learn." />
+      <PageBody className="pb-7">
         <LearnLibrary
           labEnabled={labEnabled}
           modules={modules}
           pathName="GenAI vs Agentic AI"
+          rampPicks={rampPicks}
           releaseProjectTags={releaseProjectTags}
         />
-      </div>
+      </PageBody>
     </AppShell>
   );
 }

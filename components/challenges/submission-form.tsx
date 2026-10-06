@@ -115,13 +115,13 @@ export function ChallengeSubmissionForm({
             PDF, deck, image or video, max 50MB.
           </p>
           <label
-            className="flex cursor-pointer flex-wrap items-center justify-between gap-2 rounded-[10px] border-[1.5px] border-dashed border-line-strong bg-white px-4 py-3.5 hover:bg-blue-soft has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-blue"
+            className="flex cursor-pointer flex-wrap items-center justify-between gap-2 rounded-[10px] border border-dashed border-line-strong bg-white px-4 py-3.5 hover:bg-blue-soft has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-blue"
           >
             <span className="inline-flex items-center gap-2 text-sm font-bold text-blue">
               <FileUp aria-hidden="true" className="h-4 w-4" />
               Choose file
             </span>
-            <span className="font-mono text-xs text-muted">{evidenceFile?.name ?? "No file chosen"}</span>
+            <span className="text-[13px] text-muted">{evidenceFile?.name ?? "No file chosen"}</span>
             <input
               accept=".pdf,.png,.jpg,.jpeg,.webp,.mp4,.pptx,.txt"
               aria-describedby={`${fileId}-hint`}

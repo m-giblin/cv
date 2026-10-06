@@ -6,7 +6,9 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { CARD_CLS, H2_CLS, LABEL_CLS, LINE_CARD_CLS, TEXTAREA_CLS } from "@/components/se/form-classes";
 import { Stat } from "@/components/ui/stat";
-import { Tag } from "@/components/ui/tag";
+import { ScoreBar } from "@/components/ui/bars";
+import { Note } from "@/components/ui/editorial";
+import { StatusPill } from "@/components/ui/status-pill";
 import { cn } from "@/lib/utils";
 
 type Question = {
@@ -34,17 +36,10 @@ function scoreTextClass(score: number | null) {
   return "text-danger";
 }
 
-function scoreFillClass(score: number | null) {
-  if (score === null) return "bg-line-strong";
-  if (score >= 70) return "bg-blue";
-  if (score >= 60) return "bg-warning";
-  return "bg-danger";
-}
-
 function ScoreTag({ score }: { score: number }) {
-  if (score >= 70) return <Tag tone="success">✓ On track</Tag>;
-  if (score >= 60) return <Tag tone="warning">• Close</Tag>;
-  return <Tag tone="danger">▲ Needs practice</Tag>;
+  if (score >= 70) return <StatusPill tone="success">On track</StatusPill>;
+  if (score >= 60) return <StatusPill tone="warning">Close</StatusPill>;
+  return <StatusPill tone="danger">Needs practice</StatusPill>;
 }
 
 export function CompetencyFlightCheck({
@@ -81,7 +76,7 @@ export function CompetencyFlightCheck({
       return;
     }
     onProgressHintChange?.(
-      `Question ${questionNumber} of ${total} · Difficulty adapting to your gaps`,
+      `Question ${questionNumber} of ${total}. Difficulty adapts to your gaps.`,
     );
   }, [complete, onProgressHintChange, questionNumber, started, total]);
 
@@ -174,25 +169,22 @@ export function CompetencyFlightCheck({
 
   const scoresPanel = (
     <section aria-labelledby="fc-scores" className="flex flex-col gap-2">
-      <h2 className="label-mono" id="fc-scores">
+      <h2 className="label-caps" id="fc-scores">
         Scores so far
       </h2>
       <ul className={`${LINE_CARD_CLS} overflow-hidden`}>
         {COMPETENCY_AREAS.map((name) => {
           const score = competencyScores?.[name] ?? null;
           const probes = probeCounts[name] ?? 0;
-          const pct = score ?? (probes > 0 ? 50 : 0);
           return (
             <li className="border-b border-divider px-4 py-3 last:border-b-0" key={name}>
               <div className="mb-1.5 flex items-center justify-between gap-2">
                 <span className="text-sm text-ink-2">{name}</span>
-                <span className={cn("font-mono text-xs font-medium", scoreTextClass(score))}>
-                  {score !== null ? `${score < 60 ? "▲ " : ""}${score}` : probes > 0 ? "Probing" : "—"}
+                <span className={cn("num text-[13px] font-bold", scoreTextClass(score))}>
+                  {score !== null ? score : probes > 0 ? "Probing" : "Not yet"}
                 </span>
               </div>
-              <div aria-hidden="true" className="h-2 overflow-hidden rounded-[4px] bg-divider">
-                <div className={cn("h-full transition-all", scoreFillClass(score))} style={{ width: `${pct}%` }} />
-              </div>
+              {score !== null ? <ScoreBar value={score} /> : null}
             </li>
           );
         })}
@@ -208,27 +200,24 @@ export function CompetencyFlightCheck({
 
   const sessionPanel = (
     <section aria-labelledby="fc-session" className="flex flex-col gap-3">
-      <h2 className="label-mono" id="fc-session">
+      <h2 className="label-caps" id="fc-session">
         This session
       </h2>
       <div className={`${LINE_CARD_CLS} grid grid-cols-2 gap-3 px-4 py-3`}>
         <Stat label="Done" value={progress} />
         <Stat label="Left" value={Math.max(0, total - progress)} />
       </div>
-      <h3 className="label-mono mt-1">Focus areas</h3>
-      <ul className={`${LINE_CARD_CLS} overflow-hidden`}>
-        {(focus.length > 0 ? focus : ["Objection handling", "Discovery", "Value articulation"]).map((item) => (
+      {focus.length > 0 ? <h3 className="mt-1 text-[15px] font-bold text-ink">Focus areas</h3> : null}
+      <ul className={cn(LINE_CARD_CLS, "overflow-hidden", focus.length === 0 && "hidden")}>
+        {focus.map((item) => (
           <li className="border-b border-divider px-4 py-2.5 text-sm text-ink-2 last:border-b-0" key={item}>
             {item}
           </li>
         ))}
       </ul>
-      <div className="rounded-[14px] bg-blue-soft px-4 py-3">
-        <p className="font-mono text-xs font-medium uppercase tracking-[0.03em] text-blue">After this check</p>
-        <p className="mt-1 text-[13px] leading-[1.45] text-ink-2">
-          Auto-assigns practice matched to your weakest result. No manual selection needed.
-        </p>
-      </div>
+      <Note title="After this check">
+        Practice matched to your weakest result is assigned for you. There is nothing to pick.
+      </Note>
     </section>
   );
 
@@ -242,14 +231,14 @@ export function CompetencyFlightCheck({
               index < progress
                 ? "bg-blue"
                 : index === progress
-                  ? "bg-signal outline outline-[1.5px] outline-ink"
-                  : "bg-[#DCE2EC]",
+                  ? "bg-signal"
+                  : "bg-track",
             )}
             key={index}
           />
         ))}
       </div>
-      <span className="shrink-0 font-mono text-xs uppercase tracking-[0.03em] text-muted">
+      <span className="shrink-0 text-[13px] text-muted">
         Question {questionNumber} of {total}
       </span>
     </div>
@@ -263,11 +252,11 @@ export function CompetencyFlightCheck({
         {complete && fieldSignalScore !== null ? (
           <section aria-labelledby="fc-result" className="flex flex-col gap-4">
             <div aria-live="polite" className={`${CARD_CLS} px-6 py-5`} role="status">
-              <h2 className="label-mono" id="fc-result">
+              <h2 className="label-caps label-caps--blue" id="fc-result">
                 Field signal score
               </h2>
               <div className="mt-1 flex flex-wrap items-end gap-x-4 gap-y-2">
-                <p className="text-[64px] font-extrabold leading-[0.85] tracking-[-0.04em] text-blue">
+                <p className="num text-[64px] font-extrabold leading-[0.85] tracking-[-0.04em] text-blue">
                   {fieldSignalScore}
                 </p>
                 <div className="pb-1">
@@ -290,7 +279,7 @@ export function CompetencyFlightCheck({
                       <p className="text-[13px] text-muted">{action.reason}</p>
                     </div>
                     <Link className="link text-sm" href={action.href}>
-                      Go practice →
+                      Go practice
                     </Link>
                   </li>
                 ))}
@@ -299,7 +288,7 @@ export function CompetencyFlightCheck({
           </section>
         ) : !started ? (
           <section aria-labelledby="fc-start" className={`${CARD_CLS} px-6 py-6`}>
-            <p className="label-mono">Competency flight check · Session 1</p>
+            <p className="label-caps label-caps--blue">Competency flight check</p>
             <h2 className={`${H2_CLS} mt-1`} id="fc-start">
               Ready to find your gaps?
             </h2>
@@ -315,7 +304,7 @@ export function CompetencyFlightCheck({
                 type="button"
               >
                 {loading ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : null}
-                {loading ? "Starting..." : "Start flight check →"}
+                {loading ? "Starting..." : "Start flight check"}
               </button>
               <button className="btn-secondary" disabled={loading} onClick={() => void loadSession()} type="button">
                 Resume last session
@@ -325,8 +314,8 @@ export function CompetencyFlightCheck({
         ) : question ? (
           <section aria-labelledby="fc-question" className={`${CARD_CLS} flex flex-col gap-5 px-6 py-6`}>
             <div>
-              <p className="label-mono">
-                {question.competency} · Question {questionNumber}
+              <p className="text-[13px] font-semibold text-blue">
+                {question.competency}, question {questionNumber}
               </p>
               <h2 className="mt-1.5 text-lg font-extrabold leading-[1.35] text-ink" id="fc-question">
                 &ldquo;{question.prompt}&rdquo;
@@ -348,12 +337,12 @@ export function CompetencyFlightCheck({
                       onClick={() => setSelected(index)}
                       type="button"
                     >
-                      <span aria-hidden="true" className="mt-0.5 w-4 shrink-0 font-mono text-xs font-medium text-muted">
+                      <span aria-hidden="true" className="mt-0.5 w-4 shrink-0 text-[13px] text-muted">
                         {String.fromCharCode(65 + index)}
                       </span>
                       <span className="flex-1">{option}</span>
                       {active ? (
-                        <span className="shrink-0 font-mono text-xs font-medium uppercase text-blue">● Selected</span>
+                        <StatusPill tone="blue">Selected</StatusPill>
                       ) : null}
                     </button>
                   );
@@ -369,7 +358,7 @@ export function CompetencyFlightCheck({
                 className={`${TEXTAREA_CLS} min-h-[96px]`}
                 id="fc-answer"
                 onChange={(event) => setAnswer(event.target.value)}
-                placeholder="I'd focus on SailPoint's deployment methodology — we have a dedicated success framework…"
+                placeholder="I'd focus on the deployment methodology. We have a dedicated success framework…"
                 rows={3}
                 value={answer}
               />
@@ -396,13 +385,13 @@ export function CompetencyFlightCheck({
                 type="button"
               >
                 {submitting ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : null}
-                {submitting ? "Saving..." : "Next question →"}
+                {submitting ? "Saving..." : "Next question"}
               </button>
             </div>
           </section>
         ) : (
           <p
-            className="rounded-[14px] border-[1.5px] border-dashed border-line-strong p-7 text-center text-[15px] text-muted"
+            className="rounded-[14px] border border-dashed border-line-strong p-7 text-center text-[15px] text-muted"
             role="status"
           >
             Loading next probe...
@@ -414,7 +403,7 @@ export function CompetencyFlightCheck({
         {started || complete ? (
           scoresPanel
         ) : (
-          <p className="rounded-[14px] border-[1.5px] border-dashed border-line-strong p-5 text-center text-sm text-muted">
+          <p className="rounded-[14px] border border-dashed border-line-strong p-5 text-center text-sm text-muted">
             Scores appear once you start.
           </p>
         )}

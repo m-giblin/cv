@@ -7,6 +7,7 @@ import dynamic from "next/dynamic";
 import { ChallengeSubmissionForm } from "@/components/challenges/submission-form";
 import { CARD_CLS, FIELD_CLS, LINE_CARD_CLS, SELECT_CLS } from "@/components/se/form-classes";
 import { Chip } from "@/components/ui/chip";
+import { StatusPill } from "@/components/ui/status-pill";
 import { Tag } from "@/components/ui/tag";
 import {
  type ChallengeFilter,
@@ -24,7 +25,7 @@ const ChallengeGenerator = dynamic(
  {
  loading: () => (
  <p
- className="rounded-[14px] border-[1.5px] border-dashed border-line-strong p-7 text-center text-[15px] text-muted"
+ className="rounded-[14px] border border-dashed border-line-strong p-7 text-center text-[15px] text-muted"
  role="status"
  >
  Loading generator...
@@ -38,8 +39,8 @@ type PortalView = "browse" | "submissions" | "generate";
 const PAGE_SIZE = 12;
 
 const CHALLENGE_TIPS = [
- { label: "Discovery tip", text: "Start with scope — how many identities, then how many of those are non-human?" },
- { label: "Agentic AI hook", text: '"Who is the human accountable when an agent provisions access?" — lands every time.' },
+ { label: "Discovery tip", text: "Start with scope: how many identities, and how many of those are non-human?" },
+ { label: "Agentic AI hook", text: 'Ask "Who is the human accountable when an agent provisions access?" It lands every time.' },
  { label: "Close with risk", text: "Tie to their last audit. Evidence gap is the pain that creates urgency." },
 ] as const;
 
@@ -95,11 +96,11 @@ function libraryStatus(submission?: ChallengeSubmission): LibraryStatus {
 }
 
 function StatusTag({ status }: { status: LibraryStatus }) {
- if (status === "Approved") return <Tag tone="success">✓ Approved</Tag>;
- if (status === "Submitted") return <Tag tone="blue">◆ Submitted</Tag>;
- if (status === "In progress") return <Tag tone="blue">● In progress</Tag>;
- if (status === "Redo requested") return <Tag tone="danger">▲ Redo requested</Tag>;
- return <Tag tone="neutral">○ Not started</Tag>;
+ if (status === "Approved") return <StatusPill tone="success">Approved</StatusPill>;
+ if (status === "Submitted") return <StatusPill tone="blue">Submitted</StatusPill>;
+ if (status === "In progress") return <StatusPill tone="blue">In progress</StatusPill>;
+ if (status === "Redo requested") return <StatusPill tone="danger">Redo requested</StatusPill>;
+ return <StatusPill tone="neutral">Not started</StatusPill>;
 }
 
 function primaryCompetency(challenge: Challenge) {
@@ -118,24 +119,24 @@ const FILTER_OPTIONS: { id: ChallengeFilter; label: string }[] = [
 ];
 
 const EMPTY_CLS =
- "rounded-[14px] border-[1.5px] border-dashed border-line-strong p-7 text-center text-[15px] text-muted";
+ "rounded-[14px] border border-dashed border-line-strong p-7 text-center text-[15px] text-muted";
 
 function SubmissionBadge({ submission }: { submission?: ChallengeSubmission }) {
  const statusInfo = libraryStatusLabel(submission);
  if (!statusInfo.status) return null;
- if (statusInfo.label) return <Tag tone="danger">▲ {statusInfo.label}</Tag>;
+ if (statusInfo.label) return <StatusPill tone="danger">{statusInfo.label}</StatusPill>;
  switch (statusInfo.status) {
  case "reviewed":
  case "completed":
- return <Tag tone="success">✓ Reviewed</Tag>;
+ return <StatusPill tone="success">Reviewed</StatusPill>;
  case "submitted":
- return <Tag tone="blue">◆ Submitted</Tag>;
+ return <StatusPill tone="blue">Submitted</StatusPill>;
  case "under_review":
- return <Tag tone="blue">◆ Under review</Tag>;
+ return <StatusPill tone="blue">Under review</StatusPill>;
  case "in_progress":
- return <Tag tone="blue">● In progress</Tag>;
+ return <StatusPill tone="blue">In progress</StatusPill>;
  default:
- return <Tag tone="neutral">○ Not started</Tag>;
+ return <StatusPill tone="neutral">Not started</StatusPill>;
  }
 }
 
@@ -365,8 +366,9 @@ export function ChallengesPortal({
  return (
  <div className="flex min-w-0 flex-1 flex-col gap-5">
  {isFocused ? (
- <p className="rounded-[16px] bg-blue px-5 py-3 text-[15px] font-semibold text-white">
- Linked from your ramp plan. Complete and submit when ready.
+ <p className="rounded-[12px] border border-dashed border-line-strong px-5 py-3 text-[15px] text-ink-2">
+ <span className="label-caps label-caps--blue mr-2">From your ramp</span>
+ Complete it and submit when you are ready.
  </p>
  ) : null}
 
@@ -400,7 +402,7 @@ export function ChallengesPortal({
  >
  <span className="min-w-0">
  <span className="block truncate text-[15px] font-bold text-ink">{challenge?.title ?? "Challenge"}</span>
- <span className="font-mono text-xs uppercase tracking-[0.03em] text-muted">
+ <span className="text-[13px] text-muted">
  {submission.submittedAt
  ? new Date(submission.submittedAt).toLocaleDateString()
  : "Draft"}
@@ -419,7 +421,7 @@ export function ChallengesPortal({
  <aside aria-label="Challenge library" className={`${LINE_CARD_CLS} flex min-w-0 flex-col overflow-hidden`}>
  <div className="flex flex-col gap-3 border-b border-divider px-5 py-4">
  <div className="flex flex-col gap-1">
- <label className="label-mono" htmlFor="challenge-search">
+ <label className="text-sm font-bold text-ink" htmlFor="challenge-search">
  Search
  </label>
  <div className="relative">
@@ -448,7 +450,7 @@ export function ChallengesPortal({
  </div>
  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
  <div className="flex flex-col gap-1">
- <label className="label-mono" htmlFor="challenge-vertical">
+ <label className="text-sm font-bold text-ink" htmlFor="challenge-vertical">
  Vertical
  </label>
  <select
@@ -465,7 +467,7 @@ export function ChallengesPortal({
  </select>
  </div>
  <div className="flex flex-col gap-1">
- <label className="label-mono" htmlFor="challenge-competency">
+ <label className="text-sm font-bold text-ink" htmlFor="challenge-competency">
  Competency
  </label>
  <select
@@ -482,7 +484,7 @@ export function ChallengesPortal({
  </select>
  </div>
  <div className="flex flex-col gap-1">
- <label className="label-mono" htmlFor="challenge-status">
+ <label className="text-sm font-bold text-ink" htmlFor="challenge-status">
  Status
  </label>
  <select
@@ -499,7 +501,7 @@ export function ChallengesPortal({
  </select>
  </div>
  <div className="flex flex-col gap-1">
- <label className="label-mono" htmlFor="challenge-sort">
+ <label className="text-sm font-bold text-ink" htmlFor="challenge-sort">
  Sort
  </label>
  <select
@@ -537,7 +539,7 @@ export function ChallengesPortal({
 
  <div className="min-h-0 lg:max-h-[min(70vh,900px)] lg:overflow-y-auto">
  {filtered.length === 0 ? (
- <p className="m-5 rounded-[14px] border-[1.5px] border-dashed border-line-strong p-7 text-center text-[15px] text-muted">
+ <p className="m-5 rounded-[14px] border border-dashed border-line-strong p-7 text-center text-[15px] text-muted">
  No challenges match these filters.
  </p>
  ) : (
@@ -561,8 +563,8 @@ export function ChallengesPortal({
  <span className="text-[15px] font-bold leading-snug text-ink">{challenge.title}</span>
  <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
  <StatusTag status={status} />
- <span className="font-mono text-xs uppercase tracking-[0.03em] text-muted">
- {competency} · {challenge.estimatedMinutes} min
+ <span className="text-[13px] text-muted">
+ {competency}, about {challenge.estimatedMinutes} min
  </span>
  </span>
  </button>
@@ -573,7 +575,7 @@ export function ChallengesPortal({
  )}
  {visibleCount < filtered.length ? (
  <div className="border-t border-divider px-5 py-3 text-center text-sm text-muted">
- Showing {visibleRows.length} of {filtered.length} ·{" "}
+ Showing {visibleRows.length} of {filtered.length}.{" "}
  <button
  className="link"
  onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
@@ -601,8 +603,8 @@ export function ChallengesPortal({
  <h2 className="text-2xl font-extrabold leading-[1.15] tracking-[-0.015em] text-ink">
  {selectedChallenge.title}
  </h2>
- <p className="mt-1.5 font-mono text-xs uppercase tracking-[0.03em] text-muted">
- {selectedChallenge.estimatedMinutes} min · {selectedChallenge.steps.length} steps
+ <p className="mt-1.5 text-[13px] text-muted">
+ About {selectedChallenge.estimatedMinutes} min, {selectedChallenge.steps.length} steps
  </p>
  <div className="mt-2.5 flex flex-wrap gap-1.5">
  {competencyNamesForChallenge(selectedChallenge).map((name) => (
@@ -621,16 +623,16 @@ export function ChallengesPortal({
  ) : (
  <>
  <section>
- <h3 className="label-mono">Scenario</h3>
+ <h3 className="text-[15px] font-bold text-ink">Scenario</h3>
  <p className="mt-1.5 text-[15px] leading-[1.5] text-ink-2">{selectedChallenge.description}</p>
  </section>
 
  <section>
- <h3 className="label-mono">Coach tips</h3>
+ <h3 className="text-[15px] font-bold text-ink">Coach tips</h3>
  <ul className="mt-2 grid gap-3 sm:grid-cols-3">
  {CHALLENGE_TIPS.map((tip) => (
  <li className={`${LINE_CARD_CLS} px-4 py-3`} key={tip.label}>
- <p className="font-mono text-xs font-medium uppercase tracking-[0.03em] text-blue">{tip.label}</p>
+ <p className="text-[13px] font-semibold text-blue">{tip.label}</p>
  <p className="mt-1 text-sm leading-[1.5] text-ink-2">{tip.text}</p>
  </li>
  ))}
@@ -639,13 +641,13 @@ export function ChallengesPortal({
 
  {selectedChallenge.steps.length > 0 ? (
  <section>
- <h3 className="label-mono">Steps</h3>
+ <h3 className="text-[15px] font-bold text-ink">Steps</h3>
  <ol className="mt-2 flex flex-col gap-2.5">
  {selectedChallenge.steps.map((step, index) => (
  <li className="flex items-start gap-3" key={index}>
  <span
  aria-hidden="true"
- className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-soft font-mono text-xs font-medium text-blue"
+ className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-soft text-[13px] font-bold text-blue"
  >
  {index + 1}
  </span>
@@ -659,13 +661,11 @@ export function ChallengesPortal({
 
  {selectedChallenge.successCriteria.length > 0 ? (
  <section>
- <h3 className="label-mono">Success criteria</h3>
+ <h3 className="text-[15px] font-bold text-ink">Success criteria</h3>
  <ul className="mt-2 flex flex-col gap-1.5">
  {selectedChallenge.successCriteria.map((criterion) => (
  <li className="flex items-start gap-2" key={criterion}>
- <span aria-hidden="true" className="font-bold text-success">
- ✓
- </span>
+ <span aria-hidden="true" className="mt-[7px] block h-2.5 w-1.5 shrink-0 rotate-45 border-r-2 border-b-2 border-success" />
  <span className="text-[15px] leading-[1.5] text-ink-2">{criterion}</span>
  </li>
  ))}
@@ -675,7 +675,7 @@ export function ChallengesPortal({
 
  {selectedChallenge.linkedResources.length > 0 ? (
  <section>
- <h3 className="label-mono">Resources</h3>
+ <h3 className="text-[15px] font-bold text-ink">Resources</h3>
  <ul className="mt-2 flex flex-col gap-1.5">
  {selectedChallenge.linkedResources.map((resource) => (
  <li key={resource}>
@@ -696,9 +696,9 @@ export function ChallengesPortal({
  ) : null}
 
  {selectedSubmission?.managerFeedback ? (
- <section className="rounded-[14px] border border-warning bg-warning-soft px-4 py-3">
- <h3 className="font-mono text-xs font-medium uppercase tracking-[0.03em] text-warning">
- ▲ Manager feedback
+ <section className="rounded-[14px] bg-warning-soft px-4 py-3">
+ <h3 className="text-[13px] font-semibold text-warning">
+ Manager feedback
  </h3>
  <p className="mt-1.5 text-[15px] leading-[1.5] text-ink">{selectedSubmission.managerFeedback}</p>
  </section>

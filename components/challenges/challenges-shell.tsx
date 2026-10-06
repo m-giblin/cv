@@ -44,7 +44,7 @@ export function ChallengesShell({
   }, [challenges.length, submissions]);
 
   return (
-    <PracticeToolPage eyebrow="Written · reviewed by your manager" testMode={testMode} title="Challenges">
+    <PracticeToolPage subtitle="Hands-on work, reviewed by your manager." testMode={testMode} title="Challenges">
       <ChallengesWorkspaceBar
         backHref={backHref}
         onToggleHelp={() => setShowHelp((open) => !open)}

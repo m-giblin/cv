@@ -16,11 +16,11 @@ export function FlightCheckShell({
   return (
     <PracticeToolPage
       actions={
-        <span aria-live="polite" className="label-mono">
+        <span aria-live="polite" className="text-sm text-muted">
           {progressHint}
         </span>
       }
-      eyebrow="Adaptive readiness check"
+      subtitle="An adaptive check of how ready you are for the field."
       testMode={testMode}
       title="Flight check"
     >

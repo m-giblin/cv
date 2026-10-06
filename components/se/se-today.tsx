@@ -1,45 +1,78 @@
 import Link from "next/link";
-import { CredentialBadge } from "@/components/se/credential-badge";
+import { GateStampsCard } from "@/components/se/gate-stamps-card";
 import { Greeting } from "@/components/se/greeting";
-import { PreflightRailCard } from "@/components/se/preflight-rail-card";
-import { RampRunway } from "@/components/se/ramp-runway";
+import { RampDefinitionCard } from "@/components/se/ramp-definition-card";
 import { FlightStrip } from "@/components/ui/flight-strip";
-import { RampCard } from "@/components/ui/ramp-card";
+import { PageBody, PageHeader } from "@/components/ui/page-header";
 import { Schedule } from "@/components/ui/schedule";
+import { StatusPill } from "@/components/ui/status-pill";
 import { planStepTypeLabel } from "@/lib/plans/step-labels";
 import type { GateRow } from "@/lib/se/gate-matrix";
 import {
   buildRampModel,
   dayAndMonth,
+  daysUntil,
+  formatDay,
+  isStepValidated,
   isStepWithReviewer,
+  numberWord,
   pad2,
-  paceLabel,
+  stepDetailHref,
   stepLifecycle,
-  stepMeta,
+  type RampModel,
 } from "@/lib/se/ramp-model";
-import type { DashboardData, PlanStep, Profile } from "@/lib/types";
-import { planStepHref } from "@/lib/utils/plan-links";
+import type { DashboardData, PlanStep } from "@/lib/types";
+import { planStepActionLabel, planStepHref } from "@/lib/utils/plan-links";
 
-function managerShort(manager: Profile | undefined): string | null {
-  if (!manager) return null;
-  const parts = manager.fullName.split(" ").filter(Boolean);
-  if (parts.length < 2) return manager.fullName;
-  return `${parts[0]![0]}. ${parts[parts.length - 1]}`;
+function capitalize(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-function dueNote(step: PlanStep, reviewer: string): string {
-  if (isStepWithReviewer(step.status)) return `SUBMITTED · WITH ${reviewer.toUpperCase()}`;
-  if (!step.dueDate) return step.status === "in_progress" ? "IN PROGRESS" : "NOT STARTED";
-  const due = new Date(`${step.dueDate.slice(0, 10)}T12:00:00`).getTime();
-  const today = new Date(`${new Date().toISOString().slice(0, 10)}T12:00:00`).getTime();
-  const days = Math.round((due - today) / 86_400_000);
-  if (days < 0) return `▲ ${Math.abs(days)} DAY${days === -1 ? "" : "S"} OVERDUE`;
-  if (days === 0) return "DUE TODAY";
-  return `DUE IN ${days} DAY${days === 1 ? "" : "S"}`;
+function primaryLabel(step: PlanStep): string {
+  return step.status === "in_progress"
+    ? `Continue ${planStepTypeLabel(step.type).toLowerCase()}`
+    : planStepActionLabel(step);
 }
 
-/** SE › Today (artboard 1a): next step first, the next three runway items, credential + ramp in the rail. */
-export function SeToday({ data, gateRows }: { data: DashboardData; gateRows: GateRow[] }) {
+/** Serif accent and subtitle for the hero, from the SE's actual next step. */
+function heroCopy(model: RampModel | null, reviewerFirst: string | null): { accent?: string; subtitle?: string } {
+  if (!model) return { subtitle: "Your ramp plan shows up here once your manager assigns it." };
+  const next = model.nextStep;
+  if (!next) return { accent: "Field ready.", subtitle: "Every ramp step is validated. Keep your certification gates moving." };
+  const word = capitalize(numberWord(model.nextStepNumber));
+  const after = model.upcoming[0];
+  if (isStepWithReviewer(next.status)) {
+    return {
+      accent: `Step ${numberWord(model.nextStepNumber)} is with ${reviewerFirst ?? "your manager"}.`,
+      subtitle: after ? `While you wait, ${after.title} is next.` : "It is the last step on your ramp.",
+    };
+  }
+  return {
+    accent: `Step ${numberWord(model.nextStepNumber)} is yours.`,
+    subtitle: after
+      ? `One validation stands between you and ${after.title}.`
+      : `${word} is the last step on your ramp.`,
+  };
+}
+
+function scheduleMeta(step: PlanStep, model: RampModel, minutes: number | null): string {
+  const segment = model.segments.find((item) => item.index === (step.segmentIndex ?? 0));
+  if (step.isSegmentGate) return segment ? `Closes the ${segment.label.toLowerCase()} segment` : "Closes this segment";
+  if (step.locked) return "Unlocks when the current gate clears";
+  const type = planStepTypeLabel(step.type);
+  return minutes ? `${type}, about ${minutes} min` : type;
+}
+
+/** SE › Today (artboard 1a): the next step first, what's coming up, then the ramp and the gates in the rail. */
+export function SeToday({
+  data,
+  gateRows,
+  calendarEnabled = false,
+}: {
+  data: DashboardData;
+  gateRows: GateRow[];
+  calendarEnabled?: boolean;
+}) {
   const user = data.currentUser;
   const firstName = user.fullName.split(" ")[0] ?? "there";
   const plan = data.plans.find((item) => item.userId === user.id);
@@ -49,144 +82,150 @@ export function SeToday({ data, gateRows }: { data: DashboardData; gateRows: Gat
   const next = model?.nextStep ?? null;
   const reviewerProfile = next?.type === "mentor_review" && mentor ? mentor : manager;
   const reviewerFirst = reviewerProfile?.fullName.split(" ")[0] ?? null;
+  const minutesFor = (step: PlanStep) =>
+    step.challengeId ? (data.challenges.find((item) => item.id === step.challengeId)?.estimatedMinutes ?? null) : null;
 
-  const eyebrow = [
-    `${user.level} SE`,
-    plan?.name,
-    managerShort(manager) ? `MGR ${managerShort(manager)}` : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const currentSegment = model?.segments.find((segment) => segment.state === "current");
+  const eyebrow = model ? (
+    <>
+      Week {model.currentWeek} of {model.totalWeeks}
+      {currentSegment && currentSegment.index !== 0 ? <>&nbsp;/&nbsp;{currentSegment.label}</> : null}
+    </>
+  ) : (
+    `${user.level} SE`
+  );
+  const hero = heroCopy(model, reviewerFirst);
 
-  const scheduleRows = (model?.upcoming ?? []).slice(0, 3).map((step) => {
-    const { day, month } = dayAndMonth(step.dueDate);
-    const segment = step.segmentIndex ?? null;
-    const isLastSegment = model ? segment === model.segments[model.segments.length - 1]?.index : true;
-    return {
-      id: step.id,
-      day,
-      month,
-      gate: Boolean(step.isSegmentGate),
-      title: step.title,
-      meta: step.isSegmentGate
-        ? segment && !isLastSegment
-          ? `◆ GATE · UNLOCKS SEGMENT ${segment + 1}`
-          : "◆ GATE"
-        : `${planStepTypeLabel(step.type)}${step.locked ? " · LOCKED" : ""}`,
-    };
-  });
+  const scheduleRows = model
+    ? model.upcoming.slice(0, 3).map((step) => {
+        const { day, month } = dayAndMonth(step.dueDate);
+        return {
+          id: step.id,
+          day,
+          month,
+          gate: Boolean(step.isSegmentGate),
+          title: step.title,
+          meta: scheduleMeta(step, model, minutesFor(step)),
+        };
+      })
+    : [];
+
+  const overdueDays = next && !isStepValidated(next.status) ? daysUntil(next.dueDate) : null;
+  const nextMinutes = next ? minutesFor(next) : null;
 
   return (
-    <div className="flex flex-col">
-      <header className="flex flex-wrap items-end justify-between gap-6 px-[var(--gutter)] pt-6">
-        <div className="flex min-w-0 flex-col gap-1.5">
-          <p className="label-mono">{eyebrow}</p>
-          <h1 className="text-[32px] leading-[1.05] font-extrabold tracking-[-0.02em] text-ink">
-            <Greeting firstName={firstName} />
-          </h1>
-        </div>
-        {model ? (
-          <p aria-label={`Week ${model.currentWeek} of ${model.totalWeeks}`} className="flex items-baseline gap-1.5">
-            <span aria-hidden className="label-mono mr-1.5">
-              Week
-            </span>
-            <span aria-hidden className="text-[64px] leading-[0.85] font-extrabold tracking-[-0.04em] text-blue">
-              {pad2(model.currentWeek)}
-            </span>
-            <span aria-hidden className="text-[22px] font-bold text-faint">
-              /{model.totalWeeks}
-            </span>
-          </p>
-        ) : null}
-      </header>
+    <div className="flex flex-col pb-7">
+      <PageHeader
+        accent={hero.accent}
+        eyebrow={eyebrow}
+        size="hero"
+        subtitle={hero.subtitle}
+        title={<Greeting firstName={firstName} />}
+      />
 
-      {model ? <RampRunway className="px-[var(--gutter)] pt-4 pb-5" model={model} /> : <div className="h-5" />}
-
-      <div className="flex flex-wrap items-start gap-7 px-[var(--gutter)] pb-7">
-        <div className="flex min-w-0 flex-[1_1_560px] flex-col gap-[22px]">
-          {!plan || !model ? (
-            <div className="rounded-[14px] border-[1.5px] border-dashed border-line-strong p-7 text-[15px] text-muted">
-              <p className="text-lg font-extrabold text-ink">No ramp plan yet</p>
-              <p className="mt-1">
-                {manager
-                  ? `${manager.fullName} will assign your ramp plan. You can reach them at ${manager.email}.`
-                  : "Your manager will assign a ramp plan when you join the program."}
-              </p>
-            </div>
-          ) : next ? (
-            <FlightStrip
-              lifecycle={stepLifecycle(next, reviewerFirst)}
-              numeral={pad2(model.nextStepNumber)}
-              numeralCaption={`OF ${pad2(model.total)}`}
-              stubLabel={isStepWithReviewer(next.status) ? "WAITING" : "NEXT STEP"}
-            >
-              <span className="font-mono text-xs text-muted uppercase">{stepMeta(next)}</span>
-              <h2 className="text-[25px] leading-[1.1] font-extrabold tracking-[-0.015em] text-ink">{next.title}</h2>
-              {next.description ? (
-                <p className="max-w-[560px] text-[15px] leading-[1.5] text-ink-2">{next.description}</p>
-              ) : null}
-              <div className="mt-1 flex flex-wrap items-center gap-[18px]">
-                {isStepWithReviewer(next.status) ? (
-                  <button className="btn-primary" disabled type="button">
-                    Waiting on {reviewerFirst ?? "your manager"}
-                  </button>
-                ) : next.locked ? (
-                  <button className="btn-primary" disabled type="button">
-                    Locked until the segment gate clears
-                  </button>
-                ) : (
-                  <Link className="btn-primary" href={planStepHref(next)}>
-                    {next.status === "in_progress" ? "Continue" : "Start"} {planStepTypeLabel(next.type).toLowerCase()} →
-                  </Link>
-                )}
-                <span className="font-mono text-xs text-muted">{dueNote(next, reviewerFirst ?? "manager")}</span>
+      <PageBody>
+        <div className="grid items-start gap-[var(--rail-gap)] xl:grid-cols-[minmax(0,1fr)_clamp(360px,40%,520px)]">
+          <div className="flex min-w-0 flex-col gap-8">
+            {!plan || !model ? (
+              <div className="rounded-[14px] border border-dashed border-line-strong p-7 text-[15px] text-muted">
+                <h2 className="text-lg font-extrabold text-ink">No ramp plan yet</h2>
+                <p className="mt-1">
+                  {manager
+                    ? `${manager.fullName} will assign your ramp plan. You can reach them at ${manager.email}.`
+                    : "Your manager will assign a ramp plan when you join the program."}
+                </p>
               </div>
-            </FlightStrip>
-          ) : (
-            <FlightStrip numeral="✓" numeralCaption={`${model.total} OF ${model.total}`} stubLabel="FIELD READY">
-              <span className="font-mono text-xs text-muted uppercase">Ramp complete</span>
-              <h2 className="text-[25px] leading-[1.1] font-extrabold tracking-[-0.015em] text-ink">
-                Every ramp step is validated.
-              </h2>
-              <p className="max-w-[560px] text-[15px] leading-[1.5] text-ink-2">
-                Keep your certification gates moving and your skills sharp in Practice.
-              </p>
-              <div className="mt-1">
-                <Link className="btn-primary" href="/readiness/certification">
-                  Open certification →
-                </Link>
-              </div>
-            </FlightStrip>
-          )}
-
-          {scheduleRows.length > 0 ? (
-            <section aria-labelledby="next-on-runway" className="flex flex-col gap-2">
-              <div className="flex items-baseline justify-between gap-4">
-                <h2 className="text-lg font-extrabold text-ink" id="next-on-runway">
-                  Next on the runway
+            ) : next ? (
+              <FlightStrip
+                lifecycle={stepLifecycle(next, reviewerFirst)}
+                numeral={pad2(model.nextStepNumber)}
+                numeralCaption={`of ${model.total}`}
+                stubLabel={isStepWithReviewer(next.status) ? "Waiting" : "Next step"}
+              >
+                <h2 className="text-[26px] leading-[1.1] font-extrabold tracking-[-0.015em] text-ink">{next.title}</h2>
+                {next.description ? (
+                  <p className="max-w-[560px] text-base leading-[1.55] text-ink-2">{next.description}</p>
+                ) : null}
+                <p className="flex flex-wrap items-center gap-x-7 gap-y-1 text-sm text-muted">
+                  {next.dueDate ? (
+                    <span>
+                      Due <b className="text-ink">{formatDay(next.dueDate)}</b>
+                    </span>
+                  ) : null}
+                  {nextMinutes ? (
+                    <span>
+                      About <b className="text-ink">{nextMinutes} min</b>
+                    </span>
+                  ) : null}
+                  {reviewerProfile ? (
+                    <span>
+                      Reviewer <b className="text-ink">{reviewerProfile.fullName}</b>
+                    </span>
+                  ) : null}
+                  {overdueDays !== null && overdueDays < 0 && !isStepWithReviewer(next.status) ? (
+                    <StatusPill tone="danger">
+                      {Math.abs(overdueDays)} {overdueDays === -1 ? "day" : "days"} overdue
+                    </StatusPill>
+                  ) : null}
+                </p>
+                <div className="flex flex-wrap items-center gap-[18px] pt-1">
+                  {isStepWithReviewer(next.status) ? (
+                    <button className="btn-primary" disabled type="button">
+                      Waiting on {reviewerFirst ?? "your manager"}
+                    </button>
+                  ) : next.locked ? (
+                    <button className="btn-primary" disabled type="button">
+                      Locked until the gate clears
+                    </button>
+                  ) : (
+                    <Link className="btn-primary" href={planStepHref(next)}>
+                      {primaryLabel(next)}
+                    </Link>
+                  )}
+                  {next.assignmentStepId ? (
+                    <Link className="link text-[15px]" href={stepDetailHref(next)}>
+                      View criteria
+                    </Link>
+                  ) : null}
+                </div>
+              </FlightStrip>
+            ) : (
+              <FlightStrip numeral={pad2(model.total)} numeralCaption={`of ${model.total}`} stubLabel="Field ready">
+                <h2 className="text-[26px] leading-[1.1] font-extrabold tracking-[-0.015em] text-ink">
+                  Every ramp step is validated.
                 </h2>
-                <Link className="link text-sm" href="/my-plan">
-                  Full ramp plan
-                </Link>
-              </div>
-              <Schedule rows={scheduleRows} />
-            </section>
-          ) : null}
-        </div>
+                <p className="max-w-[560px] text-base leading-[1.55] text-ink-2">
+                  Keep your certification gates moving and your skills sharp in Practice.
+                </p>
+                <div className="pt-1">
+                  <Link className="btn-primary" href="/readiness/certification">
+                    Open certification
+                  </Link>
+                </div>
+              </FlightStrip>
+            )}
 
-        <aside aria-label="Progress" className="flex w-[300px] max-w-full flex-none flex-col gap-3.5">
-          <CredentialBadge profile={user} rows={gateRows} />
-          {model ? (
-            <RampCard
-              caption="steps validated"
-              done={model.validated}
-              note={model.daysLeft !== null ? `${model.daysLeft} DAYS LEFT · ${paceLabel(model)}` : paceLabel(model)}
-              total={model.total}
-            />
-          ) : null}
-          <PreflightRailCard />
-        </aside>
-      </div>
+            {scheduleRows.length > 0 ? (
+              <section aria-labelledby="coming-up" className="flex flex-col">
+                <div className="flex items-baseline justify-between gap-4 pb-3">
+                  <h2 className="text-xl font-extrabold text-ink" id="coming-up">
+                    Coming up
+                  </h2>
+                  <Link className="link text-sm" href={calendarEnabled ? "/my-plan?view=calendar" : "/my-plan"}>
+                    {calendarEnabled ? "Open calendar" : "See my ramp"}
+                  </Link>
+                </div>
+                <Schedule rows={scheduleRows} />
+              </section>
+            ) : null}
+          </div>
+
+          <aside aria-label="Ramp and gates" className="flex min-w-0 flex-col gap-6">
+            <RampDefinitionCard model={model} />
+            {gateRows.length > 0 ? <GateStampsCard level={user.level} rows={gateRows} /> : null}
+          </aside>
+        </div>
+      </PageBody>
     </div>
   );
 }

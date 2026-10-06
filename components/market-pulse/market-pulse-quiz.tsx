@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { CARD_CLS, H2_CLS, LINE_CARD_CLS } from "@/components/se/form-classes";
-import { Tag } from "@/components/ui/tag";
+import { StatusPill } from "@/components/ui/status-pill";
 import { loadMarketPulseHistory, saveMarketPulseResult } from "@/lib/market-pulse/history";
 import { cn } from "@/lib/utils";
 
@@ -35,7 +35,7 @@ const COMPETITOR_REF = [
 ] as const;
 
 const EMPTY_CLS =
-  "rounded-[14px] border-[1.5px] border-dashed border-line-strong p-7 text-center text-[15px] text-muted";
+  "rounded-[14px] border border-dashed border-line-strong p-7 text-center text-[15px] text-muted";
 
 /** Score colour rule: danger < 60, warning 60–69, blue ≥ 70. Always paired with the number. */
 function scoreTextClass(score: number) {
@@ -45,9 +45,9 @@ function scoreTextClass(score: number) {
 }
 
 function ScoreTag({ percent }: { percent: number }) {
-  if (percent >= 70) return <Tag tone="success">✓ On track</Tag>;
-  if (percent >= 60) return <Tag tone="warning">• Close</Tag>;
-  return <Tag tone="danger">▲ Needs practice</Tag>;
+  if (percent >= 70) return <StatusPill tone="success">On track</StatusPill>;
+  if (percent >= 60) return <StatusPill tone="warning">Close</StatusPill>;
+  return <StatusPill tone="danger">Needs practice</StatusPill>;
 }
 
 function formatWeekLabel(weekId: string) {
@@ -106,7 +106,7 @@ export function MarketPulseQuiz({
   useEffect(() => {
     onProgressHintChange?.(
       questions.length
-        ? `${weekLabel} · ${answeredCount} of ${questions.length} answered`
+        ? `${weekLabel}. ${answeredCount} of ${questions.length} answered.`
         : weekLabel,
     );
   }, [answeredCount, onProgressHintChange, questions.length, weekLabel]);
@@ -190,8 +190,8 @@ export function MarketPulseQuiz({
     <div className="grid min-w-0 grid-cols-1 items-start gap-7 lg:grid-cols-[minmax(0,1fr)_300px]">
       <div className="flex min-w-0 flex-col gap-4">
         <div className="flex flex-col gap-2">
-          <p className="font-mono text-xs font-medium uppercase tracking-[0.03em] text-muted">
-            {weekLabel} · {focusTitle} · {questions.length} questions · ~4 min
+          <p className="text-[13px] text-muted">
+            {weekLabel}. {focusTitle}, {questions.length} questions, about 4 min.
           </p>
           <p className="text-sm text-ink-2">Scores feed your competitive positioning competency.</p>
           <div className="flex items-center gap-3">
@@ -205,12 +205,12 @@ export function MarketPulseQuiz({
                     : "bg-danger"
                   : answered
                     ? "bg-blue"
-                    : "bg-[#DCE2EC]";
+                    : "bg-track";
                 return <span className={cn("h-2 flex-1 rounded-[2px]", tone)} key={question.id} />;
               })}
             </div>
-            <span className="shrink-0 font-mono text-xs uppercase tracking-[0.03em] text-muted">
-              {answeredCount}/{questions.length} answered
+            <span className="shrink-0 text-[13px] text-muted">
+              {answeredCount} of {questions.length} answered
             </span>
           </div>
         </div>
@@ -218,15 +218,15 @@ export function MarketPulseQuiz({
         {submitted ? (
           <section aria-live="polite" className={`${LINE_CARD_CLS} flex flex-wrap items-end gap-x-6 gap-y-3 px-5 py-4`} role="status">
             <div>
-              <p className="label-mono">Your score</p>
+              <p className="label-caps">Your score</p>
               <p className="text-[56px] font-extrabold leading-[0.85] tracking-[-0.04em] text-blue">
                 {score}
-                <span className="text-[28px] text-faint">/{questions.length}</span>
+                <span className="text-[28px] text-faint"> of {questions.length}</span>
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2 pb-1">
               <ScoreTag percent={percent} />
-              <span className="font-mono text-xs uppercase tracking-[0.03em] text-muted">{percent}% correct</span>
+              <span className="text-[13px] text-muted">{percent}% correct</span>
             </div>
           </section>
         ) : null}
@@ -241,11 +241,11 @@ export function MarketPulseQuiz({
             return (
               <li className="border-b border-divider px-5 py-5 last:border-b-0" key={question.id}>
                 <div className="flex items-start gap-4">
-                  <span aria-hidden="true" className="w-7 shrink-0 font-mono text-[15px] font-medium text-muted">
+                  <span aria-hidden="true" className="w-7 shrink-0 text-[15px] font-medium text-muted">
                     {num}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="label-mono mb-1">{question.topic}</p>
+                    <p className="mb-1 text-[13px] font-semibold text-blue">{question.topic}</p>
                     <p className="mb-3 text-base font-bold leading-[1.4] text-ink" id={headingId}>
                       <span className="sr-only">Question {index + 1}: </span>
                       {question.question}
@@ -277,20 +277,16 @@ export function MarketPulseQuiz({
                             }
                             type="button"
                           >
-                            <span aria-hidden="true" className="w-4 shrink-0 font-mono text-xs font-medium text-muted">
+                            <span aria-hidden="true" className="w-4 shrink-0 text-[13px] text-muted">
                               {String.fromCharCode(65 + optionIndex)}
                             </span>
                             <span className="flex-1">{option}</span>
                             {showCorrect ? (
-                              <span className="shrink-0 font-mono text-xs font-medium uppercase text-success">
-                                ✓ Correct{selected ? "" : " answer"}
-                              </span>
+                              <StatusPill tone="success">Correct{selected ? "" : " answer"}</StatusPill>
                             ) : showWrong ? (
-                              <span className="shrink-0 font-mono text-xs font-medium uppercase text-danger">
-                                ▲ Your answer
-                              </span>
+                              <StatusPill tone="danger">Your answer</StatusPill>
                             ) : selected ? (
-                              <span className="shrink-0 font-mono text-xs font-medium uppercase text-blue">● Selected</span>
+                              <StatusPill tone="blue">Selected</StatusPill>
                             ) : null}
                           </button>
                         );
@@ -319,7 +315,7 @@ export function MarketPulseQuiz({
               onClick={() => void handleSubmit()}
               type="button"
             >
-              Submit quiz →
+              Submit quiz
             </button>
           </div>
         ) : null}
@@ -340,7 +336,7 @@ export function MarketPulseQuiz({
                     <p className="text-[13px] text-muted">{item.reason}</p>
                   </div>
                   <Link className="link text-sm" href={`/practice/challenges?challenge=${item.id}`}>
-                    Open challenge →
+                    Open challenge
                   </Link>
                 </li>
               ))}
@@ -350,20 +346,20 @@ export function MarketPulseQuiz({
       </div>
 
       <aside aria-label="Market pulse reference" className="flex min-w-0 flex-col gap-5">
-        <div className="rounded-[16px] bg-blue px-5 py-4 text-white">
-          <p className="font-mono text-xs font-medium uppercase tracking-[0.03em] text-signal">This week&apos;s focus</p>
-          <p className="mt-1 text-lg font-extrabold">{focusTitle}</p>
-          <p className="mt-1 text-sm text-on-blue">Agent governance · NHI sprawl · Workforce IGA</p>
+        <div className="rounded-[14px] border border-line bg-white px-5 py-4">
+          <p className="label-caps label-caps--blue">This week&apos;s focus</p>
+          <p className="mt-1 text-lg font-extrabold text-ink">{focusTitle}</p>
+          <p className="mt-1 text-sm text-ink-2">Agent governance, NHI sprawl and workforce IGA.</p>
         </div>
 
         <section aria-labelledby="pulse-ref" className="flex flex-col gap-2">
-          <h2 className="label-mono" id="pulse-ref">
+          <h2 className="label-caps" id="pulse-ref">
             Quick reference
           </h2>
           <ul className={`${LINE_CARD_CLS} overflow-hidden`}>
             {COMPETITOR_REF.map((item) => (
               <li className="border-b border-divider px-4 py-3 last:border-b-0" key={item.label}>
-                <p className="font-mono text-xs font-medium uppercase tracking-[0.03em] text-blue">{item.label}</p>
+                <p className="text-[13px] font-semibold text-blue">{item.label}</p>
                 <p className="mt-0.5 text-sm leading-[1.5] text-ink-2">{item.text}</p>
               </li>
             ))}
@@ -371,11 +367,11 @@ export function MarketPulseQuiz({
         </section>
 
         <section aria-labelledby="pulse-history" className="flex flex-col gap-2">
-          <h2 className="label-mono" id="pulse-history">
+          <h2 className="label-caps" id="pulse-history">
             Your history
           </h2>
           {history.length === 0 && !submitted ? (
-            <p className="rounded-[14px] border-[1.5px] border-dashed border-line-strong p-5 text-center text-sm text-muted">
+            <p className="rounded-[14px] border border-dashed border-line-strong p-5 text-center text-sm text-muted">
               Complete this week&apos;s pulse to log your score.
             </p>
           ) : (
@@ -387,10 +383,9 @@ export function MarketPulseQuiz({
                 >
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold text-ink">{row.topic}</p>
-                    <p className="font-mono text-xs uppercase text-muted">{row.date}</p>
+                    <p className="text-[13px] text-muted">{row.date}</p>
                   </div>
-                  <span className={cn("font-mono text-sm font-medium", scoreTextClass(row.score))}>
-                    {row.score < 60 ? "▲ " : ""}
+                  <span className={cn("num text-sm font-bold", scoreTextClass(row.score))}>
                     {row.score}%
                   </span>
                 </li>

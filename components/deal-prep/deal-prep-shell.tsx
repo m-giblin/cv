@@ -34,7 +34,7 @@ export function DealPrepShell({
           {historyOpen ? "Hide past briefs" : "View past briefs"}
         </button>
       }
-      eyebrow="Pre-call brief"
+      subtitle="A brief for your next customer call: discovery questions and likely objections."
       testMode={testMode}
       title="Deal prep"
     >

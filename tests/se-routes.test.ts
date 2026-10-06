@@ -110,7 +110,8 @@ describe("ramp model", () => {
 
   it("builds the lifecycle row", () => {
     const cells = stepLifecycle({ ...plan.steps[2]!, status: "submitted" }, "Matt");
-    expect(cells.map((c) => c.label)).toEqual(["✓ REQUESTED", "✓ SUBMITTED", "● WITH MATT"]);
+    expect(cells.map((c) => c.label)).toEqual(["Requested", "Submitted", "With Matt"]);
+    expect(cells.map((c) => c.stage)).toEqual(["done", "done", "current"]);
   });
 
   it("links steps to the new practice routes", () => {
@@ -151,7 +152,7 @@ describe("gate matrix", () => {
       reviewerFirstName: "Matt",
     });
     expect(rows[0]!.status).toBe("ready");
-    expect(rows[0]!.sims).toEqual({ kind: "stamp", state: "earned", caption: "2/2", tone: undefined });
+    expect(rows[0]!.sims).toEqual({ kind: "stamp", state: "earned", caption: "2 of 2" });
     expect(rows[1]!.status).toBe("locked");
     expect(nextGate(rows)?.type).toBe("solo_discovery");
   });
@@ -166,11 +167,12 @@ describe("competency table", () => {
       challenges: [],
       now: new Date("2026-10-05T00:00:00Z"),
     });
+    // Strongest first (artboard 4a); every row carries a suggested practice.
     expect(rows.map((r) => [r.name, r.score, r.status])).toEqual([
-      ["Objection Handling", 50, "needs_practice"],
       ["Discovery", 90, "on_track"],
+      ["Objection Handling", 50, "needs_practice"],
     ]);
-    expect(rows[0]!.suggestion?.href).toBe("/practice/simulations");
+    expect(rows[1]!.suggestion?.href).toBe("/practice/simulations");
     expect(competencyStatus(65)).toBe("close");
   });
 });

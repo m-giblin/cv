@@ -1,11 +1,11 @@
-import { Tag } from "@/components/ui/tag";
+import { StatusPill } from "@/components/ui/status-pill";
 import { GoalStatus } from "@/lib/types";
 
 const labels: Record<GoalStatus, string> = {
-  not_started: "○ Not started",
-  on_track: "● On track",
-  at_risk: "▲ At risk",
-  achieved: "✓ Achieved",
+  not_started: "Not started",
+  on_track: "On track",
+  at_risk: "At risk",
+  achieved: "Achieved",
 };
 
 const tones: Record<GoalStatus, "neutral" | "blue" | "danger" | "success"> = {
@@ -15,6 +15,7 @@ const tones: Record<GoalStatus, "neutral" | "blue" | "danger" | "success"> = {
   achieved: "success",
 };
 
+/** Goal status as dot + word. */
 export function GoalStatusBadge({ status }: { status: GoalStatus }) {
-  return <Tag tone={tones[status]}>{labels[status]}</Tag>;
+  return <StatusPill tone={tones[status]}>{labels[status]}</StatusPill>;
 }

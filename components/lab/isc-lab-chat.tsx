@@ -50,13 +50,13 @@ const MODES: Array<{ id: LabMode; label: string; hint: string }> = [
  hint: "Deal prep + Gong context for a named account",
  },
  { id: "battlecard", label: "Battlecard", hint: "Competitive positioning vs Entra, Okta, DIY" },
- { id: "voice_objection", label: "Voice objection", hint: "Speak an objection — get coached phrasing" },
+ { id: "voice_objection", label: "Voice objection", hint: "Speak an objection and get coached phrasing" },
 ];
 
 const BATTLECARD_PROMPTS = [
  "How do we beat Microsoft Entra on agent governance?",
- "Okta claims they govern agents — what's our trap question?",
- "Customer wants Copilot policies only — landmine response?",
+ "Okta claims they govern agents. What's our trap question?",
+ "The customer only wants Copilot policies. How do I respond?",
 ];
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -244,14 +244,14 @@ export function IscLabChat() {
       {pendingBriefs.length > 0 ? (
         <section
           aria-label="Meetings without a pre-call brief"
-          className="flex flex-wrap items-center gap-3 rounded-[14px] bg-blue px-5 py-3.5 text-white"
+          className="flex flex-wrap items-center gap-3 rounded-[14px] bg-signal-soft px-5 py-3.5 text-ink shadow-[inset_3px_0_0_var(--color-signal)]"
         >
-          <CalendarClock aria-hidden className="h-4 w-4 shrink-0 text-signal" />
+          <CalendarClock aria-hidden className="h-4 w-4 shrink-0 text-warning" />
           <span className="flex-1 text-[15px] font-semibold">Tomorrow&apos;s meetings without a pre-call brief</span>
           <div className="flex flex-wrap gap-2">
             {pendingBriefs.map((row) => (
               <button
-                className="rounded-full border-[1.5px] border-white bg-white px-3 py-1 text-sm font-bold text-ink hover:bg-blue-soft disabled:opacity-60"
+                className="btn-secondary disabled:opacity-60"
                 disabled={briefLoading}
                 key={row.sessionId}
                 onClick={() => {
@@ -261,7 +261,7 @@ export function IscLabChat() {
                 }}
                 type="button"
               >
-                {row.accountName} →
+                {row.accountName}
               </button>
             ))}
           </div>
@@ -318,7 +318,9 @@ export function IscLabChat() {
 
       <section aria-label="ISC Lab conversation" className={cn(LINE_CARD_CLS, "overflow-hidden")}>
         <div className="flex items-center justify-between gap-3 border-b border-divider px-5 py-3">
-          <span className="label-mono">Transcript{history.length > 0 ? ` · ${history.length}` : ""}</span>
+          <h2 className="label-caps">
+            Transcript{history.length > 0 ? `, ${history.length} ${history.length === 1 ? "turn" : "turns"}` : ""}
+          </h2>
           {history.length > 0 ? (
             <button
               className="link inline-flex items-center gap-1.5 text-sm disabled:opacity-60"
@@ -339,7 +341,7 @@ export function IscLabChat() {
                 ISC Lab searches product documentation, developer docs, curated battlecards, peer golden pitches and
                 your enablement profile. Every answer cites what was consulted.
               </p>
-              <span className="label-mono">Try one</span>
+              <span className="text-sm font-bold text-ink">Try one</span>
               <ul className="flex flex-col gap-2">
                 {starterPrompts.map((prompt) => (
                   <li key={prompt}>
@@ -349,7 +351,7 @@ export function IscLabChat() {
                       onClick={() => void send(prompt)}
                       type="button"
                     >
-                      → {prompt}
+                      {prompt}
                     </button>
                   </li>
                 ))}
@@ -361,7 +363,7 @@ export function IscLabChat() {
                 className={turn.role === "user" ? "flex flex-col items-end gap-1" : "flex flex-col items-start gap-1"}
                 key={`${turn.role}-${index}`}
               >
-                <span className="label-mono">{turn.role === "user" ? "You" : "ISC Lab"}</span>
+                <span className="text-[13px] font-semibold text-muted">{turn.role === "user" ? "You" : "ISC Lab"}</span>
                 <div
                   className={cn(
                     "max-w-[88%] rounded-[14px] px-4 py-3 text-[15px] leading-[1.5] text-ink",
@@ -371,7 +373,7 @@ export function IscLabChat() {
                   <p className="whitespace-pre-wrap">{turn.content}</p>
                   {turn.role === "assistant" && turn.sources && turn.sources.length > 0 ? (
                     <div className="mt-3 border-t border-divider pt-3">
-                      <p className="label-mono mb-2">Sources consulted</p>
+                      <p className="mb-2 text-[13px] font-semibold text-ink">Sources consulted</p>
                       <ul className="flex flex-wrap gap-2">
                         {turn.sources.map((source) => {
                           const label =
@@ -387,14 +389,14 @@ export function IscLabChat() {
                           return (
                             <li key={`${source.url}-${source.title}`}>
                               <a
-                                className="inline-flex max-w-full items-center gap-1.5 rounded-full border-[1.5px] border-blue px-[9px] py-0.5 font-mono text-xs text-blue hover:bg-blue-soft"
+                                className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-blue-soft px-3 py-1 text-[13px] font-semibold text-blue hover:bg-[#D3DEF6]"
                                 href={source.url}
                                 rel={external ? "noreferrer" : undefined}
                                 target={external ? "_blank" : undefined}
                                 title={meta || undefined}
                               >
                                 <span className="truncate">
-                                  {label} · {source.title}
+                                  {label}: {source.title}
                                 </span>
                                 {external ? (
                                   <>
@@ -431,7 +433,7 @@ export function IscLabChat() {
                       Related challenges:{" "}
                       {turn.platform.practiceChallenges.map((challenge, challengeIndex) => (
                         <span key={challenge.href}>
-                          {challengeIndex > 0 ? " · " : ""}
+                          {challengeIndex > 0 ? ", " : ""}
                           <a className="link" href={challenge.href}>
                             {challenge.title}
                           </a>
@@ -441,7 +443,7 @@ export function IscLabChat() {
                   ) : null}
                   {turn.role === "assistant" && turn.model ? (
                     <div className="mt-3">
-                      <Tag>Model · {turn.model}</Tag>
+                      <Tag>Model: {turn.model}</Tag>
                     </div>
                   ) : null}
                   {turn.role === "assistant" &&
@@ -514,7 +516,7 @@ export function IscLabChat() {
                   onTranscript={(text) => setMessage((current) => (current ? `${current} ${text}` : text))}
                 />
               ) : null}
-              <span className="text-[13px] text-muted">Enter to send · Shift+Enter for a new line</span>
+              <span className="text-[13px] text-muted">Enter sends. Shift+Enter adds a new line.</span>
             </div>
             <button className="btn-primary" disabled={loading || !message.trim()} type="submit">
               Ask

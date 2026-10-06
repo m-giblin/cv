@@ -405,8 +405,7 @@ export function VideoPitchCapture({
     await loadQueue({ reselectFirst: true });
   }
 
-  const statusLabel = recording ? "RECORDING" : blobUrl ? "REVIEW" : "STANDBY";
-  const statusSymbol = recording ? "●" : blobUrl ? "◆" : "○";
+  const statusLabel = recording ? "Recording" : blobUrl ? "Ready to review" : "Standby";
   const showCamera = recording || blobUrl;
   const selectedSlotPending = Boolean(queue.find((s) => s.id === selectedQueueSlotId)?.submissionId);
 
@@ -423,8 +422,8 @@ export function VideoPitchCapture({
             ]}
             value={studioMode}
           />
-          <span className="label-mono ml-auto">
-            {studioMode === "assigned" ? "Manager review on submit" : "Private — no manager notify"}
+          <span className="ml-auto text-[13px] text-muted">
+            {studioMode === "assigned" ? "Your manager reviews it when you submit." : "Private. Your manager isn't notified."}
           </span>
         </div>
 
@@ -433,7 +432,7 @@ export function VideoPitchCapture({
           className="flex shrink-0 flex-wrap items-center gap-2 border-b border-divider px-4 py-3 sm:px-5"
           role="group"
         >
-          <span className="label-mono mr-1">{studioMode === "assigned" ? "Queue slot" : "Scenario"}</span>
+          <span className="mr-1 text-sm font-bold text-ink">{studioMode === "assigned" ? "Queue slot" : "Scenario"}</span>
           {studioMode === "assigned" && loadingQueue ? (
             <span className="inline-flex items-center gap-1.5 text-[13px] text-muted" role="status">
               <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
@@ -450,7 +449,7 @@ export function VideoPitchCapture({
                   onClick={() => selectAssignedSlot(slot)}
                 >
                   Slot {slot.slot}: {slot.scenario.shortLabel}
-                  {slot.submissionId ? " · pending" : ""}
+                  {slot.submissionId ? " (pending)" : ""}
                 </Chip>
               ))
             : practiceScenarios.map((item) => (
@@ -464,17 +463,18 @@ export function VideoPitchCapture({
               ))}
         </div>
 
-        <div className="shrink-0 bg-blue px-4 py-3 sm:px-5">
-          <p className="font-mono text-xs font-medium uppercase tracking-[0.03em] text-signal">{scenario.promptLabel}</p>
-          <p className="mt-1 text-[15px] leading-[1.5] text-white">&ldquo;{scenario.prompt}&rdquo;</p>
+        <div className="shrink-0 border-b border-divider bg-white px-4 py-3 sm:px-5">
+          <p className="label-caps label-caps--blue">{scenario.promptLabel}</p>
+          <p className="mt-1 text-[15px] leading-[1.5] text-ink">&ldquo;{scenario.prompt}&rdquo;</p>
         </div>
 
         <div className="relative flex min-h-[280px] flex-1 flex-col items-center justify-center overflow-hidden bg-ink sm:min-h-[320px]">
           <div
-            className="absolute left-3 top-3 z-10 rounded-full border-[1.5px] border-blue-line bg-ink px-[9px] py-0.5 font-mono text-xs font-medium uppercase tracking-[0.03em] text-white sm:left-3.5 sm:top-3.5"
+            className="absolute left-3 top-3 z-10 inline-flex items-center gap-[7px] rounded-full border border-blue-line bg-ink px-3 py-1 text-[13px] font-semibold text-white sm:left-3.5 sm:top-3.5"
             role="status"
           >
-            <span className={recording ? "text-signal" : "text-on-blue-muted"}>{statusSymbol}</span> {statusLabel}
+            <span aria-hidden className={cn("h-[7px] w-[7px] rounded-full", recording ? "bg-danger" : blobUrl ? "bg-signal" : "bg-on-blue-muted")} />
+            {statusLabel}
           </div>
 
           {showCamera ? (
@@ -489,14 +489,14 @@ export function VideoPitchCapture({
           ) : (
             <>
               <Video aria-hidden="true" className="mb-3 h-8 w-8 text-on-blue-muted" strokeWidth={1.5} />
-              <p className="mb-1 font-mono text-xs uppercase tracking-[0.03em] text-on-blue-muted">Camera ready</p>
+              <p className="mb-1 text-[13px] text-on-blue-muted">Camera ready</p>
               <p className="mb-6 px-4 text-center text-[13px] text-on-blue">Allow camera access to begin recording</p>
             </>
           )}
 
           <div className="relative z-10 mt-auto flex w-full flex-wrap items-center justify-center gap-3 px-3 pb-4 sm:gap-4">
             <button
-              className="inline-flex items-center gap-1.5 rounded-full border-[1.5px] border-blue-line px-3 py-1.5 font-mono text-xs uppercase tracking-[0.03em] text-on-blue-muted disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-1.5 rounded-full border border-blue-line px-3 py-1.5 text-[13px] text-on-blue-muted disabled:cursor-not-allowed"
               disabled
               type="button"
             >
@@ -522,7 +522,7 @@ export function VideoPitchCapture({
                 <span aria-hidden="true" className="h-3.5 w-3.5 rounded-[2px] bg-white sm:h-4 sm:w-4" />
               </button>
             )}
-            <span className="inline-flex items-center gap-1.5 rounded-full border-[1.5px] border-blue-line px-3 py-1.5 font-mono text-xs uppercase tracking-[0.03em] text-on-blue-muted">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-line px-3 py-1.5 text-[13px] text-on-blue-muted">
               <Clock aria-hidden="true" className="h-4 w-4" />
               {formatMaxDuration(scenario.maxDurationSec)}
             </span>
@@ -530,7 +530,7 @@ export function VideoPitchCapture({
 
           {blobUrl && !recording ? (
             <button
-              className="absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full border-[1.5px] border-danger bg-danger-soft px-3 py-1 text-[13px] font-bold text-danger disabled:opacity-50 sm:right-3.5 sm:top-3.5"
+              className="absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full border border-danger bg-danger-soft px-3 py-1 text-[13px] font-bold text-danger disabled:opacity-50 sm:right-3.5 sm:top-3.5"
               disabled={uploading}
               onClick={discardRecording}
               type="button"
@@ -561,7 +561,7 @@ export function VideoPitchCapture({
               type="button"
             >
               {coaching ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : null}
-              Get AI coaching →
+              Get AI coaching
             </button>
             {studioMode === "practice" ? (
               <button
@@ -583,7 +583,7 @@ export function VideoPitchCapture({
                 type="button"
               >
                 {uploading ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : null}
-                Submit for review →
+                Submit for review
               </button>
             ) : null}
           </div>

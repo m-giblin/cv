@@ -4,13 +4,14 @@ import type { GoalTag } from "@/components/manager/development-plans/types";
 import { currentQuarter } from "@/lib/development/plan-utils";
 import type { CoachingCard, DevelopmentGoal, DevelopmentPlan, GoalQuarter, UserPlan } from "@/lib/types";
 
+/** Kept for the DevGoal shape; v3 renders no glyphs, so this is a plain word. */
 const EVIDENCE_ICON: Record<DevelopmentGoal["evidenceType"], string> = {
-  demo_recording: "●",
-  customer_reference: "◆",
-  certification: "✓",
-  deal_support: "◆",
-  shadow_notes: "○",
-  other: "•",
+  demo_recording: "recording",
+  customer_reference: "reference",
+  certification: "certification",
+  deal_support: "deal",
+  shadow_notes: "shadow",
+  other: "other",
 };
 
 const STATUS_TAG: Record<DevelopmentGoal["overallStatus"], GoalTag> = {
@@ -78,7 +79,7 @@ function developmentGoalToDevGoal(goal: DevelopmentGoal, planYear: number): DevG
     icon: EVIDENCE_ICON[goal.evidenceType],
     title: goal.title,
     quarter: goalQuarterLabel(goal, planYear),
-    source: "Manager · Annual plan",
+    source: "From your manager's annual plan",
     progress,
     tag,
     tagBg: tagStyle.bg,
@@ -127,7 +128,7 @@ function quarterSummariesFromPlan(plan: DevelopmentPlan): QuarterSummary[] {
     const inProgress = reviews.some((review) => review.status === "on_track" || review.status === "not_started");
     const isCurrent = label === nowQuarter;
 
-    let summary = `${done}/${reviews.length} checkpoints complete`;
+    let summary = `${done} of ${reviews.length} checkpoints complete`;
     if (overdue) {
       summary = "Action needed on quarterly reviews";
     } else if (inProgress && isCurrent) {
@@ -154,7 +155,7 @@ export function buildGrowthPlanSignals(params: {
 
   if (userPlan) {
     signals.push({
-      icon: userPlan.progress >= 35 ? "✓" : "▲",
+      icon: userPlan.progress >= 35 ? "up" : "down",
       label: "Ramp progress",
       value: `${userPlan.progress}%`,
       color: userPlan.progress >= 35 ? "#12703F" : "#B42318",
@@ -167,11 +168,11 @@ export function buildGrowthPlanSignals(params: {
     const latest = scored[0]?.score ?? 0;
     const earliest = scored.at(-1)?.score ?? latest;
     const delta = latest - earliest;
-    const trend = delta >= 0 ? `(↑${delta} pts)` : `(↓${Math.abs(delta)} pts)`;
+    const trend = delta >= 0 ? `up ${delta}` : `down ${Math.abs(delta)}`;
     signals.push({
-      icon: delta >= 0 ? "✓" : "▲",
+      icon: delta >= 0 ? "up" : "down",
       label: "Sim trend",
-      value: `${earliest}→${latest} ${trend}`,
+      value: `${earliest} to ${latest}, ${trend}`,
       color: delta >= 0 ? "#12703F" : "#B42318",
       detail: `Across ${scored.length} scored session${scored.length === 1 ? "" : "s"}`,
     });
@@ -179,9 +180,9 @@ export function buildGrowthPlanSignals(params: {
 
   if (coachingCards.length > 0 && coachingCards[0]?.gaps?.length) {
     signals.push({
-      icon: "•",
+      icon: "gap",
       label: "Top gap",
-      value: coachingCards[0].gaps[0] ?? "—",
+      value: coachingCards[0].gaps[0] ?? "None noted",
       color: "#8A5300",
       detail: "From your latest coaching card",
     });

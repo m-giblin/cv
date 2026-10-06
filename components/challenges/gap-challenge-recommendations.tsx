@@ -35,7 +35,7 @@ export function GapChallengeRecommendations({
  <div className="flex items-center gap-3">
  {rec.challenge.targetLevel ? <Tag tone="blue">{rec.challenge.targetLevel}</Tag> : null}
  <Link className="link text-sm" href={`/practice/challenges?challenge=${rec.challenge.id}`}>
- Start →
+ Start
  </Link>
  </div>
  </li>

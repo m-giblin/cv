@@ -30,7 +30,7 @@ export function PitchStudioShell({
           View peer pitches
         </button>
       }
-      eyebrow="Video · self review"
+      subtitle="Record a timed pitch, then review it yourself before anyone else sees it."
       testMode={testMode}
       title="Pitch Studio"
     >

@@ -3,12 +3,12 @@
 import { useEffect, useState } from "react";
 
 function partOfDay(hour: number): string {
-  if (hour < 12) return "Morning";
-  if (hour < 17) return "Afternoon";
-  return "Evening";
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
 }
 
-/** "Morning, Priya." in the viewer's own time zone (the server can't know it). */
+/** "Good morning, Priya." in the viewer's own time zone (the server can't know it). */
 export function Greeting({ firstName }: { firstName: string }) {
   const [part, setPart] = useState("Hello");
   useEffect(() => {

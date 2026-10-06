@@ -93,7 +93,7 @@ export function DealPrepForm({
   return (
     <section aria-labelledby={ids.heading} className={cn(CARD_CLS, "flex flex-col gap-5 px-6 py-[22px]")}>
       <div className="flex flex-col gap-1">
-        <span className="font-mono text-xs font-medium uppercase tracking-[0.03em] text-blue">Pre-flight</span>
+        <span className="label-caps label-caps--blue">Pre-flight</span>
         <h2 className={H2_CLS} id={ids.heading}>
           Build your brief
         </h2>
@@ -111,7 +111,6 @@ export function DealPrepForm({
               key={template.id}
               onClick={() => applyTemplate(template.id)}
             >
-              {activeTemplateId === template.id ? "✓ " : ""}
               {template.displayLabel ?? template.label}
             </Chip>
           ))}
@@ -146,7 +145,7 @@ export function DealPrepForm({
             className={FIELD_CLS}
             id={ids.industry}
             onChange={(e) => onChange({ ...values, industry: e.target.value })}
-            placeholder="Healthcare — 3,200 beds"
+            placeholder="Healthcare, 3,200 beds"
             required
             value={values.industry}
           />
@@ -231,7 +230,7 @@ export function DealPrepForm({
             className={cn(TEXTAREA_CLS, "min-h-[96px]")}
             id={ids.context}
             onChange={(e) => onChange({ ...values, accountContext: e.target.value })}
-            placeholder="Recent ransomware scare — access controls flagged by board"
+            placeholder="Recent ransomware scare. The board flagged access controls."
             required
             rows={4}
             value={values.accountContext}
@@ -251,7 +250,7 @@ export function DealPrepForm({
           type="submit"
         >
           {isLoading ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
-          {isLoading ? "Generating brief…" : "Generate brief →"}
+          {isLoading ? "Generating brief…" : "Generate brief"}
         </button>
       </form>
     </section>

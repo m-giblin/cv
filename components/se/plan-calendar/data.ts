@@ -2,15 +2,15 @@ import type { CalWeek } from "./types";
 
 export const DEMO_CALENDAR_WEEKS: CalWeek[] = [
   {
-    label: "Week 1 · Jul 7–11",
+    label: "Week 1, Jul 7 to 11",
     done: true,
     milestones: [
       {
         day: "Mon Jul 7",
-        title: "Identity Security Fundamentals — Module 1",
+        title: "Identity Security Fundamentals, module 1",
         type: "Learn",
         status: "DONE",
-        icon: "•",
+        icon: "",
         date: "2026-07-07",
       },
       {
@@ -18,7 +18,7 @@ export const DEMO_CALENDAR_WEEKS: CalWeek[] = [
         title: "Discovery fundamentals challenge",
         type: "Challenge",
         status: "DONE",
-        icon: "•",
+        icon: "",
         date: "2026-07-09",
       },
       {
@@ -26,14 +26,14 @@ export const DEMO_CALENDAR_WEEKS: CalWeek[] = [
         title: "Gate 1 check-in with manager",
         type: "1:1",
         status: "DONE",
-        icon: "•",
+        icon: "",
         managerNote: "Great session! Keep going.",
         date: "2026-07-11",
       },
     ],
   },
   {
-    label: "Week 2 · Jul 14–18",
+    label: "Week 2, Jul 14 to 18",
     done: false,
     milestones: [
       {
@@ -41,7 +41,7 @@ export const DEMO_CALENDAR_WEEKS: CalWeek[] = [
         title: "CISO roleplay simulation",
         type: "Sim",
         status: "DUE TODAY",
-        icon: "•",
+        icon: "",
         date: "2026-07-14",
       },
       {
@@ -49,7 +49,7 @@ export const DEMO_CALENDAR_WEEKS: CalWeek[] = [
         title: "ISC Lab: connector configuration",
         type: "Lab",
         status: "OPEN",
-        icon: "•",
+        icon: "",
         date: "2026-07-16",
       },
       {
@@ -57,13 +57,13 @@ export const DEMO_CALENDAR_WEEKS: CalWeek[] = [
         title: "SLED practice sim ×1",
         type: "Sim",
         status: "OPEN",
-        icon: "•",
+        icon: "",
         date: "2026-07-18",
       },
     ],
   },
   {
-    label: "Week 3 · Jul 21–25",
+    label: "Week 3, Jul 21 to 25",
     done: false,
     milestones: [
       {
@@ -71,7 +71,7 @@ export const DEMO_CALENDAR_WEEKS: CalWeek[] = [
         title: "Multi-stakeholder discovery sim",
         type: "Sim",
         status: "UPCOMING",
-        icon: "•",
+        icon: "",
         date: "2026-07-21",
       },
       {
@@ -79,7 +79,7 @@ export const DEMO_CALENDAR_WEEKS: CalWeek[] = [
         title: "Identity Security Fundamentals cert exam",
         type: "Cert",
         status: "UPCOMING",
-        icon: "✓",
+        icon: "",
         date: "2026-07-23",
       },
       {
@@ -87,14 +87,14 @@ export const DEMO_CALENDAR_WEEKS: CalWeek[] = [
         title: "Gate 2 sign-off meeting",
         type: "Gate",
         status: "UPCOMING",
-        icon: "◆",
+        icon: "",
         managerNote: "Manager must approve before Phase 2",
         date: "2026-07-25",
       },
     ],
   },
   {
-    label: "Week 4 · Jul 28 – Aug 1",
+    label: "Week 4, Jul 28 to Aug 1",
     done: false,
     milestones: [
       {
@@ -102,7 +102,7 @@ export const DEMO_CALENDAR_WEEKS: CalWeek[] = [
         title: "Competitive bakeoff sim (Saviynt)",
         type: "Sim",
         status: "UPCOMING",
-        icon: "•",
+        icon: "",
         date: "2026-07-29",
       },
       {
@@ -110,7 +110,7 @@ export const DEMO_CALENDAR_WEEKS: CalWeek[] = [
         title: "SailPoint IIQ Core cert exam",
         type: "Cert",
         status: "UPCOMING",
-        icon: "✓",
+        icon: "",
         date: "2026-07-31",
       },
     ],

@@ -9,7 +9,7 @@ import type { SimulationAssignment } from "@/lib/types";
 
 function scenarioLabel(assignment: SimulationAssignment) {
   const persona = assignment.persona.replace(/\s*\(.*\)\s*$/, "").trim();
-  return `${assignment.vertical} · ${persona}`;
+  return [persona, assignment.vertical].filter(Boolean).join(", ");
 }
 
 export function SimulationsShell({
@@ -28,7 +28,7 @@ export function SimulationsShell({
   return (
     <PracticeToolPage
       actions={<SimulationStepStrip className="min-w-[320px]" step={step} />}
-      eyebrow={`AI roleplay · ${label}`}
+      subtitle={`AI role-play with ${label}.`}
       testMode={testMode}
       title="Simulations"
     >

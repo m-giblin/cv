@@ -1,6 +1,7 @@
 "use client";
 
 import { Mic, MicOff } from "lucide-react";
+import { StatusPill } from "@/components/ui/status-pill";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -129,8 +130,8 @@ export function SimulationSpeechInput({
         {listening ? "Stop mic" : "Use microphone"}
       </button>
       {listening ? (
-        <span className="font-mono text-xs font-medium uppercase tracking-[0.03em] text-ink" role="status">
-          ● Recording — your words appear in the box below
+        <span role="status">
+          <StatusPill tone="danger">Recording. Your words appear in the box below.</StatusPill>
         </span>
       ) : null}
     </div>

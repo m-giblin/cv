@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { TABLE_HEAD_CLS } from "@/components/se/form-classes";
 import { SegmentedToggle } from "@/components/ui/segmented-toggle";
+import { StatusPill } from "@/components/ui/status-pill";
 import { Tag } from "@/components/ui/tag";
 import { cn } from "@/lib/utils";
 import { DEMO_CALENDAR_WEEKS } from "./data";
@@ -11,26 +12,19 @@ import { buildMonthGrid } from "./utils/calendarGrid";
 
 type MilestoneStatus = CalMilestone["status"];
 
-const STATUS_TAG: Record<MilestoneStatus, { tone: "blue" | "signal" | "danger" | "neutral"; label: string }> = {
-  DONE: { tone: "blue", label: "✓ Done" },
-  "DUE TODAY": { tone: "signal", label: "● Due today" },
-  OPEN: { tone: "danger", label: "▲ Past due" },
-  UPCOMING: { tone: "neutral", label: "○ Upcoming" },
+const STATUS_TAG: Record<MilestoneStatus, { tone: "success" | "warning" | "danger" | "neutral"; label: string }> = {
+  DONE: { tone: "success", label: "Done" },
+  "DUE TODAY": { tone: "warning", label: "Due today" },
+  OPEN: { tone: "danger", label: "Past due" },
+  UPCOMING: { tone: "neutral", label: "Upcoming" },
 };
 
-/** Event chip styles in the month grid: done blue, today signal, past due danger, upcoming dashed. */
+/** Event chip styles in the month grid: done blue-soft, today signal-soft, past due danger-row, upcoming dashed. */
 const EVENT_CLS: Record<MilestoneStatus, string> = {
-  DONE: "bg-blue text-white border-[1.5px] border-blue",
-  "DUE TODAY": "bg-signal text-ink border-[1.5px] border-ink",
-  OPEN: "bg-danger-soft text-danger border-[1.5px] border-danger",
-  UPCOMING: "bg-white text-ink border-[1.5px] border-dashed border-dash",
-};
-
-const EVENT_SYMBOL: Record<MilestoneStatus, string> = {
-  DONE: "✓",
-  "DUE TODAY": "●",
-  OPEN: "▲",
-  UPCOMING: "○",
+  DONE: "bg-blue-soft text-ink shadow-[inset_3px_0_0_var(--color-blue)]",
+  "DUE TODAY": "bg-signal-soft text-ink shadow-[inset_3px_0_0_var(--color-signal)]",
+  OPEN: "bg-danger-row text-ink shadow-[inset_3px_0_0_var(--color-danger)]",
+  UPCOMING: "bg-white text-ink border border-dashed border-line-strong",
 };
 
 const GRID_HEADERS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -54,7 +48,7 @@ function ListView({ weeks }: { weeks: CalWeek[] }) {
 
   if (weeks.length === 0) {
     return (
-      <div className="rounded-[14px] border-[1.5px] border-dashed border-line-strong p-7 text-center text-[15px] text-muted">
+      <div className="rounded-[14px] border border-dashed border-line-strong p-7 text-center text-[15px] text-muted">
         No dated milestones on your plan yet.
       </div>
     );
@@ -69,27 +63,26 @@ function ListView({ weeks }: { weeks: CalWeek[] }) {
             aria-current={state === "current" ? "step" : undefined}
             className={cn(
               "overflow-hidden rounded-[14px] bg-white",
-              state === "done" && "border-[1.5px] border-blue",
-              state === "current" && "border-[1.5px] border-ink",
-              state === "upcoming" && "border-[1.5px] border-dashed border-dash",
+              state === "done" && "border border-line",
+              state === "current" && "border border-line shadow-[inset_3px_0_0_var(--color-signal)]",
+              state === "upcoming" && "border border-dashed border-line-strong",
             )}
             key={week.label}
           >
             <div
               className={cn(
                 "flex flex-wrap items-center justify-between gap-2 px-5 py-2.5",
-                state === "done" && "bg-blue text-white",
-                state === "current" && "border-b-[1.5px] border-ink bg-signal text-ink",
-                state === "upcoming" && "border-b border-divider text-ink-2",
+                "border-b border-divider",
+                state === "current" && "bg-signal-soft",
               )}
             >
-              <h2 className="font-mono text-xs font-medium uppercase tracking-[0.03em]">{week.label}</h2>
+              <h2 className="text-[15px] font-bold text-ink">{week.label}</h2>
               {state === "done" ? (
-                <span className="font-mono text-xs font-medium uppercase tracking-[0.03em] text-signal">✓ Complete</span>
+                <StatusPill tone="success">Complete</StatusPill>
               ) : state === "current" ? (
-                <span className="font-mono text-xs font-bold uppercase tracking-[0.03em]">▲ You are here</span>
+                <StatusPill tone="warning">You are here</StatusPill>
               ) : (
-                <span className="font-mono text-xs uppercase tracking-[0.03em] text-muted">○ Upcoming</span>
+                <StatusPill tone="neutral">Upcoming</StatusPill>
               )}
             </div>
             <ul className="divide-y divide-divider">
@@ -100,18 +93,18 @@ function ListView({ weeks }: { weeks: CalWeek[] }) {
                   <li
                     className={cn(
                       "grid grid-cols-1 items-center gap-2 px-5 py-3 md:grid-cols-[120px_minmax(0,1fr)_auto] md:gap-4",
-                      gate && "bg-blue-soft",
+                      gate && "bg-blue-soft shadow-[inset_3px_0_0_var(--color-blue)]",
                     )}
                     key={`${ms.day}-${ms.title}`}
                   >
-                    <div className="font-mono text-xs uppercase text-ink-2">{ms.day}</div>
+                    <div className="text-sm text-ink-2">{ms.day}</div>
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-[15px] font-semibold text-ink">{ms.title}</span>
-                        {gate ? <Tag tone="blue">◆ Gate</Tag> : null}
+                        {gate ? <Tag tone="blue">Gate</Tag> : null}
                       </div>
                       {!gate ? (
-                        <div className="mt-0.5 font-mono text-xs uppercase tracking-[0.03em] text-muted">{ms.type}</div>
+                        <div className="mt-0.5 text-[13px] text-muted">{ms.type}</div>
                       ) : null}
                       {ms.managerNote ? (
                         <p className="mt-1 text-[13px] text-ink-2">
@@ -120,7 +113,7 @@ function ListView({ weeks }: { weeks: CalWeek[] }) {
                       ) : null}
                     </div>
                     <div className="flex md:justify-end">
-                      <Tag tone={tag.tone}>{tag.label}</Tag>
+                      <StatusPill tone={tag.tone}>{tag.label}</StatusPill>
                     </div>
                   </li>
                 );
@@ -162,13 +155,13 @@ function GridView({ weeks, year, month }: { weeks: CalWeek[]; year: number; mont
                 {cell.day > 0 ? (
                   cell.isToday ? (
                     <div className="mb-1 flex items-center gap-1.5">
-                      <span className="flex h-6 min-w-6 items-center justify-center rounded-full border-[1.5px] border-ink bg-signal px-1 font-mono text-xs font-bold text-ink">
+                      <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-ink px-1 text-xs font-bold text-white">
                         {cell.day}
                       </span>
-                      <span className="font-mono text-xs font-bold uppercase text-ink">▲ Today</span>
+                      <span className="text-xs font-bold text-ink">Today</span>
                     </div>
                   ) : (
-                    <div className="mb-1 font-mono text-xs text-ink-2">{cell.day}</div>
+                    <div className="mb-1 text-xs text-ink-2">{cell.day}</div>
                   )
                 ) : null}
                 <ul className="flex flex-col gap-1">
@@ -177,17 +170,13 @@ function GridView({ weeks, year, month }: { weeks: CalWeek[]; year: number; mont
                     const status = ev.status ?? (ev.done ? "DONE" : "UPCOMING");
                     return (
                       <li
-                        className={cn("rounded-[6px] px-1.5 py-1", EVENT_CLS[status])}
+                        className={cn("rounded-[6px] py-1 pr-1.5 pl-2", gate ? "bg-blue text-white" : EVENT_CLS[status])}
                         key={`${ev.title}-${ev.type}`}
-                        title={`${ev.title} · ${STATUS_TAG[status].label}`}
+                        title={`${ev.title}: ${STATUS_TAG[status].label}`}
                       >
-                        <div className="truncate text-xs font-semibold leading-snug">
-                          <span aria-hidden="true">{gate ? "◆" : EVENT_SYMBOL[status]} </span>
-                          {ev.title}
-                        </div>
-                        <div className="truncate font-mono text-xs uppercase opacity-90">
-                          {gate ? "Gate" : ev.type}
-                          <span className="sr-only"> · {STATUS_TAG[status].label}</span>
+                        <div className="truncate text-xs font-semibold leading-snug">{ev.title}</div>
+                        <div className="truncate text-xs">
+                          {gate ? "Gate" : ev.type}, {STATUS_TAG[status].label.toLowerCase()}
                         </div>
                       </li>
                     );
@@ -206,9 +195,7 @@ function GridView({ weeks, year, month }: { weeks: CalWeek[]; year: number; mont
           </li>
         ))}
         <li className="flex items-center gap-2">
-          <span aria-hidden="true" className="font-mono text-xs text-blue">
-            ◆
-          </span>
+          <span aria-hidden="true" className="h-3 w-4 rounded-[3px] bg-blue" />
           Gate
         </li>
       </ul>
@@ -241,12 +228,11 @@ export function PlanCalendarPage({
           ]}
           value={view}
         />
-        <span className="font-mono text-xs uppercase tracking-[0.03em] text-ink-2">{monthLabel}</span>
+        <span className="text-sm font-semibold text-ink-2">{monthLabel}</span>
       </div>
 
       <p className="text-[13px] text-muted">
-        <span className="font-mono text-xs uppercase tracking-[0.03em] text-ink-2">Read-only · </span>
-        Your manager sets milestone dates. To request a change, message them via coaching notes.
+        Read only. Your manager sets milestone dates; to change one, message them in coaching notes.
       </p>
 
       {view === "list" ? <ListView weeks={weeks} /> : <GridView month={month} weeks={weeks} year={year} />}

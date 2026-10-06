@@ -1,48 +1,41 @@
 "use client";
 
 import { H2_CLS, LINE_CARD_CLS } from "@/components/se/form-classes";
-import { Tag } from "@/components/ui/tag";
+import { StatusPill } from "@/components/ui/status-pill";
 import type { AISignal, DevGoal, QuarterSummary } from "./types";
 
 type Tone = "neutral" | "blue" | "success" | "warning" | "danger";
 
-/** Data colours arrive as v2 hex values; translate them into v2 tones + symbols (never colour alone). */
-function signalTone(color: string): { tone: Tone; symbol: string } {
+/** Data colours arrive as hex values; translate them into a tone and a word (never colour alone). */
+function signalTone(color: string): { tone: Tone; word: string | null } {
   switch (color.trim().toUpperCase()) {
     case "#B42318":
-      return { tone: "danger", symbol: "▲" };
+      return { tone: "danger", word: "Behind" };
     case "#8A5300":
-      return { tone: "warning", symbol: "•" };
+      return { tone: "warning", word: "Watch" };
     case "#12703F":
-      return { tone: "success", symbol: "✓" };
+    case "#1E6B43":
+      return { tone: "success", word: "On track" };
     default:
-      return { tone: "blue", symbol: "●" };
+      return { tone: "blue", word: null };
   }
 }
 
-const SIGNAL_TEXT: Record<Tone, string> = {
-  neutral: "text-ink",
-  blue: "text-blue",
-  success: "text-success",
-  warning: "text-warning",
-  danger: "text-danger",
-};
-
 function goalStatus(goal: DevGoal): { tone: Tone; label: string } {
   if (goal.progress >= 100) {
-    return { tone: "success", label: "✓ Achieved" };
+    return { tone: "success", label: "Achieved" };
   }
   switch (goal.tag) {
     case "AT RISK":
-      return { tone: "danger", label: "▲ At risk" };
+      return { tone: "danger", label: "At risk" };
     case "NOT STARTED":
-      return { tone: "neutral", label: "○ Not started" };
+      return { tone: "neutral", label: "Not started" };
     case "IN PROGRESS":
-      return { tone: "blue", label: "● In progress" };
+      return { tone: "blue", label: "In progress" };
     case "ON TRACK":
-      return { tone: "blue", label: "● On track" };
+      return { tone: "success", label: "On track" };
     default:
-      return { tone: "warning", label: `• ${goal.tag.charAt(0)}${goal.tag.slice(1).toLowerCase()}` };
+      return { tone: "warning", label: `${goal.tag.charAt(0)}${goal.tag.slice(1).toLowerCase()}` };
   }
 }
 
@@ -65,7 +58,7 @@ export function GrowthPlanPage({
 }) {
   if (!hasPlan) {
     return (
-      <div className="rounded-[14px] border-[1.5px] border-dashed border-line-strong p-7 text-center">
+      <div className="rounded-[14px] border border-dashed border-line-strong p-7 text-center">
         <p className="text-base font-bold text-ink">Your growth plan is being built</p>
         <p className="mx-auto mt-1.5 max-w-[420px] text-[15px] text-muted">
           Your manager is reviewing AI suggestions for your development goals. You&apos;ll be notified when your plan is
@@ -83,20 +76,20 @@ export function GrowthPlanPage({
             <h2 className="text-base font-bold text-ink" id="growth-signals-heading">
               What shaped this plan
             </h2>
-            <span className="label-mono">
-              AI analysed {signals.length} signal{signals.length === 1 ? "" : "s"}
+            <span className="text-[13px] text-muted">
+              AI looked at {signals.length} signal{signals.length === 1 ? "" : "s"}
             </span>
           </div>
           <ul className="-mb-px -mr-px grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {signals.map((sig) => {
-              const { tone, symbol } = signalTone(sig.color);
+              const { tone, word } = signalTone(sig.color);
               return (
                 <li className="border-b border-r border-divider px-5 py-3.5" key={sig.label}>
-                  <p className="font-mono text-xs uppercase tracking-[0.03em] text-muted">{sig.label}</p>
-                  <p className={`mt-1 text-[15px] font-bold ${SIGNAL_TEXT[tone]}`}>
-                    <span aria-hidden="true">{symbol} </span>
-                    {sig.value}
+                  <p className="flex flex-wrap items-center justify-between gap-2 text-[13px] text-muted">
+                    {sig.label}
+                    {word ? <StatusPill tone={tone}>{word}</StatusPill> : null}
                   </p>
+                  <p className="mt-1 text-[15px] font-bold text-ink">{sig.value}</p>
                   <p className="mt-0.5 text-[13px] text-muted">{sig.detail}</p>
                 </li>
               );
@@ -118,12 +111,12 @@ export function GrowthPlanPage({
                 <div className="grid grid-cols-1 items-start gap-2 sm:grid-cols-[minmax(0,1fr)_auto_90px] sm:gap-4">
                   <div className="min-w-0">
                     <p className="text-[15px] font-semibold leading-snug text-ink">{goal.title}</p>
-                    <p className="mt-0.5 font-mono text-xs uppercase tracking-[0.03em] text-muted">
-                      {goal.quarter} · {goal.source}
+                    <p className="mt-0.5 text-[13px] text-muted">
+                      {goal.quarter}. {goal.source}
                     </p>
                   </div>
-                  <Tag tone={status.tone}>{status.label}</Tag>
-                  <span className="font-mono text-xs uppercase text-ink-2 sm:text-right">Due {goal.dueDate}</span>
+                  <StatusPill tone={status.tone}>{status.label}</StatusPill>
+                  <span className="text-[13px] text-ink-2 sm:text-right">Due {goal.dueDate}</span>
                 </div>
 
                 <div className="mt-3 flex items-center gap-3">
@@ -132,12 +125,12 @@ export function GrowthPlanPage({
                     aria-valuemax={100}
                     aria-valuemin={0}
                     aria-valuenow={progress}
-                    className="h-2 flex-1 overflow-hidden rounded-[4px] bg-divider"
+                    className="h-2 flex-1 overflow-hidden rounded-[4px] bg-track"
                     role="progressbar"
                   >
                     <div className="h-full rounded-[4px] bg-blue" style={{ width: `${progress}%` }} />
                   </div>
-                  <span className="w-[92px] shrink-0 text-right font-mono text-xs text-muted">{progress}% done</span>
+                  <span className="num w-[92px] shrink-0 text-right text-[13px] text-muted">{progress}% done</span>
                 </div>
 
                 {goal.milestones.length > 0 ? (
@@ -146,15 +139,15 @@ export function GrowthPlanPage({
                       <li className="flex items-center gap-2.5 text-sm" key={ms.label}>
                         <span
                           aria-hidden="true"
-                          className={`w-4 shrink-0 text-center font-mono text-xs ${ms.done ? "text-blue" : "text-muted"}`}
+                          className={`grid h-4 w-4 shrink-0 place-items-center rounded-full ${ms.done ? "bg-blue" : "border-[1.5px] border-line-strong"}`}
                         >
-                          {ms.done ? "✓" : "○"}
+                          {ms.done ? <span className="block h-2 w-1 -translate-y-px rotate-45 border-r-2 border-b-2 border-white" /> : null}
                         </span>
                         <span className={`flex-1 ${ms.done ? "text-ink" : "text-ink-2"}`}>
                           {ms.label}
                           <span className="sr-only">{ms.done ? " (done)" : " (not done)"}</span>
                         </span>
-                        <span className="font-mono text-xs text-muted">{ms.date}</span>
+                        <span className="text-[13px] text-muted">{ms.date}</span>
                       </li>
                     ))}
                   </ul>
@@ -177,21 +170,19 @@ export function GrowthPlanPage({
                 <li
                   aria-current={state === "current" ? "true" : undefined}
                   className={`px-4 py-3 ${
-                    state === "current" ? "bg-blue-soft" : state === "action" ? "bg-danger-soft" : "bg-white"
+                    state === "current" ? "bg-blue-soft" : state === "action" ? "bg-danger-row" : "bg-white"
                   }`}
                   key={q.label}
                 >
-                  <p
-                    className={`font-mono text-xs font-medium uppercase tracking-[0.03em] ${
-                      state === "current" ? "text-blue" : state === "action" ? "text-danger" : "text-muted"
-                    }`}
-                  >
+                  <p className="flex items-center gap-2 text-[15px] font-bold text-ink">
                     {q.label}
-                    {state === "current" ? " · ● Now" : ""}
+                    {state === "current" ? <StatusPill tone="blue">Now</StatusPill> : null}
                   </p>
                   <p className="mt-1 text-sm text-ink-2">{q.summary}</p>
                   {q.needsAction ? (
-                    <p className="mt-1 font-mono text-xs uppercase tracking-[0.03em] text-danger">▲ Action needed</p>
+                    <p className="mt-1">
+                      <StatusPill tone="danger">Action needed</StatusPill>
+                    </p>
                   ) : null}
                 </li>
               );

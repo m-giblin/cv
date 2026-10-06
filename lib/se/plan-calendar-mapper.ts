@@ -45,7 +45,7 @@ function formatDayLabel(isoDate: string): string {
 function formatWeekLabel(weekIndex: number, weekStart: Date, weekEnd: Date): string {
   const startFmt = weekStart.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   const endFmt = weekEnd.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  return `Week ${weekIndex} · ${startFmt}–${endFmt}`;
+  return `Week ${weekIndex}, ${startFmt} to ${endFmt}`;
 }
 
 function isStepComplete(status: AssignmentStatus): boolean {

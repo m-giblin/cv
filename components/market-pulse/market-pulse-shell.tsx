@@ -16,11 +16,11 @@ export function MarketPulseShell({
   return (
     <PracticeToolPage
       actions={
-        <span aria-live="polite" className="label-mono">
+        <span aria-live="polite" className="text-sm text-muted">
           {progressHint}
         </span>
       }
-      eyebrow="Competitive intel · weekly"
+      subtitle="A short weekly quiz on competitive intel."
       testMode={testMode}
       title="Market Pulse quiz"
     >

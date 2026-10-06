@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useEffect, useId, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { FIELD_CLS, LABEL_CLS, SELECT_CLS } from "@/components/se/form-classes";
+import { PREFLIGHT_MINUTES, type PreflightTool } from "@/lib/se/preflight";
 import { cn } from "@/lib/utils";
 
-export type PreflightTool = "market-pulse" | "deal-prep" | "simulations" | "flight-check";
+export type { PreflightTool } from "@/lib/se/preflight";
+
 
 type Row = { tool: PreflightTool; title: string; sub: string; minutes: number; href: string };
 
@@ -21,28 +23,28 @@ function buildRows(account: string, persona: string, tools: PreflightTool[]): Ro
       tool: "market-pulse",
       title: "Market Pulse refresher",
       sub: "Competitive positioning for this conversation",
-      minutes: 5,
+      minutes: PREFLIGHT_MINUTES["market-pulse"],
       href: "/practice/quizzes",
     },
     {
       tool: "deal-prep",
       title: "Deal prep brief",
-      sub: `${account.trim() || "Account"}: discovery questions and likely objections`,
-      minutes: 10,
+      sub: account.trim() ? `${account.trim()}: discovery questions and likely objections` : "Discovery questions and likely objections",
+      minutes: PREFLIGHT_MINUTES["deal-prep"],
       href: "/practice/deal-prep",
     },
     {
       tool: "simulations",
       title: `Simulation: ${audience}`,
-      sub: "Scored coaching card to your manager",
-      minutes: 15,
+      sub: "Scored card goes to your manager",
+      minutes: PREFLIGHT_MINUTES.simulations,
       href: "/practice/simulations",
     },
     {
       tool: "flight-check",
       title: "Flight Check",
-      sub: "Adaptive readiness check",
-      minutes: 5,
+      sub: "A short adaptive readiness check",
+      minutes: PREFLIGHT_MINUTES["flight-check"],
       href: "/practice/flight-check",
     },
   ];
@@ -105,7 +107,7 @@ export function PreflightCard({ personas, tools }: { personas: string[]; tools: 
   return (
     <section
       aria-labelledby="preflight-heading"
-      className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-8 rounded-[14px] border-[1.5px] border-ink bg-white px-6 py-[22px]"
+      className="grid gap-9 rounded-[14px] border border-line bg-white px-[26px] py-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]"
     >
       <form
         className="flex flex-col gap-3.5"
@@ -114,12 +116,10 @@ export function PreflightCard({ personas, tools }: { personas: string[]; tools: 
           build();
         }}
       >
-        <div className="flex flex-col gap-1">
-          <span className="font-mono text-xs font-medium uppercase text-blue">Pre-flight</span>
-          <h2 className="text-2xl font-extrabold tracking-[-0.015em] text-ink" id="preflight-heading">
-            Prepare for a call
-          </h2>
-        </div>
+        <p className="label-caps label-caps--blue">Pre-flight</p>
+        <h2 className="text-2xl font-extrabold tracking-[-0.015em] text-ink" id="preflight-heading">
+          Prepare for a call
+        </h2>
         <div className="flex flex-col gap-1.5">
           <label className={LABEL_CLS} htmlFor={ids.account}>
             Account
@@ -128,7 +128,7 @@ export function PreflightCard({ personas, tools }: { personas: string[]; tools: 
             className={FIELD_CLS}
             id={ids.account}
             onChange={(event) => setAccount(event.target.value)}
-            placeholder="e.g. Mercy Health System"
+            placeholder="For example, Mercy Health System"
             value={account}
           />
         </div>
@@ -157,7 +157,7 @@ export function PreflightCard({ personas, tools }: { personas: string[]; tools: 
             Call date
           </label>
           <input
-            className={cn(FIELD_CLS, "w-[200px]")}
+            className={FIELD_CLS}
             id={ids.date}
             onChange={(event) => setDate(event.target.value)}
             type="date"
@@ -165,62 +165,75 @@ export function PreflightCard({ personas, tools }: { personas: string[]; tools: 
           />
         </div>
         <button className="btn-primary mt-1 self-start" type="submit">
-          {built ? "Rebuild pre-flight" : "Build my pre-flight"}
+          {built ? "Rebuild my pre-flight" : "Build my pre-flight"}
         </button>
       </form>
 
-      <div className="flex flex-col gap-2">
-        <div className="flex justify-between gap-3 font-mono text-xs uppercase">
-          <span className="font-medium text-muted" id={ids.path}>
-            Your pre-flight
-          </span>
-          <span className="font-medium text-ink" role="status">
-            {built ? `${doneCount}/${rows.length} done · ` : ""}~{minutes} min
+      <div className="flex flex-col">
+        <div className="flex items-baseline justify-between gap-3 pb-2.5">
+          <h3 className="text-[15px] font-bold text-ink" id={ids.path}>
+            Your plan
+          </h3>
+          <span className="text-sm text-muted" role="status">
+            {built ? `${doneCount} of ${rows.length} done, about ${minutes} min` : `About ${minutes} min`}
           </span>
         </div>
-        {built ? (
-          <ol aria-labelledby={ids.path} className="flex flex-col gap-2">
-            {rows.map((row, index) => {
-              const isDone = Boolean(done[row.tool]);
-              return (
-                <li
-                  className={cn(
-                    "grid grid-cols-[52px_minmax(0,1fr)_auto] items-stretch overflow-hidden rounded-[14px] bg-white",
-                    isDone ? "border-[1.5px] border-blue bg-blue-soft" : "border border-line",
-                  )}
-                  key={row.tool}
-                >
+        <ol aria-labelledby={ids.path} className="flex flex-col">
+          {rows.map((row, index) => {
+            const isDone = built && Boolean(done[row.tool]);
+            return (
+              <li
+                className={cn(
+                  "grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3.5 border-t border-divider py-3",
+                  isDone && "-mx-3 rounded-[10px] bg-blue-soft px-3",
+                )}
+                key={row.tool}
+              >
+                {built ? (
                   <button
                     aria-label={`${isDone ? "Mark not done" : "Mark done"}: ${row.title}`}
                     aria-pressed={isDone}
                     className={cn(
-                      "grid place-items-center text-[22px] font-extrabold tracking-[-0.03em]",
-                      isDone ? "bg-signal text-ink" : "bg-blue text-white hover:bg-blue-2",
+                      "grid h-9 w-9 place-items-center rounded-full text-[15px] font-extrabold",
+                      isDone ? "bg-blue text-white" : "bg-blue-soft text-blue hover:bg-[#D3DEF6]",
                     )}
                     onClick={() => toggle(row.tool)}
                     type="button"
                   >
-                    {isDone ? "✓" : String(index + 1).padStart(2, "0")}
+                    {isDone ? (
+                      <span aria-hidden className="block h-3 w-1.5 -translate-y-px rotate-45 border-r-2 border-b-2 border-white" />
+                    ) : (
+                      index + 1
+                    )}
                   </button>
-                  <span className="-ml-0.5 flex min-w-0 flex-col gap-0.5 border-l-2 border-dashed border-line-strong px-3.5 py-2.5">
-                    <Link className="text-[15px] font-bold text-ink underline decoration-signal decoration-2 underline-offset-[3px] hover:decoration-ink" href={row.href}>
+                ) : (
+                  <span
+                    aria-hidden
+                    className="grid h-9 w-9 place-items-center rounded-full bg-blue-soft text-[15px] font-extrabold text-blue"
+                  >
+                    {index + 1}
+                  </span>
+                )}
+                <span className="flex min-w-0 flex-col gap-0.5">
+                  {built ? (
+                    <Link className="text-[15px] font-bold text-ink hover:underline hover:decoration-signal hover:decoration-2 hover:underline-offset-4" href={row.href}>
                       {row.title}
                     </Link>
-                    <span className="text-[13px] text-ink-2">{row.sub}</span>
-                  </span>
-                  <span className="self-center px-3.5 font-mono text-xs text-muted uppercase">
-                    {isDone ? "✓ Done" : `${row.minutes} min`}
-                  </span>
-                </li>
-              );
-            })}
-          </ol>
-        ) : (
-          <p className="rounded-[14px] border-[1.5px] border-dashed border-line-strong p-7 text-center text-[15px] leading-[1.5] text-muted">
-            Pick who you&apos;re meeting and build your pre-flight. It chains Market Pulse, Deal prep, a simulation and
-            Flight Check.
+                  ) : (
+                    <span className="text-[15px] font-bold text-ink">{row.title}</span>
+                  )}
+                  <span className="truncate text-[13px] text-muted">{row.sub}</span>
+                </span>
+                <span className="text-sm text-muted">{isDone ? "Done" : `${row.minutes} min`}</span>
+              </li>
+            );
+          })}
+        </ol>
+        {!built ? (
+          <p className="border-t border-divider pt-3 text-[13px] text-muted">
+            Pick who you&apos;re meeting and build the plan. Then tick each step off as you go.
           </p>
-        )}
+        ) : null}
       </div>
     </section>
   );

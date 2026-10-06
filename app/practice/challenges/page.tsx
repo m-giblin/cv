@@ -49,7 +49,7 @@ export default async function ChallengesPage({ searchParams }: ChallengesPagePro
     <AppShell contentWidth="full" currentUser={data.currentUser} notifications={data.notifications}>
       <Suspense
         fallback={
-          <div className="m-[var(--gutter)] rounded-[14px] border-[1.5px] border-dashed border-line-strong p-7 text-center text-[15px] text-muted">
+          <div className="m-[var(--gutter)] rounded-[14px] border border-dashed border-line-strong p-7 text-center text-[15px] text-muted">
             Loading challenges…
           </div>
         }
