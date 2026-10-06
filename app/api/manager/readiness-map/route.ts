@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { requireManagerSession } from "@/lib/auth/require-manager";
 import { fetchReadinessMapPayload } from "@/lib/manager/readiness-map-fetch";
 import { checkAndNotifyThresholdCrossings } from "@/lib/manager/readiness-nudges";
@@ -15,13 +15,12 @@ export async function GET() {
 
   const payload = await fetchReadinessMapPayload(session.supabase, session.tenantId, userIds);
 
-  // Awaited (not fire-and-forget) — serverless request contexts can be torn
-  // down as soon as the handler returns, so a detached promise here could
-  // silently never run. Don't let a notification failure break the page.
-  try {
-    await checkAndNotifyThresholdCrossings(session.supabase, session.user.id, payload.rows);
-  } catch {
-    // best-effort nudge — page load should not fail because of it
+  // after() keeps the serverless context alive until the nudges finish, without making the
+  // response wait on them. Operators shadowing the tenant aren't the SEs' manager, so skip.
+  if (!session.isShadowing) {
+    after(() =>
+      checkAndNotifyThresholdCrossings(session.supabase, session.user.id, payload.rows).catch(() => undefined),
+    );
   }
 
   return NextResponse.json(payload);

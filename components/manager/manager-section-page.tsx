@@ -32,6 +32,8 @@ import {
 } from "@/lib/manager/team-status";
 import { loadPlatformSettings } from "@/lib/platform/settings";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
+import { getEffectiveAccess } from "@/lib/auth/effective-access";
 import {
  fetchMenteeAssignments,
  fetchMentorCoachingNotesForManager,
@@ -58,6 +60,7 @@ const ManagerPageShell = dynamic(
 
 export async function ManagerSectionPage({ section }: { section: ManagerSection }) {
  const { data, role } = await requireManagerPageAccess();
+ const { isShadowing } = await getEffectiveAccess(data.currentUser.role, data.currentUser.tenantId ?? null);
  const settings = await loadPlatformSettings(data.currentUser.tenantId ?? undefined);
  if (!isManagerSectionAllowed(section, settings.featureFlags)) {
  redirect(MANAGER_SECTION_PATHS.command);
@@ -126,11 +129,10 @@ export async function ManagerSectionPage({ section }: { section: ManagerSection 
  if (!supabase) return null;
  try {
  const payload = await fetchReadinessMapPayload(supabase, data.currentUser.tenantId, [...orgIds]);
- // Same best-effort threshold nudges the readiness API used to send on page load.
- try {
- await checkAndNotifyThresholdCrossings(supabase, data.currentUser.id, payload.rows);
- } catch {
- // nudges must never break the page
+ // Best-effort threshold nudges run after the response so they never slow the page. An operator
+ // shadowing the tenant is not the SEs' manager, so nothing is sent while shadowing.
+ if (!isShadowing) {
+  after(() => checkAndNotifyThresholdCrossings(supabase, data.currentUser.id, payload.rows).catch(() => undefined));
  }
  return payload;
  } catch {

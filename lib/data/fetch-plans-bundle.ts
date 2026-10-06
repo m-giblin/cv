@@ -51,11 +51,12 @@ export async function fetchPlansForUsers(
   const planStepsQuery = supabase.from("plan_steps").select("*").in("plan_id", planIds).order("sort_order");
   const contentAssetsQuery = supabase.from("content_assets").select("id, storage_path");
 
-  const [plansResult, planStepsResult, assignmentStepsResult, contentAssetsResult] = await Promise.all([
+  const [plansResult, planStepsResult, assignmentStepsResult, contentAssetsResult, adHocByAssignment] = await Promise.all([
     plansQuery,
     planStepsQuery,
     supabase.from("plan_assignment_steps").select("*").in("assignment_id", assignmentIds),
     contentAssetsQuery,
+    fetchAdHocStepsForAssignments(supabase, assignmentIds),
   ]);
   const planSteps = (planStepsResult.data ?? []) as DbPlanStep[];
   const assignmentSteps = (assignmentStepsResult.data ?? []) as DbPlanAssignmentStep[];
@@ -80,8 +81,6 @@ export async function fetchPlansForUsers(
     existing.push(step);
     assignmentStepsByAssignment.set(step.assignment_id, existing);
   }
-
-  const adHocByAssignment = await fetchAdHocStepsForAssignments(supabase, assignmentIds);
 
   return assignments.map((assignment) => {
     const template = onboardingPlans.find((plan) => plan.id === assignment.plan_id);

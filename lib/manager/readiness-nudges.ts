@@ -18,40 +18,54 @@ export async function checkAndNotifyThresholdCrossings(
 ): Promise<void> {
   const since = new Date(Date.now() - DEDUPE_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
 
-  for (const row of rows) {
-    const criticalDims = (Object.keys(row.dims) as ReadinessDimName[]).filter(
-      (dim) => row.dims[dim].level === "critical",
-    );
-    if (criticalDims.length === 0) continue;
+  // Rows are independent, so check and send them in parallel instead of one SE at a time.
+  await Promise.all(rows.map((row) => nudgeRow(supabase, managerId, row, since)));
+}
 
-    // Only nudge on the single worst real-critical dim per row per window —
-    // avoids paging someone with 9 separate notifications at once.
-    const worstDim = criticalDims.sort((a, b) => row.dims[a].numericScore - row.dims[b].numericScore)[0];
-    const cell = row.dims[worstDim];
-    const actionUrl = cell.actions[0]?.href ?? "/growth/readiness";
+async function nudgeRow(
+  supabase: SupabaseClient<Database>,
+  managerId: string,
+  row: ReadinessMapSeRow,
+  since: string,
+): Promise<void> {
+  const criticalDims = (Object.keys(row.dims) as ReadinessDimName[]).filter(
+    (dim) => row.dims[dim].level === "critical",
+  );
+  if (criticalDims.length === 0) return;
 
-    const { data: existing } = await supabase
-      .from("notifications")
-      .select("id")
-      .eq("action_url", actionUrl)
-      .eq("user_id", row.userId)
-      .gte("created_at", since)
-      .limit(1)
-      .maybeSingle();
-    if (existing) continue;
+  // Only nudge on the single worst real-critical dim per row per window —
+  // avoids paging someone with 9 separate notifications at once.
+  const worstDim = criticalDims.sort((a, b) => row.dims[a].numericScore - row.dims[b].numericScore)[0];
+  const cell = row.dims[worstDim];
+  const actionUrl = cell.actions[0]?.href ?? "/growth/readiness";
 
-    await createNotification(supabase, {
+  const managerTitle = `${row.firstName} is critical on ${worstDim}`;
+  // Dedupe on the manager's own copy: RLS lets the manager read their notifications but not the
+  // SE's, so checking the SE's row always came back empty and re-sent the pair on every page view.
+  // Both copies are always written together, so the manager's copy stands in for the pair.
+  const { data: existing } = await supabase
+    .from("notifications")
+    .select("id")
+    .eq("action_url", actionUrl)
+    .eq("user_id", managerId)
+    .eq("title", managerTitle)
+    .gte("created_at", since)
+    .limit(1)
+    .maybeSingle();
+  if (existing) return;
+
+  await Promise.all([
+    createNotification(supabase, {
       userId: row.userId,
       title: `${worstDim} needs attention`,
       body: cell.insight,
       actionUrl,
-    });
-
-    await createNotification(supabase, {
+    }),
+    createNotification(supabase, {
       userId: managerId,
-      title: `${row.firstName} is critical on ${worstDim}`,
+      title: managerTitle,
       body: cell.insight,
       actionUrl,
-    });
-  }
+    }),
+  ]);
 }

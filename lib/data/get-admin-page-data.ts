@@ -43,7 +43,8 @@ async function fetchSupabaseAdminPageDataForTenant(
     return null;
   }
 
-  const [profilesResult, activityResult, notificationsResult] = await Promise.all([
+  // One parallel batch: everything here depends only on the tenant and the signed-in user.
+  const [profilesResult, activityResult, notificationsResult, operatorResult] = await Promise.all([
     admin
       .from("profiles")
       .select("id, email, full_name, role, level, manager_id, avatar_url, created_at, tenant_id")
@@ -60,6 +61,11 @@ async function fetchSupabaseAdminPageDataForTenant(
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(50),
+    admin
+      .from("profiles")
+      .select("id, email, full_name, role, level, manager_id, avatar_url, created_at, tenant_id")
+      .eq("id", userId)
+      .maybeSingle(),
   ]);
 
   if (profilesResult.error) {
@@ -67,11 +73,7 @@ async function fetchSupabaseAdminPageDataForTenant(
   }
 
   const profiles = (profilesResult.data ?? []).map(mapProfile);
-  const { data: operatorProfile } = await admin
-    .from("profiles")
-    .select("id, email, full_name, role, level, manager_id, avatar_url, created_at, tenant_id")
-    .eq("id", userId)
-    .maybeSingle();
+  const operatorProfile = operatorResult.data;
 
   if (!operatorProfile) {
     return null;
