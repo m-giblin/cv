@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { builderMetadata } from "@/lib/plans/builder-metadata";
 import { logAuditEvent } from "@/lib/audit/log-admin-action";
 import { requireManagerSession } from "@/lib/auth/require-manager";
 import { assertTenantOwnedRow, getTenantAdminClient } from "@/lib/data/tenant-scoped-query";
@@ -25,6 +26,12 @@ const stepSchema = z.object({
  simulationTemplateId: z.string().uuid().optional().or(z.literal("")),
  segmentIndex: z.number().int().min(1).max(4).nullable().optional(),
  isSegmentGate: z.boolean().optional(),
+ // Plan builder fields, stored in plan_steps.metadata.
+ criteria: z.array(z.string().max(500)).max(20).optional(),
+ evidence: z.string().max(40).nullable().optional(),
+ reviewer: z.string().max(40).nullable().optional(),
+ competency: z.string().max(200).nullable().optional(),
+ estimatedMinutes: z.number().int().min(0).max(10000).nullable().optional(),
 });
 
 const updateTemplateSchema = z.object({
@@ -54,6 +61,7 @@ function stepRow(
  dueOffsetDays: step.dueOffsetDays ?? sortOrder * 7,
  segmentIndex: step.segmentIndex ?? null,
  isSegmentGate: step.isSegmentGate ?? false,
+ ...builderMetadata(step),
  },
  };
 }

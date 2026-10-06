@@ -1,31 +1,26 @@
 import type { Metadata } from "next";
-import { DM_Mono, DM_Sans, Syne } from "next/font/google";
+import { Bricolage_Grotesque, Instrument_Serif } from "next/font/google";
 import { ForgeSdkLoader } from "@/components/forge/forge-sdk-loader";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
-const syne = Syne({
+const bricolage = Bricolage_Grotesque({
  subsets: ["latin"],
  display: "swap",
- weight: ["700", "800"],
- variable: "--font-syne",
+ axes: ["opsz", "wdth"],
+ variable: "--font-bricolage",
 });
 
-const dmSans = DM_Sans({
+const instrumentSerif = Instrument_Serif({
  subsets: ["latin"],
  display: "swap",
- variable: "--font-dm-sans",
-});
-
-const dmMono = DM_Mono({
- subsets: ["latin"],
- display: "swap",
- weight: ["400", "500"],
- variable: "--font-dm-mono",
+ weight: "400",
+ style: "italic",
+ variable: "--font-instrument-serif",
 });
 
 export const metadata: Metadata = {
- title: "Enablement Platform",
+ title: "SE Enablement",
  description: "Internal onboarding, simulation, and enablement.",
 };
 
@@ -35,10 +30,9 @@ export default function RootLayout({
  children: React.ReactNode;
 }>) {
  return (
- <html lang="en">
- <body
- className={`${syne.variable} ${dmSans.variable} ${dmMono.variable} font-[family-name:var(--font-dm-sans)] antialiased`}
- >
+ // Font variables live on <html> so the :root tokens (--font-ui, --font-accent) can resolve them.
+ <html className={`${bricolage.variable} ${instrumentSerif.variable}`} lang="en">
+ <body className="font-[family-name:var(--font-bricolage)] antialiased">
  <ForgeSdkLoader />
  <Providers>{children}</Providers>
  </body>

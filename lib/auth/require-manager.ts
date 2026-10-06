@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getAuthenticatedUser } from "@/lib/data/get-authenticated-user";
 import { cookies } from "next/headers";
 import { User } from "@supabase/supabase-js";
 import {
@@ -31,9 +32,7 @@ export async function requireManagerSession(): Promise<ManagerSession | NextResp
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthenticatedUser();
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

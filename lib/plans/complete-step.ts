@@ -204,7 +204,7 @@ export async function endorseAssignmentStep(
       seUserId: assignment.user_id,
       title: "Mentor endorsed — manager sign-off needed",
       body: "A mentor check-in is ready for your live validation.",
-      actionUrl: "/manager?section=inbox",
+      actionUrl: "/manager/inbox",
     });
   }
 

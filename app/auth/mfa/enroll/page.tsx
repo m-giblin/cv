@@ -1,11 +1,15 @@
-import { MfaEnrollLeftPanel } from "@/components/auth/mfa-enroll-left-panel";
-import { MfaEnrollRightPanel } from "@/components/auth/mfa-enroll-right-panel";
+import { AuthShell } from "@/components/auth/auth-shell";
+import { MfaEnrollForm } from "@/components/auth/mfa-enroll-form";
 
 export default function MfaEnrollPage() {
- return (
- <div className="flex min-h-screen">
- <MfaEnrollLeftPanel />
- <MfaEnrollRightPanel />
- </div>
- );
+  return (
+    <AuthShell
+      backLink={{ href: "/login", label: "Back to sign in" }}
+      description="Scan the QR code, then enter a code to turn on MFA."
+      eyebrow="Step 2 of 2 / Enroll MFA"
+      title="Set up your authenticator."
+    >
+      <MfaEnrollForm />
+    </AuthShell>
+  );
 }

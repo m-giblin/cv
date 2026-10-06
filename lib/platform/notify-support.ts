@@ -31,7 +31,7 @@ export async function notifyReporterOfTicketUpdate(
       userId: ticket.reporterId,
       title: `Support update: ${ticket.subject}`,
       body: update.operatorReply.slice(0, 200),
-      actionUrl: "/admin?tab=help",
+      actionUrl: "/admin/help",
     });
     return;
   }
@@ -41,7 +41,7 @@ export async function notifyReporterOfTicketUpdate(
       userId: ticket.reporterId,
       title: `Support ticket ${update.status.replace("_", " ")}`,
       body: ticket.subject,
-      actionUrl: "/admin?tab=help",
+      actionUrl: "/admin/help",
     });
   }
 }

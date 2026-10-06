@@ -13,6 +13,7 @@ const patchSchema = z.object({
   sharedWithManager: z.boolean().optional(),
   managerComment: z.string().optional(),
   coachingSignoff: z.record(z.string(), z.unknown()).optional(),
+  outcome: z.enum(["pending", "won", "lost"]).optional(),
 });
 
 export async function PATCH(request: Request, context: RouteContext) {
@@ -70,6 +71,9 @@ export async function PATCH(request: Request, context: RouteContext) {
  }
  if (parsed.data.managerComment !== undefined) {
  updates.manager_comment = parsed.data.managerComment;
+ }
+ if (parsed.data.outcome !== undefined) {
+ updates.outcome = parsed.data.outcome;
  }
  }
 

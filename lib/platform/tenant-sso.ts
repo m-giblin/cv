@@ -1,7 +1,7 @@
 import "server-only";
 
 import { logAuditEvent } from "@/lib/audit/log-admin-action";
-import type { Json } from "@/lib/database.types";
+import { decryptSecret, encryptSecret } from "@/lib/crypto/secret-box";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { TenantSsoConfig, TenantSsoProvider } from "@/lib/tenant/types";
 
@@ -11,8 +11,27 @@ type SsoRow = {
   provider: string;
   sso_domain: string | null;
   metadata: unknown;
+  metadata_ciphertext: string | null;
   updated_at: string;
 };
+
+/**
+ * Metadata is encrypted at rest (it commonly embeds IdP certs/secrets), but
+ * unlike webhook secrets it needs to be readable by the authorized operator
+ * to edit — so this decrypts rather than masking. Falls back to the legacy
+ * plaintext `metadata` column for rows saved before the encryption migration
+ * that haven't been re-saved since.
+ */
+function resolveMetadata(row: SsoRow): Record<string, unknown> {
+  if (row.metadata_ciphertext) {
+    try {
+      return JSON.parse(decryptSecret(row.metadata_ciphertext)) as Record<string, unknown>;
+    } catch {
+      return {};
+    }
+  }
+  return (row.metadata ?? {}) as Record<string, unknown>;
+}
 
 function mapSsoConfig(row: SsoRow): TenantSsoConfig {
   return {
@@ -20,7 +39,7 @@ function mapSsoConfig(row: SsoRow): TenantSsoConfig {
     enabled: row.enabled,
     provider: (row.provider as TenantSsoProvider) ?? "saml",
     ssoDomain: row.sso_domain,
-    metadata: (row.metadata ?? {}) as Record<string, unknown>,
+    metadata: resolveMetadata(row),
     updatedAt: row.updated_at,
   };
 }
@@ -68,12 +87,16 @@ export async function updateTenantSsoConfig(
     .eq("tenant_id", tenantId)
     .maybeSingle();
 
+  const existingMetadata = existing ? resolveMetadata(existing as SsoRow) : {};
+  const nextMetadata = input.metadata !== undefined ? input.metadata : existingMetadata;
+
   const payload = {
     tenant_id: tenantId,
     enabled: input.enabled ?? existing?.enabled ?? false,
     provider: input.provider ?? (existing?.provider as TenantSsoProvider) ?? "saml",
     sso_domain: input.ssoDomain !== undefined ? input.ssoDomain : existing?.sso_domain ?? null,
-    metadata: (input.metadata !== undefined ? input.metadata : existing?.metadata ?? {}) as Json,
+    metadata: {},
+    metadata_ciphertext: encryptSecret(JSON.stringify(nextMetadata)),
     updated_at: new Date().toISOString(),
   };
 

@@ -22,7 +22,7 @@ export function UserAccountMenu({
  appearance = "header",
 }: {
  currentUser: Profile;
- appearance?: "header" | "sidebar-dark";
+ appearance?: "header" | "sidebar-dark" | "topbar";
 }) {
  const router = useRouter();
  const [open, setOpen] = useState(false);
@@ -74,86 +74,79 @@ export function UserAccountMenu({
  ];
 
  const isSidebar = appearance === "sidebar-dark";
+ const isTopbar = appearance === "topbar";
 
  return (
- <div className="relative">
+ <div className={cn("relative", isTopbar ? "shrink-0" : "min-w-0 flex-1")}>
  <button
  aria-expanded={open}
  aria-haspopup="menu"
  aria-label={`Account menu for ${currentUser.fullName}`}
  className={cn(
- "flex max-w-[220px] items-center gap-2 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0071ce]",
- isSidebar
- ? "min-w-0 flex-1 px-0 py-0 text-left hover:bg-white/[0.06]"
- : "px-1.5 py-1 hover:bg-[#F5F4F0]",
+ isTopbar
+ ? "grid h-8 w-8 place-items-center rounded-full bg-white text-[13px] font-bold text-blue"
+ : "flex w-full min-w-0 items-center gap-2.5 rounded-[10px] px-1.5 py-1.5 text-left transition-colors",
+ !isTopbar && (isSidebar ? "hover:bg-blue-2" : "hover:bg-blue-soft"),
  )}
  onClick={() => setOpen((current) => !current)}
  ref={triggerRef}
  type="button"
  >
+ {isTopbar ? (
+ <span aria-hidden>{initials(currentUser.fullName)}</span>
+ ) : (
+ <>
  <span
+ aria-hidden
  className={cn(
- "flex shrink-0 items-center justify-center rounded-full font-bold text-white",
- isSidebar ? "h-[34px] w-[34px] text-xs" : "h-8 w-8 text-[11px]",
+ "grid h-[30px] w-[30px] shrink-0 place-items-center rounded-full text-xs font-bold",
+ isSidebar ? "bg-blue-soft text-blue" : "bg-blue text-white",
  )}
- style={{
- background: isSidebar
- ? "linear-gradient(135deg, #0057a8, #cd27b0)"
- : "linear-gradient(135deg, #0033a1, #cc27b0)",
- }}
  >
  {initials(currentUser.fullName)}
  </span>
  <span className={cn("min-w-0 flex-1", isSidebar ? "block" : "hidden sm:block")}>
- <span
- className={cn(
- "block truncate font-semibold",
- isSidebar ? "text-xs text-white/90" : "text-[12px] text-[#0D0E12]",
- )}
- >
+ <span className={cn("block truncate text-sm font-semibold", isSidebar ? "text-white" : "text-ink")}>
  {currentUser.fullName}
  </span>
- {!isSidebar ? (
- <span className="block truncate text-[10px] text-[#A09D98]">{currentUser.email}</span>
- ) : (
- <span className="block truncate text-[10px] text-white/40">{currentUser.email}</span>
- )}
+ <span className={cn("block truncate text-[13px]", isSidebar ? "text-on-blue-muted" : "text-muted")}>
+ {currentUser.email}
+ </span>
  </span>
  <ChevronDown
+ aria-hidden
  className={cn(
- "h-3.5 w-3.5 shrink-0 transition",
- isSidebar ? "text-white/40" : "text-[#A09D98]",
+ "h-4 w-4 shrink-0 transition-transform",
+ isSidebar ? "text-on-blue-muted" : "text-muted",
  open && "rotate-180",
  )}
  />
+ </>
+ )}
  </button>
 
  {open ? (
  <>
- <div aria-hidden className="fixed inset-0 z-40 bg-sp-navy/10 lg:bg-transparent" />
+ <div aria-hidden className="fixed inset-0 z-40 bg-scrim lg:bg-transparent" />
  <div
  aria-label="Account menu"
  className={cn(
- "absolute z-50 w-[min(15rem,calc(100vw-2rem))] overflow-hidden border bg-white shadow-sp-navy/10",
- isSidebar
- ? "bottom-full left-0 mb-2 border-white/10"
- : "right-0 top-[calc(100%+6px)] border-[#E2DFD9]",
+ "absolute z-50 w-[min(15rem,calc(100vw-2rem))] overflow-hidden rounded-[14px] border border-line bg-white shadow-[var(--shadow-drag)]",
+ isSidebar ? "bottom-full left-0 mb-2" : "top-[calc(100%+10px)] right-0",
  )}
  ref={panelRef}
  role="menu"
  >
- <div className="border-b border-[#ECEAE6] px-3 py-2.5">
- <p className="truncate text-[12px] font-semibold text-[#0D0E12]">{currentUser.fullName}</p>
- <p className="truncate text-[10.5px] text-[#A09D98]">{currentUser.email}</p>
+ <div className="border-b border-divider px-4 py-3">
+ <p className="truncate text-sm font-bold text-ink">{currentUser.fullName}</p>
+ <p className="truncate text-[13px] text-muted">{currentUser.email}</p>
  </div>
- <div className="p-1">
+ <div className="p-1.5">
  {items.map((item) => {
  const Icon = item.icon;
  const className = cn(
- "flex w-full items-center gap-2 px-2.5 py-2 text-left text-[12px] font-semibold transition",
- item.destructive
- ? "text-[#dc2626] hover:bg-[#fef2f2]"
- : "text-[#3D3C38] hover:bg-[#F5F4F0]",
+ "flex w-full items-center gap-2.5 rounded-[10px] px-3 py-2 text-left text-sm font-semibold transition-colors",
+ item.destructive ? "text-danger hover:bg-danger-soft" : "text-ink hover:bg-blue-soft",
  );
 
  if (item.href) {
@@ -165,7 +158,7 @@ export function UserAccountMenu({
  onClick={() => setOpen(false)}
  role="menuitem"
  >
- <Icon className="h-4 w-4 shrink-0 opacity-70" />
+ <Icon aria-hidden className="h-4 w-4 shrink-0" />
  {item.label}
  </Link>
  );
@@ -183,8 +176,8 @@ export function UserAccountMenu({
  role="menuitem"
  type="button"
  >
- <Icon className="h-4 w-4 shrink-0 opacity-70" />
- {item.label}
+ <Icon aria-hidden className="h-4 w-4 shrink-0" />
+ {isSigningOut && item.destructive ? "Signing out…" : item.label}
  </button>
  );
  })}

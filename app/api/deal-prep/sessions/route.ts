@@ -255,12 +255,25 @@ export async function POST(request: Request) {
  },
  });
 
+ // Auto-completing a matching deal_prep plan step is a convenience, not part of saving
+ // the brief. If that step sits in a locked segment or behind an unmet prerequisite,
+ // submitAssignmentStep throws — and letting that escape used to 500 the whole request,
+ // discarding work the user had already had written to the database.
+ let linkedPlanStep = true;
+ try {
  await linkDealPrepPlanSteps(supabase, {
  userId: user.id,
  sessionId: data.id,
  accountName: parsed.data.accountName,
  assignmentStepId: parsed.data.assignmentStepId,
  });
+ } catch {
+ linkedPlanStep = false;
+ }
 
- return NextResponse.json({ id: data.id, versionNumber: data.version_number });
+ return NextResponse.json({
+ id: data.id,
+ versionNumber: data.version_number,
+ linkedPlanStep,
+ });
 }

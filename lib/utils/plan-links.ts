@@ -5,34 +5,34 @@ export function planStepHref(step: PlanStep) {
     switch (step.type) {
       case "challenge":
         return step.challengeId
-          ? `/challenges?focus=challenge&step=${step.id}&challenge=${step.challengeId}`
-          : `/challenges?focus=challenge&step=${step.id}`;
+          ? `/practice/challenges?focus=challenge&step=${step.id}&challenge=${step.challengeId}`
+          : `/practice/challenges?focus=challenge&step=${step.id}`;
       case "simulation":
         return step.simulationTemplateId
-          ? `/simulations?focus=simulation&step=${step.id}&template=${step.simulationTemplateId}`
-          : `/simulations?focus=simulation&step=${step.id}`;
+          ? `/practice/simulations?focus=simulation&step=${step.id}&template=${step.simulationTemplateId}`
+          : `/practice/simulations?focus=simulation&step=${step.id}`;
       case "content_review":
       case "shadow_meeting_log":
       case "mentor_review":
-        return `/plan-steps/${step.assignmentStepId}`;
+        return `/my-plan?step=${step.assignmentStepId}`;
       case "deal_prep":
-        return `/prep?step=${step.assignmentStepId}`;
+        return `/practice/deal-prep?step=${step.assignmentStepId}`;
       default:
-        return `/plan-steps/${step.assignmentStepId}`;
+        return `/my-plan?step=${step.assignmentStepId}`;
     }
   }
 
   switch (step.type) {
     case "challenge":
-      return `/challenges?focus=challenge&step=${step.id}`;
+      return `/practice/challenges?focus=challenge&step=${step.id}`;
     case "simulation":
-      return `/simulations?focus=simulation&step=${step.id}`;
+      return `/practice/simulations?focus=simulation&step=${step.id}`;
     case "deal_prep":
-      return "/prep";
+      return "/practice/deal-prep";
     case "content_review":
-      return step.resourceUrl ?? "/resources";
+      return step.resourceUrl ?? "/learn";
     default:
-      return "/dashboard";
+      return "/my-plan";
   }
 }
 

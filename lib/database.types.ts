@@ -454,6 +454,77 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["notifications"]["Insert"]>;
         Relationships: [];
       };
+      challenge_competencies: {
+        Row: {
+          challenge_id: string;
+          competency_id: string;
+        };
+        Insert: {
+          challenge_id: string;
+          competency_id: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["challenge_competencies"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "challenge_competencies_challenge_id_fkey";
+            columns: ["challenge_id"];
+            isOneToOne: false;
+            referencedRelation: "challenges";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "challenge_competencies_competency_id_fkey";
+            columns: ["competency_id"];
+            isOneToOne: false;
+            referencedRelation: "competencies";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      readiness_signal_flags: {
+        Row: {
+          id: string;
+          tenant_id: string;
+          user_id: string;
+          dim_name: string;
+          reason: string;
+          status: string;
+          created_at: string;
+          resolved_at: string | null;
+          resolved_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          tenant_id: string;
+          user_id: string;
+          dim_name: string;
+          reason: string;
+          status?: string;
+          created_at?: string;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["readiness_signal_flags"]["Insert"]>;
+        Relationships: [];
+      };
+      readiness_score_snapshots: {
+        Row: {
+          user_id: string;
+          tenant_id: string;
+          level: string;
+          composite: number;
+          computed_at: string;
+        };
+        Insert: {
+          user_id: string;
+          tenant_id: string;
+          level: string;
+          composite: number;
+          computed_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["readiness_score_snapshots"]["Insert"]>;
+        Relationships: [];
+      };
       simulation_templates: {
         Row: {
           id: string;
@@ -911,6 +982,7 @@ export type Database = {
           parent_session_id: string | null;
           account_key: string | null;
           version_number: number;
+          outcome: string;
           created_at: string;
           updated_at: string;
           tenant_id: string | null;
@@ -934,6 +1006,7 @@ export type Database = {
           parent_session_id?: string | null;
           account_key?: string | null;
           version_number?: number;
+          outcome?: string;
           created_at?: string;
           updated_at?: string;
           tenant_id?: string | null;
@@ -1682,6 +1755,7 @@ export type Database = {
           operator_notes: string | null;
           maintenance_mode: boolean;
           maintenance_message: string | null;
+          offboarded_at: string | null;
           billing_status: string;
           billing_plan: string | null;
           seat_quota: number | null;
@@ -1706,6 +1780,7 @@ export type Database = {
           operator_notes?: string | null;
           maintenance_mode?: boolean;
           maintenance_message?: string | null;
+          offboarded_at?: string | null;
           billing_status?: string;
           billing_plan?: string | null;
           seat_quota?: number | null;
@@ -1828,6 +1903,7 @@ export type Database = {
           provider: string;
           sso_domain: string | null;
           metadata: Json;
+          metadata_ciphertext: string | null;
           updated_at: string;
         };
         Insert: {
@@ -1836,6 +1912,7 @@ export type Database = {
           provider?: string;
           sso_domain?: string | null;
           metadata?: Json;
+          metadata_ciphertext?: string | null;
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["tenant_sso_configs"]["Insert"]>;

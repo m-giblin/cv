@@ -39,12 +39,14 @@ export type GanttRowLayout = {
   rowHeightPx: number;
 };
 
-const LANE_H_CONTENT = 18;
-const LANE_H_SECONDARY = 14;
+const LANE_H_CONTENT = 20;
+const LANE_H_SECONDARY = 18;
 const LANE_GAP = 3;
 const ROW_PAD_TOP = 8;
 const ROW_PAD_BOTTOM = 8;
-const MIN_ROW_HEIGHT = 80;
+const MIN_ROW_HEIGHT = 96;
+/** Gate lane: 14px diamond plus a 12px label underneath. */
+const GATE_LANE_H = 32;
 
 export type GanttSeRow = {
   id: string;
@@ -68,10 +70,21 @@ const HEALTH_STYLES: Record<
   GanttHealth,
   { label: string; color: string; bg: string }
 > = {
-  critical: { label: "CRITICAL", color: "#B83128", bg: "rgba(184,49,40,.12)" },
-  behind: { label: "BEHIND", color: "#D4810A", bg: "rgba(212,129,10,.1)" },
-  "on-pace": { label: "ON PACE", color: "#0A6E45", bg: "rgba(10,110,69,.1)" },
-  ahead: { label: "AHEAD", color: "#0071CE", bg: "rgba(0,113,206,.1)" },
+  critical: { label: "Critical", color: "var(--color-danger)", bg: "var(--color-danger-soft)" },
+  behind: { label: "Behind", color: "var(--color-warning)", bg: "var(--color-warning-soft)" },
+  "on-pace": { label: "On pace", color: "var(--color-success)", bg: "var(--color-success-soft)" },
+  ahead: { label: "Ahead", color: "var(--color-blue)", bg: "var(--color-blue-soft)" },
+};
+
+/** Tag tone + leading symbol for each health state, so status never relies on colour alone. */
+export const HEALTH_TAG: Record<
+  GanttHealth,
+  { tone: "danger" | "warning" | "success" | "blue"; symbol: string }
+> = {
+  critical: { tone: "danger", symbol: "▲" },
+  behind: { tone: "warning", symbol: "●" },
+  "on-pace": { tone: "success", symbol: "✓" },
+  ahead: { tone: "blue", symbol: "◆" },
 };
 
 function mapStepType(step: CalendarStep): GanttBarType {
@@ -192,7 +205,7 @@ export function layoutGanttRow(bars: GanttBar[]): GanttRowLayout {
       ...bar,
       lane,
       track: "gate",
-      topPx: gateTop + lane * 18,
+      topPx: gateTop + lane * GATE_LANE_H,
       heightPx: 14,
     });
   }
@@ -200,7 +213,7 @@ export function layoutGanttRow(bars: GanttBar[]): GanttRowLayout {
   const contentBottom = maxContentLane > 0 ? ROW_PAD_TOP + contentBlockHeight : ROW_PAD_TOP;
   const secondaryBottom =
     maxSecondaryLane > 0 ? secondaryTop + secondaryBlockHeight : contentBottom;
-  const gateBottom = maxGateLane > 0 ? gateTop + maxGateLane * 18 : secondaryBottom;
+  const gateBottom = maxGateLane > 0 ? gateTop + maxGateLane * GATE_LANE_H : secondaryBottom;
 
   const rowHeightPx = Math.max(MIN_ROW_HEIGHT, gateBottom + ROW_PAD_BOTTOM);
 
@@ -222,10 +235,10 @@ export function computeHealth(progress: number, dayInRamp: number): GanttHealth 
 }
 
 export function rampColor(health: GanttHealth): string {
-  if (health === "critical") return "#B83128";
-  if (health === "behind") return "#D4810A";
-  if (health === "ahead") return "#0071CE";
-  return "#0A6E45";
+  if (health === "critical") return "var(--color-danger)";
+  if (health === "behind") return "var(--color-warning)";
+  if (health === "ahead") return "var(--color-blue)";
+  return "var(--color-success)";
 }
 
 function stepToBar(step: CalendarStep, row: CalendarPlanRow, timelineStart: string): GanttBar {

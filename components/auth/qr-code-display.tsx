@@ -21,7 +21,7 @@ export function QrCodeDisplay({ qrCode }: { qrCode: string }) {
  }
 
  return (
- <p className="text-center text-sm text-sp-navy-muted">
+ <p className="text-center text-sm text-muted">
  QR preview unavailable. Use the manual setup key below in your authenticator app.
  </p>
  );

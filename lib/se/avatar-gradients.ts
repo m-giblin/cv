@@ -1,21 +1,19 @@
-/** Manager + SE avatar circles — MANAGER_TSX_COMPONENTS.md */
-export const SE_AVATAR_GRADIENTS = [
-  "linear-gradient(135deg,#0033a1,#0071ce)",
-  "linear-gradient(135deg,#0071ce,#0891b2)",
-  "linear-gradient(135deg,#5b21b6,#7c3aed)",
-  "linear-gradient(135deg,#0369a1,#0891b2)",
-  "linear-gradient(135deg,#9d174d,#be185d)",
-  "linear-gradient(135deg,#065f46,#059669)",
-] as const;
+/**
+ * v2 avatars: a solid blue-soft circle with blue initials. No gradients and no per-person colours.
+ * The `*ForId` helpers are kept so data mappers can still hand a background value to the view.
+ */
+export const AVATAR_BG = "#E5ECFA"; // --color-blue-soft
+export const AVATAR_FG = "#0033A1"; // --color-blue
+
+/** Tailwind classes for an avatar circle on the v2 tokens. */
+export const AVATAR_CLASSNAME = "bg-blue-soft text-blue";
 
 export function avatarGradientForIndex(index: number) {
-  return SE_AVATAR_GRADIENTS[index % SE_AVATAR_GRADIENTS.length]!;
+  void index;
+  return AVATAR_BG;
 }
 
 export function avatarGradientForId(id: string) {
-  let hash = 0;
-  for (let i = 0; i < id.length; i += 1) {
-    hash = (hash + id.charCodeAt(i)) % SE_AVATAR_GRADIENTS.length;
-  }
-  return SE_AVATAR_GRADIENTS[hash]!;
+  void id;
+  return AVATAR_BG;
 }

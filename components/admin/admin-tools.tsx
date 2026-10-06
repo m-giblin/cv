@@ -32,7 +32,7 @@ export function SaveChallengeButton({ challenge }: { challenge: GeneratedChallen
 
  return (
  <Button disabled={isSaving} onClick={() => void save()} size="sm" variant="outline">
- {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+ {isSaving ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : <Save aria-hidden className="h-4 w-4" />}
  Save to library
  </Button>
  );
@@ -85,7 +85,7 @@ export function SimulationTemplateForm() {
 
  const text = await file.text();
  setPrompt(text);
- toast.success("Prompt loaded from file — review and save.");
+ toast.success("Prompt loaded from file. Review it, then save.");
  }
 
  return (
@@ -98,27 +98,28 @@ export function SimulationTemplateForm() {
  Load elevator pitch preset
  </Button>
  </div>
- <Input onChange={(event) => setName(event.target.value)} placeholder="Template name" required value={name} />
- <Input onChange={(event) => setPersona(event.target.value)} placeholder="Persona (e.g. Healthcare CISO)" required value={persona} />
- <Input onChange={(event) => setVertical(event.target.value)} placeholder="Default vertical" required value={vertical} />
- <Input onChange={(event) => setSolutionFocus(event.target.value)} placeholder="Default solution" required value={solutionFocus} />
+ <Input aria-label="Template name" onChange={(event) => setName(event.target.value)} placeholder="Template name" required value={name} />
+ <Input aria-label="Persona" onChange={(event) => setPersona(event.target.value)} placeholder="Persona (e.g. Healthcare CISO)" required value={persona} />
+ <Input aria-label="Default vertical" onChange={(event) => setVertical(event.target.value)} placeholder="Default vertical" required value={vertical} />
+ <Input aria-label="Default solution" onChange={(event) => setSolutionFocus(event.target.value)} placeholder="Default solution" required value={solutionFocus} />
  <Textarea
- className="min-h-[240px] font-mono text-xs"
+ aria-label="Prompt body"
+ className="min-h-[240px] text-sm"
  onChange={(event) => setPrompt(event.target.value)}
- placeholder="Prompt body — use {{solution}}, {{vertical}}, {{difficulty}} where managers should override values at assign time"
+ placeholder="Prompt body. Use {{solution}}, {{vertical}} and {{difficulty}} where managers should set values when they assign it."
  required
  value={prompt}
  />
- <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-sp-navy-muted">
- <Upload className="h-4 w-4" />
- Upload prompt from .txt file
- <input accept=".txt,.md" className="hidden" onChange={(event) => void handlePromptFile(event)} type="file" />
+ <label className="inline-flex w-fit cursor-pointer items-center gap-2 rounded-full text-sm font-semibold text-ink-2 hover:text-ink has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-blue">
+ <Upload aria-hidden className="h-4 w-4" />
+ Upload a prompt from a .txt file
+ <input accept=".txt,.md" className="sr-only" onChange={(event) => void handlePromptFile(event)} type="file" />
  </label>
- <p className="text-xs text-sp-navy-muted">
- Templates save to the database immediately — no SQL required. Managers see new templates on the Simulations assign form.
+ <p className="text-[13px] text-muted">
+ Templates save to the database straight away, with no SQL needed. Managers see new templates on the Simulations assign form.
  </p>
- <Button disabled={isSaving} type="submit">
- {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+ <Button disabled={isSaving} type="submit" variant="primary">
+ {isSaving ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
  Save template
  </Button>
  </form>
@@ -180,21 +181,24 @@ export function ContentAssetForm() {
 
  return (
  <form className="space-y-4" onSubmit={handleSubmit}>
- <Input onChange={(event) => setTitle(event.target.value)} placeholder="Title" value={title} />
+ <Input aria-label="Title" onChange={(event) => setTitle(event.target.value)} placeholder="Title" value={title} />
  <Input
+ aria-label="URL"
  onChange={(event) => setUrl(event.target.value)}
- placeholder="URL (deck, brief, video) — or upload a file below"
+ placeholder="URL of a deck, brief or video, or upload a file below"
  required={!file}
  type="url"
  value={url}
  />
  <Input
+ aria-label="Upload content file"
  accept=".pdf,.ppt,.pptx,.doc,.docx,.mp4,.mov"
  onChange={(event) => setFile(event.target.files?.[0] ?? null)}
  type="file"
  />
  <select
- className="h-10 w-full border border-sp-blue/15 bg-white px-3 text-sm"
+ aria-label="Category"
+ className="h-10 w-full rounded-[10px] border border-line-strong bg-white px-3 text-[15px] text-ink"
  onChange={(event) => setCategory(event.target.value)}
  value={category}
  >
@@ -203,8 +207,8 @@ export function ContentAssetForm() {
  <option value="demo_recording">Demo recording</option>
  <option value="reference">Reference</option>
  </select>
- <Button disabled={isSaving} type="submit">
- {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+ <Button disabled={isSaving} type="submit" variant="primary">
+ {isSaving ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
  Save asset
  </Button>
  </form>

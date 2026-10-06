@@ -1,6 +1,8 @@
-import { formatDistanceToNow } from "date-fns";
-import { CheckCircle2, RotateCcw } from "lucide-react";
-import { ActivityLog, CoachingCard, Profile } from "@/lib/types";
+import { format } from "date-fns";
+import { StatusPill } from "@/components/ui/status-pill";
+import { TableCard, tdCls, thCls } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
+import type { ActivityLog, CoachingCard, Profile } from "@/lib/types";
 
 export type ReviewHistoryEntry = {
  id: string;
@@ -12,10 +14,10 @@ export type ReviewHistoryEntry = {
  feedbackPreview?: string;
 };
 
-const TYPE_BADGE: Record<ReviewHistoryEntry["type"], { bg: string; color: string; label: string }> = {
- simulation: { bg: "#e8f2fc", color: "#0057a8", label: "Simulation" },
- challenge: { bg: "#ede9fe", color: "#5b21b6", label: "Challenge" },
- plan_step: { bg: "#fef3c7", color: "#b45309", label: "Plan step" },
+const TYPE_LABEL: Record<ReviewHistoryEntry["type"], string> = {
+ simulation: "Sim card",
+ challenge: "Challenge",
+ plan_step: "Plan step",
 };
 
 export function buildReviewHistory(
@@ -89,82 +91,54 @@ export function buildReviewHistory(
 
 export function ManagerReviewHistory({
  entries,
- fullPage = false,
 }: {
  entries: ReviewHistoryEntry[];
  fullPage?: boolean;
 }) {
  if (entries.length === 0) {
- if (!fullPage) return null;
  return (
- <div className="overflow-hidden border border-[#E2DFD9] bg-white">
- <p className="px-5 py-10 text-center text-[12.5px] text-[#A09D98]">
- No completed reviews yet — approved and sent-back items will appear here.
+ <p className="rounded-[14px] border border-line bg-white px-5 py-10 text-center text-[15px] text-muted">
+ No completed reviews yet. Approved and sent-back items appear here.
  </p>
- </div>
  );
  }
 
  return (
- <div className="overflow-hidden border border-[#E2DFD9] bg-white">
- {!fullPage ? (
- <div className="border-b border-[#ECEAE6] p-[13px_16px_11px]">
- <p className="text-[12.5px] font-bold text-[#0D0E12]">Review history</p>
- <p className="mt-[1px] text-[10.5px] text-[#A09D98]">
- Audit trail of completed reviews — approved and sent-back items leave the inbox but stay here.
- </p>
- </div>
- ) : null}
- <div>
+ <TableCard>
+ <caption className="sr-only">Completed reviews, newest first</caption>
+ <thead>
+ <tr>
+ <th className={thCls} scope="col">Item</th>
+ <th className={thCls} scope="col">SE</th>
+ <th className={thCls} scope="col">Decision</th>
+ <th className={cn(thCls, "text-right")} scope="col">Reviewed</th>
+ </tr>
+ </thead>
+ <tbody>
  {entries.map((entry) => {
- const typeBadge = TYPE_BADGE[entry.type];
  const approved = entry.decision === "approved";
  return (
- <div
- className="flex items-start justify-between gap-3 border-b border-[#f9fafb] px-[18px] py-[11px] last:border-0 hover:bg-[#f7fafd]"
- key={entry.id}
- >
- <div className="min-w-0">
- <div className="flex flex-wrap items-center gap-2">
- <span
- className="inline-flex items-center gap-1 font-mono text-[8px] uppercase tracking-[0.08em] px-[8px] py-[2px] text-[9.5px] font-bold"
- style={{
- background: approved ? "#dcfce7" : "#fef3c7",
- color: approved ? "#15803d" : "#b45309",
- }}
- >
- {approved ? (
- <>
- <CheckCircle2 className="h-3 w-3" />
- Approved
- </>
- ) : (
- <>
- <RotateCcw className="h-3 w-3" />
- Needs redo
- </>
- )}
- </span>
- <span
- className="font-mono text-[8px] uppercase tracking-[0.08em] px-[8px] py-[2px] text-[9.5px] font-bold"
- style={{ background: typeBadge.bg, color: typeBadge.color }}
- >
- {typeBadge.label}
- </span>
- </div>
- <p className="mt-1 text-[12px] font-semibold text-[#3D3C38]">{entry.personName}</p>
- <p className="truncate text-[11.5px] text-[#6B6860]">{entry.title}</p>
+ <tr className="align-top" key={entry.id}>
+ <td className={cn(tdCls, "align-top")}>
+ <span className="flex min-w-0 flex-col">
+ <span className="text-[15px] font-bold text-ink">{entry.title}</span>
+ <span className="text-[13px] text-muted">{TYPE_LABEL[entry.type]}</span>
  {entry.feedbackPreview ? (
- <p className="mt-1 line-clamp-2 text-[10.5px] text-[#A09D98]">{entry.feedbackPreview}</p>
+ <span className="mt-1.5 line-clamp-2 max-w-[560px] text-sm text-ink-2">{entry.feedbackPreview}</span>
  ) : null}
- </div>
- <span className="shrink-0 text-[10.5px] text-[#A09D98]">
- {formatDistanceToNow(new Date(entry.reviewedAt), { addSuffix: true })}
  </span>
- </div>
+ </td>
+ <td className={cn(tdCls, "align-top text-ink")}>{entry.personName}</td>
+ <td className={cn(tdCls, "align-top")}>
+ <StatusPill tone={approved ? "success" : "warning"}>{approved ? "Approved" : "Changes requested"}</StatusPill>
+ </td>
+ <td className={cn(tdCls, "align-top text-right whitespace-nowrap text-ink-2")}>
+ {format(new Date(entry.reviewedAt), "EEE, MMM d")}
+ </td>
+ </tr>
  );
  })}
- </div>
- </div>
+ </tbody>
+ </TableCard>
  );
 }

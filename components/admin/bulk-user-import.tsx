@@ -1,11 +1,24 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
+import { LineCard, Meta, SecondaryButton } from "@/components/admin/admin-ui";
+import { StatusPill } from "@/components/ui/status-pill";
+import { ALLOWED_EMAIL_DOMAIN } from "@/lib/auth/email-domain";
 
-const TEMPLATE_CSV =
- "fullName,email,role,level,managerEmail\nAlex Rivera,alex.rivera@sailpoint.com,basic_se,Basic,manager@sailpoint.com";
+const TEMPLATE_CSV = `fullName,email,role,level,managerEmail\nAlex Rivera,alex.rivera@${ALLOWED_EMAIL_DOMAIN},basic_se,Basic,manager@${ALLOWED_EMAIL_DOMAIN}`;
+
+function statusTone(status: string): "success" | "danger" | "neutral" {
+ if (status === "created") return "success";
+ if (status === "error" || status === "failed") return "danger";
+ return "neutral";
+}
+
+function statusLabel(status: string) {
+ if (status === "created") return "Created";
+ if (status === "error" || status === "failed") return "Failed";
+ return status.charAt(0).toUpperCase() + status.slice(1).replaceAll("_", " ");
+}
 
 export function BulkUserImport() {
  const fileInputRef = useRef<HTMLInputElement>(null);
@@ -54,50 +67,45 @@ export function BulkUserImport() {
  }
 
  return (
- <div className="mt-[14px] border border-[#E2DFD9] bg-white p-[18px_22px]">
- <div className="flex items-start gap-[14px]">
- <div className="flex h-[36px] w-[36px] flex-shrink-0 items-center justify-center bg-[#e8f2fc]">
- <svg fill="none" height="18" stroke="#0071ce" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.4" viewBox="0 0 16 16" width="18">
- <path d="M2 13h12M8 2v9M5 6l3-4 3 4" />
- </svg>
- </div>
- <div className="flex-1">
- <p className="mb-[2px] text-[12.5px] font-bold text-[#0D0E12]">Bulk import users</p>
- <p className="mb-[10px] text-[11px] text-[#6B6860]">
- Upload a CSV with columns: email, full_name, role, level, manager_email
+ <LineCard
+ actions={
+ <>
+ <SecondaryButton disabled={isImporting} onClick={() => fileInputRef.current?.click()}>
+ {isImporting ? "Importing…" : "Choose CSV file"}
+ </SecondaryButton>
+ <SecondaryButton onClick={downloadTemplate}>Download template</SecondaryButton>
+ </>
+ }
+ title="Bulk import users"
+ >
+ <p className="text-sm text-ink-2">
+ Upload a CSV with these columns: <span className="font-semibold text-ink">fullName, email, role, level, managerEmail</span>.
  </p>
- <div className="flex gap-[8px]">
- <button
- className="inline-flex items-center bg-[#0071ce] px-[13px] py-[6px] text-[11.5px] font-semibold text-white disabled:opacity-60"
- disabled={isImporting}
- onClick={() => fileInputRef.current?.click()}
- type="button"
- >
- {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
- Choose CSV file
- </button>
- <button
- className="inline-flex items-center border border-[#E2DFD9] bg-white px-[13px] py-[6px] text-[11.5px] font-semibold text-[#3D3C38]"
- onClick={downloadTemplate}
- type="button"
- >
- Download template →
- </button>
- </div>
- <input accept=".csv,text/csv" className="hidden" onChange={(e) => void handleFileSelect(e)} ref={fileInputRef} type="file" />
+ <input
+ accept=".csv,text/csv"
+ aria-label="CSV file to import"
+ className="hidden"
+ onChange={(e) => void handleFileSelect(e)}
+ ref={fileInputRef}
+ type="file"
+ />
  {results.length > 0 ? (
- <div className="mt-4 max-h-40 space-y-1 overflow-y-auto text-xs text-[#6B6860]">
+ <ul className="mt-4 max-h-56 overflow-y-auto rounded-[10px] border border-line">
  {results.map((row) => (
- <p key={`${row.line}-${row.email}`}>
- Line {row.line}: {row.email} — {row.status} {row.message ?? ""}
- </p>
+ <li
+ className="flex flex-wrap items-center gap-3 border-b border-divider px-4 py-2.5 text-sm text-ink last:border-b-0"
+ key={`${row.line}-${row.email}`}
+ >
+ <Meta>Line {row.line}</Meta>
+ <span className="min-w-0 flex-1 truncate">{row.email}</span>
+ <StatusPill tone={statusTone(row.status)}>{statusLabel(row.status)}</StatusPill>
+ {row.message ? <span className="w-full text-[13px] text-muted">{row.message}</span> : null}
+ </li>
  ))}
- </div>
+ </ul>
  ) : csv !== TEMPLATE_CSV ? (
- <p className="mt-3 text-[10.5px] text-[#A09D98]">Loaded CSV ready for import ({csv.split("\n").length} lines).</p>
+ <p className="mt-3 text-[13px] text-muted">The loaded CSV is ready to import. It has {csv.split("\n").length} lines.</p>
  ) : null}
- </div>
- </div>
- </div>
+ </LineCard>
  );
 }

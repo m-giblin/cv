@@ -57,13 +57,20 @@ export async function getTenantHealth(tenant: Tenant): Promise<TenantHealth> {
   }
 
   const alerts: string[] = [];
-  if (tenant.status === "provisioning") alerts.push("Still provisioning");
-  if (tenant.status === "suspended") alerts.push("Suspended");
-  if (usage.activeUsers === 0 && tenant.status === "active") alerts.push("No users yet");
-  if (!invite.invited) alerts.push("No tenant admin invited");
-  if (invite.invited && !invite.accepted) alerts.push("Admin invite pending");
-  if (openSupport > 0) alerts.push(`${openSupport} open support ticket(s)`);
-  if (tenant.maintenanceMode) alerts.push("Maintenance mode");
+  if (tenant.status === "offboarded") {
+    // Offboarded is a settled, intentional end state — surface it plainly
+    // rather than generating the usual "needs attention" noise (pending
+    // invites, no users, etc.) for a tenant nobody is going to act on.
+    alerts.push("Offboarded");
+  } else {
+    if (tenant.status === "provisioning") alerts.push("Still provisioning");
+    if (tenant.status === "suspended") alerts.push("Suspended");
+    if (usage.activeUsers === 0 && tenant.status === "active") alerts.push("No users yet");
+    if (!invite.invited) alerts.push("No tenant admin invited");
+    if (invite.invited && !invite.accepted) alerts.push("Admin invite pending");
+    if (openSupport > 0) alerts.push(`${openSupport} open support ticket(s)`);
+    if (tenant.maintenanceMode) alerts.push("Maintenance mode");
+  }
 
   return {
     tenantId: tenant.id,

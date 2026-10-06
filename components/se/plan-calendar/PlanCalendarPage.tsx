@@ -1,62 +1,128 @@
 "use client";
 
 import { useState } from "react";
+import { TABLE_HEAD_CLS } from "@/components/se/form-classes";
+import { SegmentedToggle } from "@/components/ui/segmented-toggle";
+import { StatusPill } from "@/components/ui/status-pill";
+import { Tag } from "@/components/ui/tag";
+import { cn } from "@/lib/utils";
 import { DEMO_CALENDAR_WEEKS } from "./data";
 import type { CalMilestone, CalWeek } from "./types";
 import { buildMonthGrid } from "./utils/calendarGrid";
 
-const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
-  DONE: { bg: "rgba(10,110,69,.08)", color: "#0A6E45" },
-  "DUE TODAY": { bg: "rgba(184,49,40,.08)", color: "#B83128" },
-  OPEN: { bg: "rgba(0,113,206,.08)", color: "#0071CE" },
-  UPCOMING: { bg: "#F5F4F0", color: "#A09D98" },
+type MilestoneStatus = CalMilestone["status"];
+
+const STATUS_TAG: Record<MilestoneStatus, { tone: "success" | "warning" | "danger" | "neutral"; label: string }> = {
+  DONE: { tone: "success", label: "Done" },
+  "DUE TODAY": { tone: "warning", label: "Due today" },
+  OPEN: { tone: "danger", label: "Past due" },
+  UPCOMING: { tone: "neutral", label: "Upcoming" },
+};
+
+/** Event chip styles in the month grid: done blue-soft, today signal-soft, past due danger-row, upcoming dashed. */
+const EVENT_CLS: Record<MilestoneStatus, string> = {
+  DONE: "bg-blue-soft text-ink shadow-[inset_3px_0_0_var(--color-blue)]",
+  "DUE TODAY": "bg-signal-soft text-ink shadow-[inset_3px_0_0_var(--color-signal)]",
+  OPEN: "bg-danger-row text-ink shadow-[inset_3px_0_0_var(--color-danger)]",
+  UPCOMING: "bg-white text-ink border border-dashed border-line-strong",
 };
 
 const GRID_HEADERS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
+function isGate(type: string) {
+  return type.trim().toLowerCase() === "gate";
+}
+
+type WeekState = "done" | "current" | "upcoming";
+
+function weekStates(weeks: CalWeek[]): WeekState[] {
+  const currentIndex = weeks.findIndex((week) => !week.done);
+  return weeks.map((week, index) => {
+    if (week.done) return "done";
+    return index === currentIndex ? "current" : "upcoming";
+  });
+}
+
 function ListView({ weeks }: { weeks: CalWeek[] }) {
+  const states = weekStates(weeks);
+
+  if (weeks.length === 0) {
+    return (
+      <div className="rounded-[14px] border border-dashed border-line-strong p-7 text-center text-[15px] text-muted">
+        No dated milestones on your plan yet.
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col gap-3.5">
-      {weeks.map((week) => (
-        <div className="border border-[#E2DFD9] bg-white" key={week.label}>
-          <div className="flex items-center justify-between border-b border-[#E2DFD9] bg-[#F5F4F0] p-[10px_16px]">
-            <span className="font-mono text-[9px] font-medium tracking-wide text-[#3D3C38]">{week.label}</span>
-            {week.done ? (
-              <span className="font-mono text-[7.5px] tracking-widest text-[#0A6E45] bg-[rgba(10,110,69,.08)] px-[7px] py-0.5">
-                COMPLETE
-              </span>
-            ) : null}
-          </div>
-          {week.milestones.map((ms) => {
-            const ss = STATUS_STYLE[ms.status] ?? STATUS_STYLE.UPCOMING;
-            return (
-              <div
-                className="grid grid-cols-[90px_24px_1fr_100px] items-center gap-3 border-b border-[#F5F4F0] p-[10px_16px] max-md:grid-cols-1"
-                key={`${ms.day}-${ms.title}`}
-              >
-                <div className="font-mono text-[8.5px] text-[#A09D98]">{ms.day}</div>
-                <div className="text-center text-base max-md:hidden">{ms.icon}</div>
-                <div>
-                  <div className="text-[11.5px] font-semibold text-[#0D0E12]">{ms.title}</div>
-                  <div className="mt-px font-mono text-[8px] text-[#A09D98]">{ms.type}</div>
-                  {ms.managerNote ? (
-                    <div className="mt-1 text-[10px] italic text-[#0071CE]">💬 {ms.managerNote}</div>
-                  ) : null}
-                </div>
-                <div className="flex justify-end max-md:justify-start">
-                  <span
-                    className="whitespace-nowrap font-mono text-[7.5px] px-2 py-0.5"
-                    style={{ background: ss.bg, color: ss.color }}
+    <ol className="flex flex-col gap-3.5">
+      {weeks.map((week, index) => {
+        const state = states[index];
+        return (
+          <li
+            aria-current={state === "current" ? "step" : undefined}
+            className={cn(
+              "overflow-hidden rounded-[14px] bg-white",
+              state === "done" && "border border-line",
+              state === "current" && "border border-line shadow-[inset_3px_0_0_var(--color-signal)]",
+              state === "upcoming" && "border border-dashed border-line-strong",
+            )}
+            key={week.label}
+          >
+            <div
+              className={cn(
+                "flex flex-wrap items-center justify-between gap-2 px-5 py-2.5",
+                "border-b border-divider",
+                state === "current" && "bg-signal-soft",
+              )}
+            >
+              <h2 className="text-[15px] font-bold text-ink">{week.label}</h2>
+              {state === "done" ? (
+                <StatusPill tone="success">Complete</StatusPill>
+              ) : state === "current" ? (
+                <StatusPill tone="warning">You are here</StatusPill>
+              ) : (
+                <StatusPill tone="neutral">Upcoming</StatusPill>
+              )}
+            </div>
+            <ul className="divide-y divide-divider">
+              {week.milestones.map((ms) => {
+                const gate = isGate(ms.type);
+                const tag = STATUS_TAG[ms.status] ?? STATUS_TAG.UPCOMING;
+                return (
+                  <li
+                    className={cn(
+                      "grid grid-cols-1 items-center gap-2 px-5 py-3 md:grid-cols-[120px_minmax(0,1fr)_auto] md:gap-4",
+                      gate && "bg-blue-soft shadow-[inset_3px_0_0_var(--color-blue)]",
+                    )}
+                    key={`${ms.day}-${ms.title}`}
                   >
-                    {ms.status}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ))}
-    </div>
+                    <div className="text-sm text-ink-2">{ms.day}</div>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[15px] font-semibold text-ink">{ms.title}</span>
+                        {gate ? <Tag tone="blue">Gate</Tag> : null}
+                      </div>
+                      {!gate ? (
+                        <div className="mt-0.5 text-[13px] text-muted">{ms.type}</div>
+                      ) : null}
+                      {ms.managerNote ? (
+                        <p className="mt-1 text-[13px] text-ink-2">
+                          <span className="font-semibold">Manager note:</span> {ms.managerNote}
+                        </p>
+                      ) : null}
+                    </div>
+                    <div className="flex md:justify-end">
+                      <StatusPill tone={tag.tone}>{tag.label}</StatusPill>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 
@@ -65,64 +131,75 @@ function GridView({ weeks, year, month }: { weeks: CalWeek[]; year: number; mont
   const days = buildMonthGrid(year, month, allMilestones);
 
   return (
-    <>
-      <div className="border border-[#E2DFD9] bg-white">
-        <div className="grid grid-cols-7 border-b border-[#E2DFD9]">
-          {GRID_HEADERS.map((h) => (
-            <div
-              className="border-r border-[#F5F4F0] p-1 text-center font-mono text-[8px] tracking-wide text-[#A09D98] last:border-r-0"
-              key={h}
-            >
-              {h}
-            </div>
-          ))}
-        </div>
-        <div className="grid grid-cols-7">
-          {days.map((cell, i) => (
-            <div
-              className="min-h-20 border-b border-r border-[#F5F4F0] p-[5px_6px] last:border-r-0"
-              key={`cell-${i}`}
-              style={{ background: cell.cellBg }}
-            >
-              {cell.day > 0 ? (
-                cell.isToday ? (
-                  <div className="mb-1 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-[#0071CE] font-mono text-[9px] font-bold text-white">
-                    {cell.day}
-                  </div>
-                ) : (
-                  <div className="mb-1 font-mono text-[9px] text-[#3D3C38]">{cell.day}</div>
-                )
-              ) : null}
-              {cell.events.map((ev) => (
-                <div
-                  className="mb-0.5 px-1 py-0.5"
-                  key={`${ev.title}-${ev.type}`}
-                  style={{ background: ev.evBg, borderLeft: `2px solid ${ev.color}` }}
-                >
-                  <div className="truncate text-[9px] font-medium leading-snug text-[#0D0E12]">
-                    {ev.icon} {ev.title}
-                  </div>
-                  <div className="font-mono text-[7px] tracking-wide text-[#A09D98]">{ev.type}</div>
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="flex flex-wrap gap-3.5 px-0 py-2">
-        {[
-          { label: "Completed", bg: "rgba(10,110,69,.15)", border: "#0A6E45" },
-          { label: "Upcoming", bg: "rgba(0,113,206,.06)", border: "#0071CE" },
-          { label: "Today", bg: "#F0F7FF", border: "#0071CE" },
-          { label: "Due today", bg: "rgba(184,49,40,.08)", border: "#B83128" },
-        ].map((l) => (
-          <div className="flex items-center gap-1.5 text-[9.5px] text-[#6B6860]" key={l.label}>
-            <div className="h-2.5 w-2.5 shrink-0" style={{ background: l.bg, borderLeft: `2px solid ${l.border}` }} />
-            {l.label}
+    <div className="flex flex-col gap-3">
+      <div className="overflow-x-auto rounded-[14px] border border-line bg-white">
+        <div className="min-w-[760px]">
+          <div className={cn("grid grid-cols-7", TABLE_HEAD_CLS)}>
+            {GRID_HEADERS.map((h) => (
+              <div className="px-2 py-2 text-center" key={h}>
+                {h}
+              </div>
+            ))}
           </div>
-        ))}
+          <div className="grid grid-cols-7">
+            {days.map((cell, i) => (
+              <div
+                aria-current={cell.isToday ? "date" : undefined}
+                className={cn(
+                  "min-h-24 border-b border-r border-divider p-1.5 [&:nth-child(7n)]:border-r-0",
+                  cell.day === 0 && "bg-surface-2",
+                  cell.isToday && "bg-signal-soft",
+                )}
+                key={`cell-${i}`}
+              >
+                {cell.day > 0 ? (
+                  cell.isToday ? (
+                    <div className="mb-1 flex items-center gap-1.5">
+                      <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-ink px-1 text-xs font-bold text-white">
+                        {cell.day}
+                      </span>
+                      <span className="text-xs font-bold text-ink">Today</span>
+                    </div>
+                  ) : (
+                    <div className="mb-1 text-xs text-ink-2">{cell.day}</div>
+                  )
+                ) : null}
+                <ul className="flex flex-col gap-1">
+                  {cell.events.map((ev) => {
+                    const gate = isGate(ev.type);
+                    const status = ev.status ?? (ev.done ? "DONE" : "UPCOMING");
+                    return (
+                      <li
+                        className={cn("rounded-[6px] py-1 pr-1.5 pl-2", gate ? "bg-blue text-white" : EVENT_CLS[status])}
+                        key={`${ev.title}-${ev.type}`}
+                        title={`${ev.title}: ${STATUS_TAG[status].label}`}
+                      >
+                        <div className="truncate text-xs font-semibold leading-snug">{ev.title}</div>
+                        <div className="truncate text-xs">
+                          {gate ? "Gate" : ev.type}, {STATUS_TAG[status].label.toLowerCase()}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
-    </>
+      <ul aria-label="Legend" className="flex flex-wrap gap-x-5 gap-y-2 text-[13px] text-ink-2">
+        {(["DONE", "DUE TODAY", "OPEN", "UPCOMING"] as const).map((status) => (
+          <li className="flex items-center gap-2" key={status}>
+            <span aria-hidden="true" className={cn("h-3 w-4 rounded-[3px]", EVENT_CLS[status])} />
+            {STATUS_TAG[status].label}
+          </li>
+        ))}
+        <li className="flex items-center gap-2">
+          <span aria-hidden="true" className="h-3 w-4 rounded-[3px] bg-blue" />
+          Gate
+        </li>
+      </ul>
+    </div>
   );
 }
 
@@ -140,46 +217,23 @@ export function PlanCalendarPage({
   const [view, setView] = useState<"list" | "grid">("list");
 
   return (
-    <div className="px-[22px] pb-[34px] pt-[22px]">
-      <div className="mb-[18px] border-l-[3px] border-[#0071CE] pl-3.5">
-        <div className="mb-1 font-mono text-[8.5px] uppercase tracking-[0.16em] text-[#A09D98]">Workspace · Read-only</div>
-        <h1 className="font-display text-[28px] font-extrabold leading-none tracking-[-0.03em] text-[#0D0E12]">
-          Plan Calendar
-        </h1>
-        <p className="mt-1 text-xs text-[#6B6860]">Your milestone schedule — dates are set by your manager</p>
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <SegmentedToggle
+          label="Calendar layout"
+          onChange={(id) => setView(id === "grid" ? "grid" : "list")}
+          options={[
+            { id: "list", label: "Weeks" },
+            { id: "grid", label: "Month" },
+          ]}
+          value={view}
+        />
+        <span className="text-sm font-semibold text-ink-2">{monthLabel}</span>
       </div>
 
-      <div className="mb-3.5 flex items-center justify-between gap-3">
-        <div className="flex gap-px border border-[#E2DFD9] bg-[#E2DFD9]">
-          {(["list", "grid"] as const).map((v) => (
-            <button
-              className="cursor-pointer border-none px-3.5 py-[5px] font-sans text-[9.5px] font-semibold"
-              key={v}
-              onClick={() => setView(v)}
-              style={{
-                background: view === v ? "#fff" : "#F5F4F0",
-                color: view === v ? "#0071CE" : "#6B6860",
-                fontWeight: view === v ? 600 : 500,
-              }}
-              type="button"
-            >
-              {v === "list" ? "≡ List" : "⊞ Calendar"}
-            </button>
-          ))}
-        </div>
-        <span className="font-mono text-[9px] text-[#A09D98]">{monthLabel}</span>
-      </div>
-
-      <div className="mb-5 flex items-center gap-2.5 border border-[rgba(0,113,206,.15)] bg-[rgba(0,113,206,.04)] p-[10px_14px]">
-        <svg fill="none" height="14" stroke="#0071CE" strokeLinecap="round" strokeWidth="1.5" viewBox="0 0 16 16" width="14">
-          <circle cx="8" cy="8" r="6" />
-          <line x1="8" x2="8" y1="7" y2="11" />
-          <circle cx="8" cy="5" fill="#0071CE" r=".5" stroke="none" />
-        </svg>
-        <span className="text-[11px] text-[#0071CE]">
-          Your manager controls milestone dates. To request a change, message them via coaching notes.
-        </span>
-      </div>
+      <p className="text-[13px] text-muted">
+        Read only. Your manager sets milestone dates; to change one, message them in coaching notes.
+      </p>
 
       {view === "list" ? <ListView weeks={weeks} /> : <GridView month={month} weeks={weeks} year={year} />}
     </div>

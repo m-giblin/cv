@@ -1,15 +1,13 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 
 const MODE_LABEL: Record<"admin" | "manager" | "se", string> = {
-  admin: "Tenant Admin",
+  admin: "Tenant admin",
   manager: "Manager",
-  se: "User",
+  se: "Sales engineer",
 };
 
 export function ShadowTenantBanner({
@@ -54,23 +52,19 @@ export function ShadowTenantBanner({
   }
 
   return (
-    <div className="relative border-b border-[#BFDBFE] bg-[#EFF6FF] px-4 py-2.5 text-sm text-[#1E3A5F]">
-      <p className="mx-auto max-w-3xl text-center leading-snug">
-        <span className="font-semibold">{MODE_LABEL[mode]}:</span> working in{" "}
-        <span className="font-semibold">{tenantName}</span>
-        <span className="text-[#64748B]"> — switch workspaces anytime · Super Admin returns to Platform</span>
+    <div
+      aria-label="Shadow session"
+      className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-signal-edge/40 bg-signal-soft px-[var(--page-pad-x)] py-2.5 text-ink max-lg:px-4"
+      role="region"
+    >
+      <p className="text-sm leading-snug text-ink">
+        <span className="font-bold">Shadowing</span> {tenantName} as{" "}
+        <span className="font-semibold">{MODE_LABEL[mode].toLowerCase()}</span>.
+        <span className="text-ink-2"> Switch workspaces any time, or return to the platform console.</span>
       </p>
-      <Button
-        className="absolute right-4 top-1/2 -translate-y-1/2"
-        disabled={exiting}
-        onClick={() => void backToPlatform()}
-        size="sm"
-        type="button"
-        variant="outline"
-      >
-        <ArrowLeft className="h-3.5 w-3.5" />
-        {exiting ? "Returning…" : "Super Admin"}
-      </Button>
+      <button className="btn-secondary shrink-0" disabled={exiting} onClick={() => void backToPlatform()} type="button">
+        {exiting ? "Returning…" : "Back to platform"}
+      </button>
     </div>
   );
 }

@@ -1,64 +1,79 @@
 "use client";
 
-import { BarChart3, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AdminTable, EmptyState, LoadingState, Meta, SectionHeading, Td, Th } from "@/components/admin/admin-ui";
+import { Tag } from "@/components/ui/tag";
 
 type LaunchRow = {
- id: string;
- name: string;
- project_tag: string;
- enrolled: number;
- started: number;
- completed: number;
+  id: string;
+  name: string;
+  project_tag: string;
+  enrolled: number;
+  started: number;
+  completed: number;
 };
 
 export function ReleaseLaunchAnalytics() {
- const [rows, setRows] = useState<LaunchRow[]>([]);
- const [loading, setLoading] = useState(true);
+  const [rows, setRows] = useState<LaunchRow[]>([]);
+  const [loading, setLoading] = useState(true);
 
- const load = useCallback(async () => {
- setLoading(true);
- const response = await fetch("/api/release-courses/analytics");
- if (response.ok) {
- const body = (await response.json()) as { launches: LaunchRow[] };
- setRows(body.launches ?? []);
- }
- setLoading(false);
- }, []);
+  const load = useCallback(async () => {
+    setLoading(true);
+    const response = await fetch("/api/release-courses/analytics");
+    if (response.ok) {
+      const body = (await response.json()) as { launches: LaunchRow[] };
+      setRows(body.launches ?? []);
+    }
+    setLoading(false);
+  }, []);
 
- useEffect(() => {
- void load();
- }, [load]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
- return (
- <Card>
- <CardHeader>
- <CardTitle className="flex items-center gap-2">
- <BarChart3 className="h-5 w-5 text-[#0071ce]" />
- Release launch analytics
- </CardTitle>
- <CardDescription>Initiative adoption — enrolled, started, and completed per release course.</CardDescription>
- </CardHeader>
- <div className="space-y-2 px-6 pb-6">
- {loading ? (
- <Loader2 className="mx-auto h-6 w-6 animate-spin text-stone-400" />
- ) : rows.length === 0 ? (
- <p className="text-sm text-stone-500">No release courses yet.</p>
- ) : (
- rows.map((row) => (
- <div className="flex flex-wrap items-center justify-between gap-2 border border-stone-200 p-3 text-sm" key={row.id}>
- <div>
- <p className="font-semibold">{row.name}</p>
- <p className="text-stone-500">{row.project_tag}</p>
- </div>
- <p className="text-stone-600">
- {row.enrolled} enrolled · {row.started} started · {row.completed} done
- </p>
- </div>
- ))
- )}
- </div>
- </Card>
- );
+  return (
+    <div className="flex flex-col gap-3">
+      <SectionHeading meta="Enrolled, started and completed" title="Release launch analytics" />
+      {loading ? (
+        <div className="rounded-[14px] border border-line bg-white">
+          <LoadingState label="Loading launches…" />
+        </div>
+      ) : rows.length === 0 ? (
+        <div className="rounded-[14px] border border-line bg-white">
+          <EmptyState>No release courses yet.</EmptyState>
+        </div>
+      ) : (
+        <AdminTable caption="Release course adoption" minWidth={600}>
+          <thead>
+            <tr>
+              <Th>Course</Th>
+              <Th>Tag</Th>
+              <Th className="text-right">Enrolled</Th>
+              <Th className="text-right">Started</Th>
+              <Th className="text-right">Completed</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.id}>
+                <Td className="font-bold">{row.name}</Td>
+                <Td>
+                  <Tag tone="blue">{row.project_tag}</Tag>
+                </Td>
+                <Td className="text-right">
+                  <Meta className="text-ink">{row.enrolled}</Meta>
+                </Td>
+                <Td className="text-right">
+                  <Meta className="text-ink">{row.started}</Meta>
+                </Td>
+                <Td className="text-right">
+                  <Meta className="text-ink">{row.completed}</Meta>
+                </Td>
+              </tr>
+            ))}
+          </tbody>
+        </AdminTable>
+      )}
+    </div>
+  );
 }

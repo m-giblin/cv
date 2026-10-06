@@ -2,28 +2,33 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 type BadgeProps = React.HTMLAttributes<HTMLSpanElement> & {
- tone?: "slate" | "blue" | "green" | "amber" | "red" | "purple" | "magenta";
+  tone?: "slate" | "blue" | "green" | "amber" | "red" | "purple" | "magenta";
 };
 
+/**
+ * Legacy badge API mapped onto the v3 badge: 13/700, pill, 4px 12px, soft fill, no border.
+ * Prefer `Tag` from components/ui/tag for new code. There are no per-section accent colours,
+ * so purple and magenta fold into blue.
+ */
 const tones = {
- slate: "bg-[#F9F8F6] text-sp-text-muted",
- blue: "bg-sp-blue-soft text-sp-blue",
- green: "bg-[#EDFAF3] text-sp-green",
- amber: "bg-[#FFFBF0] text-sp-amber",
- red: "bg-[#FEF0EE] text-sp-red",
- purple: "bg-[#EDE9FE] text-violet-700",
- magenta: "bg-sp-magenta-soft text-sp-magenta",
+  slate: "bg-divider text-ink-2",
+  blue: "bg-blue-soft text-blue",
+  green: "bg-success-soft text-success",
+  amber: "bg-signal-soft text-warning",
+  red: "bg-danger-soft text-danger",
+  purple: "bg-blue-soft text-blue",
+  magenta: "bg-blue-soft text-blue",
 };
 
 export function Badge({ className, tone = "slate", ...props }: BadgeProps) {
- return (
- <span
- className={cn(
- "inline-flex items-center px-2 py-0.5 font-mono text-[8px] font-medium uppercase tracking-[0.09em]",
- tones[tone],
- className,
- )}
- {...props}
- />
- );
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 whitespace-nowrap rounded-full px-3 py-1 text-[13px] leading-none font-bold",
+        tones[tone],
+        className,
+      )}
+      {...props}
+    />
+  );
 }

@@ -1,50 +1,28 @@
-import { Award, CheckCircle2, Lock, Sparkles, Trophy, UserRound } from "lucide-react";
+import Link from "next/link";
 import type { AccountBadge } from "@/lib/account/achievements";
 import type { CompletionBadge } from "@/lib/account/completion-badges";
 import { getAccessTier } from "@/lib/auth/rbac";
 import type { Profile } from "@/lib/types";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Stamp } from "@/components/ui/stamp";
+import { StatusPill } from "@/components/ui/status-pill";
+import { Tag } from "@/components/ui/tag";
 
-function milestoneStyles(tone: AccountBadge["tone"], earned: boolean) {
- if (!earned) {
- return "border-sp-blue/10 bg-sp-surface-muted/40 opacity-70 grayscale";
- }
-
- switch (tone) {
- case "gold":
- return "border-amber-300/80 bg-gradient-to-br from-amber-50 via-white to-amber-100/80 shadow-amber-100";
- case "magenta":
- return "border-sp-magenta/25 bg-gradient-to-br from-sp-magenta-soft/40 via-white to-sp-blue-soft/30";
- case "green":
- return "border-emerald-200 bg-emerald-50/80";
- default:
- return "border-sp-blue/20 bg-sp-blue-soft/30";
- }
-}
-
-function trophyStyles(tone: CompletionBadge["tone"]) {
- switch (tone) {
- case "gold":
- return "border-amber-300/70 bg-gradient-to-br from-amber-50 via-white to-yellow-50 shadow-amber-100/80";
- case "magenta":
- return "border-sp-magenta/30 bg-gradient-to-br from-sp-magenta-soft/50 via-white to-sp-blue-soft/20 shadow-sp-magenta/10";
- case "purple":
- return "border-violet-200 bg-gradient-to-br from-violet-50 via-white to-sp-magenta-soft/20 shadow-violet-100/60";
- case "green":
- return "border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-sp-blue-soft/20 shadow-emerald-100/60";
- default:
- return "border-sp-blue/25 bg-gradient-to-br from-sp-blue-soft/40 via-white to-white shadow-sp-blue/10";
- }
-}
-
+/** "Thu, Oct 9" (plus the year when it isn't this year). */
 function formatEarnedDate(iso: string) {
- return new Date(iso).toLocaleDateString(undefined, {
+ const date = new Date(iso);
+ const sameYear = date.getFullYear() === new Date().getFullYear();
+ return date.toLocaleDateString("en-US", {
+ weekday: "short",
  month: "short",
  day: "numeric",
- year: "numeric",
+ ...(sameYear ? {} : { year: "numeric" }),
  });
+}
+
+function sentenceCase(value: string) {
+ const text = value.replaceAll("_", " ");
+ return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 export function AccountProfilePanel({
@@ -72,148 +50,141 @@ export function AccountProfilePanel({
  const isSe = getAccessTier(profile.role) === "se";
 
  return (
- <div className="space-y-6">
- <Card className="overflow-hidden border-sp-blue/10">
- <div className="bg-gradient-to-br from-sp-blue/10 via-white to-sp-magenta/10 px-6 py-8">
- <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
- <span className="flex h-20 w-20 shrink-0 items-center justify-center bg-gradient-to-br from-sp-blue to-sp-magenta text-2xl font-bold text-white shadow-sp-blue/20">
+ <div className="flex flex-wrap gap-[var(--rail-gap)] min-[1100px]:grid min-[1100px]:grid-cols-[minmax(0,1fr)_320px]">
+ <div className="min-w-0 flex-1 space-y-7">
+ <section className="rounded-[14px] border border-line bg-white p-6">
+ <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+ <span
+ aria-hidden
+ className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-blue-soft text-lg font-bold text-blue"
+ >
  {initials}
  </span>
  <div className="min-w-0 flex-1">
- <p className="text-xs font-bold uppercase tracking-wider text-sp-magenta">SailPoint SE Enablement</p>
- <h2 className="mt-1 text-2xl font-bold text-sp-navy">{profile.fullName}</h2>
- <p className="mt-1 text-sm text-sp-navy-muted">{profile.email}</p>
+ <h2 className="text-2xl leading-[1.15] font-extrabold tracking-[-0.015em] text-ink">{profile.fullName}</h2>
+ <p className="mt-0.5 text-sm text-muted">{profile.email}</p>
  <div className="mt-3 flex flex-wrap gap-2">
- <Badge tone="blue">{profile.role.replaceAll("_", " ")}</Badge>
- <Badge tone="magenta">{profile.level} SE</Badge>
- <Badge tone="green">
+ <Tag tone="blue">{sentenceCase(profile.role)}</Tag>
+ <Tag>{profile.level} SE</Tag>
+ <Tag tone="success">
  {totalEarned} badge{totalEarned === 1 ? "" : "s"} earned
- </Badge>
+ </Tag>
  </div>
  </div>
  </div>
  {planProgress !== null ? (
  <div className="mt-6 max-w-md">
- <div className="mb-2 flex justify-between text-sm">
- <span className="font-medium text-sp-navy">Onboarding progress</span>
- <span className="font-bold text-sp-blue">{planProgress}%</span>
+ <div className="mb-2 flex items-baseline justify-between">
+ <span className="label-caps">Ramp progress</span>
+ <span className="num text-xl font-extrabold text-blue">{planProgress}%</span>
  </div>
  <Progress value={planProgress} />
  </div>
  ) : null}
- {isSe ? (
- <div className="mt-6 border border-sp-blue/15 bg-white/75 px-4 py-4 sm:px-5">
- <div className="flex items-start gap-3">
- <span className="flex h-10 w-10 shrink-0 items-center justify-center bg-sp-blue-soft/80 text-sp-blue">
- <UserRound className="h-5 w-5" />
- </span>
+ </section>
+
+ <section className="overflow-hidden rounded-[14px] border border-line bg-white">
+ <div className="border-b border-divider px-5 py-3.5">
+ <h2 className="text-lg leading-[1.3] font-extrabold text-ink">Trophy case</h2>
+ <p className="text-sm text-muted">Every challenge and simulation your manager has approved.</p>
+ </div>
+ {trophies.length > 0 ? (
+ <ul>
+ {trophies.map((trophy) => (
+ <li
+ className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-4 border-b border-divider px-5 py-3.5 last:border-b-0 sm:grid-cols-[auto_minmax(0,1fr)_auto]"
+ key={trophy.id}
+ >
+ <Stamp label={`${trophy.funTitle}: earned`} size={30} state="earned" />
  <div className="min-w-0">
- <p className="text-xs font-bold uppercase tracking-wider text-sp-navy-muted">Your manager</p>
+ <p className="text-[15px] font-bold text-ink">{trophy.funTitle}</p>
+ <p className="text-sm text-ink-2">{trophy.subtitle}</p>
+ </div>
+ <div className="col-start-2 flex flex-wrap items-center gap-2 sm:col-start-auto sm:justify-end">
+ <Tag tone="blue">{trophy.kind === "challenge" ? "Challenge" : "Simulation"}</Tag>
+ <span className="text-[13px] text-muted">{formatEarnedDate(trophy.earnedAt)}</span>
+ </div>
+ </li>
+ ))}
+ </ul>
+ ) : (
+ <div className="px-5 py-6">
+ <p className="text-[15px] font-semibold text-ink">No trophies yet</p>
+ <p className="mt-1 text-sm text-ink-2">
+ Finish a challenge or simulation and submit it for review. It shows up here when your manager approves it.
+ </p>
+ <Link className="link mt-3 inline-block text-sm" href="/practice">
+ Go to Practice
+ </Link>
+ </div>
+ )}
+ </section>
+
+ <section className="overflow-hidden rounded-[14px] border border-line bg-white">
+ <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-divider px-5 py-3.5">
+ <h2 className="text-lg leading-[1.3] font-extrabold text-ink">Career milestones</h2>
+ <span className="num text-[13px] text-muted">
+ {earnedMilestones} of {milestones.length} earned
+ </span>
+ </div>
+ <ul>
+ {milestones.map((badge) => (
+ <li
+ className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 border-b border-divider px-5 py-3.5 last:border-b-0"
+ key={badge.id}
+ >
+ <Stamp
+ label={`${badge.funTitle ?? badge.title}: ${badge.earned ? "earned" : "in progress"}`}
+ size={30}
+ state={badge.earned ? "earned" : "none"}
+ />
+ <div className="min-w-0">
+ <p className="text-[15px] font-bold text-ink">{badge.funTitle ?? badge.title}</p>
+ <p className="text-sm text-ink-2">{badge.description}</p>
+ </div>
+ {badge.earned ? (
+ <StatusPill tone="success">
+ {badge.earnedAt ? `Earned ${formatEarnedDate(badge.earnedAt)}` : "Earned"}
+ </StatusPill>
+ ) : (
+ <StatusPill tone="neutral">In progress</StatusPill>
+ )}
+ </li>
+ ))}
+ </ul>
+ </section>
+ </div>
+
+ <aside className="w-full min-w-0 space-y-5 min-[1100px]:w-auto">
+ {isSe ? (
+ <section className="rounded-[14px] border border-line bg-white p-5">
+ <p className="label-caps">Your manager</p>
  {manager ? (
  <>
- <p className="mt-1 text-base font-semibold text-sp-navy">{manager.fullName}</p>
- <p className="text-sm text-sp-navy-muted">{manager.email}</p>
- <p className="mt-2 text-xs leading-relaxed text-sp-navy-muted">
- Challenge submissions, simulation coaching cards, and pitch reviews are sent to this manager when
- you submit for review.
+ <p className="mt-1.5 text-base font-bold text-ink">{manager.fullName}</p>
+ <p className="text-[13px] text-muted">{manager.email}</p>
+ <p className="mt-3 text-sm leading-normal text-ink-2">
+ Challenge submissions, simulation coaching cards and pitch reviews go to this manager when you submit
+ for review.
  </p>
  </>
  ) : (
- <p className="mt-1 text-sm leading-relaxed text-sp-navy-muted">
- No manager is assigned yet. Contact your program admin if submissions should be going to someone
- else.
+ <p className="mt-1.5 text-sm leading-normal text-ink-2">
+ No manager is assigned yet. Contact your program admin if submissions should go to someone.
  </p>
  )}
- </div>
- </div>
- </div>
+ </section>
  ) : null}
- </div>
- </Card>
-
- <Card>
- <CardHeader>
- <CardTitle className="flex items-center gap-2">
- <Trophy className="h-5 w-5 text-amber-500" />
- Trophy case
- </CardTitle>
- <CardDescription>
- Fun badges for every challenge and simulation your manager has approved — proof you earned it.
- </CardDescription>
- </CardHeader>
- {trophies.length > 0 ? (
- <div className="grid gap-4 px-6 pb-6 sm:grid-cols-2 lg:grid-cols-3">
- {trophies.map((trophy) => (
- <div
- className={`relative border p-5 transition hover:-translate-y-0.5 ${trophyStyles(trophy.tone)}`}
- key={trophy.id}
- >
- <Sparkles className="absolute right-4 top-4 h-4 w-4 text-amber-400" />
- <div className="mb-3 text-4xl leading-none">{trophy.emoji}</div>
- <p className="text-lg font-bold text-sp-navy">{trophy.funTitle}</p>
- <p className="mt-1 text-sm leading-5 text-sp-navy-muted">{trophy.subtitle}</p>
- <div className="mt-4 flex flex-wrap items-center gap-2">
- <Badge tone={trophy.kind === "challenge" ? "blue" : "magenta"}>
- {trophy.kind === "challenge" ? "Challenge" : "Simulation"}
- </Badge>
- <span className="text-xs font-semibold text-emerald-700">
- Earned {formatEarnedDate(trophy.earnedAt)}
- </span>
- </div>
- </div>
- ))}
- </div>
- ) : (
- <div className="mx-6 mb-6 border border-dashed border-sp-blue/20 bg-sp-blue-soft/20 p-8 text-center">
- <div className="text-4xl">🏆</div>
- <p className="mt-3 text-sm font-semibold text-sp-navy">No trophies yet</p>
- <p className="mt-1 text-sm text-sp-navy-muted">
- Complete a challenge or simulation, submit for manager review, and your trophy shows up here when they
- approve it.
+ <section className="rounded-[14px] border border-line bg-white p-5">
+ <p className="label-caps">Security</p>
+ <p className="mt-1.5 text-sm leading-normal text-ink-2">
+ Changing your password needs a fresh authenticator code.
  </p>
- </div>
- )}
- </Card>
-
- <Card>
- <CardHeader>
- <CardTitle className="flex items-center gap-2">
- <Award className="h-5 w-5 text-amber-500" />
- Career milestones
- </CardTitle>
- <CardDescription>Bigger-picture badges for onboarding, certifications, and your first approved win.</CardDescription>
- </CardHeader>
- <div className="grid gap-4 px-6 pb-6 sm:grid-cols-2 lg:grid-cols-3">
- {milestones.map((badge) => (
- <div
- className={`relative border p-5 transition ${milestoneStyles(badge.tone, badge.earned)}`}
- key={badge.id}
- >
- {badge.earned ? (
- <CheckCircle2 className="absolute right-4 top-4 h-5 w-5 text-emerald-600" />
- ) : (
- <Lock className="absolute right-4 top-4 h-4 w-4 text-sp-navy-muted/60" />
- )}
- <div
- className={`mb-3 inline-flex p-3 text-2xl ${
- badge.earned ? "bg-white/80" : "bg-white/60 grayscale"
- }`}
- >
- {badge.emoji ?? "🏅"}
- </div>
- <p className="font-bold text-sp-navy">{badge.funTitle ?? badge.title}</p>
- <p className="mt-2 text-sm leading-6 text-sp-navy-muted">{badge.description}</p>
- {badge.earned ? (
- <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-emerald-700">
- {badge.earnedAt ? `Earned ${formatEarnedDate(badge.earnedAt)}` : "Earned"}
- </p>
- ) : (
- <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-sp-navy-muted">In progress</p>
- )}
- </div>
- ))}
- </div>
- </Card>
+ <Link className="link mt-3 inline-block text-sm" href="/account/change-password">
+ Change password
+ </Link>
+ </section>
+ </aside>
  </div>
  );
 }

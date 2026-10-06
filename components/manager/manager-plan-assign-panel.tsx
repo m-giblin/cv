@@ -1,14 +1,14 @@
 "use client";
 
-import { CalendarDays, CheckCircle2, ClipboardList, Loader2, Pencil, Send } from "lucide-react";
+import { format, parseISO } from "date-fns";
+import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Stamp } from "@/components/ui/stamp";
+import { rowHighlight } from "@/components/ui/table";
+import { Tag } from "@/components/ui/tag";
 import {
  addDaysToIsoDate,
  sortPlanTemplates,
@@ -17,6 +17,7 @@ import {
  templateDurationLabel,
 } from "@/lib/plans/template-catalog";
 import type { Profile, UserPlan } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 type PlanTemplateStep = {
  id: string;
@@ -33,6 +34,18 @@ type PlanTemplate = {
  description: string | null;
  steps: PlanTemplateStep[];
 };
+
+const INPUT_CLASS =
+ "w-full rounded-[10px] border border-line-strong bg-white px-3 py-2 text-[15px] font-normal text-ink";
+const LABEL_CLASS = "block space-y-1.5 text-sm font-semibold text-ink";
+
+function displayDate(iso: string) {
+ try {
+ return format(parseISO(iso), "EEE, MMM d");
+ } catch {
+ return iso;
+ }
+}
 
 function todayIso() {
  return new Date().toISOString().slice(0, 10);
@@ -123,7 +136,7 @@ export function ManagerPlanAssignPanel({
  return;
  }
 
- toast.success(`${selectedTemplate?.name ?? "Plan"} assigned — SE notified.`);
+ toast.success(`${selectedTemplate?.name ?? "Plan"} assigned. The SE has been notified.`);
  onAssigned?.();
  router.refresh();
  }
@@ -132,87 +145,93 @@ export function ManagerPlanAssignPanel({
 
  if (isLoading) {
  return (
- <Card className="border-0 bg-transparent shadow-none" id={compact ? undefined : "onboarding-plans"}>
- <div className="flex justify-center py-10">
- <Loader2 className="h-6 w-6 animate-spin text-[#0071ce]" />
+ <section className="scroll-mt-6" id={compact ? undefined : "onboarding-plans"}>
+ <div className="flex justify-center py-10" role="status">
+ <Loader2 aria-hidden className="h-6 w-6 animate-spin text-blue" />
+ <span className="sr-only">Loading plan templates</span>
  </div>
- </Card>
+ </section>
  );
  }
 
  return (
- <Card className="scroll-mt-6 border-0 bg-transparent shadow-none" id={compact ? undefined : "onboarding-plans"}>
- <CardHeader className={compact ? "pb-3" : undefined}>
- <CardTitle className={`flex items-center gap-2 ${compact ? "text-base" : ""}`}>
- <ClipboardList className="h-5 w-5 text-[#0071ce]" />
+ <section className="min-w-0 scroll-mt-6 space-y-4" id={compact ? undefined : "onboarding-plans"}>
+ <div>
+ <h3 className="text-lg font-extrabold text-ink">
  {compact ? "Assign onboarding plan" : "Onboarding plans"}
- </CardTitle>
- <CardDescription>
- Three steps: pick a week template → choose SE → confirm dates.
- </CardDescription>
- <ol className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
+ </h3>
+ <p className="mt-1 text-sm text-muted">
+ Pick a week template, choose the SE and mentor, then confirm dates.
+ </p>
+ <ol className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
  {[
  { n: 1, label: "Template" },
- { n: 2, label: "SE & mentor" },
+ { n: 2, label: "SE and mentor" },
  { n: 3, label: "Confirm" },
  ].map((step) => (
  <li
- className={`border px-3 py-1.5 ${
- assignStep === step.n
- ? "border-[#0033a1]/30 bg-[#e8f2fc] text-[#0033a1]"
- : assignStep > step.n
- ? "border-emerald-200 bg-emerald-50 text-emerald-800"
- : "border-stone-200 bg-white text-stone-500"
- }`}
+ aria-current={assignStep === step.n ? "step" : undefined}
+ className={cn(
+ "inline-flex items-center gap-2 text-[13px] font-semibold whitespace-nowrap",
+ assignStep === step.n ? "text-ink" : "text-muted",
+ )}
  key={step.n}
  >
- {step.n}. {step.label}
+ <Stamp
+ size={18}
+ state={assignStep > step.n ? "earned" : assignStep === step.n ? "partial" : "none"}
+ />
+ {step.label}
  </li>
  ))}
  </ol>
- </CardHeader>
+ </div>
 
- <div className="space-y-4 px-0 pb-0">
- <div className={`grid gap-2 ${compact ? "grid-cols-1 sm:grid-cols-2" : "sm:grid-cols-2 xl:grid-cols-3"}`}>
+ <div className="space-y-4">
+ <p className="label-caps">Step 1, template</p>
+ <ul className={`grid gap-2 ${compact ? "grid-cols-1" : "sm:grid-cols-2 xl:grid-cols-3"}`}>
  {templates.map((template) => {
  const days = templateDurationDays(template.steps);
  const isSelected = template.id === selectedTemplateId;
 
  return (
+ <li className="min-w-0" key={template.id}>
  <button
- className={`border p-3 text-left transition ${
- isSelected
- ? "border-sp-blue/40 bg-sp-blue-soft/30 ring-2 ring-sp-blue/20"
- : "border-sp-blue/10 bg-white hover:border-sp-blue/25 hover:bg-sp-blue-soft/10"
- }`}
- key={template.id}
+ aria-pressed={isSelected}
+ className={cn(
+ "h-full w-full rounded-[14px] border border-line p-3.5 text-left transition-colors",
+ isSelected ? rowHighlight.selected : "bg-white hover:bg-bg",
+ )}
  onClick={() => setSelectedTemplateId(template.id)}
  type="button"
  >
  <div className="flex items-start justify-between gap-2">
- <p className="text-sm font-bold text-sp-navy">{template.name}</p>
- {isSelected ? <CheckCircle2 className="h-4 w-4 shrink-0 text-sp-blue" /> : null}
+ <p className="text-[15px] font-bold text-ink">{template.name}</p>
+ {isSelected ? <Stamp size={18} state="earned" /> : null}
  </div>
- <p className="mt-1 line-clamp-2 text-xs text-sp-navy-muted">{template.description}</p>
+ {template.description ? (
+ <p className="mt-1 line-clamp-2 text-sm text-muted">{template.description}</p>
+ ) : null}
  <div className="mt-2 flex flex-wrap gap-1.5">
- <Badge tone="blue">{templateDurationLabel(days)}</Badge>
- <Badge tone="slate">{template.steps.length} steps</Badge>
+ <Tag tone="blue">{templateDurationLabel(days)}</Tag>
+ <Tag>{template.steps.length} steps</Tag>
  </div>
  </button>
+ </li>
  );
  })}
- </div>
+ </ul>
 
  {selectedTemplate ? (
- <div className="border border-sp-blue/10 bg-sp-blue-soft/15 p-4">
- <p className="text-xs font-bold uppercase tracking-wide text-sp-navy-muted">Template preview</p>
- <p className="mt-1 text-sm font-semibold text-sp-navy">{stepTypeSummary(selectedTemplate.steps)}</p>
+ <div className="rounded-[14px] border border-line bg-white px-4 py-3.5">
+ <p className="label-caps">Template preview</p>
+ <p className="mt-1 text-[15px] font-bold text-ink">{stepTypeSummary(selectedTemplate.steps)}</p>
  <ul className="mt-3 space-y-2">
  {selectedTemplate.steps.map((step) => (
  <li className="flex items-start justify-between gap-3 text-sm" key={step.id}>
- <span className="text-sp-navy">{step.title}</span>
- <span className="shrink-0 text-xs text-sp-navy-muted">
- Day {step.metadata?.dueOffsetDays ?? "—"}
+ <span className="min-w-0 text-ink-2">{step.title}</span>
+ <span className="num shrink-0 text-[13px] text-muted">
+ {step.metadata?.dueOffsetDays !== undefined ? `Day ${step.metadata.dueOffsetDays}` : "No due day"}
  </span>
  </li>
  ))}
@@ -220,13 +239,13 @@ export function ManagerPlanAssignPanel({
  </div>
  ) : null}
 
- <form className="space-y-3 border-t border-[#E2DFD9] pt-4" onSubmit={handleAssign}>
- <p className="text-xs font-bold uppercase tracking-wide text-[#6B6860]">Step 2–3</p>
- <div className={`grid gap-3 ${compact ? "grid-cols-1" : "sm:grid-cols-2"}`}>
- <label className="block space-y-1.5 text-sm">
- <span className="font-semibold text-sp-navy">Assign to</span>
+ <form className="space-y-4 border-t border-divider pt-4" onSubmit={handleAssign}>
+ <p className="label-caps">Steps 2 and 3, SE, mentor and dates</p>
+ <div className={`grid gap-4 ${compact ? "grid-cols-1" : "sm:grid-cols-2"}`}>
+ <label className={LABEL_CLASS}>
+ <span className="block">Assign to</span>
  <select
- className="h-10 w-full border border-sp-blue/15 bg-white px-3"
+ className={INPUT_CLASS}
  onChange={(event) => setUserId(event.target.value)}
  required
  value={userId}
@@ -242,11 +261,13 @@ export function ManagerPlanAssignPanel({
  </select>
  </label>
 
- <label className="block space-y-1.5 text-sm">
- <span className="font-semibold text-sp-navy">Mentor</span>
- <p className="text-xs text-sp-navy-muted">Any employee on your team — they coach; you sign off.</p>
+ <label className={LABEL_CLASS}>
+ <span className="block">Mentor</span>
+ <span className="block text-sm font-normal text-muted">
+ Anyone on your team. They coach; you sign off.
+ </span>
  <select
- className="h-10 w-full border border-sp-blue/15 bg-white px-3"
+ className={INPUT_CLASS}
  onChange={(event) => setMentorId(event.target.value)}
  value={mentorId}
  >
@@ -260,42 +281,48 @@ export function ManagerPlanAssignPanel({
  </label>
  </div>
 
- <div className={`grid gap-3 ${compact ? "grid-cols-1" : "sm:grid-cols-2"}`}>
- <label className="block space-y-1.5 text-sm">
- <span className="font-semibold text-sp-navy">Start date</span>
- <Input onChange={(event) => setStartDate(event.target.value)} required type="date" value={startDate} />
+ <div className={`grid gap-4 ${compact ? "grid-cols-1" : "sm:grid-cols-2"}`}>
+ <label className={LABEL_CLASS}>
+ <span className="block">Start date</span>
+ <input
+ className={INPUT_CLASS}
+ onChange={(event) => setStartDate(event.target.value)}
+ required
+ type="date"
+ value={startDate}
+ />
  </label>
- <label className="block space-y-1.5 text-sm">
- <span className="font-semibold text-sp-navy">Target completion</span>
- <div className="flex h-10 items-center gap-2 border border-sp-blue/10 bg-sp-blue-soft/20 px-3 text-sm text-sp-navy-muted">
- <CalendarDays className="h-4 w-4 shrink-0" />
- {targetCompletion}
- <span className="text-xs">(auto)</span>
+ <div className={LABEL_CLASS}>
+ <span className="block">Target completion</span>
+ <div className="flex items-center gap-2 rounded-[10px] bg-surface-2 px-3 py-2 text-[15px] font-normal text-ink-2">
+ <span>{displayDate(targetCompletion)}</span>
+ <span className="text-[13px] text-muted">Set from the template</span>
  </div>
- </label>
+ </div>
  </div>
 
  {assigneePlan ? (
- <p className="border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
- {assigneePlan.name} is already assigned ({assigneePlan.progress}% complete). Assigning adds another
- plan — consider editing on Plans instead.
+ <p className="rounded-[14px] bg-signal-soft px-4 py-3 text-sm text-ink-2">
+ <span className="font-bold text-warning">{assigneePlan.name} is already assigned</span> and{" "}
+ {assigneePlan.progress}% complete. Assigning adds another plan, so consider editing it on Plans instead.
  </p>
  ) : null}
 
- <div className="flex flex-col gap-2 sm:flex-row">
- <Button className="flex-1 whitespace-nowrap" disabled={isSaving || !selectedTemplateId} type="submit">
- {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+ <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+ <button
+ className="btn-secondary inline-flex items-center gap-2 whitespace-nowrap disabled:opacity-50"
+ disabled={isSaving || !selectedTemplateId}
+ type="submit"
+ >
+ {isSaving ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
  Assign plan
- </Button>
- <Button asChild className="flex-1 whitespace-nowrap" type="button" variant="outline">
- <Link href="/plans">
- <Pencil className="h-4 w-4" />
+ </button>
+ <Link className="link text-sm" href="/plans">
  Customize templates
  </Link>
- </Button>
  </div>
  </form>
  </div>
- </Card>
+ </section>
  );
 }

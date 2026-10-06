@@ -1,25 +1,40 @@
 "use client";
 
-import { ChevronDown, ChevronRight, Loader2, RefreshCw, ScrollText, ShieldCheck } from "lucide-react";
+import { ChevronDown, ChevronRight, Loader2 } from "lucide-react";
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import {
+  EmptyLine,
+  Spinner,
+  TABLE,
+  TABLE_WRAP,
+  TD,
+  TD_META,
+  TD_MUTED,
+  TH,
+  THEAD_ROW,
+  TR,
+  formatDateTime,
+} from "@/components/platform/platform-ui";
+import { Chip } from "@/components/ui/chip";
+import { rowHighlight } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 import type { PlatformAuditEntry } from "@/lib/tenant/types";
 
 function summarizeDetails(entry: PlatformAuditEntry): string | null {
   const d = entry.details ?? {};
   if (entry.action === "tenant.feature_flags.updated") {
     const pkg = typeof d.packageId === "string" ? d.packageId : "custom";
-    return `package: ${pkg}${d.billingPlan ? ` · plan: ${String(d.billingPlan)}` : ""}`;
+    return `package: ${pkg}${d.billingPlan ? `, plan: ${String(d.billingPlan)}` : ""}`;
   }
   if (entry.action === "workspace.hat_switched") {
-    return `${String(d.from ?? "—")} → ${String(d.to ?? "—")}`;
+    return `from ${String(d.from ?? "—")} to ${String(d.to ?? "—")}`;
   }
   if (entry.action === "tenant.maintenance_updated") {
     return d.maintenanceMode ? "maintenance on" : "maintenance off";
   }
   if (entry.action === "tenant.bulk_operation") {
-    return `${String(d.action ?? "")}${d.presetId ? ` · ${String(d.presetId)}` : ""} · ok ${String(d.okCount ?? 0)}`;
+    return `${String(d.action ?? "")}${d.presetId ? ` (${String(d.presetId)})` : ""}, ${String(d.okCount ?? 0)} succeeded`;
   }
   if (entry.action === "operator.impersonation_started") {
     return `user ${entry.targetId?.slice(0, 8) ?? "—"}`;
@@ -78,120 +93,118 @@ export function PlatformGlobalAuditPanel({ tenantId }: { tenantId?: string | nul
       toast.error(body.error ?? "Audit write probe failed.");
       return;
     }
-    setWriteHealth(`Write OK via ${body.via ?? "unknown"}${body.readable ? " · readable" : ""}`);
+    setWriteHealth(`Write OK via ${body.via ?? "unknown"}${body.readable ? ", readable" : ""}`);
     toast.success(`Audit write healthy (${body.via})`);
     await load();
   }
 
-  const newest = useMemo(() => (logs[0] ? new Date(logs[0].createdAt).toLocaleString() : null), [logs]);
+  const newest = useMemo(() => (logs[0] ? formatDateTime(logs[0].createdAt) : null), [logs]);
 
   return (
-    <div className="border border-[#E2DFD9] bg-white p-4">
-      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <ScrollText className="h-4 w-4 text-[#0071ce]" />
-            <h3 className="text-sm font-bold text-[#0D0E12]">
-              {tenantId ? "Tenant audit log" : "Global audit log"}
-            </h3>
-          </div>
-          <p className="mt-1 text-xs text-[#6B6860]">
-            {logs.length} events
-            {newest ? ` · newest ${newest}` : ""}
-            {writeHealth ? ` · ${writeHealth}` : ""}
-          </p>
-        </div>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p aria-live="polite" className="num text-[13px] text-muted">
+          {logs.length} {logs.length === 1 ? "event" : "events"}
+          {newest ? `, newest ${newest}` : ""}
+          {writeHealth ? `. ${writeHealth}` : ""}
+        </p>
         <div className="flex flex-wrap items-center gap-2">
-          <label className="flex items-center gap-1.5 text-xs text-[#3D3C38]">
-            <input
-              checked={platformOpsOnly}
-              onChange={(event) => setPlatformOpsOnly(event.target.checked)}
-              type="checkbox"
-            />
+          <Chip active={platformOpsOnly} onClick={() => setPlatformOpsOnly((value) => !value)}>
             Platform ops only
-          </label>
-          <Button disabled={probing} onClick={() => void probeWrite()} size="sm" type="button" variant="outline">
-            {probing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShieldCheck className="h-3.5 w-3.5" />}
+          </Chip>
+          <button
+            className="btn-secondary inline-flex items-center gap-2"
+            disabled={probing}
+            onClick={() => void probeWrite()}
+            type="button"
+          >
+            {probing ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
             Test write
-          </Button>
-          <Button disabled={loading} onClick={() => void load()} size="sm" type="button" variant="outline">
-            {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+          </button>
+          <button
+            className="btn-secondary inline-flex items-center gap-2"
+            disabled={loading}
+            onClick={() => void load()}
+            type="button"
+          >
+            {loading ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
             Refresh
-          </Button>
+          </button>
         </div>
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-16">
-          <Loader2 className="h-7 w-7 animate-spin text-[#0071ce]" />
-        </div>
-      ) : logs.length === 0 ? (
-        <p className="text-sm text-[#6B6860]">
-          No audit events yet. Use <span className="font-medium">Test write</span> to verify the pipeline.
-        </p>
+        <Spinner label={tenantId ? "Loading tenant audit log" : "Loading audit log"} />
       ) : (
-        <div className="max-h-[560px] overflow-y-auto">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-[#E2DFD9] text-xs uppercase tracking-wide text-[#A09D98]">
-                <th className="py-2 pr-2 w-6" />
-                <th className="py-2 pr-3">When</th>
-                <th className="py-2 pr-3">Tenant</th>
-                <th className="py-2 pr-3">Actor</th>
-                <th className="py-2 pr-3">Action</th>
-                <th className="py-2">Summary</th>
-              </tr>
-            </thead>
-            <tbody>
-              {logs.map((entry) => {
-                const open = expandedId === entry.id;
-                const summary = summarizeDetails(entry);
-                return (
-                  <Fragment key={entry.id}>
-                    <tr className="border-b border-[#f8fafc]">
-                      <td className="py-2 pr-2">
-                        <button
-                          aria-label="Toggle details"
-                          className="text-[#A09D98] hover:text-[#3D3C38]"
-                          onClick={() => setExpandedId(open ? null : entry.id)}
-                          type="button"
-                        >
-                          {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-                        </button>
-                      </td>
-                      <td className="whitespace-nowrap py-2 pr-3 text-[#6B6860]">
-                        {new Date(entry.createdAt).toLocaleString()}
-                      </td>
-                      <td className="py-2 pr-3 text-[#6B6860]">
-                        {entry.tenantName ?? (entry.tenantId ? entry.tenantId.slice(0, 8) : "—")}
-                      </td>
-                      <td className="py-2 pr-3">{entry.actorName ?? "—"}</td>
-                      <td className="py-2 pr-3 font-medium text-[#0D0E12]">{entry.action}</td>
-                      <td className="py-2 text-[#6B6860]">{summary ?? entry.targetType}</td>
-                    </tr>
-                    {open ? (
-                      <tr className="border-b border-[#f8fafc] bg-[#F9F8F6]">
-                        <td className="p-3" colSpan={6}>
-                          <pre className="overflow-x-auto text-[11px] leading-relaxed text-[#3D3C38]">
-                            {JSON.stringify(
-                              {
-                                targetType: entry.targetType,
-                                targetId: entry.targetId,
-                                tenantId: entry.tenantId,
-                                details: entry.details,
-                              },
-                              null,
-                              2,
-                            )}
-                          </pre>
-                        </td>
-                      </tr>
-                    ) : null}
-                  </Fragment>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className={TABLE_WRAP}>
+          {logs.length === 0 ? (
+            <EmptyLine>No audit events yet. Use Test write to verify the pipeline.</EmptyLine>
+          ) : (
+            <div className="max-h-[640px] overflow-auto">
+              <table className={TABLE}>
+                <thead className="sticky top-0 z-[1] bg-white">
+                  <tr className={THEAD_ROW}>
+                    <th className={cn(TH, "w-10")} scope="col">
+                      <span className="sr-only">Details</span>
+                    </th>
+                    <th className={TH} scope="col">When</th>
+                    <th className={TH} scope="col">Tenant</th>
+                    <th className={TH} scope="col">Actor</th>
+                    <th className={TH} scope="col">Action</th>
+                    <th className={TH} scope="col">Summary</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {logs.map((entry) => {
+                    const open = expandedId === entry.id;
+                    const summary = summarizeDetails(entry);
+                    return (
+                      <Fragment key={entry.id}>
+                        <tr className={cn(TR, open && rowHighlight.selected)}>
+                          <td className="py-[13px] pl-5">
+                            <button
+                              aria-expanded={open}
+                              aria-label={`${open ? "Hide" : "Show"} details for ${entry.action}`}
+                              className="grid h-7 w-7 place-items-center rounded-full text-muted hover:bg-divider hover:text-ink"
+                              onClick={() => setExpandedId(open ? null : entry.id)}
+                              type="button"
+                            >
+                              {open ? <ChevronDown aria-hidden className="h-4 w-4" /> : <ChevronRight aria-hidden className="h-4 w-4" />}
+                            </button>
+                          </td>
+                          <td className={TD_META}>{formatDateTime(entry.createdAt)}</td>
+                          <td className={TD_MUTED}>
+                            {entry.tenantName ?? (entry.tenantId ? entry.tenantId.slice(0, 8) : "—")}
+                          </td>
+                          <td className={TD_MUTED}>{entry.actorName ?? "—"}</td>
+                          <td className={cn(TD, "text-[13px] font-semibold")}>{entry.action}</td>
+                          <td className={TD_MUTED}>{summary ?? entry.targetType}</td>
+                        </tr>
+                        {open ? (
+                          <tr className={cn(TR, "bg-bg")}>
+                            <td className="px-5 py-3" colSpan={6}>
+                              <pre className="overflow-x-auto text-[13px] leading-relaxed text-ink-2">
+                                {JSON.stringify(
+                                  {
+                                    targetType: entry.targetType,
+                                    targetId: entry.targetId,
+                                    tenantId: entry.tenantId,
+                                    details: entry.details,
+                                  },
+                                  null,
+                                  2,
+                                )}
+                              </pre>
+                            </td>
+                          </tr>
+                        ) : null}
+                      </Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
     </div>

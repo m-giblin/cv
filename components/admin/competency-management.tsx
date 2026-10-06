@@ -1,13 +1,18 @@
 "use client";
 
-import { Loader2, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { AdminTabPageHeader } from "@/components/admin/admin-tab-page-header";
-import { Toggle } from "@/components/admin/admin-toggle";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import {
+ EmptyState,
+ Field,
+ LineCard,
+ LinkButton,
+ Meta,
+ Switch,
+ TextArea,
+ TextInput,
+} from "@/components/admin/admin-ui";
+import { Tag } from "@/components/ui/tag";
 
 type CompetencyRow = {
  id: string;
@@ -16,21 +21,6 @@ type CompetencyRow = {
  description: string | null;
  rubric: Array<{ level: number; label: string; description: string }>;
 };
-
-const ICON_PALETTE = [
- { iconBg: "#e8f2fc", iconColor: "#0071ce" },
- { iconBg: "#fdf0fa", iconColor: "#cc27b0" },
- { iconBg: "#ede9fe", iconColor: "#7c3aed" },
- { iconBg: "#dcfce7", iconColor: "#15803d" },
-];
-
-function CompetencyIcon({ color }: { color: string }) {
- return (
- <svg fill="none" height="16" stroke={color} strokeLinecap="round" strokeWidth="1.5" viewBox="0 0 16 16" width="16">
- <path d="M8 2l1.8 3.6L14 6.4l-3 2.9.7 4.1L8 11.2 4.3 13.4 5 9.3 2 6.4l4.2-.8L8 2z" />
- </svg>
- );
-}
 
 export function CompetencyManagement() {
  const [items, setItems] = useState<CompetencyRow[]>([]);
@@ -86,79 +76,73 @@ export function CompetencyManagement() {
  }
 
  return (
- <div className="space-y-6">
- <AdminTabPageHeader
- subtitle="Framework spine for goals, coaching cards, and gap analysis."
- title="Competencies"
+ <div className="flex flex-col gap-6">
+ <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+ <LineCard title="Add competency">
+ <p className="mb-4 text-sm text-muted">Competencies are the spine for goals, coaching cards, and gap analysis.</p>
+ <form className="flex flex-col gap-4" onSubmit={create}>
+ <Field htmlFor="competency-name" label="Name">
+ <TextInput id="competency-name" onChange={(e) => setName(e.target.value)} required value={name} />
+ </Field>
+ <Field htmlFor="competency-category" label="Category">
+ <TextInput
+ id="competency-category"
+ onChange={(e) => setCategory(e.target.value)}
+ required
+ value={category}
  />
- <div className="grid gap-6 xl:grid-cols-2">
- <div className="border border-[#E2DFD9] bg-white p-[18px_22px]">
- <p className="text-[12.5px] font-bold text-[#0D0E12]">Add competency</p>
- <p className="mb-[14px] mt-[2px] text-[11px] text-[#6B6860]">
- Framework spine for goals, coaching cards, and gap analysis.
- </p>
- <form className="space-y-3" onSubmit={create}>
- <Input onChange={(e) => setName(e.target.value)} placeholder="Name" required value={name} />
- <Input onChange={(e) => setCategory(e.target.value)} placeholder="Category" required value={category} />
- <Textarea onChange={(e) => setDescription(e.target.value)} placeholder="Description" value={description} />
- <Button disabled={isSaving} type="submit">
- {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
- Add competency
- </Button>
- </form>
+ </Field>
+ <Field htmlFor="competency-description" label="Description">
+ <TextArea
+ id="competency-description"
+ onChange={(e) => setDescription(e.target.value)}
+ value={description}
+ />
+ </Field>
+ <div>
+ <button className="btn-primary" disabled={isSaving} type="submit">
+ {isSaving ? "Saving…" : "Add competency"}
+ </button>
  </div>
- <div className="space-y-[10px]">
- {items.map((item, index) => {
- const palette = ICON_PALETTE[index % ICON_PALETTE.length]!;
- const teamAvg =
- item.rubric.length > 0
- ? (item.rubric.reduce((sum, level) => sum + level.level, 0) / item.rubric.length).toFixed(1)
- : "—";
+ </form>
+ </LineCard>
+
+ <LineCard bodyClassName="p-0" meta={`${items.length} in total`} title="Framework">
+ {items.length === 0 ? (
+ <EmptyState>No competencies yet.</EmptyState>
+ ) : (
+ <ul>
+ {items.map((item) => {
+ const enabled = enabledById[item.id] ?? true;
  return (
- <div
- className="flex items-center gap-[14px] border border-[#E2DFD9] bg-white p-[14px_18px]"
+ <li
+ className="flex flex-wrap items-center gap-4 border-b border-divider px-5 py-3.5 last:border-b-0"
  key={item.id}
  >
- <div
- className="flex h-[36px] w-[36px] flex-shrink-0 items-center justify-center "
- style={{ background: palette.iconBg }}
- >
- <CompetencyIcon color={palette.iconColor} />
- </div>
  <div className="min-w-0 flex-1">
- <div className="mb-[3px] flex items-center gap-[8px]">
- <span className="text-[12.5px] font-bold text-[#0D0E12]">{item.name}</span>
- <span className="rounded-full bg-[#e8f2fc] px-[8px] py-[2px] text-[9.5px] font-bold text-[#0057a8]">
- {item.category}
- </span>
+ <div className="mb-1 flex flex-wrap items-center gap-2">
+ <span className="text-[15px] font-bold text-ink">{item.name}</span>
+ <Tag tone="blue">{item.category}</Tag>
  </div>
- <p className="text-[11.5px] leading-[1.5] text-[#6B6860]">
- {item.description ?? "No description yet."}
- </p>
+ <p className="text-sm leading-[1.5] text-ink-2">{item.description ?? "No description yet."}</p>
  </div>
- <div className="flex-shrink-0 text-center">
- <p className="font-display text-[18px] font-extrabold text-[#0D0E12]">{teamAvg}</p>
- <p className="text-[9px] text-[#A09D98]">Team avg</p>
- </div>
- <div className="flex flex-shrink-0 items-center gap-[7px]">
- <button
- className="inline-flex items-center border border-[#E2DFD9] bg-white px-[10px] py-[5px] text-[11px] font-semibold text-[#3D3C38]"
- type="button"
- >
- Edit
- </button>
- <Toggle
- checked={enabledById[item.id] ?? true}
+ <Meta className="shrink-0 text-muted">{item.rubric.length} rubric levels</Meta>
+ <div className="flex shrink-0 items-center gap-4">
+ <Switch
+ checked={enabled}
+ label={`${item.name} enabled`}
  onChange={(checked) => setEnabledById((current) => ({ ...current, [item.id]: checked }))}
  />
- <Button onClick={() => void remove(item.id)} size="sm" variant="ghost">
- <Trash2 className="h-4 w-4" />
- </Button>
+ <LinkButton aria-label={`Delete ${item.name}`} onClick={() => void remove(item.id)} tone="danger">
+ Delete
+ </LinkButton>
  </div>
- </div>
+ </li>
  );
  })}
- </div>
+ </ul>
+ )}
+ </LineCard>
  </div>
  </div>
  );

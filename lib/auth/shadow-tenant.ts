@@ -16,6 +16,13 @@ export const SHADOW_CEILING_COOKIE = "sp_shadow_ceiling";
  * exact user's personal data everywhere. Treat it as a hint, not a guarantee.
  */
 export const SHADOW_IMPERSONATE_USER_COOKIE = "sp_shadow_impersonate_user_id";
+/**
+ * Correlates the shadow_started and shadow_ended audit entries for a single
+ * impersonation session, so a security review can bracket "what happened
+ * during this session" even though individual mutations made while
+ * shadowing aren't (yet) individually tagged.
+ */
+export const SHADOW_SESSION_COOKIE = "sp_shadow_session_id";
 
 /** Surface the operator is working as inside a tenant. */
 export type ShadowMode = "admin" | "manager" | "se";
@@ -137,6 +144,7 @@ export function clearShadowCookiesOnResponse(response: {
   response.cookies.set(SHADOW_MODE_COOKIE, "", cleared);
   response.cookies.set(SHADOW_CEILING_COOKIE, "", cleared);
   response.cookies.set(SHADOW_IMPERSONATE_USER_COOKIE, "", cleared);
+  response.cookies.set(SHADOW_SESSION_COOKIE, "", cleared);
 }
 
 export function canShadowTenantStatus(status: string): boolean {

@@ -1,89 +1,130 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import type { ReactNode } from "react";
+import { AdminBody, LoadingState } from "@/components/admin/admin-ui";
+import { AdminSettingsHeader } from "@/components/admin/admin-settings-header";
+import { PageHeader } from "@/components/ui/page-header";
 import {
-  ADMIN_SETTINGS_HEADERS,
-  ADMIN_TAB_HEADERS,
-  AdminPageLayout,
-} from "@/components/admin/admin-page-layout";
-import { AdminOutlineBtn } from "@/components/admin/admin-ui-primitives";
-import {
-  parseAdminSettingsSection,
-  type AdminSettingsSection,
-} from "@/components/admin/admin-settings-panel";
-import { AdminTabPanel } from "@/components/admin/admin-tabs";
-import { useTenantBranding } from "@/components/tenant/tenant-branding-provider";
-import { formatTokenCount, type AiUsageSummary } from "@/lib/ai/settings-shared";
+  adminRouteFromPath,
+  type AdminSettingsSectionId,
+  type AdminTabId,
+} from "@/lib/admin/admin-routes";
+import type { PracticeUsage } from "@/lib/admin/practice-library";
+import type { AiUsageSummary } from "@/lib/ai/settings-shared";
 import type { PendingReviewBreakdown } from "@/lib/data/get-pending-review-breakdown";
 import type { ActivityLog, Profile, ProfileRole, SeLevel, UserPlan } from "@/lib/types";
 
-const NorthstarAdminSummary = dynamic(() =>
-  import("@/components/admin/northstar-admin-summary").then((mod) => mod.NorthstarAdminSummary),
+const loading = () => <LoadingState />;
+
+const AdminOverview = dynamic(
+  () => import("@/components/admin/admin-overview").then((mod) => mod.AdminOverview),
+  { loading },
 );
-const UserManagement = dynamic(() =>
-  import("@/components/admin/user-management").then((mod) => mod.UserManagement),
+const UserManagement = dynamic(
+  () => import("@/components/admin/user-management").then((mod) => mod.UserManagement),
+  { loading },
 );
 const BulkUserImport = dynamic(() =>
   import("@/components/admin/bulk-user-import").then((mod) => mod.BulkUserImport),
 );
-const PlanManagementPanel = dynamic(() =>
-  import("@/components/plans/plan-management").then((mod) => mod.PlanManagementPanel),
+const ProgramsWorkspace = dynamic(
+  () => import("@/components/programs/programs-workspace").then((mod) => mod.ProgramsWorkspace),
+  { loading },
 );
-const CompetencyManagement = dynamic(() =>
-  import("@/components/admin/competency-management").then((mod) => mod.CompetencyManagement),
+const ReleaseCoursesPanel = dynamic(
+  () => import("@/components/corpus/release-courses-panel").then((mod) => mod.ReleaseCoursesPanel),
+  { loading },
 );
-const SimulationTemplateManagement = dynamic(() =>
-  import("@/components/admin/simulation-template-management").then((mod) => mod.SimulationTemplateManagement),
+const ReleaseLaunchAnalytics = dynamic(
+  () => import("@/components/corpus/release-launch-analytics").then((mod) => mod.ReleaseLaunchAnalytics),
+  { loading },
 );
-const PitchScenarioManagement = dynamic(() =>
-  import("@/components/admin/pitch-scenario-management").then((mod) => mod.PitchScenarioManagement),
+const CompetencyManagement = dynamic(
+  () => import("@/components/admin/competency-management").then((mod) => mod.CompetencyManagement),
+  { loading },
+);
+const ContentAssetManagement = dynamic(
+  () => import("@/components/admin/content-asset-management").then((mod) => mod.ContentAssetManagement),
+  { loading },
+);
+const PracticeLibrary = dynamic(
+  () => import("@/components/admin/practice-library").then((mod) => mod.PracticeLibrary),
+  { loading },
 );
 const CorpusRoutingAdmin = dynamic(() =>
   import("@/components/corpus/corpus-routing-admin").then((mod) => mod.CorpusRoutingAdmin),
 );
-const MasterCorpusAdmin = dynamic(() =>
-  import("@/components/corpus/master-corpus-admin").then((mod) => mod.MasterCorpusAdmin),
+const MasterCorpusAdmin = dynamic(
+  () => import("@/components/corpus/master-corpus-admin").then((mod) => mod.MasterCorpusAdmin),
+  { loading },
 );
-const AuditLogPanel = dynamic(() => import("@/components/admin/audit-log-panel").then((mod) => mod.AuditLogPanel));
-const AnalyticsDashboard = dynamic(() =>
-  import("@/components/admin/analytics-dashboard").then((mod) => mod.AnalyticsDashboard),
+const AuditLogPanel = dynamic(
+  () => import("@/components/admin/audit-log-panel").then((mod) => mod.AuditLogPanel),
+  { loading },
 );
-const AdminSettingsPanel = dynamic(() =>
-  import("@/components/admin/admin-settings-panel").then((mod) => mod.AdminSettingsPanel),
+const AdminSecurityPanel = dynamic(
+  () => import("@/components/admin/admin-security-panel").then((mod) => mod.AdminSecurityPanel),
+  { loading },
 );
-const AdminSettingsAiSection = dynamic(() =>
-  import("@/components/admin/admin-settings-ai-section").then((mod) => mod.AdminSettingsAiSection),
+const AnalyticsDashboard = dynamic(
+  () => import("@/components/admin/analytics-dashboard").then((mod) => mod.AnalyticsDashboard),
+  { loading },
 );
-const AdminHelpPanel = dynamic(() =>
-  import("@/components/admin/admin-help-panel").then((mod) => mod.AdminHelpPanel),
+const ReadinessOutcomeCorrelation = dynamic(() =>
+  import("@/components/admin/readiness-outcome-correlation").then((mod) => mod.ReadinessOutcomeCorrelation),
 );
-const AdminContentPortalPanel = dynamic(() =>
-  import("@/components/admin/admin-content-portal-panel").then((mod) => mod.AdminContentPortalPanel),
+const AdminSettingsFeatures = dynamic(
+  () => import("@/components/admin/admin-settings-features").then((mod) => mod.AdminSettingsFeatures),
+  { loading },
 );
-const AdminReviewsPanel = dynamic(() =>
-  import("@/components/admin/admin-reviews-panel").then((mod) => mod.AdminReviewsPanel),
+const AdminSettingsIntegrationsSection = dynamic(
+  () =>
+    import("@/components/admin/admin-settings-integrations-section").then((mod) => mod.AdminSettingsIntegrationsSection),
+  { loading },
+);
+const AdminSettingsBasicSection = dynamic(
+  () => import("@/components/admin/admin-settings-basic-section").then((mod) => mod.AdminSettingsBasicSection),
+  { loading },
+);
+const AdminSettingsRetentionSection = dynamic(
+  () => import("@/components/admin/admin-settings-retention-section").then((mod) => mod.AdminSettingsRetentionSection),
+  { loading },
+);
+const AdminSettingsAiSection = dynamic(
+  () => import("@/components/admin/admin-settings-ai-section").then((mod) => mod.AdminSettingsAiSection),
+  { loading },
+);
+const AdminHelpPanel = dynamic(
+  () => import("@/components/admin/admin-help-panel").then((mod) => mod.AdminHelpPanel),
+  { loading },
+);
+const AdminReviewsPanel = dynamic(
+  () => import("@/components/admin/admin-reviews-panel").then((mod) => mod.AdminReviewsPanel),
+  { loading },
 );
 
-const TAB_IDS = [
+const LEGACY_TABS: AdminTabId[] = [
   "overview",
   "users",
   "plans",
+  "assign",
   "competencies",
   "content-portal",
   "reviews",
   "analytics",
+  "practice",
   "ai",
   "corpus",
   "routing",
+  "security",
   "audit",
   "help",
   "settings",
-] as const;
+];
 
-type AdminTab = (typeof TAB_IDS)[number];
+const SETTINGS_SECTIONS: AdminSettingsSectionId[] = ["flags", "integrations", "ai", "basic", "retention"];
 
 type InitialAdminUser = {
   id: string;
@@ -95,32 +136,37 @@ type InitialAdminUser = {
   created_at: string;
 };
 
-function hasOverviewData(
-  profiles?: Profile[],
-  plans?: UserPlan[],
-  activity?: ActivityLog[],
-  pendingReviews?: number,
-): boolean {
-  return Boolean(profiles && plans && activity && typeof pendingReviews === "number");
-}
+const HEADERS: Partial<Record<AdminTabId, { eyebrow: string; title: string; subtitle?: string }>> = {
+  competencies: {
+    eyebrow: "Programs",
+    title: "Competencies",
+    subtitle: "What readiness is measured against. Plans, practice and certification gates all point here.",
+  },
+  "content-portal": {
+    eyebrow: "Content",
+    title: "Library",
+    subtitle: "Modules, battle cards and guides SEs find in Learn and plans link to as steps.",
+  },
+  corpus: { eyebrow: "Content", title: "Corpus", subtitle: "The source material behind answers, and where unanswered questions go." },
+  routing: { eyebrow: "Content", title: "Q&A routing" },
+  reviews: { eyebrow: "Content", title: "Reviews", subtitle: "Work waiting on a reviewer across the tenant." },
+  analytics: { eyebrow: "Insights", title: "Analytics", subtitle: "How SEs are ramping, and whether readiness tracks with deals." },
+  audit: { eyebrow: "Insights", title: "Audit log", subtitle: "Who changed what, and when." },
+  help: { eyebrow: "Overview", title: "Help", subtitle: "Ask the platform team, and see what you asked before." },
+};
 
-function parseAdminTab(value: string | null, overviewAvailable: boolean): AdminTab {
-  if (value && TAB_IDS.includes(value as AdminTab)) {
-    return value as AdminTab;
-  }
-  return overviewAvailable ? "overview" : "users";
-}
-
+/** Tenant admin console. The path picks the view; each view brings its own header and body. */
 export function AdminConsole({
   assignees,
   mentors,
-  profiles,
-  plans,
-  activity,
-  pendingReviews,
+  profiles = [],
+  plans = [],
+  activity = [],
+  pendingReviews = 0,
   pendingReviewBreakdown,
   aiUsage,
   initialUsers,
+  practiceUsage = null,
 }: {
   assignees: Profile[];
   mentors: Profile[];
@@ -131,161 +177,129 @@ export function AdminConsole({
   pendingReviewBreakdown?: PendingReviewBreakdown;
   aiUsage?: AiUsageSummary | null;
   initialUsers?: InitialAdminUser[];
+  practiceUsage?: PracticeUsage | null;
 }) {
-  const branding = useTenantBranding();
-  const overviewAvailable = hasOverviewData(profiles, plans, activity, pendingReviews);
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const router = useRouter();
-  const [tab, setTab] = useState<AdminTab>(() => parseAdminTab(searchParams.get("tab"), overviewAvailable));
-  const [settingsSection, setSettingsSection] = useState<AdminSettingsSection>(() =>
-    parseAdminSettingsSection(searchParams.get("section")),
-  );
+  const route = adminRouteFromPath(pathname);
+  // The route decides the view; `?tab=` is only read for legacy URLs that have not redirected yet.
+  const legacyTab = searchParams.get("tab") as AdminTabId | null;
+  const resolved: AdminTabId = route?.tab ?? (legacyTab && LEGACY_TABS.includes(legacyTab) ? legacyTab : "overview");
+  const tab: AdminTabId = resolved === "ai" ? "practice" : resolved;
+  const legacySection = searchParams.get("section") as AdminSettingsSectionId | null;
+  const section: AdminSettingsSectionId =
+    route?.section ?? (legacySection && SETTINGS_SECTIONS.includes(legacySection) ? legacySection : "flags");
 
-  useEffect(() => {
-    setTab(parseAdminTab(searchParams.get("tab"), overviewAvailable));
-    setSettingsSection(parseAdminSettingsSection(searchParams.get("section")));
-  }, [overviewAvailable, searchParams]);
-
-  function selectSettingsSection(next: AdminSettingsSection) {
-    setSettingsSection(next);
-    router.replace(`/admin?tab=settings&section=${next}`, { scroll: false });
+  // Full-bleed views with their own headers.
+  if (tab === "plans" || tab === "assign") {
+    return (
+      <>
+        <ProgramsWorkspace mentors={mentors} mode="admin" people={assignees} plans={plans} />
+        <section className="flex flex-col gap-6 px-[var(--page-pad-x)] pt-4 pb-10 max-sm:px-4">
+          <h2 className="label-caps">Release courses</h2>
+          <ReleaseCoursesPanel assignees={assignees} />
+          <ReleaseLaunchAnalytics />
+        </section>
+      </>
+    );
+  }
+  if (tab === "practice") return <PracticeLibrary aiUsage={aiUsage ?? null} people={assignees} usage={practiceUsage} />;
+  if (tab === "overview") {
+    return <AdminOverview activity={activity} pendingReviews={pendingReviews} plans={plans} profiles={profiles} />;
+  }
+  if (tab === "settings" && section === "flags") return <AdminSettingsFeatures />;
+  if (tab === "settings" || tab === "security") {
+    const active = tab === "security" ? "security" : section;
+    return (
+      <>
+        <AdminSettingsHeader active={active} />
+        <AdminBody>
+          {tab === "security" ? (
+            <AdminSecurityPanel />
+          ) : section === "integrations" ? (
+            <AdminSettingsIntegrationsSection />
+          ) : section === "ai" ? (
+            <AdminSettingsAiSection usage={aiUsage ?? null} />
+          ) : section === "basic" ? (
+            <AdminSettingsBasicSection />
+          ) : (
+            <AdminSettingsRetentionSection />
+          )}
+        </AdminBody>
+      </>
+    );
   }
 
-  const header = useMemo(() => {
-    if (tab === "settings") {
-      return ADMIN_SETTINGS_HEADERS[settingsSection] ?? ADMIN_SETTINGS_HEADERS.flags;
-    }
-    return ADMIN_TAB_HEADERS[tab] ?? ADMIN_TAB_HEADERS.overview;
-  }, [settingsSection, tab]);
+  const eyebrow = HEADERS[tab]?.eyebrow ?? "";
+  let title = HEADERS[tab]?.title ?? "";
+  const subtitle = HEADERS[tab]?.subtitle;
+  let actions: ReactNode = null;
+  let body: ReactNode = null;
 
-  const eyebrow = useMemo(() => {
-    if (tab === "overview") {
-      const slug = branding.tenantSlug ? `${branding.tenantSlug}.sailpoint.io` : branding.productTagline;
-      return `${branding.productName} · ${slug}`;
-    }
-    if (tab === "users" && initialUsers) {
-      return `${initialUsers.length} total · ${branding.productName}`;
-    }
-    return header.eyebrow;
-  }, [branding.productName, branding.productTagline, branding.tenantSlug, header.eyebrow, initialUsers, tab]);
-
-  const headerRight =
-    tab === "overview" ? (
-      <div className="flex shrink-0 gap-2">
-        <AdminOutlineBtn href="/simulations?test=1">Test as SE</AdminOutlineBtn>
-        <Link
-          className="inline-flex items-center bg-[#00143A] px-3 py-1.5 text-[11px] font-semibold text-white"
-          href="/admin?tab=users"
-        >
-          Manage users →
-        </Link>
-      </div>
-    ) : null;
+  switch (tab) {
+    case "users":
+      title = "People";
+      body = (
+        <>
+          <UserManagement initialUsers={initialUsers} />
+          <BulkUserImport />
+        </>
+      );
+      break;
+    case "competencies":
+      body = <CompetencyManagement />;
+      break;
+    case "content-portal":
+      body = <ContentAssetManagement />;
+      break;
+    case "reviews":
+      body = pendingReviewBreakdown ? (
+        <AdminReviewsPanel pendingReviewBreakdown={pendingReviewBreakdown} />
+      ) : (
+        <p className="text-sm text-muted">Review queue data is not available in this environment.</p>
+      );
+      break;
+    case "analytics":
+      actions = (
+        <a className="btn-secondary no-underline" href="/api/admin/analytics?format=csv">
+          Export as CSV
+        </a>
+      );
+      body = (
+        <>
+          <AnalyticsDashboard />
+          <ReadinessOutcomeCorrelation />
+        </>
+      );
+      break;
+    case "corpus":
+      body = (
+        <>
+          <MasterCorpusAdmin />
+          <CorpusRoutingAdmin />
+        </>
+      );
+      break;
+    case "routing":
+      body = <CorpusRoutingAdmin />;
+      break;
+    case "audit":
+      body = <AuditLogPanel profiles={profiles} />;
+      break;
+    case "help":
+      body = <AdminHelpPanel />;
+      break;
+  }
 
   return (
-    <AdminPageLayout
-      eyebrow={eyebrow}
-      eyebrowColor={header.eyebrowColor}
-      headerRight={headerRight}
-      subtitle={header.subtitle}
-      title={header.title}
-    >
-      <div className="handoff-page-enter">
-        {overviewAvailable && profiles && plans && activity && typeof pendingReviews === "number" ? (
-          <AdminTabPanel active={tab} tab="overview">
-            <NorthstarAdminSummary
-              activity={activity}
-              aiUsage={aiUsage ?? null}
-              pendingReviewBreakdown={pendingReviewBreakdown}
-              pendingReviews={pendingReviews}
-              plans={plans}
-              profiles={profiles}
-            />
-          </AdminTabPanel>
-        ) : null}
-
-        <AdminTabPanel active={tab} tab="users">
-          <div className="space-y-6">
-            <UserManagement initialUsers={initialUsers} />
-            <BulkUserImport />
-          </div>
-        </AdminTabPanel>
-
-        <AdminTabPanel active={tab} tab="plans">
-          <PlanManagementPanel assignees={assignees} mentors={mentors} plans={plans ?? []} profiles={profiles ?? []} />
-        </AdminTabPanel>
-
-        <AdminTabPanel active={tab} tab="competencies">
-          <CompetencyManagement />
-        </AdminTabPanel>
-
-        <AdminTabPanel active={tab} tab="content-portal">
-          <AdminContentPortalPanel />
-        </AdminTabPanel>
-
-        <AdminTabPanel active={tab} tab="reviews">
-          {pendingReviewBreakdown ? (
-            <AdminReviewsPanel pendingReviewBreakdown={pendingReviewBreakdown} />
-          ) : (
-            <p className="text-sm text-[#6B6860]">Review queue data is not available in this environment.</p>
-          )}
-        </AdminTabPanel>
-
-        <AdminTabPanel active={tab} tab="analytics">
-          <AnalyticsDashboard />
-          <p className="mt-4 text-sm">
-            <a className="font-semibold text-[#0033a1] hover:underline" href="/api/admin/analytics?format=csv">
-              Export analytics CSV
-            </a>
-          </p>
-        </AdminTabPanel>
-
-        <AdminTabPanel active={tab} tab="ai">
-          <div className="space-y-6">
-            {aiUsage ? (
-              <section className="grid gap-px border border-[#E2DFD9] bg-[#E2DFD9] sm:grid-cols-2 xl:grid-cols-4">
-                {[
-                  { label: "Requests (30d)", value: String(aiUsage.requests30d), color: "#D4810A" },
-                  { label: "Requests today", value: String(aiUsage.requestsToday), color: "#0A6E45" },
-                  { label: "Tokens (30d)", value: formatTokenCount(aiUsage.tokens30d), color: "#CC27B0" },
-                  { label: "Active model", value: aiUsage.model, color: "#0071CE" },
-                ].map((kpi) => (
-                  <div className="bg-white p-[14px_16px]" key={kpi.label}>
-                    <p className="mb-1 font-mono text-[9px] uppercase tracking-[0.1em] text-[#B0ADA8]">{kpi.label}</p>
-                    <p className="truncate font-mono text-[34px] font-normal leading-none text-[#0D0E12]">{kpi.value}</p>
-                  </div>
-                ))}
-              </section>
-            ) : null}
-            <AdminSettingsAiSection />
-            <SimulationTemplateManagement />
-            <PitchScenarioManagement />
-          </div>
-        </AdminTabPanel>
-
-        <AdminTabPanel active={tab} tab="corpus">
-          <div className="space-y-8">
-            <MasterCorpusAdmin />
-            <CorpusRoutingAdmin />
-          </div>
-        </AdminTabPanel>
-
-        <AdminTabPanel active={tab} tab="routing">
-          <CorpusRoutingAdmin />
-        </AdminTabPanel>
-
-        <AdminTabPanel active={tab} tab="audit">
-          <AuditLogPanel profiles={profiles ?? []} />
-        </AdminTabPanel>
-
-        <AdminTabPanel active={tab} tab="help">
-          <AdminHelpPanel />
-        </AdminTabPanel>
-
-        <AdminTabPanel active={tab} tab="settings">
-          <AdminSettingsPanel onSectionChange={selectSettingsSection} section={settingsSection} />
-        </AdminTabPanel>
-      </div>
-    </AdminPageLayout>
+    <>
+      <PageHeader
+        actions={actions}
+        eyebrow={tab === "users" ? `${initialUsers?.length ?? profiles.length} people` : eyebrow}
+        subtitle={tab === "users" ? "Everyone in the tenant, their role, and who they report to." : subtitle}
+        title={title}
+      />
+      <AdminBody>{body}</AdminBody>
+    </>
   );
 }

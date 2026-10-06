@@ -1,4 +1,5 @@
 import "server-only";
+import { DEFAULT_AI_MODELS, estimateAiCostUsd } from "@/lib/ai/models";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { openApiKey, sealApiKey } from "@/lib/crypto/api-key-storage";
@@ -24,6 +25,13 @@ const FEATURE_LABELS: Record<string, string> = {
   deal_prep: "Deal prep briefs",
   challenge: "Challenge generation",
   isc_lab: "ISC Lab",
+  challenge_review: "Challenge grading",
+  corpus_suggest_tags: "Content tagging",
+  manager_coaching_brief: "Manager coaching briefs",
+  manager_copilot: "Manager copilot",
+  market_pulse: "Market Pulse quizzes",
+  assistant: "Bosun questions",
+  pitch_coach: "Pitch reviews",
 };
 
 function envFallback(): PlatformAiSettings {
@@ -32,8 +40,8 @@ function envFallback(): PlatformAiSettings {
     provider === "openai" ? process.env.OPENAI_API_KEY ?? null : process.env.XAI_API_KEY ?? process.env.OPENAI_API_KEY ?? null;
   const model =
     provider === "openai"
-      ? process.env.OPENAI_MODEL ?? "gpt-4.1-mini"
-      : process.env.XAI_MODEL ?? "grok-3-mini";
+      ? process.env.OPENAI_MODEL || DEFAULT_AI_MODELS.openai
+      : process.env.XAI_MODEL || DEFAULT_AI_MODELS.xai;
 
   return {
     provider,
@@ -158,7 +166,7 @@ export async function loadAiUsageSummary(
 
   const { data: rows } = await admin
     .from("ai_usage_logs")
-    .select("feature, total_tokens, created_at")
+    .select("feature, model, prompt_tokens, completion_tokens, total_tokens, created_at")
     .eq("tenant_id", tenantId)
     .gte("created_at", start30d.toISOString())
     .order("created_at", { ascending: false });
@@ -166,11 +174,14 @@ export async function loadAiUsageSummary(
   const logs = rows ?? [];
   const todayLogs = logs.filter((row) => new Date(row.created_at) >= startToday);
 
-  const byFeatureMap = new Map<string, { count: number; tokens: number }>();
+  const costOf = (row: (typeof logs)[number]) =>
+    estimateAiCostUsd(row.model, row.prompt_tokens ?? 0, row.completion_tokens ?? 0);
+  const byFeatureMap = new Map<string, { count: number; tokens: number; cost: number }>();
   for (const row of logs) {
-    const current = byFeatureMap.get(row.feature) ?? { count: 0, tokens: 0 };
+    const current = byFeatureMap.get(row.feature) ?? { count: 0, tokens: 0, cost: 0 };
     current.count += 1;
     current.tokens += row.total_tokens ?? 0;
+    current.cost += costOf(row);
     byFeatureMap.set(row.feature, current);
   }
 
@@ -180,6 +191,7 @@ export async function loadAiUsageSummary(
       label: FEATURE_LABELS[feature] ?? feature,
       count: stats.count,
       tokens: stats.tokens,
+      cost: stats.cost,
     }))
     .sort((a, b) => b.count - a.count);
 
@@ -188,6 +200,8 @@ export async function loadAiUsageSummary(
     requestsToday: todayLogs.length,
     tokens30d: logs.reduce((sum, row) => sum + (row.total_tokens ?? 0), 0),
     tokensToday: todayLogs.reduce((sum, row) => sum + (row.total_tokens ?? 0), 0),
+    cost30d: logs.reduce((sum, row) => sum + costOf(row), 0),
+    costToday: todayLogs.reduce((sum, row) => sum + costOf(row), 0),
     model: settings.model,
     provider: settings.provider,
     byFeature,

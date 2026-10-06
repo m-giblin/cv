@@ -1,5 +1,6 @@
 "use client";
 
+import { StatusPill } from "@/components/ui/status-pill";
 import type { Challenge, ChallengeSubmission } from "@/lib/types";
 
 export function ChallengesHeaderStats({
@@ -20,26 +21,12 @@ export function ChallengesHeaderStats({
  ).length;
 
  return (
- <div className="flex flex-wrap items-center gap-2 text-[11.5px]">
- <span className="text-[#6B6860]">{challenges.length} challenges</span>
- {earned > 0 ? (
- <>
- <span className="text-[#D4D1CB]">·</span>
- <span className="text-[#6B6860]">{earned} earned</span>
- </>
- ) : null}
- {inFlight > 0 ? (
- <>
- <span className="text-[#D4D1CB]">·</span>
- <span className="rounded-full bg-[#dbeafe] px-2 py-0.5 font-semibold text-[#1d4ed8]">{inFlight} in progress</span>
- </>
- ) : null}
- {redo > 0 ? (
- <>
- <span className="text-[#D4D1CB]">·</span>
- <span className="rounded-full bg-[#fef3c7] px-2 py-0.5 font-semibold text-[#b45309]">{redo} redo requested</span>
- </>
- ) : null}
+ <div className="flex flex-wrap items-center gap-2">
+ <span className="text-[13px] text-muted">
+ {challenges.length} challenges{earned > 0 ? `, ${earned} earned` : ""}
+ </span>
+ {inFlight > 0 ? <StatusPill tone="blue">{inFlight} in progress</StatusPill> : null}
+ {redo > 0 ? <StatusPill tone="danger">{redo} redo requested</StatusPill> : null}
  </div>
  );
 }

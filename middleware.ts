@@ -62,11 +62,23 @@ async function getProfileContext(
   };
 }
 
+// Flags change rarely and are operator-managed; a short cache saves one or two round trips per click.
+const FEATURE_FLAG_CACHE_TTL = 15_000;
+const featureFlagCache = new Map<string, { value: ReturnType<typeof mergeFeatureFlags>; loadedAt: number }>();
+
 async function loadTenantFeatureFlags(tenantId: string | null) {
+  const scopedTenantId = tenantId ?? DEFAULT_TENANT_ID;
+  const cached = featureFlagCache.get(scopedTenantId);
+  if (cached && Date.now() - cached.loadedAt < FEATURE_FLAG_CACHE_TTL) return cached.value;
+  const value = await fetchTenantFeatureFlags(scopedTenantId);
+  featureFlagCache.set(scopedTenantId, { value, loadedAt: Date.now() });
+  return value;
+}
+
+async function fetchTenantFeatureFlags(scopedTenantId: string) {
   const admin = createAdminClient();
   if (!admin) return mergeFeatureFlags({});
 
-  const scopedTenantId = tenantId ?? DEFAULT_TENANT_ID;
   const { data } = await admin
     .from("platform_settings")
     .select("feature_flags")

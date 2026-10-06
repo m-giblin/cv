@@ -2,55 +2,59 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
- variant?: "default" | "secondary" | "outline" | "ghost" | "destructive" | "magenta";
- size?: "sm" | "md" | "lg";
- asChild?: boolean;
+  variant?: "default" | "secondary" | "outline" | "ghost" | "destructive" | "magenta" | "primary";
+  size?: "sm" | "md" | "lg";
+  asChild?: boolean;
 };
 
+/**
+ * v3 buttons. `primary` is the amber pill (one per view). Every other variant is a quiet
+ * pill: `default`, `secondary`, `outline` and `magenta` share the white secondary look,
+ * `ghost` is borderless, and `destructive` is the secondary look in danger red.
+ */
 const variants = {
- default:
- "bg-sp-blue text-white shadow-sp-blue/20 hover:bg-sp-blue-deep focus-visible:ring-sp-blue",
- secondary: "bg-sp-blue-soft text-sp-blue-deep hover:bg-[#d4e8f9]",
- outline:
- "border border-sp-blue/20 bg-white text-sp-navy hover:border-sp-blue/40 hover:bg-sp-blue-soft/50",
- ghost: "text-sp-navy-muted hover:bg-sp-blue-soft/60 hover:text-sp-navy",
- destructive: "bg-red-600 text-white hover:bg-red-700",
- magenta:
- "border border-sp-magenta/25 bg-sp-magenta-soft text-sp-magenta hover:border-sp-magenta/40 hover:bg-[#fce8f8]",
+  default: "border border-line-strong bg-white text-ink hover:border-ink",
+  secondary: "border border-line-strong bg-white text-ink hover:border-ink",
+  outline: "border border-line-strong bg-white text-ink hover:border-ink",
+  magenta: "border border-line-strong bg-white text-ink hover:border-ink",
+  ghost: "text-ink-2 hover:bg-divider hover:text-ink",
+  destructive: "border border-danger bg-white text-danger hover:bg-danger-soft",
 };
 
 const sizes = {
- sm: "h-8 px-3 text-xs",
- md: "h-10 px-4 text-sm",
- lg: "h-12 px-5 text-base",
+  sm: "h-9 px-3.5 text-sm",
+  md: "h-10 px-[18px] text-sm",
+  lg: "h-12 px-[22px] text-[15px]",
 };
 
 export function Button({
- className,
- variant = "default",
- size = "md",
- asChild = false,
- type = "button",
- children,
- ...props
+  className,
+  variant = "default",
+  size = "md",
+  asChild = false,
+  type = "button",
+  children,
+  ...props
 }: ButtonProps) {
- const classes = cn(
- "inline-flex items-center justify-center gap-2 font-semibold transition disabled:pointer-events-none disabled:opacity-50",
- "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
- variants[variant],
- sizes[size],
- className,
- );
+  const classes =
+    variant === "primary"
+      ? cn("btn-primary inline-flex items-center justify-center gap-2", className)
+      : cn(
+          "inline-flex items-center justify-center gap-2 rounded-full font-semibold transition-colors disabled:pointer-events-none disabled:border-line disabled:bg-divider disabled:text-muted",
+          variants[variant],
+          sizes[size],
+          className,
+        );
 
- if (asChild && React.isValidElement<{ className?: string }>(children)) {
- return React.cloneElement(children, {
- className: cn(classes, children.props.className),
- });
- }
+  if (asChild && React.isValidElement<{ className?: string }>(children)) {
+    return React.cloneElement(children, {
+      className: cn(classes, children.props.className),
+    });
+  }
 
- return (
- <button className={classes} type={type} {...props}>
- {children}
- </button>
- );
+  return (
+    <button className={classes} type={type} {...props}>
+      {children}
+    </button>
+  );
 }

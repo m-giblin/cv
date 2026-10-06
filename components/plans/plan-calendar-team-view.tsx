@@ -1,29 +1,45 @@
 "use client";
 
-import { format, startOfWeek } from "date-fns";
+import { startOfWeek } from "date-fns";
 import Link from "next/link";
+import { StatusPill } from "@/components/ui/status-pill";
+import { PersonCell } from "@/components/ui/table";
 import type { PlanCalendarConflict } from "@/lib/plans/plan-calendar-conflicts";
-import { GANTT_TOTAL_DAYS, rampColor, todayDayIndex, type GanttSeRow } from "@/lib/plans/plan-calendar-gantt";
+import {
+  GANTT_TOTAL_DAYS,
+  HEALTH_TAG,
+  todayDayIndex,
+  type GanttHealth,
+  type GanttSeRow,
+} from "@/lib/plans/plan-calendar-gantt";
+import { cn } from "@/lib/utils";
 
-function Avatar({
-  initials: label,
-  bg,
-  size = 36,
-  fontSize = 12,
-}: {
-  initials: string;
-  bg: string;
-  size?: number;
-  fontSize?: number;
-}) {
-  return (
-    <div
-      className="flex shrink-0 items-center justify-center rounded-full font-mono font-medium text-white"
-      style={{ width: size, height: size, background: bg, fontSize }}
-    >
-      {label}
-    </div>
-  );
+/** Ramp fill on v3 status tokens (blue when on pace or ahead). */
+export const RAMP_FILL_CLS: Record<GanttHealth, string> = {
+  critical: "bg-danger",
+  behind: "bg-warning-dot",
+  "on-pace": "bg-blue",
+  ahead: "bg-blue",
+};
+
+/** Sentence-case health words (the data layer still carries v2 caps labels). */
+export const HEALTH_WORD: Record<GanttHealth, string> = {
+  critical: "Critical",
+  behind: "Behind",
+  "on-pace": "On pace",
+  ahead: "Ahead",
+};
+
+const NEXT_MILESTONE = {
+  soon: { tone: "danger" },
+  near: { tone: "warning" },
+  later: { tone: "success" },
+} as const;
+
+function shortDate(date: Date) {
+  const opts: Intl.DateTimeFormatOptions = { weekday: "short", month: "short", day: "numeric" };
+  if (date.getFullYear() !== new Date().getFullYear()) opts.year = "numeric";
+  return date.toLocaleDateString("en-US", opts);
 }
 
 export function PlanCalendarTeamView({
@@ -36,135 +52,115 @@ export function PlanCalendarTeamView({
   conflicts: PlanCalendarConflict[];
 }) {
   const todayDay = todayDayIndex(timelineStart);
-  const weekLabel = format(startOfWeek(new Date(), { weekStartsOn: 1 }), "MMM d, yyyy");
+  const weekLabel = shortDate(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const avgRamp =
     rows.length > 0 ? Math.round(rows.reduce((sum, row) => sum + row.rampPct, 0) / rows.length) : 0;
   const atRisk = rows.filter((row) => row.health === "critical" || row.health === "behind").length;
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto p-5">
-      <div className="mb-3.5 flex items-center justify-between">
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="font-display text-lg font-bold text-[#0D0E12]">Team Summary</div>
-          <div className="mt-0.5 text-[11px] text-[#7A7772]">All ramp plans · Week of {weekLabel}</div>
+          <h2 className="text-xl font-extrabold text-ink">Team summary</h2>
+          <p className="mt-1 text-sm text-muted">Every ramp plan for the week of {weekLabel}.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <dl className="flex flex-wrap items-end gap-x-10 gap-y-3">
           {[
-            { label: "AVG RAMP", val: `${avgRamp}%`, color: "#0D0E12" },
-            { label: "AT RISK", val: String(atRisk), color: "#B83128" },
-            { label: "CONFLICTS", val: String(conflicts.length), color: "#D4810A" },
+            { label: "Avg ramp", val: `${avgRamp}%`, cls: "text-blue" },
+            { label: "At risk", val: String(atRisk), cls: atRisk > 0 ? "text-danger" : "text-blue" },
+            { label: "Conflicts", val: String(conflicts.length), cls: conflicts.length > 0 ? "text-warning" : "text-blue" },
           ].map((stat) => (
-            <div
-              className="border border-[#E2DFD9] bg-[#F9F8F6] px-3.5 py-1.5 text-center"
-              key={stat.label}
-            >
-              <div className="font-mono text-lg" style={{ color: stat.color }}>
+            <div className="flex flex-col gap-1" key={stat.label}>
+              <dt className="label-caps whitespace-nowrap">{stat.label}</dt>
+              <dd className={cn("num text-[28px] leading-none font-extrabold tracking-[-0.03em]", stat.cls)}>
                 {stat.val}
-              </div>
-              <div className="mt-0.5 font-mono text-[7.5px] text-[#A09D98]">{stat.label}</div>
+              </dd>
             </div>
           ))}
-        </div>
+        </dl>
       </div>
 
       {rows.length === 0 ? (
-        <div className="py-12 text-center">
-          <p className="text-sm font-semibold text-[#0D0E12]">No team plans yet</p>
-          <p className="mt-1 text-[12px] text-[#6B6860]">Assign ramp plans to see team summary cards.</p>
+        <div className="rounded-[14px] border border-dashed border-line-strong py-12 text-center">
+          <p className="text-[15px] font-bold text-ink">No team plans yet</p>
+          <p className="mt-1 text-sm text-muted">Assign ramp plans to see a summary card for each person.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {rows.map((se) => {
             const upcoming = se.bars
               .filter((bar) => bar.startDay >= todayDay)
               .sort((a, b) => a.startDay - b.startDay)[0];
             const daysAway = upcoming ? upcoming.startDay - todayDay : 999;
-            const nmColor = daysAway <= 7 ? "#B83128" : daysAway <= 14 ? "#D4810A" : "#0A6E45";
+            const urgency = daysAway <= 7 ? "soon" : daysAway <= 14 ? "near" : "later";
             const gatesCleared = se.bars.filter((bar) => bar.type === "gate" && bar.startDay < todayDay).length;
+            const healthTag = HEALTH_TAG[se.health];
+            const next = NEXT_MILESTONE[urgency];
 
             return (
               <div
-                className="border bg-white p-4"
+                className={cn(
+                  "flex flex-col gap-4 rounded-[14px] border border-line bg-white p-5",
+                  se.health === "critical" && "shadow-[inset_3px_0_0_var(--color-danger)]",
+                )}
                 key={se.id}
-                style={{
-                  borderColor: se.health === "critical" ? "rgba(184,49,40,.3)" : "#E2DFD9",
-                }}
               >
-                <div className="mb-3 flex items-start justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <Avatar bg={se.avatarBg} initials={se.initials} />
-                    <div>
-                      <div className="text-[13px] font-semibold text-[#0D0E12]">{se.name}</div>
-                      <div className="font-mono text-[8.5px] text-[#A09D98]">Day {se.dayInRamp}</div>
-                    </div>
+                <div className="flex items-start justify-between gap-3">
+                  <PersonCell initials={se.initials} name={se.name} subline={`Day ${se.dayInRamp} of the ramp`} />
+                  <StatusPill tone={healthTag.tone}>{HEALTH_WORD[se.health]}</StatusPill>
+                </div>
+
+                <div>
+                  <div className="mb-1.5 flex justify-between text-[13px]">
+                    <span className="text-muted">Ramp progress</span>
+                    <span className="num font-semibold text-ink">{se.rampPct}%</span>
                   </div>
-                  <span
-                    className="font-mono text-[7.5px] tracking-wide"
-                    style={{ color: se.healthColor, background: se.healthBg, padding: "2px 6px" }}
+                  <div
+                    aria-label={`Ramp progress ${se.rampPct}%`}
+                    aria-valuemax={100}
+                    aria-valuemin={0}
+                    aria-valuenow={se.rampPct}
+                    className="h-2 overflow-hidden rounded-[4px] bg-track"
+                    role="progressbar"
                   >
-                    {se.healthLabel}
-                  </span>
-                </div>
-
-                <div className="mb-2.5">
-                  <div className="mb-1 flex justify-between">
-                    <span className="text-[10.5px] text-[#6B6860]">Ramp progress</span>
-                    <span
-                      className="font-mono text-[11px] font-medium"
-                      style={{ color: rampColor(se.health) }}
-                    >
-                      {se.rampPct}%
-                    </span>
-                  </div>
-                  <div className="h-1 overflow-hidden rounded-full bg-[#ECEAE6]">
-                    <div
-                      className="h-full"
-                      style={{ width: `${se.rampPct}%`, background: rampColor(se.health) }}
-                    />
+                    <div className={cn("h-full rounded-[4px]", RAMP_FILL_CLS[se.health])} style={{ width: `${se.rampPct}%` }} />
                   </div>
                 </div>
 
-                <div className="mb-2.5 grid grid-cols-3 gap-px border border-[#E2DFD9] bg-[#E2DFD9]">
+                <dl className="grid grid-cols-3 overflow-hidden rounded-[10px] border border-line">
                   {[
-                    ["—", "SIM AVG"],
-                    ["0/8", "CERTS"],
-                    [`${gatesCleared}/5`, "GATES"],
-                  ].map(([val, lbl]) => (
-                    <div className="bg-[#F9F8F6] px-2 py-1.5 text-center" key={lbl}>
-                      <div className="font-mono text-sm text-[#0D0E12]">{val}</div>
-                      <div className="mt-0.5 font-mono text-[7px] text-[#A09D98]">{lbl}</div>
+                    ["Sim average", "—"],
+                    ["Certs", "0 of 8"],
+                    ["Gates", `${gatesCleared} of 5`],
+                  ].map(([lbl, val]) => (
+                    <div className="flex flex-col gap-0.5 border-divider px-3 py-2 [&+&]:border-l" key={lbl}>
+                      <dt className="text-[13px] text-muted">{lbl}</dt>
+                      <dd className="num text-[15px] font-bold text-ink">{val}</dd>
                     </div>
                   ))}
-                </div>
+                </dl>
 
-                <div
-                  className="mb-2 flex items-center justify-between px-2.5 py-1.5"
-                  style={{
-                    background: daysAway <= 7 ? "#FFF5F5" : daysAway <= 14 ? "#FFFBF0" : "#F0FDF7",
-                    border: `1px solid ${nmColor}22`,
-                  }}
-                >
-                  <div className="flex items-center gap-1.5">
-                    <div className="h-1.5 w-1.5 shrink-0 rotate-45" style={{ background: nmColor }} />
-                    <span className="text-[10.5px] text-[#3D3C38]">{upcoming?.label ?? "Plan complete"}</span>
+                <div className="flex items-center justify-between gap-3 border-t border-divider pt-3">
+                  <div className="flex min-w-0 flex-col">
+                    <span className="text-[13px] text-muted">Next up</span>
+                    <span className="truncate text-sm font-semibold text-ink">{upcoming?.label ?? "Plan complete"}</span>
                   </div>
-                  <span className="font-mono text-[9px]" style={{ color: nmColor }}>
-                    {upcoming ? `in ${daysAway}d` : "—"}
-                  </span>
+                  {upcoming ? (
+                    <StatusPill tone={next.tone}>
+                      {daysAway === 0 ? "Today" : `In ${daysAway} ${daysAway === 1 ? "day" : "days"}`}
+                    </StatusPill>
+                  ) : null}
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-[#A09D98]">
-                    Mentor:{" "}
-                    <span style={{ color: se.mentor ? "#0D0E12" : "#B83128" }}>
-                      {se.mentor ?? "Unassigned"}
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[13px] text-muted">
+                    Mentor{" "}
+                    <span className={se.mentor ? "font-semibold text-ink" : "font-semibold text-danger"}>
+                      {se.mentor ?? "not assigned"}
                     </span>
                   </span>
-                  <Link
-                    className="inline-flex items-center border border-[#D4D1CB] px-2 py-1 text-[9.5px] font-semibold text-[#3D3C38] hover:border-[#0071CE] hover:text-[#0071CE]"
-                    href={`/manager?section=program&userId=${se.userId}`}
-                  >
-                    Open plan →
+                  <Link className="link text-sm" href={`/manager/programs?userId=${se.userId}`}>
+                    Open plan
                   </Link>
                 </div>
               </div>
@@ -173,9 +169,7 @@ export function PlanCalendarTeamView({
         </div>
       )}
 
-      <p className="mt-4 font-mono text-[8px] text-[#A09D98]">
-        Timeline window · {GANTT_TOTAL_DAYS} days from plan start
-      </p>
+      <p className="mt-5 text-[13px] text-muted">The timeline covers {GANTT_TOTAL_DAYS} days from each plan start.</p>
     </div>
   );
 }

@@ -2,19 +2,43 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import { PitchPlaybackViewer } from "@/components/pitch/pitch-playback-viewer";
-import { ScoreRing } from "@/components/se/northstar-animated";
+import { H2_CLS, LINE_CARD_CLS } from "@/components/se/form-classes";
+import { Chip } from "@/components/ui/chip";
+import { Tag } from "@/components/ui/tag";
 import type { PeerPitch } from "@/lib/pitch/fetch-peer-pitches";
 
 function pitchScore(pitch: PeerPitch) {
   return Math.round((((pitch.manager_grade ?? pitch.peer_avg ?? 0) / 5) * 100) || 0);
 }
 
-function scoreColor(score: number) {
-  if (score >= 85) return "#0A6E45";
-  if (score >= 75) return "#0071CE";
-  return "#D4810A";
+function scoreTextClass(score: number) {
+  if (score < 60) return "text-danger";
+  if (score < 70) return "text-warning";
+  return "text-blue";
+}
+
+const EMPTY_CLS =
+  "rounded-[14px] border border-dashed border-line-strong p-7 text-center text-[15px] text-muted";
+
+function FilterChips({
+  filter,
+  onChange,
+}: {
+  filter: "all" | "endorsed";
+  onChange: (value: "all" | "endorsed") => void;
+}) {
+  return (
+    <div aria-label="Filter peer pitches" className="flex flex-wrap items-center gap-2" role="group">
+      <span className="label-caps mr-1">Show</span>
+      <Chip active={filter === "all"} onClick={() => onChange("all")}>
+        All
+      </Chip>
+      <Chip active={filter === "endorsed"} onClick={() => onChange("endorsed")}>
+        Mentor picks
+      </Chip>
+    </div>
+  );
 }
 
 type PeerPitchLibraryProps = {
@@ -45,206 +69,143 @@ export function PeerPitchLibrary({ initialPitches, variant = "default" }: PeerPi
 
   if (variant === "compact") {
     return (
-      <div className="px-4 py-3 pb-4">
-        <p className="mb-2.5 font-display text-xs font-bold text-[#0D0E12]">Peer pitches — same scenario</p>
+      <div className="px-5 py-4">
+        <h2 className="mb-3 text-[15px] font-bold text-ink">Peer pitches</h2>
         {filtered.length === 0 ? (
-          <p className="py-3 text-center text-[11px] text-[#A09D98]">
-            No pitches yet — record yours or review a teammate&apos;s after manager approval.
+          <p className="rounded-[14px] border border-dashed border-line-strong p-4 text-center text-sm text-muted">
+            No pitches yet. Record yours, or review a teammate&apos;s once a manager approves it.
           </p>
         ) : (
-          <div className="space-y-1.5">
+          <ul className="space-y-2">
             {filtered.map((pitch) => {
               const score = pitchScore(pitch);
               return (
-                <Link
-                  className="block overflow-hidden border border-[#E2DFD9] bg-white hover:border-[#0071CE]/40"
-                  href={`/pitch?review=${pitch.id}`}
-                  key={pitch.id}
-                >
-                  <div className="relative flex h-20 items-center justify-center bg-[#0A0A0E]">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10">
-                      <svg fill="white" height="12" viewBox="0 0 12 12" width="12">
-                        <polygon points="3,1.5 10,6 3,10.5" />
-                      </svg>
-                    </div>
-                    <span className="absolute bottom-1.5 right-2 font-mono text-[8px] text-white/50">1:00</span>
-                    {score > 0 ? (
+                <li key={pitch.id}>
+                  <Link
+                    className="block overflow-hidden rounded-[14px] border border-line bg-white hover:border-blue"
+                    href={`/practice/pitch?review=${pitch.id}`}
+                  >
+                    <div className="relative flex h-20 items-center justify-center bg-ink">
                       <span
-                        className="absolute right-2 top-1.5 bg-black/60 px-1.5 py-0.5 font-mono text-[9px] font-medium"
-                        style={{ color: scoreColor(score) }}
+                        aria-hidden="true"
+                        className="flex h-8 w-8 items-center justify-center rounded-full border border-on-blue-muted"
                       >
-                        {score}
+                        <svg fill="currentColor" className="text-white" height="12" viewBox="0 0 12 12" width="12">
+                          <polygon points="3,1.5 10,6 3,10.5" />
+                        </svg>
                       </span>
-                    ) : null}
-                  </div>
-                  <div className="px-2.5 py-2">
-                    <p className="text-[11.5px] font-medium text-[#0D0E12]">{pitch.personName}</p>
-                    <p className="mt-0.5 font-mono text-[8.5px] text-[#A09D98]">
-                      {pitch.title} · {new Date(pitch.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                    </p>
-                  </div>
-                </Link>
+                      {score > 0 ? (
+                        <span className="num absolute right-2 top-1.5 text-[13px] font-bold text-white">
+                          {score}
+                          <span className="sr-only"> out of 100</span>
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="px-3.5 py-2.5">
+                      <p className="text-sm font-bold text-ink">{pitch.personName}</p>
+                      <p className="mt-0.5 text-[13px] text-muted">
+                        {pitch.title},{" "}
+                        {new Date(pitch.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                      </p>
+                    </div>
+                  </Link>
+                </li>
               );
             })}
-          </div>
+          </ul>
         )}
-        <div className="mt-3 flex items-center gap-1.5 border-t border-[#E2DFD9] pt-3">
-          <span className="mr-1 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-[#A09D98]">Show</span>
-          <button
-            className={`px-3 py-1.5 text-[11.5px] font-semibold ${
-              filter === "all" ? "bg-[#0071ce] text-white" : "border border-[#E2DFD9] bg-white text-[#3D3C38]"
-            }`}
-            onClick={() => setFilter("all")}
-            type="button"
-          >
-            All
-          </button>
-          <button
-            className={`px-3 py-1.5 text-[11.5px] font-semibold ${
-              filter === "endorsed" ? "bg-[#0071ce] text-white" : "border border-[#E2DFD9] bg-white text-[#3D3C38]"
-            }`}
-            onClick={() => setFilter("endorsed")}
-            type="button"
-          >
-            Mentor picks
-          </button>
+        <div className="mt-3 border-t border-divider pt-3">
+          <FilterChips filter={filter} onChange={setFilter} />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="overflow-hidden border border-[#E2DFD9] bg-white">
-      <div className="border-b border-[#ECEAE6] p-[16px_18px]">
-        <p className="text-[15px] font-bold text-[#0D0E12]">Peer pitch library</p>
-        <p className="mt-1 text-[12px] text-[#6B6860]">
-          Manager-approved + peer-endorsed wins — structured rubric scores, inline playback, mentor picks.
-        </p>
+    <section aria-labelledby="peer-pitch-library-heading" className={`${LINE_CARD_CLS} overflow-hidden`}>
+      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-divider px-5 py-4">
+        <div>
+          <h2 className={H2_CLS} id="peer-pitch-library-heading">
+            Peer pitch library
+          </h2>
+          <p className="mt-1 text-sm text-ink-2">
+            Pitches your managers approved and your peers endorsed. Watch them inline.
+          </p>
+        </div>
+        <FilterChips filter={filter} onChange={setFilter} />
       </div>
 
-      <div className="p-[16px_18px]">
-        {filtered.length === 0 ? (
-          <p className="py-4 text-center text-sm text-[#A09D98]">
-            No pitches yet — record yours or review a teammate&apos;s after manager approval.
-          </p>
-        ) : (
-          <div className="space-y-3">
-            {filtered.map((pitch) => (
-              <div className="overflow-hidden border border-[#E2DFD9] bg-white" key={pitch.id}>
-                <div className="flex flex-wrap items-center gap-[12px] p-[14px_18px]">
-                  <button
-                    className="flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-full bg-[#ede9fe]"
-                    onClick={() => setExpandedId(expandedId === pitch.id ? null : pitch.id)}
-                    type="button"
-                  >
-                    <svg fill="#5b21b6" height="14" viewBox="0 0 16 16" width="14">
-                      <path d="M4 3l10 5-10 5z" />
-                    </svg>
-                  </button>
+      {filtered.length === 0 ? (
+        <div className="p-5">
+          <p className={EMPTY_CLS}>No pitches yet. Record yours, or review a teammate&apos;s once a manager approves it.</p>
+        </div>
+      ) : (
+        <ul>
+          {filtered.map((pitch, rowIndex) => {
+            const score = pitchScore(pitch);
+            const expanded = expandedId === pitch.id;
+            return (
+              <li className={rowIndex > 0 ? "border-t border-divider" : undefined} key={pitch.id}>
+                <div className="flex flex-wrap items-center gap-4 px-5 py-3.5">
                   <div className="min-w-0 flex-1">
-                    <div className="mb-[3px] flex flex-wrap items-center gap-[7px]">
-                      <p className="text-[12.5px] font-bold text-[#0D0E12]">{pitch.title}</p>
+                    <div className="mb-1 flex flex-wrap items-center gap-2">
+                      <p className="text-[15px] font-bold text-ink">{pitch.title}</p>
                       {pitch.endorsement_count > 0 ? (
-                        <Badge tone="amber">{pitch.endorsement_count} endorsements</Badge>
+                        <Tag tone="warning">
+                          {pitch.endorsement_count} {pitch.endorsement_count === 1 ? "endorsement" : "endorsements"}
+                        </Tag>
                       ) : null}
                     </div>
-                    <p className="text-[11px] text-[#A09D98]">
-                      {pitch.personName} · {new Date(pitch.created_at).toLocaleDateString()}
+                    <p className="text-[13px] text-muted">
+                      {pitch.personName},{" "}
+                      {new Date(pitch.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                     </p>
                   </div>
-                  <ScoreRing
-                    centerValue={`${pitchScore(pitch)}`}
-                    className="shrink-0"
-                    labelClassName="text-[#0D0E12] text-[13px]"
-                    percent={pitchScore(pitch)}
-                    progressClassName="stroke-[#be185d]"
-                    size={48}
-                    strokeWidth={10}
-                    subClassName="text-[#A09D98]"
-                    trackClassName="stroke-[#ECEAE6]"
-                  />
-                  <div className="flex gap-[7px]">
+                  <div className="shrink-0 text-right">
+                    <p className={`num text-[30px] font-extrabold leading-none tracking-[-0.03em] ${scoreTextClass(score)}`}>
+                      {score}
+                    </p>
+                    <p className="mt-1 text-[13px] text-muted">Score</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
                     <button
-                      className="inline-flex items-center border border-[#E2DFD9] bg-white px-[10px] py-[5px] text-[11px] font-semibold text-[#3D3C38]"
-                      onClick={() => setExpandedId(expandedId === pitch.id ? null : pitch.id)}
+                      aria-expanded={expanded}
+                      className="btn-secondary"
+                      onClick={() => setExpandedId(expanded ? null : pitch.id)}
                       type="button"
                     >
-                      {expandedId === pitch.id ? "Hide playback" : "Watch inline"}
+                      {expanded ? "Hide playback" : "Watch inline"}
                     </button>
-                    <Link
-                      className="inline-flex items-center bg-[#ede9fe] px-[10px] py-[5px] text-[11px] font-semibold text-[#5b21b6]"
-                      href={`/pitch?review=${pitch.id}`}
-                    >
-                      Full review →
+                    <Link className="link text-sm" href={`/practice/pitch?review=${pitch.id}`}>
+                      Full review
                     </Link>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-[10px] border-t border-[#ECEAE6] bg-[#f9fafc] p-[10px_18px_14px] md:grid-cols-4">
-                  {(pitch.competencies.length > 0
-                    ? pitch.competencies.slice(0, 4)
-                    : ["Clarity", "Value", "Objections", "Presence"]
-                  ).map((label, index) => {
-                    const pct = Math.max(
-                      30,
-                      Math.min(100, pitchScore(pitch) - 12 + index * 7),
-                    );
-                    return (
-                      <div key={`${pitch.id}-${label}`}>
-                        <div className="mb-[3px] flex justify-between">
-                          <span className="text-[10px] text-[#6B6860]">{label}</span>
-                          <span className="text-[10px] font-bold text-[#0D0E12]">{pct}</span>
-                        </div>
-                        <div className="h-[4px] overflow-hidden rounded-full bg-[#e8f2fc]">
-                          <div className="h-full rounded-full bg-[#be185d]" style={{ width: `${pct}%` }} />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {pitch.manager_grade || pitch.peer_avg ? (
-                  <div className="px-[18px] pb-2 pt-2">
-                    <div className="flex flex-wrap gap-1">
-                      {pitch.manager_grade ? <Badge tone="green">Mgr {pitch.manager_grade}/5</Badge> : null}
-                      {pitch.peer_avg ? <Badge tone="blue">Peers {pitch.peer_avg.toFixed(1)}/5</Badge> : null}
-                    </div>
+                {pitch.competencies.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5 px-5 pb-1">
+                    {pitch.competencies.slice(0, 4).map((label) => (
+                      <Tag key={`${pitch.id}-${label}`}>{label}</Tag>
+                    ))}
                   </div>
                 ) : null}
-                {expandedId === pitch.id ? (
-                  <div className="mt-3">
+
+                {pitch.manager_grade || pitch.peer_avg ? (
+                  <div className="flex flex-wrap gap-1.5 px-5 pb-3 pt-1">
+                    {pitch.manager_grade ? <Tag tone="success">Manager {pitch.manager_grade} of 5</Tag> : null}
+                    {pitch.peer_avg ? <Tag tone="blue">Peers {pitch.peer_avg.toFixed(1)} of 5</Tag> : null}
+                  </div>
+                ) : null}
+                {expanded ? (
+                  <div className="px-5 pb-5 pt-2">
                     <PitchPlaybackViewer submissionId={pitch.id} />
                   </div>
                 ) : null}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="flex items-center gap-[6px] border-t border-[#ECEAE6] bg-[#F9F8F6] px-[18px] py-[12px]">
-        <span className="mr-1 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-[#A09D98]">Show</span>
-        <button
-          className={`px-[12px] py-[6px] text-[11.5px] font-semibold transition ${
-            filter === "all" ? "bg-[#0071ce] text-white" : "border border-[#E2DFD9] bg-white text-[#3D3C38] hover:bg-white"
-          }`}
-          onClick={() => setFilter("all")}
-          type="button"
-        >
-          All
-        </button>
-        <button
-          className={`px-[12px] py-[6px] text-[11.5px] font-semibold transition ${
-            filter === "endorsed"
-              ? "bg-[#0071ce] text-white"
-              : "border border-[#E2DFD9] bg-white text-[#3D3C38] hover:bg-white"
-          }`}
-          onClick={() => setFilter("endorsed")}
-          type="button"
-        >
-          Mentor picks
-        </button>
-      </div>
-    </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
   );
 }

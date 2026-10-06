@@ -136,7 +136,7 @@ export async function sendReviewReminder(
     userId: target.managerId,
     title: source === "se_nudge" ? `${target.seName} nudged you for a review` : "Review reminder",
     body: `${target.title} has been pending for ${eligibility.pendingDays} days.`,
-    actionUrl: "/manager?section=inbox",
+    actionUrl: "/manager/inbox",
   });
 
   await supabase.from("review_reminder_log").insert({

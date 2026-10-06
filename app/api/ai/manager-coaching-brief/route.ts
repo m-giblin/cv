@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logAiUsage } from "@/lib/ai/log-usage";
 import { generateText } from "ai";
 import { z } from "zod";
 import { enforceAiRateLimit } from "@/lib/ai/enforce-rate-limit";
@@ -63,7 +64,7 @@ export async function POST(request: Request) {
   if (rateLimited) return rateLimited;
 
   const fallback = templateBrief(parsed.data);
-  const { model } = await resolveAiProviderForUser(session.supabase, session.user.id);
+  const { model, provider, modelName } = await resolveAiProviderForUser(session.supabase, session.user.id);
   if (!model) {
     return NextResponse.json(fallback);
   }
@@ -86,6 +87,13 @@ coachingQuestion (one question for a live 1:1, max 120 chars)`;
 
   try {
     const result = await generateText({ model, prompt });
+    await logAiUsage(session.supabase, {
+      feature: "manager_coaching_brief",
+      provider,
+      model: modelName,
+      userId: session.user.id,
+      usage: result.usage,
+    });
     const match = result.text.match(/\{[\s\S]*\}/);
     if (!match) {
       return NextResponse.json(fallback);

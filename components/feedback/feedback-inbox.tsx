@@ -2,11 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Bell, Bot, Loader2, Zap } from "lucide-react";
+import { Bell, ChevronDown, Loader2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
-import { HandoffMetricStrip } from "@/components/dashboard/handoff-section-page";
-import { SP_BLUE_BTN, SP_OUTLINE_BTN } from "@/components/se/sp-form-primitives";
+import { LINE_CARD_CLS } from "@/components/se/form-classes";
+import { Chip } from "@/components/ui/chip";
+import { Stat } from "@/components/ui/stat";
+import { StatusPill } from "@/components/ui/status-pill";
+import { Tag } from "@/components/ui/tag";
 import { DashboardData } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -29,45 +32,48 @@ type FeedbackRow = {
  status: string;
 };
 
-function borderByStatus(status: string) {
- if (status === "needs_revision" || status === "redo" || status === "in_progress") {
- return "2px solid rgba(239,68,68,0.2)";
- }
- if (status === "reviewed" || status === "approved") {
- return "1.5px solid rgba(16,185,129,0.2)";
- }
- return "1.5px solid rgba(204,39,176,0.15)";
-}
+type FeedbackFilter = "all" | "action" | "awaiting" | "reviewed";
 
-function statusBadgeClass(status: string) {
- if (status === "needs_revision" || status === "redo" || status === "in_progress") {
- return "bg-[#fee2e2] text-[#dc2626]";
- }
- if (status === "reviewed" || status === "approved") {
- return "bg-[#dcfce7] text-[#15803d]";
- }
- return "bg-[#fef3c7] text-[#b45309]";
-}
+type ListItem = FeedbackRow & { awaiting: boolean };
 
-function commentPanelClass(status: string) {
- if (status === "needs_revision" || status === "redo" || status === "in_progress") {
- return "border-red-100 bg-[#fef2f2]";
- }
- if (status === "reviewed" || status === "approved") {
- return "border-[#ECEAE6] bg-[#F9F8F6]";
- }
- return "border-[#f5d0fe] bg-[#fdf4ff]";
+const REVISION_STATUSES = new Set(["needs_revision", "redo", "in_progress"]);
+const APPROVED_STATUSES = new Set(["reviewed", "approved"]);
+
+function capitalize(text: string) {
+ return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 function statusLabel(status: string) {
  return status.replaceAll("_", " ");
 }
 
+/** Status tag: symbol + text so meaning never relies on colour alone. */
+function statusTag(status: string, awaiting: boolean) {
+ if (awaiting) return { tone: "blue" as const, text: "Awaiting manager" };
+ if (status === "needs_revision") return { tone: "danger" as const, text: "Needs revision" };
+ if (REVISION_STATUSES.has(status)) return { tone: "danger" as const, text: "Redo requested" };
+ if (APPROVED_STATUSES.has(status)) return { tone: "success" as const, text: capitalize(statusLabel(status)) };
+ return { tone: "neutral" as const, text: capitalize(statusLabel(status)) };
+}
+
+/** Manager grades are out of 5; the v2 rule is danger <60%, warning 60–69%, blue ≥70%. */
+function gradeTone(grade: number) {
+ const pct = (grade / 5) * 100;
+ if (pct < 60) return { rule: "bg-danger", text: "text-danger", label: "Below bar" };
+ if (pct < 70) return { rule: "bg-warning", text: "text-warning", label: "Close" };
+ return { rule: "bg-blue", text: "text-blue", label: "At bar" };
+}
+
+const EMPTY_CLS =
+ "rounded-[14px] border border-dashed border-line-strong p-7 text-center text-[15px] text-muted";
+
 export function FeedbackInbox({ data }: { data: DashboardData }) {
  const userId = data.currentUser.id;
  const [acknowledged, setAcknowledged] = useState<Set<string>>(new Set());
  const [nudgeStatus, setNudgeStatus] = useState<Record<string, NudgeStatus>>({});
  const [nudgingKey, setNudgingKey] = useState<string | null>(null);
+ const [filter, setFilter] = useState<FeedbackFilter>("all");
+ const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
  const revisionSubmissions = data.submissions.filter(
  (submission) => submission.userId === userId && submission.status === "in_progress" && Boolean(submission.managerFeedback),
@@ -234,7 +240,7 @@ export function FeedbackInbox({ data }: { data: DashboardData }) {
  [key]: {
  canNudge: false,
  nextNudgeAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
- reason: "Reminder sent — available again in 7 days",
+ reason: "Reminder sent. You can send another in 7 days.",
  },
  }));
  } catch (error) {
@@ -246,260 +252,228 @@ export function FeedbackInbox({ data }: { data: DashboardData }) {
 
  function ctaForRow(row: FeedbackRow) {
  if (row.status === "redo" || row.status === "in_progress") {
- return { label: "Resubmit challenge", href: "/challenges?focus=challenge" };
+ return { label: "Resubmit challenge", href: "/practice/challenges?focus=challenge" };
  }
  if (row.status === "needs_revision") {
- return { label: "Re-run simulation", href: "/simulations?focus=simulation" };
+ return { label: "Re-run simulation", href: "/practice/simulations?focus=simulation" };
  }
  if (row.kind === "challenge") {
  return { label: "View plan step", href: "/my-plan" };
  }
- return { label: "View details", href: "/simulations" };
+ return { label: "View details", href: "/practice/simulations" };
  }
 
- const CARD = "overflow-hidden border border-[#E2DFD9] bg-white ";
+ const reviewedRows = historyRows.filter((row) => APPROVED_STATUSES.has(row.status));
+ const redoCount = revisionSubmissions.length + revisionCards.length;
+
+ const allItems: ListItem[] = [
+ ...awaitingManagerRows.map((row) => ({ ...row, awaiting: true })),
+ ...historyRows.map((row) => ({ ...row, awaiting: false })),
+ ];
+ const pendingKeys = new Set(pendingRows.map((row) => `${row.kind}-${row.id}`));
+
+ const filters: Array<{ id: FeedbackFilter; label: string; count: number }> = [
+ { id: "all", label: "All", count: allItems.length },
+ { id: "action", label: "Needs action", count: pendingRows.length },
+ { id: "awaiting", label: "Awaiting manager", count: awaitingManagerRows.length },
+ { id: "reviewed", label: "Approved", count: reviewedRows.length },
+ ];
+
+ const visibleItems = allItems.filter((item) => {
+ if (filter === "all") return true;
+ if (filter === "awaiting") return item.awaiting;
+ if (filter === "action") return !item.awaiting && pendingKeys.has(`${item.kind}-${item.id}`);
+ return !item.awaiting && APPROVED_STATUSES.has(item.status);
+ });
+
+ function toggleExpanded(key: string) {
+ setExpanded((current) => {
+ const next = new Set(current);
+ if (next.has(key)) next.delete(key);
+ else next.add(key);
+ return next;
+ });
+ }
 
  return (
- <div className="animate-[fadeUp_0.2s_ease-out] space-y-5">
- <HandoffMetricStrip
- metrics={[
- {
- label: "Awaiting manager",
- value: String(awaitingManagerRows.length),
- sub: "Submitted for review",
- accent: "#0071ce",
- },
- {
- label: "Unread feedback",
- value: String(pendingRows.length),
- sub: "Needs your attention",
- accent: "#cc27b0",
- },
+ <div className="flex flex-col gap-6">
+ <p className="text-[15px] leading-[1.5] text-ink-2">
+ The evidence behind each score: manager grades and comments on your challenges and simulations.
+ </p>
+
+ <dl className={cn(LINE_CARD_CLS, "grid grid-cols-2 gap-x-6 gap-y-5 px-5 py-[18px] sm:grid-cols-3 lg:grid-cols-5")}>
+ {[
+ { label: "Awaiting manager", value: String(awaitingManagerRows.length) },
+ { label: "Needs action", value: String(pendingRows.length), danger: pendingRows.length > 0 },
  {
  label: "Redo requested",
- value: String(revisionSubmissions.length + revisionCards.length),
- sub: revisionCards[0]?.simulationContext?.persona ?? "Awaiting revision",
- accent: "#f59e0b",
- valueClassName:
- revisionSubmissions.length + revisionCards.length > 0 ? "text-[#f59e0b]" : undefined,
+ value: String(redoCount),
+ danger: redoCount > 0,
+ note: redoCount > 0 ? (revisionCards[0]?.simulationContext?.persona ?? "Awaiting revision") : undefined,
  },
- {
- label: "Approved this month",
- value: String(approvedThisMonth),
- sub: "Reviewed work",
- accent: "#10b981",
- },
- {
- label: "Avg grade",
- value: avgGrade === "—" ? "—" : `${avgGrade}/5`,
- sub: "Across all reviewed work",
- accent: "#0071ce",
- },
- ]}
+ { label: "Approved this month", value: String(approvedThisMonth) },
+ { label: "Avg grade", value: avgGrade === "—" ? "–" : `${avgGrade}`, note: avgGrade === "—" ? undefined : "out of 5" },
+ ].map((metric) => (
+ <div key={metric.label}>
+ <dt className="sr-only">{metric.label}</dt>
+ <dd>
+ <Stat
+ label={metric.label}
+ note={metric.note}
+ tone={metric.danger ? "danger" : "blue"}
+ value={metric.value}
  />
+ </dd>
+ </div>
+ ))}
+ </dl>
 
- {awaitingManagerRows.length > 0 ? (
- <section>
- <h2 className="mb-3 flex items-center gap-2 font-display text-[13.5px] font-bold text-[#0D0E12]">
- Awaiting manager review
- <span className="rounded-full bg-[#0071ce] px-2 py-0.5 text-[9.5px] font-bold text-white">
- {awaitingManagerRows.length}
- </span>
+ <section aria-labelledby="feedback-list-heading" className="flex flex-col gap-3">
+ <div className="flex flex-wrap items-center justify-between gap-3">
+ <h2 className="text-xl font-extrabold text-ink" id="feedback-list-heading">
+ Feedback
  </h2>
- <div className="space-y-2.5">
- {awaitingManagerRows.map((row) => {
- const Icon = row.kind === "challenge" ? Zap : Bot;
- const statusKey = `${row.kind}-${row.id}`;
- const status = nudgeStatus[statusKey];
- const isNudging = nudgingKey === statusKey;
- return (
- <div className={CARD} key={`awaiting-${row.kind}-${row.id}`} style={{ border: "1.5px solid rgba(0,113,206,0.15)" }}>
- <div className="flex items-start gap-3 p-[14px_18px]">
- <div
- className={cn(
- "flex h-9 w-9 shrink-0 items-center justify-center ",
- row.kind === "challenge" ? "bg-[#e8f2fc] text-[#0071ce]" : "bg-[#fdf0fa] text-[#cc27b0]",
- )}
- >
- <Icon className="h-4 w-4" />
+ <div aria-label="Filter feedback" className="flex flex-wrap gap-2" role="group">
+ {filters.map((item) => (
+ <Chip active={filter === item.id} count={item.count} key={item.id} onClick={() => setFilter(item.id)}>
+ {item.label}
+ </Chip>
+ ))}
  </div>
- <div className="min-w-0 flex-1">
- <p className="text-[12.5px] font-bold text-[#0D0E12]">{row.title}</p>
- <p className="mt-0.5 text-[11px] text-[#6B6860]">
- Submitted {row.date ? formatDistanceToNow(new Date(row.date), { addSuffix: true }) : "recently"} ·
- waiting on your manager
+ </div>
+ <p className="sr-only" role="status">
+ Showing {visibleItems.length} of {allItems.length} items
  </p>
- {status && !status.canNudge && status.reason ? (
- <p className="mt-1 text-[10px] text-[#a09d98]">{status.reason}</p>
- ) : null}
- </div>
- <div className="flex shrink-0 flex-col items-end gap-2">
- <span className="rounded-full bg-[#dbeafe] px-2 py-0.5 text-[9.5px] font-bold text-[#1d4ed8]">
- Pending
- </span>
+
+ {allItems.length === 0 ? (
+ <p className={EMPTY_CLS}>
+ Submit a challenge or simulation. Manager feedback shows up here after review.
+ </p>
+ ) : visibleItems.length === 0 ? (
+ <p className={EMPTY_CLS}>Nothing in this view right now.</p>
+ ) : (
+ <ul className={cn(LINE_CARD_CLS, "divide-y divide-divider overflow-hidden")}>
+ {visibleItems.map((row) => {
+ const key = `${row.kind}-${row.id}`;
+ const itemKey = `${row.awaiting ? "awaiting" : "hist"}-${key}`;
+ const detailId = `feedback-detail-${itemKey}`;
+ const isOpen = expanded.has(itemKey);
+ const tag = statusTag(row.status, row.awaiting);
+ const showGrade = !row.awaiting && row.grade !== null && row.grade !== undefined;
+ const tone = showGrade ? gradeTone(row.grade as number) : null;
+ const nudge = row.awaiting ? nudgeStatus[key] : undefined;
+ const isNudging = nudgingKey === key;
+ const needsAction = !row.awaiting && pendingKeys.has(key);
+ const cta = ctaForRow(row);
+
+ return (
+ <li key={itemKey}>
+ <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-5 gap-y-2 px-5 py-3.5 sm:grid-cols-[minmax(0,1fr)_96px_110px]">
  <button
- className={cn(
- "inline-flex items-center gap-1 border px-2 py-1 text-[10px] font-semibold transition",
- status?.canNudge
- ? "border-[#0071ce] text-[#0071ce] hover:bg-[#eff6ff]"
- : "cursor-not-allowed border-[#e2dfd9] text-[#c4c1bb]",
- )}
- disabled={!status?.canNudge || isNudging}
- onClick={() => void nudgeManager(row.kind, row.id)}
- title={status?.canNudge ? "Send your manager a reminder email" : status?.reason ?? "Loading…"}
+ aria-controls={detailId}
+ aria-expanded={isOpen}
+ className="col-span-2 flex min-w-0 items-start gap-2 text-left sm:col-span-1"
+ onClick={() => toggleExpanded(itemKey)}
  type="button"
  >
- {isNudging ? <Loader2 className="h-3 w-3 animate-spin" /> : <Bell className="h-3 w-3" />}
+ <ChevronDown
+ aria-hidden
+ className={cn("mt-1 h-4 w-4 shrink-0 text-muted transition-transform", isOpen ? "rotate-180" : "")}
+ />
+ <span className="flex min-w-0 flex-col gap-1.5">
+ <span className="text-[15px] font-semibold text-ink">{row.title}</span>
+ <span className="flex flex-wrap items-center gap-1.5">
+ <Tag>{row.kind === "challenge" ? "Challenge" : "Simulation"}</Tag>
+ <StatusPill tone={tag.tone}>{tag.text}</StatusPill>
+ </span>
+ {row.feedback ? (
+ <span className={cn("text-sm leading-[1.5] text-ink-2", isOpen ? "" : "line-clamp-2")}>
+ &ldquo;{row.feedback}&rdquo;
+ </span>
+ ) : null}
+ </span>
+ </button>
+
+ <div className="flex items-stretch gap-2.5 sm:justify-self-start">
+ {tone ? (
+ <>
+ <span aria-hidden className={cn("w-[3px] rounded-full", tone.rule)} />
+ <span className="flex flex-col">
+ <span className="num text-[22px] font-extrabold leading-none tracking-[-0.03em] text-ink">
+ {row.grade}
+ <span className="text-sm font-bold text-muted"> of 5</span>
+ </span>
+ <span className={cn("mt-1 text-[13px] font-semibold", tone.text)}>{tone.label}</span>
+ </span>
+ </>
+ ) : (
+ <span className="text-[13px] text-muted">
+ No grade yet
+ </span>
+ )}
+ </div>
+
+ <span className="justify-self-end whitespace-nowrap text-right text-[13px] text-muted">
+ {row.date ? new Date(row.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) : "–"}
+ </span>
+ </div>
+
+ <div
+ className="border-t border-divider bg-bg px-5 py-4 sm:pl-11"
+ hidden={!isOpen}
+ id={detailId}
+ >
+ {row.awaiting ? (
+ <div className="flex flex-col gap-3">
+ <p className="text-sm text-ink-2">
+ Submitted{" "}
+ {row.date ? formatDistanceToNow(new Date(row.date), { addSuffix: true }) : "recently"}, and it is
+ waiting on your manager.
+ </p>
+ {nudge && !nudge.canNudge && nudge.reason ? (
+ <p className="text-[13px] text-muted">{nudge.reason}</p>
+ ) : null}
+ <button
+ className="btn-secondary inline-flex items-center gap-2 self-start disabled:cursor-not-allowed disabled:border-line-strong disabled:text-muted disabled:hover:bg-white"
+ disabled={!nudge?.canNudge || isNudging}
+ onClick={() => void nudgeManager(row.kind, row.id)}
+ title={nudge?.canNudge ? "Send your manager a reminder email" : nudge?.reason ?? "Loading…"}
+ type="button"
+ >
+ {isNudging ? (
+ <Loader2 aria-hidden className="h-4 w-4 animate-spin" />
+ ) : (
+ <Bell aria-hidden className="h-4 w-4" />
+ )}
  Nudge manager
  </button>
  </div>
- </div>
- </div>
- );
- })}
- </div>
- </section>
- ) : null}
-
- {pendingRows.length > 0 ? (
- <section>
- <h2 className="mb-3 flex items-center gap-2 font-display text-[13.5px] font-bold text-[#0D0E12]">
- Pending review
- <span className="rounded-full bg-[#cc27b0] px-2 py-0.5 text-[9.5px] font-bold text-white">
- {pendingRows.length}
- </span>
- </h2>
- <div className="space-y-2.5">
- {pendingRows.map((row) => {
- const cta = ctaForRow(row);
- const Icon = row.kind === "challenge" ? Zap : Bot;
- return (
- <div className={CARD} key={`pending-${row.kind}-${row.id}`} style={{ border: borderByStatus(row.status) }}>
- <div className="flex items-start gap-3 p-[14px_18px]">
- <div
- className={cn(
- "flex h-9 w-9 shrink-0 items-center justify-center ",
- row.kind === "challenge" ? "bg-[#e8f2fc] text-[#0071ce]" : "bg-[#fdf0fa] text-[#cc27b0]",
- )}
- >
- <Icon className="h-4 w-4" />
- </div>
- <div className="min-w-0 flex-1">
- <div className="mb-1 flex flex-wrap items-center gap-1.5">
- <span
- className={cn(
- "rounded-full px-2 py-0.5 text-[9.5px] font-bold",
- row.kind === "challenge"
- ? "bg-[#e8f2fc] text-[#0057a8]"
- : "bg-[#fdf0fa] text-[#a51e8e]",
- )}
- >
- {row.kind === "challenge" ? "Challenge" : "Simulation"}
- </span>
- <span className={cn("rounded-full px-2 py-0.5 text-[9.5px] font-bold capitalize", statusBadgeClass(row.status))}>
- {statusLabel(row.status)}
- </span>
- {row.grade !== null ? (
- <span className="font-display text-[13px] font-extrabold text-[#0D0E12]">
- {row.grade}/5
- </span>
- ) : null}
- </div>
- <p className="text-[13px] font-bold text-[#0D0E12]">{row.title}</p>
- <p className="text-[11px] text-[#A09D98]">
- Manager ·{" "}
- {row.date
- ? formatDistanceToNow(new Date(row.date), { addSuffix: true })
- : "Recently"}
+ ) : (
+ <div className="flex flex-col gap-3">
+ <p className="text-[13px] text-muted">
+ From your manager,{" "}
+ {row.date ? formatDistanceToNow(new Date(row.date), { addSuffix: true }) : "recently"}
  </p>
- </div>
- </div>
- {row.feedback ? (
- <div className={cn("border-t px-[18px] py-3", commentPanelClass(row.status))}>
- <p className="text-[12px] italic leading-relaxed text-[#374151]">
- &ldquo;{row.feedback}&rdquo;
- </p>
- <div className="mt-2.5 flex flex-wrap gap-2">
- <Link className={SP_BLUE_BTN} href={cta.href}>
+ {row.feedback ? null : (
+ <p className="text-sm text-muted">No written comment, just a grade.</p>
+ )}
+ <div className="flex flex-wrap items-center gap-4">
+ <Link className="btn-secondary no-underline" href={cta.href}>
  {cta.label}
  </Link>
- <button
- className={SP_OUTLINE_BTN}
- onClick={() => acknowledge(row.id, row.kind)}
- type="button"
- >
+ {needsAction ? (
+ <button className="link text-sm" onClick={() => acknowledge(row.id, row.kind)} type="button">
  Acknowledge
  </button>
- </div>
- </div>
  ) : null}
  </div>
+ </div>
+ )}
+ </div>
+ </li>
  );
  })}
- </div>
- </section>
- ) : null}
-
- <section>
- <h2 className="mb-3 font-display text-[13.5px] font-bold text-[#0D0E12]">Feedback history</h2>
- {historyRows.length === 0 ? (
- <div className={CARD}>
- <p className="px-5 py-8 text-center text-sm text-[#A09D98]">
- Submit a challenge or simulation — manager feedback will appear here after review.
- </p>
- </div>
- ) : (
- <div className={cn(CARD, "overflow-hidden")}>
- <div
- className="grid gap-0 border-b border-[#ECEAE6] bg-[#F9F8F6] px-[18px] py-[9px]"
- style={{ gridTemplateColumns: "1fr 100px 100px 60px 100px" }}
- >
- {["Item", "Type", "Status", "Grade", "Reviewed"].map((header) => (
- <span
- className="text-[9.5px] font-bold uppercase tracking-[0.07em] text-[#A09D98]"
- key={header}
- >
- {header}
- </span>
- ))}
- </div>
- {historyRows.map((row) => (
- <div
- className="grid gap-0 border-b border-[#f9fafb] px-[18px] py-[10px] last:border-b-0"
- key={`hist-${row.kind}-${row.id}`}
- style={{ gridTemplateColumns: "1fr 100px 100px 60px 100px" }}
- >
- <p className="truncate pr-2 text-[12px] font-semibold text-[#3D3C38]">{row.title}</p>
- <div className="flex items-center">
- <span
- className={cn(
- "rounded-full px-2 py-0.5 text-[9.5px] font-bold",
- row.kind === "challenge"
- ? "bg-[#e8f2fc] text-[#0057a8]"
- : "bg-[#fdf0fa] text-[#a51e8e]",
- )}
- >
- {row.kind === "challenge" ? "Challenge" : "Simulation"}
- </span>
- </div>
- <div className="flex items-center">
- <span className={cn("rounded-full px-2 py-0.5 text-[9.5px] font-bold capitalize", statusBadgeClass(row.status))}>
- {statusLabel(row.status)}
- </span>
- </div>
- <div className="flex items-center">
- <span className="font-display text-[13px] font-extrabold text-[#0D0E12]">
- {row.grade !== null ? `${row.grade}/5` : "—"}
- </span>
- </div>
- <div className="flex items-center">
- <span className="text-[11.5px] text-[#A09D98]">
- {row.date ? new Date(row.date).toLocaleDateString() : "—"}
- </span>
- </div>
- </div>
- ))}
- </div>
+ </ul>
  )}
  </section>
  </div>

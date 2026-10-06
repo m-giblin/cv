@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { DealPrepBrief, DealPrepBriefEmpty } from "@/components/deal-prep/deal-prep-brief";
 import { DealPrepForm, EMPTY_FORM, type DealPrepFormValues } from "@/components/deal-prep/deal-prep-form";
 import { DealPrepHistory } from "@/components/deal-prep/deal-prep-history";
 import { ObjectionPracticePanel } from "@/components/deal-prep/objection-practice-panel";
+import { Drawer } from "@/components/ui/drawer";
 import type { DealPrepOutput } from "@/lib/ai/schemas";
 import type { SeLevel } from "@/lib/types";
 
@@ -23,6 +23,7 @@ type SessionRecord = {
   competitors: string | null;
   debrief_notes: string | null;
   shared_with_manager: boolean;
+  outcome: "pending" | "won" | "lost";
   prep_output: DealPrepOutput;
 };
 
@@ -47,9 +48,17 @@ export function DealPrepPanel({
   const [parentSessionId, setParentSessionId] = useState<string | null>(null);
   const [sharedWithManager, setSharedWithManager] = useState(false);
   const [debriefNotes, setDebriefNotes] = useState("");
+  const [outcome, setOutcome] = useState<"pending" | "won" | "lost">("pending");
   const [isLoading, setIsLoading] = useState(false);
   const [historyRefresh, setHistoryRefresh] = useState(0);
   const [practiceObjection, setPracticeObjection] = useState<string | null>(null);
+
+  // Stable close handler so the Drawer's focus/Esc effect doesn't re-run on every render.
+  const onCloseHistoryRef = useRef(onCloseHistory);
+  useEffect(() => {
+    onCloseHistoryRef.current = onCloseHistory;
+  }, [onCloseHistory]);
+  const closeHistory = useCallback(() => onCloseHistoryRef.current?.(), []);
 
   const solutionsList = form.solutions
     .split(",")
@@ -137,6 +146,7 @@ export function DealPrepPanel({
         setParentSessionId(saved.id);
         setSharedWithManager(false);
         setDebriefNotes("");
+        setOutcome("pending");
         if (assignmentStepId) {
           toast.success("Deal prep saved and submitted for plan review.");
         }
@@ -175,6 +185,7 @@ export function DealPrepPanel({
     setParentSessionId(session.id);
     setSharedWithManager(session.shared_with_manager);
     setDebriefNotes(session.debrief_notes ?? "");
+    setOutcome(session.outcome ?? "pending");
     onCloseHistory?.();
   }, [onCloseHistory]);
 
@@ -201,32 +212,32 @@ export function DealPrepPanel({
   }
 
   return (
-    <div className="relative min-h-0 flex-1">
+    <div className="flex flex-col gap-6">
       <div
         className={
           practiceObjection
-            ? "grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[320px_1fr_280px]"
-            : "grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[320px_1fr]"
+            ? "grid grid-cols-1 items-start gap-6 lg:grid-cols-[340px_minmax(0,1fr)] 2xl:grid-cols-[340px_minmax(0,1fr)_380px]"
+            : "grid grid-cols-1 items-start gap-6 lg:grid-cols-[340px_minmax(0,1fr)]"
         }
       >
-        <div className="min-h-0 overflow-hidden border-r border-[#E2DFD9]">
-          <DealPrepForm
-            isLoading={isLoading}
-            onChange={setForm}
-            onSubmit={() => void generatePrep()}
-            values={form}
-          />
-        </div>
+        <DealPrepForm
+          isLoading={isLoading}
+          onChange={setForm}
+          onSubmit={() => void generatePrep()}
+          values={form}
+        />
 
-        <div className="min-h-0 overflow-y-auto bg-white">
+        <div className="min-w-0">
           {result ? (
             <DealPrepBrief
               activePracticeObjection={practiceObjection}
               debriefNotes={debriefNotes}
               formContext={form}
               isRegenerating={isLoading}
+              onOutcomeChange={setOutcome}
               onPracticeObjection={setPracticeObjection}
               onRegenerate={(focus) => void generatePrep(focus)}
+              outcome={outcome}
               result={result}
               sessionId={activeSessionId}
               sharedWithManager={sharedWithManager}
@@ -237,7 +248,7 @@ export function DealPrepPanel({
         </div>
 
         {practiceObjection ? (
-          <div className="min-h-0 overflow-y-auto border-l border-[#E2DFD9] bg-[#F9F8F6]">
+          <div className="min-w-0 lg:col-span-2 2xl:col-span-1">
             <ObjectionPracticePanel
               accountName={result?.accountName ?? form.accountName}
               industry={form.industry}
@@ -251,29 +262,14 @@ export function DealPrepPanel({
         ) : null}
       </div>
 
-      {historyOpen ? (
-        <div className="absolute inset-y-0 right-0 z-20 flex w-full max-w-[360px] flex-col border-l border-[#E2DFD9] bg-white shadow-xl">
-          <div className="flex items-center justify-between border-b border-[#ECEAE6] px-4 py-3">
-            <p className="text-sm font-bold text-[#0D0E12]">Past briefs</p>
-            <button
-              aria-label="Close past briefs"
-              className="text-[#A09D98] hover:text-[#0D0E12]"
-              onClick={onCloseHistory}
-              type="button"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="min-h-0 flex-1 overflow-y-auto p-3">
-            <DealPrepHistory
-              activeSessionId={activeSessionId}
-              onDeleteSession={deleteSession}
-              onLoadSession={loadSession}
-              refreshToken={historyRefresh}
-            />
-          </div>
-        </div>
-      ) : null}
+      <Drawer onClose={closeHistory} open={historyOpen} title="Past briefs">
+        <DealPrepHistory
+          activeSessionId={activeSessionId}
+          onDeleteSession={deleteSession}
+          onLoadSession={loadSession}
+          refreshToken={historyRefresh}
+        />
+      </Drawer>
     </div>
   );
 }

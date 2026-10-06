@@ -60,6 +60,8 @@ const OPERATOR_SELF_SERVICE_PREFIXES = [
   "/challenges",
   "/simulations",
   "/pitch",
+  "/practice",
+  "/readiness",
 ] as const;
 
 function isOperatorSelfServicePath(pathname: string): boolean {
@@ -271,7 +273,8 @@ export function canAccessRoute(
     return true;
   }
 
-  if (pathname.startsWith("/account")) {
+  // Account and the Help Center are open to every signed-in tier; help content is gated per article.
+  if (pathname.startsWith("/account") || pathname === "/help" || pathname.startsWith("/help/")) {
     return true;
   }
 
@@ -309,6 +312,10 @@ export function canAccessRoute(
       pathname === "/" ||
       pathname.startsWith("/plan-steps") ||
       pathname.startsWith("/my-plan") ||
+      pathname === "/practice" ||
+      pathname.startsWith("/practice/") ||
+      pathname === "/readiness" ||
+      pathname.startsWith("/readiness/") ||
       pathname.startsWith("/my-practice") ||
       pathname.startsWith("/learn") ||
       pathname.startsWith("/lab") ||

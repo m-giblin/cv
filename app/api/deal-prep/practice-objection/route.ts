@@ -16,6 +16,7 @@ import { resolveSimulationStartMessage } from "@/lib/simulations/prompt-template
 import { applySessionTenant } from "@/lib/supabase/tenant-session";
 import { DEFAULT_TENANT_ID } from "@/lib/tenant/types";
 import type { ProfileRole } from "@/lib/types";
+import { SE_ROUTES } from "@/lib/se/se-routes";
 
 const schema = z.object({
   objection: z.string().min(5),
@@ -116,6 +117,6 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     assignmentId: data.id,
-    redirectUrl: `/simulations?focus=simulation&assignment=${data.id}`,
+    redirectUrl: `${SE_ROUTES.simulations}?focus=simulation&assignment=${data.id}`,
   });
 }

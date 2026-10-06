@@ -1,10 +1,22 @@
 "use client";
 
-import { Loader2, ShieldCheck, Sparkles } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tag } from "@/components/ui/tag";
 import type { SignoffTier } from "@/lib/coaching/signoff-policy";
 import type { CoachingSignoffInput } from "@/lib/coaching/signoff-validation";
 import { validateCoachingSignoff } from "@/lib/coaching/signoff-validation";
+
+const INPUT_CLASS =
+  "w-full rounded-[10px] border border-line-strong bg-white px-3 py-2 text-[15px] font-normal text-ink";
+const LABEL_CLASS = "block space-y-1.5 text-sm font-semibold text-ink";
+
+const TIER_TAG: Record<SignoffTier, { label: string; tone: "danger" | "blue" | "neutral" }> = {
+  hard: { label: "Gate", tone: "danger" },
+  standard: { label: "Required", tone: "blue" },
+  light: { label: "Light", tone: "neutral" },
+};
 
 export type CoachingBrief = {
   brief: string;
@@ -104,9 +116,9 @@ export function ManagerCoachingBriefPanel({
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 border-l-[3px] border-[#0071ce] bg-[#EEF4FF] px-3 py-2 text-[11px] text-[#0071ce]">
-        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-        Preparing coaching brief…
+      <div className="flex items-center gap-2 rounded-[14px] bg-blue-soft px-4 py-3 text-sm text-ink-2" role="status">
+        <Loader2 aria-hidden className="h-4 w-4 animate-spin text-blue" />
+        Preparing coaching brief
       </div>
     );
   }
@@ -114,14 +126,16 @@ export function ManagerCoachingBriefPanel({
   if (!brief) return null;
 
   return (
-    <div className="space-y-2 border-l-[3px] border-[#0071ce] bg-[#EEF4FF] px-3 py-2.5">
-      <p className="flex items-center gap-1.5 font-mono text-[8px] uppercase tracking-[0.1em] text-[#0071ce]">
-        <Sparkles className="h-3 w-3" />
-        Coaching brief {brief.source === "ai" ? "· AI" : ""}
+    <section className="space-y-2 rounded-[14px] bg-blue-soft px-4 py-3.5">
+      <h3 className="flex items-center gap-2">
+        <span className="label-caps label-caps--blue">Coaching brief</span>
+        {brief.source === "ai" ? <Tag tone="blue">AI draft</Tag> : null}
+      </h3>
+      <p className="text-[15px] leading-normal text-ink-2">{brief.brief}</p>
+      <p className="text-[15px] leading-normal text-ink-2">
+        <span className="font-bold text-ink">Ask in your 1:1:</span> {brief.coachingQuestion}
       </p>
-      <p className="text-[11.5px] leading-relaxed text-[#0D0E12]">{brief.brief}</p>
-      <p className="text-[10.5px] italic text-[#3D3C38]">1:1 question: {brief.coachingQuestion}</p>
-    </div>
+    </section>
   );
 }
 
@@ -135,6 +149,7 @@ export function CoachingSignoffForm({
   onLiveAttestationChange,
   onAttestationNoteChange,
   decision = "approve",
+  showErrors = true,
 }: {
   tier: SignoffTier;
   signoff: CoachingSignoffInput;
@@ -145,6 +160,8 @@ export function CoachingSignoffForm({
   onLiveAttestationChange: (value: boolean) => void;
   onAttestationNoteChange: (value: string) => void;
   decision?: "approve" | "reject";
+  /** False until the reviewer tries to approve, so an untouched form isn't already red. */
+  showErrors?: boolean;
 }) {
   const validation = useMemo(
     () => validateCoachingSignoff(tier, signoff, decision),
@@ -152,93 +169,95 @@ export function CoachingSignoffForm({
   );
 
   return (
-    <div className="space-y-2.5 border border-[#E2DFD9] bg-[#F9F8F6] p-3">
-      <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-[#6B6860]">
-        <ShieldCheck className="h-3.5 w-3.5 text-[#0071ce]" />
-        Coaching sign-off {tier === "hard" ? "· gate" : tier === "standard" ? "· required" : "· light"}
-      </p>
-      <label className="block text-[10px] font-semibold text-[#3D3C38]">
-        Strength observed
+    <section className="space-y-4 rounded-[14px] border border-line bg-white p-4">
+      <h3 className="flex items-center gap-2">
+        <span className="label-caps">Coaching sign-off</span>
+        <Tag tone={TIER_TAG[tier].tone}>{TIER_TAG[tier].label}</Tag>
+      </h3>
+      <label className={LABEL_CLASS}>
+        <span className="block">Strength observed</span>
         <textarea
-          className="mt-1 w-full border border-[#D4D1CB] bg-white px-2 py-1.5 text-[11px]"
+          className={INPUT_CLASS}
           onChange={(event) => onStrengthChange(event.target.value)}
-          placeholder="What did they do well — be specific…"
-          rows={2}
+          placeholder="What they did well. Be specific."
+          rows={4}
           value={signoff.strength}
         />
       </label>
       {tier !== "light" ? (
-        <label className="block text-[10px] font-semibold text-[#3D3C38]">
-          Gap to address
+        <label className={LABEL_CLASS}>
+          <span className="block">Gap to address</span>
           <textarea
-            className="mt-1 w-full border border-[#D4D1CB] bg-white px-2 py-1.5 text-[11px]"
+            className={INPUT_CLASS}
             onChange={(event) => onGapChange(event.target.value)}
-            placeholder="Highest-impact improvement area…"
-            rows={2}
+            placeholder="The highest-impact improvement area"
+            rows={4}
             value={signoff.gap ?? ""}
           />
         </label>
       ) : null}
-      <label className="block text-[10px] font-semibold text-[#3D3C38]">
-        Next action (concrete)
+      <label className={LABEL_CLASS}>
+        <span className="block">Concrete next action</span>
         <textarea
-          className="mt-1 w-full border border-[#D4D1CB] bg-white px-2 py-1.5 text-[11px]"
+          className={INPUT_CLASS}
           onChange={(event) => onNextActionChange(event.target.value)}
-          placeholder="What they should practice or do before the next milestone…"
-          rows={2}
+          placeholder="What they should practice or do before the next milestone"
+          rows={4}
           value={signoff.nextAction}
         />
       </label>
       {tier === "hard" && decision === "approve" ? (
         <>
-          <label className="block text-[10px] font-semibold text-[#3D3C38]">
-            Readiness confidence (1–5)
+          <label className={LABEL_CLASS}>
+            <span className="block">Readiness confidence, 1 to 5</span>
             <select
-              className="mt-1 w-full border border-[#D4D1CB] bg-white px-2 py-1.5 text-[11px]"
+              className={INPUT_CLASS}
               onChange={(event) =>
                 onConfidenceChange(event.target.value ? Number(event.target.value) : null)
               }
               value={signoff.confidence ?? ""}
             >
-              <option value="">Select…</option>
+              <option value="">Select a rating</option>
               {[1, 2, 3, 4, 5].map((value) => (
                 <option key={value} value={value}>
-                  {value} — {value >= 4 ? "field-ready" : value >= 3 ? "progressing" : "needs coaching"}
+                  {value}, {value >= 4 ? "field-ready" : value >= 3 ? "progressing" : "needs coaching"}
                 </option>
               ))}
             </select>
           </label>
-          <label className="flex items-start gap-2 text-[10px] text-[#3D3C38]">
-            <input
+          <label className="flex items-start gap-3 text-[15px] leading-normal text-ink-2">
+            <Checkbox
               checked={signoff.liveAttestation ?? false}
               className="mt-0.5"
               onChange={(event) => onLiveAttestationChange(event.target.checked)}
-              type="checkbox"
             />
             <span>
-              <span className="font-semibold">Live coaching attestation</span> — I observed or coached them
-              directly (1:1, call shadow, or live review).
+              <span className="font-bold text-ink">Live coaching attestation.</span> I observed or coached them
+              directly in a 1:1, call shadow or live review.
             </span>
           </label>
           {signoff.liveAttestation ? (
-            <textarea
-              className="w-full border border-[#D4D1CB] bg-white px-2 py-1.5 text-[11px]"
-              onChange={(event) => onAttestationNoteChange(event.target.value)}
-              placeholder="What you observed or coached in the live moment…"
-              rows={2}
-              value={signoff.attestationNote ?? ""}
-            />
+            <label className={LABEL_CLASS}>
+              <span className="block">What you observed</span>
+              <textarea
+                className={INPUT_CLASS}
+                onChange={(event) => onAttestationNoteChange(event.target.value)}
+                placeholder="What you observed or coached in the live moment"
+                rows={4}
+                value={signoff.attestationNote ?? ""}
+              />
+            </label>
           ) : null}
         </>
       ) : null}
-      {!validation.ok && decision === "approve" ? (
-        <ul className="space-y-0.5 text-[10px] text-[#B83128]">
+      {showErrors && !validation.ok && decision === "approve" ? (
+        <ul className="space-y-1 rounded-[10px] bg-danger-soft px-3 py-2 text-sm font-semibold text-danger">
           {validation.errors.map((error) => (
-            <li key={error}>• {error}</li>
+            <li key={error}>{error}</li>
           ))}
         </ul>
       ) : null}
-    </div>
+    </section>
   );
 }
 

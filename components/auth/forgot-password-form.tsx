@@ -1,16 +1,16 @@
 "use client";
 
-import { Loader2, Mail } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ALLOWED_EMAIL_DOMAIN, allowedEmailError } from "@/lib/auth/email-domain";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
 import { createClient } from "@/lib/supabase/client";
 
 export function ForgotPasswordForm() {
+ const emailId = useId();
  const [email, setEmail] = useState("");
  const [isSubmitting, setIsSubmitting] = useState(false);
  const [sent, setSent] = useState(false);
@@ -53,28 +53,28 @@ export function ForgotPasswordForm() {
 
  if (sent) {
  return (
- <div className="space-y-4 text-sm leading-6 text-sp-navy-muted">
+ <div className="space-y-4 text-[15px] leading-normal text-ink-2" role="status">
  <p>
- If an account exists for <strong className="text-sp-navy">{email}</strong>, we sent a reset link to that
- inbox.
+ If an account exists for <strong className="font-semibold text-ink">{email}</strong>, we sent a reset link to
+ that inbox.
  </p>
  <p>Check spam, then open the link to choose a new password.</p>
- <Button asChild className="w-full" variant="outline">
- <Link href={AUTH_ROUTES.login}>Back to sign in</Link>
- </Button>
+ <Link className="btn-secondary inline-block no-underline" href={AUTH_ROUTES.login}>
+ Back to sign in
+ </Link>
  </div>
  );
  }
 
  return (
- <form className="space-y-4" onSubmit={handleSubmit}>
- <label className="block space-y-2 text-sm font-semibold text-sp-navy-muted">
- SailPoint email
- <div className="relative">
- <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-sp-blue/60" />
+ <form className="space-y-5" onSubmit={handleSubmit}>
+ <div>
+ <label className="mb-1.5 block text-sm font-semibold text-ink" htmlFor={emailId}>
+ Work email
+ </label>
  <Input
  autoComplete="email"
- className="pl-10"
+ id={emailId}
  onChange={(event) => setEmail(event.target.value)}
  placeholder={`you@${ALLOWED_EMAIL_DOMAIN}`}
  required
@@ -82,16 +82,11 @@ export function ForgotPasswordForm() {
  value={email}
  />
  </div>
- </label>
 
- <Button className="w-full" disabled={isSubmitting} size="lg" type="submit">
- {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+ <button className="btn-primary inline-flex w-full items-center justify-center gap-2" disabled={isSubmitting} type="submit">
+ {isSubmitting ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
  Send reset link
- </Button>
-
- <Button asChild className="w-full" type="button" variant="ghost">
- <Link href={AUTH_ROUTES.login}>Back to sign in</Link>
- </Button>
+ </button>
  </form>
  );
 }

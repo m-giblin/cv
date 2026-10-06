@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Send, Sparkles } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -12,9 +12,9 @@ import { simulationRubricCriteria } from "@/lib/simulations/session-rubric";
 import { SimulationCoachingRail } from "@/components/simulation/simulation-coaching-rail";
 import { SimulationScenarioBrief } from "@/components/simulation/simulation-scenario-brief";
 import { SimulationSpeechInput } from "@/components/simulation/speech-input";
-import { SP_BLUE_BTN, SP_OUTLINE_BTN } from "@/components/se/sp-form-primitives";
+import { CARD_CLS, LABEL_CLS, TEXTAREA_CLS } from "@/components/se/form-classes";
+import { StatusPill } from "@/components/ui/status-pill";
 import { SimulationAssignment } from "@/lib/types";
-import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
@@ -23,14 +23,8 @@ const formSchema = z.object({
 
 type TranscriptEntry = SimulationAssignment["transcript"][number];
 
-function initialsFromName(value: string) {
-  return value
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("");
-}
+const SECONDARY_BTN_CLS =
+  "btn-secondary inline-flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-50";
 
 async function persistTranscript(
   assignmentId: string,
@@ -72,6 +66,7 @@ export function SimulationWorkspace({
     assignment.practiceRoundsCompleted ?? 0,
   );
   const [attestationToken, setAttestationToken] = useState<string | null>(null);
+  const responseFieldId = useId();
   const startedRef = useRef(false);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
 
@@ -373,45 +368,51 @@ export function SimulationWorkspace({
   }
 
   const roleplayEndedForInput = roleplayEnded && aiRoleplay && !isElevatorPitch;
-  const personaInitials = initialsFromName(assignment.persona) || "AI";
+  // One primary per view: once the coaching report asks for a reflection, "Submit to manager" in the rail is primary.
+  const sendIsPrimary = isEmbedded || !(coachingCard && showReflectionPrompt);
 
   const chatMessages = (
-    <div className="flex-1 space-y-3 overflow-y-auto p-4">
+    <div aria-live="polite" className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-5">
       {isThinking && messages.length === 0 ? (
-        <div className="flex items-center gap-2 text-sm text-[#6B6860]">
-          <Loader2 className="h-4 w-4 animate-spin" />
+        <div className="flex items-center gap-2 text-sm text-muted" role="status">
+          <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
           {isEmbedded ? "Buyer is opening with the objection…" : "Opening persona…"}
         </div>
       ) : null}
       {messages.map((message, index) => {
         const isSe = message.speaker === "se";
         const isCoach = message.speaker === "coach";
-        const avatarLabel = isSe ? "SE" : isCoach ? "AI" : personaInitials;
-
-        if (isSe) {
-          return (
-            <div className="flex justify-end" key={`${message.speaker}-${index}`}>
-              <div className="max-w-[78%] border border-[rgba(0,113,206,.15)] bg-[#EEF4FF] p-[10px_13px]">
-                <p className="text-[11.5px] leading-[1.65] text-[#0D0E12]">{message.message}</p>
-              </div>
-            </div>
-          );
-        }
+        const speakerLabel = isSe ? "You" : isCoach ? "Coach" : assignment.persona;
 
         return (
-          <div className="flex gap-[9px]" key={`${message.speaker}-${index}`}>
-            <div className="flex h-[26px] w-[26px] shrink-0 items-center justify-center bg-[#E2DFD9] font-mono text-[9px] text-[#6B6860]">
-              {avatarLabel}
-            </div>
-            <div className="max-w-[78%] bg-[#F5F4F0] p-[10px_13px]">
-              <p className="text-[11.5px] leading-[1.65] text-[#1A1A1A]">{message.message}</p>
+          <div
+            className={cn("flex flex-col gap-1", isSe ? "items-end" : "items-start")}
+            key={`${message.speaker}-${index}`}
+          >
+            <span
+              className={cn(
+                "text-[13px] font-semibold",
+                isSe ? "text-blue" : isCoach ? "text-ink" : "text-muted",
+              )}
+            >
+              {speakerLabel}
+            </span>
+            <div
+              className={cn(
+                "max-w-[85%] rounded-[14px] px-3.5 py-2.5 sm:max-w-[78%]",
+                isSe && "bg-blue-soft",
+                isCoach && "bg-signal-soft",
+                !isSe && !isCoach && "border border-line bg-white",
+              )}
+            >
+              <p className="whitespace-pre-wrap text-[15px] leading-[1.5] text-ink">{message.message}</p>
             </div>
           </div>
         );
       })}
       {isThinking && messages.length > 0 ? (
-        <div className="flex items-center gap-2 text-sm text-[#6B6860]">
-          <Loader2 className="h-4 w-4 animate-spin" />
+        <div className="flex items-center gap-2 text-sm text-muted" role="status">
+          <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
           Persona is responding…
         </div>
       ) : null}
@@ -420,20 +421,26 @@ export function SimulationWorkspace({
   );
 
   const chatInput = (
-    <div className="shrink-0 border-t border-[#ECEAE6] bg-white p-3">
-      <form className="space-y-2" onSubmit={form.handleSubmit(addTurn)}>
-        {aiRoleplay ? (
-          <SimulationSpeechInput
-            disabled={isThinking || roleplayEndedForInput}
-            onTranscript={(text) => {
-              const current = form.getValues("message");
-              form.setValue("message", current ? `${current} ${text}` : text, { shouldValidate: true });
-            }}
-          />
-        ) : null}
-        <Textarea
-          className="min-h-[64px] resize-none border-[#D4D1CB] text-[12px]"
+    <div className="shrink-0 border-t border-divider bg-white p-4">
+      <form className="space-y-2.5" onSubmit={form.handleSubmit(addTurn)}>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <label className={LABEL_CLS} htmlFor={responseFieldId}>
+            Your response
+          </label>
+          {aiRoleplay ? (
+            <SimulationSpeechInput
+              disabled={isThinking || roleplayEndedForInput}
+              onTranscript={(text) => {
+                const current = form.getValues("message");
+                form.setValue("message", current ? `${current} ${text}` : text, { shouldValidate: true });
+              }}
+            />
+          ) : null}
+        </div>
+        <textarea
+          className={cn(TEXTAREA_CLS, "min-h-[72px] resize-none")}
           disabled={isThinking || roleplayEndedForInput}
+          id={responseFieldId}
           placeholder={
             roleplayEndedForInput
               ? "Roleplay complete — end session for feedback."
@@ -442,37 +449,45 @@ export function SimulationWorkspace({
           rows={2}
           {...form.register("message")}
         />
+        {form.formState.errors.message ? (
+          <p className="text-[13px] text-danger" role="alert">
+            {form.formState.errors.message.message}
+          </p>
+        ) : null}
         <div className="flex flex-wrap items-center gap-2">
           <button
-            className={cn(SP_BLUE_BTN, "flex-1 sm:flex-none")}
+            className={cn(
+              sendIsPrimary ? "btn-primary inline-flex items-center justify-center gap-2" : SECONDARY_BTN_CLS,
+              "flex-1 sm:flex-none",
+            )}
             disabled={isThinking || roleplayEndedForInput}
             type="submit"
           >
-            <Send className="h-4 w-4 shrink-0" />
+            <Send aria-hidden="true" className="h-4 w-4 shrink-0" />
             Send
           </button>
           <button
-            className={cn(SP_OUTLINE_BTN, "flex-1 sm:flex-none")}
+            className={cn(SECONDARY_BTN_CLS, "flex-1 sm:flex-none")}
             disabled={isGenerating || messages.length < 2}
             onClick={generateCoachingCard}
             type="button"
           >
             {isGenerating ? (
-              <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+              <Loader2 aria-hidden="true" className="h-4 w-4 shrink-0 animate-spin" />
             ) : (
-              <Sparkles className="h-4 w-4 shrink-0" />
+              <Sparkles aria-hidden="true" className="h-4 w-4 shrink-0" />
             )}
             {coachingCard ? "Regenerate feedback" : "End & get feedback"}
           </button>
           {isEmbedded && onClose ? (
-            <button className={SP_OUTLINE_BTN} onClick={onClose} type="button">
+            <button className="link px-1 text-sm" onClick={onClose} type="button">
               Back to brief
             </button>
           ) : null}
         </div>
         {!isEmbedded && currentStep === 1 && messages.length > 0 ? (
-          <p className="text-center text-[10px] text-[#A09D98]">
-            Tip: type <span className="font-semibold">HINT:</span> for mid-call coaching
+          <p className="text-[13px] text-muted">
+            Tip: type <span className="font-semibold text-ink">HINT:</span> for mid-call coaching
           </p>
         ) : null}
       </form>
@@ -481,15 +496,21 @@ export function SimulationWorkspace({
 
   if (isEmbedded) {
     return (
-      <div className="overflow-hidden border border-[#E2DFD9] bg-white">
+      <div className={cn(CARD_CLS, "overflow-hidden")}>
         <div className="flex min-h-[min(50vh,28rem)] flex-col">
           {chatMessages}
           {chatInput}
         </div>
         {coachingCard ? (
-          <div className="border-t border-[#ECEAE6] p-4">
-            <p className="text-sm font-bold text-[#0D0E12]">Score {coachingCard.score}</p>
-            <p className="mt-1 text-sm text-[#6B6860]">{coachingCard.recommendedNextPractice}</p>
+          <div className="flex items-start gap-4 border-t border-divider p-4">
+            <div className="shrink-0">
+              <p className="num text-[30px] font-extrabold leading-none tracking-[-0.03em] text-blue">{coachingCard.score}</p>
+              <p className="mt-1 text-[13px] text-muted">Score</p>
+            </div>
+            <div className="min-w-0">
+              <p className="label-caps">Next practice</p>
+              <p className="mt-1 text-sm leading-[1.5] text-ink-2">{coachingCard.recommendedNextPractice}</p>
+            </div>
           </div>
         ) : null}
       </div>
@@ -498,21 +519,30 @@ export function SimulationWorkspace({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden border-0 bg-white lg:grid-cols-[280px_1fr_260px]">
+      <div
+        className={cn(
+          CARD_CLS,
+          "grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[280px_minmax(0,1fr)_280px]",
+        )}
+      >
         <SimulationScenarioBrief assignment={assignment} criteria={rubricCriteria} turnCount={messages.length} />
 
-        <section className="flex min-h-0 min-w-0 flex-col border-b border-[#E2DFD9] lg:border-b-0">
-          <header className="flex shrink-0 items-center justify-between gap-3 border-b border-[#ECEAE6] bg-white px-4 py-3">
+        <section
+          aria-label="Roleplay conversation"
+          className="flex min-h-0 min-w-0 flex-col border-b border-line lg:border-b-0"
+        >
+          <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-divider bg-white px-4 py-3 sm:px-5">
             <div className="min-w-0">
-              <p className="truncate font-display text-[13px] font-extrabold text-[#0D0E12]">{assignment.persona}</p>
-              <p className="flex items-center gap-1.5 text-[10px] text-[#6B6860]">
-                <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#10b981] animate-pulse" />
-                Live session · {aiRoleplay ? "AI persona active" : "Guided"} ·{" "}
-                {difficultyToPromptLabel(assignment.difficulty)}
-            </p>
-          </div>
-        </header>
-        {chatMessages}
+              <p className="truncate text-base font-bold text-ink">{assignment.persona}</p>
+              <p className="text-[13px] text-muted">
+                {aiRoleplay ? "AI persona" : "Guided roleplay"}, {difficultyToPromptLabel(assignment.difficulty).toLowerCase()}
+              </p>
+            </div>
+            <StatusPill tone={roleplayEndedForInput ? "success" : "warning"}>
+              {roleplayEndedForInput ? "Roleplay complete" : "Live session"}
+            </StatusPill>
+          </header>
+          {chatMessages}
           {chatInput}
         </section>
 

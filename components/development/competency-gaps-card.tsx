@@ -1,41 +1,41 @@
-import { TrendingDown } from "lucide-react";
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
+import { LINE_CARD_CLS } from "@/components/se/form-classes";
+import { StatusPill } from "@/components/ui/status-pill";
 import { analyzeCompetencyGaps } from "@/lib/development/plan-utils";
 import { DashboardData } from "@/lib/types";
 
 export function CompetencyGapsCard({ data }: { data: DashboardData }) {
- const gaps = analyzeCompetencyGaps(data, data.currentUser.id);
+  const gaps = analyzeCompetencyGaps(data, data.currentUser.id);
 
- if (gaps.length === 0) {
- return null;
- }
+  if (gaps.length === 0) {
+    return null;
+  }
 
- return (
- <div className="overflow-hidden border border-[#E2DFD9] bg-white ">
- <div className="border-b border-[#ECEAE6] p-[16px_18px]">
- <p className="flex items-center gap-2 text-[15px] font-bold text-[#0D0E12]">
- <TrendingDown className="h-5 w-5 text-sp-magenta" />
- Competency focus areas
- </p>
- <p className="text-[12px] text-[#6B6860]">From simulations, coaching cards, and open plan steps.</p>
- </div>
- <div className="space-y-2 p-[16px_18px]">
- {gaps.map((gap) => (
- <div className="flex items-center justify-between bg-sp-magenta-soft/20 px-3 py-2 text-sm" key={gap.competencyId}>
- <div>
- <p className="font-semibold text-sp-navy">{gap.competencyName}</p>
- <p className="text-xs text-sp-navy-muted">{gap.category}</p>
- </div>
- <Badge tone="magenta">
- {gap.gapCount} signal{gap.gapCount === 1 ? "" : "s"}
- </Badge>
- </div>
- ))}
- <Link className="inline-block text-sm font-semibold text-sp-blue hover:text-sp-blue-deep" href="/development">
- View annual goals →
- </Link>
- </div>
- </div>
- );
+  return (
+    <section aria-labelledby="competency-focus-heading" className={`${LINE_CARD_CLS} overflow-hidden`}>
+      <div className="border-b border-divider px-5 py-3.5">
+        <h2 className="text-base font-bold text-ink" id="competency-focus-heading">
+          Competency focus areas
+        </h2>
+        <p className="mt-0.5 text-[13px] text-muted">From simulations, coaching cards, and open plan steps.</p>
+      </div>
+      <ul className="divide-y divide-divider">
+        {gaps.map((gap) => (
+          <li className="flex items-center justify-between gap-3 px-5 py-3" key={gap.competencyId}>
+            <div className="min-w-0">
+              <p className="text-[15px] font-semibold text-ink">{gap.competencyName}</p>
+              <p className="text-[13px] text-muted">{gap.category}</p>
+            </div>
+            <StatusPill tone="danger">{gap.gapCount} signal{gap.gapCount === 1 ? "" : "s"}
+            </StatusPill>
+          </li>
+        ))}
+      </ul>
+      <div className="border-t border-divider px-5 py-3">
+        <Link className="link text-sm" href="/development">
+          View annual goals
+        </Link>
+      </div>
+    </section>
+  );
 }

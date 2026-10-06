@@ -1,14 +1,27 @@
 "use client";
 
-import { Loader2, Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { AdminStatStrip } from "@/components/admin/admin-ui-primitives";
+import {
+ AdminTable,
+ Field,
+ KpiStrip,
+ LinkButton,
+ LoadingState,
+ Meta,
+ Notice,
+ SecondaryButton,
+ SelectInput,
+ Td,
+ TextInput,
+ Th,
+} from "@/components/admin/admin-ui";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Chip } from "@/components/ui/chip";
+import { Drawer } from "@/components/ui/drawer";
+import { PersonCell, rowHighlight } from "@/components/ui/table";
+import { Tag } from "@/components/ui/tag";
 import { allowedEmailDomainsLabel } from "@/lib/auth/email-domain";
-import { avatarGradientForId } from "@/lib/se/avatar-gradients";
-import { Button } from "@/components/ui/button";
-import { DataTablePagination, paginate } from "@/components/ui/data-table";
-import { Input } from "@/components/ui/input";
 import { ProfileRole, SeLevel } from "@/lib/types";
 import { initials } from "@/lib/utils";
 
@@ -47,19 +60,39 @@ const emptyForm = {
 };
 
 const PAGE_SIZE = 25;
-const USER_COLS = "1fr 90px 110px 140px 90px 120px";
 
-function roleBadge(role: ProfileRole) {
- const map: Partial<Record<ProfileRole, { bg: string; color: string; label: string }>> = {
- basic_se: { bg: "#e8f2fc", color: "#0057a8", label: "SE" },
- senior_se: { bg: "#e8f2fc", color: "#0057a8", label: "SE" },
- advisory_solutions_consultant: { bg: "#e8f2fc", color: "#0057a8", label: "SE" },
- mentor: { bg: "#ede9fe", color: "#5b21b6", label: "Mentor" },
- manager: { bg: "#fdf0fa", color: "#a51e8e", label: "Manager" },
- director: { bg: "#fdf0fa", color: "#a51e8e", label: "Director" },
- admin: { bg: "#ECEAE6", color: "#3D3C38", label: "Admin" },
+type RoleTone = "blue" | "neutral" | "signal";
+
+function roleBadge(role: ProfileRole): { tone: RoleTone; label: string } {
+ const map: Partial<Record<ProfileRole, { tone: RoleTone; label: string }>> = {
+ basic_se: { tone: "blue", label: "SE" },
+ senior_se: { tone: "blue", label: "SE" },
+ advisory_solutions_consultant: { tone: "blue", label: "SE" },
+ mentor: { tone: "neutral", label: "Mentor" },
+ manager: { tone: "neutral", label: "Manager" },
+ director: { tone: "neutral", label: "Director" },
+ admin: { tone: "signal", label: "Admin" },
  };
- return map[role] ?? { bg: "#ECEAE6", color: "#6B6860", label: role.replaceAll("_", " ") };
+ return map[role] ?? { tone: "neutral", label: role.replaceAll("_", " ") };
+}
+
+function sentenceCase(value: string) {
+ return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function formatDay(value: string) {
+ const date = new Date(value);
+ if (Number.isNaN(date.getTime())) return "—";
+ const options: Intl.DateTimeFormatOptions = { weekday: "short", month: "short", day: "numeric" };
+ if (date.getFullYear() !== new Date().getFullYear()) options.year = "numeric";
+ return date.toLocaleDateString("en-US", options);
+}
+
+function paginate<T>(items: T[], page: number, pageSize: number) {
+ const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
+ const safePage = Math.min(Math.max(1, page), pageCount);
+ const start = (safePage - 1) * pageSize;
+ return { page: safePage, pageCount, rows: items.slice(start, start + pageSize) };
 }
 
 function matchesRoleFilter(role: ProfileRole, filter: string) {
@@ -276,72 +309,210 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  await loadUsers();
  }
 
- if (isLoading) {
- return (
- <div className="flex justify-center py-12">
- <Loader2 className="h-6 w-6 animate-spin text-sp-blue" />
- </div>
- );
+
+ function closeForm() {
+ setEditingId(null);
+ setShowCreate(false);
+ setForm(emptyForm);
  }
 
+ if (isLoading) {
+ return <LoadingState label="Loading users…" />;
+ }
+
+ const formOpen = showCreate || Boolean(editingId);
+
  return (
- <div className="space-y-4">
- <AdminStatStrip
-  items={[
-   { label: "Total users", value: userStats.total },
-   { label: "Active SEs", value: userStats.seCount },
-   { label: "Managers", value: userStats.managerCount },
-   { label: "Admins", value: userStats.adminCount },
-  ]}
+ <div className="flex flex-col gap-6">
+ <KpiStrip
+ items={[
+ { label: "Total users", value: userStats.total },
+ { label: "Active SEs", value: userStats.seCount },
+ { label: "Managers", value: userStats.managerCount },
+ { label: "Admins", value: userStats.adminCount },
+ ]}
  />
 
- <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
- <div />
- <Button onClick={startCreate}>
- <Plus className="h-4 w-4" />
- Invite user
- </Button>
- </div>
-
  {tempPasswordShown ? (
- <div className="border border-[#E2DFD9] bg-[#fdf0fa] p-[18px_22px]">
- <p className="text-[12.5px] font-bold text-[#a51e8e]">Temporary password</p>
- <p className="mt-[2px] text-[11px] text-[#6B6860]">
- Share securely. User must change it on first login and enroll MFA.
+ <Notice className="border-signal bg-signal-soft">
+ <p className="text-sm font-bold text-ink">Temporary password</p>
+ <p className="mt-0.5 text-[13px] text-ink-2">
+ Share it securely. They must change it on first sign-in and enroll in MFA.
  </p>
- <p className="mt-[10px] font-mono text-lg font-bold text-[#0D0E12]">{tempPasswordShown}</p>
- </div>
+ <p className="mt-2.5 text-lg font-bold tracking-[0.02em] text-ink select-all">{tempPasswordShown}</p>
+ </Notice>
  ) : null}
 
- {(showCreate || editingId) && (
- <div className="border border-[#E2DFD9] bg-white p-[18px_22px]">
- <p className="text-[12.5px] font-bold text-[#0D0E12]">{editingId ? "Edit user" : "New user"}</p>
- <p className="mb-[14px] mt-[2px] text-[11px] text-[#6B6860]">
- Accounts must use {allowedEmailDomainsLabel()}.
- </p>
- <form className="grid gap-4 md:grid-cols-2" onSubmit={editingId ? handleUpdate : handleCreate}>
- <label className="block space-y-2 text-sm font-semibold text-sp-navy-muted">
- Full name
- <Input
+ <div className="flex flex-col gap-4">
+ <div className="flex flex-wrap items-center justify-between gap-3">
+ <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by role">
+ {["All roles", ...ROLE_FILTER_OPTIONS].map((option) => (
+ <Chip
+ active={roleFilter === option}
+ count={users.filter((user) => matchesRoleFilter(user.role, option)).length}
+ key={option}
+ onClick={() => setRoleFilter(option)}
+ >
+ {option === "All roles" ? "All" : option}
+ </Chip>
+ ))}
+ </div>
+ <button className="btn-primary" onClick={startCreate} type="button">
+ Invite user
+ </button>
+ </div>
+ <div className="flex flex-wrap items-center gap-3">
+ <TextInput
+ aria-label="Search users"
+ className="max-w-[320px] flex-1"
+ onChange={(e) => setSearch(e.target.value)}
+ placeholder="Search by name or email"
+ type="search"
+ value={search}
+ />
+ <SelectInput
+ aria-label="Filter by level"
+ className="w-auto"
+ onChange={(e) => setLevelFilter(e.target.value)}
+ value={levelFilter}
+ >
+ <option>All levels</option>
+ <option>Basic SE</option>
+ <option>Senior SE</option>
+ <option>Advisory SC</option>
+ </SelectInput>
+ <SelectInput
+ aria-label="Filter by manager"
+ className="w-auto"
+ onChange={(e) => setManagerFilter(e.target.value)}
+ value={managerFilter}
+ >
+ <option>All managers</option>
+ {managers.map((manager) => (
+ <option key={manager.id}>{manager.full_name}</option>
+ ))}
+ </SelectInput>
+ <span className="ml-auto text-sm text-muted">
+ Showing {filteredUsers.length} of {users.length} users
+ </span>
+ </div>
+ </div>
+
+ <AdminTable caption="Users" minWidth={900}>
+ <thead>
+ <tr>
+ <Th>Name</Th>
+ <Th>Email</Th>
+ <Th>Role</Th>
+ <Th>Level</Th>
+ <Th>Manager</Th>
+ <Th>Joined</Th>
+ <Th className="text-right">
+ <span className="sr-only">Actions</span>
+ </Th>
+ </tr>
+ </thead>
+ <tbody>
+ {rows.length === 0 ? (
+ <tr>
+ <td colSpan={7}>
+ <p className="px-5 py-8 text-center text-sm text-muted">No users match your search.</p>
+ </td>
+ </tr>
+ ) : (
+ rows.map((user) => {
+ const badge = roleBadge(user.role);
+ return (
+ <tr className={editingId === user.id ? rowHighlight.selected : "hover:bg-bg"} key={user.id}>
+ <Td>
+ <PersonCell initials={initials(user.full_name)} name={user.full_name} subline={sentenceCase(user.role.replaceAll("_", " "))} />
+ </Td>
+ <Td className="text-sm text-ink-2">{user.email}</Td>
+ <Td>
+ <Tag tone={badge.tone}>{badge.label}</Tag>
+ </Td>
+ <Td className="text-sm">{user.level}</Td>
+ <Td className="max-w-[180px] truncate text-sm">
+ {user.manager_id ? managerNameById.get(user.manager_id) ?? "—" : "—"}
+ </Td>
+ <Td>
+ <Meta>{formatDay(user.created_at)}</Meta>
+ </Td>
+ <Td>
+ <div className="flex justify-end gap-4">
+ <LinkButton aria-label={`Edit ${user.full_name}`} onClick={() => startEdit(user)}>
+ Edit
+ </LinkButton>
+ <LinkButton
+ aria-label={`Remove ${user.full_name}`}
+ onClick={() => void handleDelete(user)}
+ tone="danger"
+ >
+ Remove
+ </LinkButton>
+ </div>
+ </Td>
+ </tr>
+ );
+ })
+ )}
+ </tbody>
+ </AdminTable>
+
+ {pageCount > 1 ? (
+ <nav aria-label="Users pagination" className="flex items-center justify-between gap-3">
+ <SecondaryButton disabled={safePage <= 1} onClick={() => setPage(safePage - 1)}>
+ Previous
+ </SecondaryButton>
+ <Meta>
+ Page {safePage} of {pageCount}
+ </Meta>
+ <SecondaryButton disabled={safePage >= pageCount} onClick={() => setPage(safePage + 1)}>
+ Next
+ </SecondaryButton>
+ </nav>
+ ) : null}
+
+ <Drawer
+   size="form"
+ footer={
+ <>
+ <button className="btn-primary" disabled={isSaving} form="admin-user-form" type="submit">
+ {isSaving ? "Saving…" : editingId ? "Save changes" : "Create user"}
+ </button>
+ <SecondaryButton onClick={closeForm}>Cancel</SecondaryButton>
+ </>
+ }
+ onClose={closeForm}
+ open={formOpen}
+ title={editingId ? "Edit user" : "New user"}
+ >
+ <p className="mb-5 text-sm text-muted">Accounts must use {allowedEmailDomainsLabel()}.</p>
+ <form
+ className="flex flex-col gap-4"
+ id="admin-user-form"
+ onSubmit={editingId ? handleUpdate : handleCreate}
+ >
+ <Field htmlFor="admin-user-name" label="Full name">
+ <TextInput
+ id="admin-user-name"
  onChange={(event) => setForm((current) => ({ ...current, fullName: event.target.value }))}
  required
  value={form.fullName}
  />
- </label>
- <label className="block space-y-2 text-sm font-semibold text-sp-navy-muted">
- Email
- <Input
+ </Field>
+ <Field htmlFor="admin-user-email" label="Email">
+ <TextInput
+ id="admin-user-email"
  onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
- placeholder="name@sailpoint.com"
  required
  type="email"
  value={form.email}
  />
- </label>
- <label className="block space-y-2 text-sm font-semibold text-sp-navy-muted">
- Role
- <select
- className="h-10 w-full border border-sp-blue/15 bg-white px-3 text-sm"
+ </Field>
+ <Field htmlFor="admin-user-role" label="Role">
+ <SelectInput
+ id="admin-user-role"
  onChange={(event) =>
  setForm((current) => ({ ...current, role: event.target.value as ProfileRole }))
  }
@@ -349,15 +520,14 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  >
  {ROLES.map((role) => (
  <option key={role} value={role}>
- {role.replaceAll("_", " ")}
+ {sentenceCase(role.replaceAll("_", " "))}
  </option>
  ))}
- </select>
- </label>
- <label className="block space-y-2 text-sm font-semibold text-sp-navy-muted">
- SE level
- <select
- className="h-10 w-full border border-sp-blue/15 bg-white px-3 text-sm"
+ </SelectInput>
+ </Field>
+ <Field htmlFor="admin-user-level" label="SE level">
+ <SelectInput
+ id="admin-user-level"
  onChange={(event) =>
  setForm((current) => ({ ...current, level: event.target.value as SeLevel }))
  }
@@ -368,12 +538,11 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  {level}
  </option>
  ))}
- </select>
- </label>
- <label className="block space-y-2 text-sm font-semibold text-sp-navy-muted md:col-span-2">
- Manager
- <select
- className="h-10 w-full border border-sp-blue/15 bg-white px-3 text-sm"
+ </SelectInput>
+ </Field>
+ <Field htmlFor="admin-user-manager" label="Manager">
+ <SelectInput
+ id="admin-user-manager"
  onChange={(event) => setForm((current) => ({ ...current, managerId: event.target.value }))}
  value={form.managerId}
  >
@@ -383,165 +552,34 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  {manager.full_name} ({manager.role.replaceAll("_", " ")})
  </option>
  ))}
- </select>
- </label>
+ </SelectInput>
+ </Field>
  {showCreate ? (
  <>
- <label className="block space-y-2 text-sm font-semibold text-sp-navy-muted">
- Password (optional)
- <Input
+ <Field htmlFor="admin-user-password" label="Password (optional)">
+ <TextInput
+ autoComplete="new-password"
+ id="admin-user-password"
  minLength={8}
  onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
  placeholder="Auto-generated if blank"
  type="password"
  value={form.password}
  />
- </label>
- <label className="flex items-center gap-2 self-end text-sm text-sp-navy-muted">
- <input
+ </Field>
+ <label className="flex items-start gap-2.5 text-sm text-ink-2" htmlFor="admin-user-invite">
+ <Checkbox
  checked={form.sendInvite}
+ className="mt-0.5"
+ id="admin-user-invite"
  onChange={(event) => setForm((current) => ({ ...current, sendInvite: event.target.checked }))}
- type="checkbox"
  />
- Email password setup link instead of showing temp password
+ Email a password setup link instead of showing a temporary password
  </label>
  </>
  ) : null}
- <div className="flex gap-2 md:col-span-2">
- <Button disabled={isSaving} type="submit">
- {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
- {editingId ? "Save changes" : "Create user"}
- </Button>
- <Button
- onClick={() => {
- setEditingId(null);
- setShowCreate(false);
- setForm(emptyForm);
- }}
- type="button"
- variant="outline"
- >
- Cancel
- </Button>
- </div>
  </form>
- </div>
- )}
-
- <div className="mb-[14px] flex items-center gap-[10px]">
- <div className="flex max-w-[280px] flex-1 items-center gap-[7px] border-[1.5px] border-[#E2DFD9] bg-white px-[12px] py-[6px]">
- <svg fill="none" height="13" stroke="#A09D98" strokeLinecap="round" strokeWidth="1.3" viewBox="0 0 14 14" width="13">
- <circle cx="6" cy="6" r="4.5" />
- <line x1="9.5" x2="12.5" y1="9.5" y2="12.5" />
- </svg>
- <input
- className="flex-1 bg-transparent text-[12px] outline-none placeholder:text-[#A09D98]"
- onChange={(e) => setSearch(e.target.value)}
- placeholder="Search by name or email..."
- value={search}
- />
- </div>
- <select
- className="cursor-pointer border-[1.5px] border-[#E2DFD9] bg-white px-[10px] py-[6px] text-[12px] text-[#374151] outline-none"
- onChange={(e) => setRoleFilter(e.target.value)}
- value={roleFilter}
- >
- <option>All roles</option>
- {ROLE_FILTER_OPTIONS.map((option) => (
- <option key={option}>{option}</option>
- ))}
- </select>
- <select
- className="cursor-pointer border-[1.5px] border-[#E2DFD9] bg-white px-[10px] py-[6px] text-[12px] text-[#374151] outline-none"
- onChange={(e) => setLevelFilter(e.target.value)}
- value={levelFilter}
- >
- <option>All levels</option>
- <option>Basic SE</option>
- <option>Senior SE</option>
- <option>Advisory SC</option>
- </select>
- <select
- className="cursor-pointer border-[1.5px] border-[#E2DFD9] bg-white px-[10px] py-[6px] text-[12px] text-[#374151] outline-none"
- onChange={(e) => setManagerFilter(e.target.value)}
- value={managerFilter}
- >
- <option>All managers</option>
- {managers.map((manager) => (
- <option key={manager.id}>{manager.full_name}</option>
- ))}
- </select>
- </div>
-
- <div className="overflow-hidden border border-[#E2DFD9] bg-white">
- <div
- className="grid border-b border-[#ECEAE6] bg-[#F9F8F6] px-[18px] py-[10px]"
- style={{ gridTemplateColumns: USER_COLS }}
- >
- {["User", "Role", "Level", "Manager", "Joined", ""].map((header) => (
- <span className="text-[9.5px] font-bold uppercase tracking-[0.07em] text-[#A09D98]" key={header}>
- {header}
- </span>
- ))}
- </div>
- {rows.length === 0 ? (
- <p className="px-4 py-8 text-center text-sp-navy-muted">No users match your search.</p>
- ) : (
- rows.map((user) => {
- const badge = roleBadge(user.role);
- return (
- <div
- className="grid cursor-pointer items-center border-b border-[#f9fafb] px-[18px] py-[10px] transition hover:bg-[#f7fafd]"
- key={user.id}
- style={{ gridTemplateColumns: USER_COLS }}
- >
- <div className="flex items-center gap-[10px]">
- <div
- className="flex h-[32px] w-[32px] flex-shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
- style={{ background: avatarGradientForId(user.id) }}
- >
- {initials(user.full_name)}
- </div>
- <div>
- <p className="text-[12px] font-semibold text-[#3D3C38]">{user.full_name}</p>
- <p className="text-[10.5px] text-[#A09D98]">{user.email}</p>
- </div>
- </div>
- <span
- className="w-fit font-mono text-[8px] uppercase tracking-[0.08em] px-[8px] py-[2px] text-[9.5px] font-bold"
- style={{ background: badge.bg, color: badge.color }}
- >
- {badge.label}
- </span>
- <span className="text-[12px] text-[#3D3C38]">{user.level}</span>
- <span className="truncate text-[12px] text-[#3D3C38]">
- {user.manager_id ? managerNameById.get(user.manager_id) ?? "—" : "—"}
- </span>
- <span className="text-[11.5px] text-[#A09D98]">{new Date(user.created_at).toLocaleDateString()}</span>
- <div className="flex gap-[6px]">
- <button
- className="inline-flex items-center border border-[#E2DFD9] bg-white px-[10px] py-[5px] text-[11px] font-semibold text-[#3D3C38]"
- onClick={() => startEdit(user)}
- type="button"
- >
- Edit
- </button>
- <button
- className="inline-flex items-center px-[10px] py-[5px] text-[11px] font-semibold"
- onClick={() => void handleDelete(user)}
- style={{ background: "#fee2e2", border: "1.5px solid #fecaca", color: "#dc2626" }}
- type="button"
- >
- Remove
- </button>
- </div>
- </div>
- );
- })
- )}
- </div>
-
- <DataTablePagination onPageChange={setPage} page={safePage} pageCount={pageCount} />
+ </Drawer>
  </div>
  );
 }

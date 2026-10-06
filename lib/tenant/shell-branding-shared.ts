@@ -1,5 +1,9 @@
 import { DEFAULT_TENANT_ID } from "@/lib/tenant/types";
 
+/** The product's name, kept in one place so it can change in one place. */
+export const PRODUCT_NAME = "SE Enablement";
+export const PRODUCT_TAGLINE = "Field readiness";
+
 export type TenantShellBranding = {
   tenantId: string | null;
   productName: string;
@@ -9,8 +13,8 @@ export type TenantShellBranding = {
   tenantSlug?: string | null;
 };
 
-/** Fix common typos like #CC27BO → #CC27B0 */
-export function normalizeTenantPrimaryColor(color: string | null | undefined, fallback = "#0071ce"): string {
+/** Fix common typos like #OO33A1 → #0033A1 (letter O typed for zero) */
+export function normalizeTenantPrimaryColor(color: string | null | undefined, fallback = "#0033A1"): string {
   if (!color?.trim()) return fallback;
 
   let hex = color.trim();
@@ -25,8 +29,8 @@ export function normalizeTenantPrimaryColor(color: string | null | undefined, fa
 
 export const DEFAULT_SHELL_BRANDING: TenantShellBranding = {
   tenantId: DEFAULT_TENANT_ID,
-  productName: "Enablement",
+  productName: PRODUCT_NAME,
   productTagline: "PLATFORM",
-  primaryColor: "#0071ce",
+  primaryColor: "#0033A1",
   logoUrl: null,
 };

@@ -2,17 +2,21 @@
 
 import type { ReactNode } from "react";
 import { Check, Clock, FileUp, Loader2, Trash2, Video } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Textarea } from "@/components/ui/textarea";
 import { PitchCoachingRail, type PitchScoreRow } from "@/components/pitch/pitch-coaching-rail";
-import { SP_OUTLINE_BTN } from "@/components/se/sp-form-primitives";
+import { CARD_CLS, LABEL_CLS, TEXTAREA_CLS } from "@/components/se/form-classes";
+import { Chip } from "@/components/ui/chip";
+import { SegmentedToggle } from "@/components/ui/segmented-toggle";
 import { PITCH_SCENARIOS } from "@/lib/pitch/pitch-scenarios";
 import type { PitchQueueSlot, PitchScenarioRow } from "@/lib/pitch/pitch-queue";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 type StudioMode = "assigned" | "practice";
+
+const SECONDARY_BTN_CLS =
+  "btn-secondary inline-flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50";
 
 type ScenarioView = {
   id: string;
@@ -23,16 +27,6 @@ type ScenarioView = {
   description: string;
   maxDurationSec: number;
 };
-
-function deriveScores(reflection: string, tipCount: number): PitchScoreRow[] {
-  const len = reflection.trim().length;
-  const base = Math.min(92, 68 + Math.floor(len / 8) - tipCount * 4);
-  return [
-    { label: "Clarity & structure", score: Math.max(55, base + 2) },
-    { label: "Value articulation", score: Math.max(50, base - 4) },
-    { label: "Confidence & pacing", score: Math.max(52, base) },
-  ];
-}
 
 function fallbackScenarios(): ScenarioView[] {
   return PITCH_SCENARIOS.map((item) => ({
@@ -73,6 +67,7 @@ export function VideoPitchCapture({
   initialScenarioId?: string;
   peerLibrary?: ReactNode;
 }) {
+  const reflectionId = useId();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [studioMode, setStudioMode] = useState<StudioMode>("assigned");
   const [recording, setRecording] = useState(false);
@@ -214,10 +209,17 @@ export function VideoPitchCapture({
       body: JSON.stringify({ title, reflection, scenario: scenario.label }),
     });
     setCoaching(false);
-    if (!response.ok) return;
-    const body = (await response.json()) as { tips: string[] };
+    const body = (await response.json().catch(() => null)) as
+      | { tips?: string[]; scores?: PitchScoreRow[]; source?: "ai" | "rules"; error?: string }
+      | null;
+    if (!response.ok || !body?.tips) {
+      toast.error(body?.error ?? "The AI review couldn't run just now.");
+      return;
+    }
     setCoachTips(body.tips);
-    setCoachScores(deriveScores(reflection, body.tips.length));
+    // Scores only ever come from the AI review; rule-based tips leave the rubric empty.
+    setCoachScores(body.scores ?? []);
+    if (body.source === "rules") toast.message("AI isn't configured, so you got tips without scores.");
   }
 
   async function startRecording() {
@@ -400,109 +402,76 @@ export function VideoPitchCapture({
     await loadQueue({ reselectFirst: true });
   }
 
-  const statusLabel = recording ? "RECORDING" : blobUrl ? "REVIEW" : "STANDBY";
+  const statusLabel = recording ? "Recording" : blobUrl ? "Ready to review" : "Standby";
   const showCamera = recording || blobUrl;
+  const selectedSlotPending = Boolean(queue.find((s) => s.id === selectedQueueSlotId)?.submissionId);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-[#E2DFD9] lg:grid lg:grid-cols-[1fr_340px]">
-      <div className="flex min-h-0 min-h-[50vh] flex-col overflow-hidden border-b border-[#E2DFD9] bg-[#F5F4F0] lg:min-h-0 lg:border-b-0 lg:border-r">
-        <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-[#ECEAE6] bg-[#F9F8F6] px-4 py-3 sm:px-5">
-          <button
-            className={cn(
-              "border px-3 py-1.5 text-[10.5px] font-semibold transition",
-              studioMode === "assigned"
-                ? "border-[#00143A] bg-[#00143A] text-white"
-                : "border-[#E2DFD9] bg-white text-[#6B6860]",
-            )}
-            onClick={switchToAssigned}
-            type="button"
-          >
-            Assigned queue
-          </button>
-          <button
-            className={cn(
-              "border px-3 py-1.5 text-[10.5px] font-semibold transition",
-              studioMode === "practice"
-                ? "border-[#00143A] bg-[#00143A] text-white"
-                : "border-[#E2DFD9] bg-white text-[#6B6860]",
-            )}
-            onClick={switchToPractice}
-            type="button"
-          >
-            Free practice
-          </button>
-          <span className="ml-auto font-mono text-[9px] uppercase tracking-[0.1em] text-[#B0ADA8]">
-            {studioMode === "assigned" ? "Manager review on submit" : "Private — no manager notify"}
+    <div className={cn(CARD_CLS, "flex min-h-0 flex-1 flex-col overflow-hidden lg:grid lg:grid-cols-[minmax(0,1fr)_340px]")}>
+      <div className="flex min-h-[50vh] min-w-0 flex-col overflow-hidden border-b border-line lg:min-h-0 lg:border-b-0 lg:border-r">
+        <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-divider px-4 py-3 sm:px-5">
+          <SegmentedToggle
+            label="Studio mode"
+            onChange={(id) => (id === "assigned" ? switchToAssigned() : switchToPractice())}
+            options={[
+              { id: "assigned", label: "Assigned queue" },
+              { id: "practice", label: "Free practice" },
+            ]}
+            value={studioMode}
+          />
+          <span className="ml-auto text-[13px] text-muted">
+            {studioMode === "assigned" ? "Your manager reviews it when you submit." : "Private. Your manager isn't notified."}
           </span>
         </div>
 
-        <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-[#ECEAE6] bg-[#F9F8F6] px-4 py-3 sm:px-5">
-          <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-[#B0ADA8]">
-            {studioMode === "assigned" ? "Queue slot" : "Scenario"}
-          </span>
+        <div
+          aria-label={studioMode === "assigned" ? "Queue slots" : "Scenarios"}
+          className="flex shrink-0 flex-wrap items-center gap-2 border-b border-divider px-4 py-3 sm:px-5"
+          role="group"
+        >
+          <span className="mr-1 text-sm font-bold text-ink">{studioMode === "assigned" ? "Queue slot" : "Scenario"}</span>
           {studioMode === "assigned" && loadingQueue ? (
-            <Loader2 className="h-4 w-4 animate-spin text-[#6B6860]" />
+            <span className="inline-flex items-center gap-1.5 text-[13px] text-muted" role="status">
+              <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
+              Loading queue…
+            </span>
           ) : null}
           {studioMode === "assigned"
-            ? queue.map((slot) => {
-                const active = selectedQueueSlotId === slot.id;
-                return (
-                  <button
-                    className={cn(
-                      "border px-3 py-1 text-[10.5px] font-medium transition",
-                      active
-                        ? "border-[#00143A] bg-[#00143A] text-white"
-                        : "border-[#E2DFD9] bg-white text-[#6B6860] hover:border-[#B0ADA8]",
-                      slot.submissionId ? "opacity-60" : "",
-                    )}
-                    disabled={Boolean(slot.submissionId)}
-                    key={slot.id}
-                    onClick={() => selectAssignedSlot(slot)}
-                    type="button"
-                  >
-                    Slot {slot.slot}: {slot.scenario.shortLabel}
-                    {slot.submissionId ? " · pending" : ""}
-                  </button>
-                );
-              })
-            : practiceScenarios.map((item) => {
-                const active = selectedScenarioId === item.id;
-                return (
-                  <button
-                    className={cn(
-                      "border px-3 py-1 text-[10.5px] font-medium transition",
-                      active
-                        ? "border-[#00143A] bg-[#00143A] text-white"
-                        : "border-[#E2DFD9] bg-white text-[#6B6860] hover:border-[#B0ADA8]",
-                    )}
-                    key={item.id}
-                    onClick={() => selectPracticeScenario(item.id)}
-                    type="button"
-                  >
-                    {item.shortLabel}
-                  </button>
-                );
-              })}
+            ? queue.map((slot) => (
+                <Chip
+                  active={selectedQueueSlotId === slot.id}
+                  className="disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={Boolean(slot.submissionId)}
+                  key={slot.id}
+                  onClick={() => selectAssignedSlot(slot)}
+                >
+                  Slot {slot.slot}: {slot.scenario.shortLabel}
+                  {slot.submissionId ? " (pending)" : ""}
+                </Chip>
+              ))
+            : practiceScenarios.map((item) => (
+                <Chip
+                  active={selectedScenarioId === item.id}
+                  key={item.id}
+                  onClick={() => selectPracticeScenario(item.id)}
+                >
+                  {item.shortLabel}
+                </Chip>
+              ))}
         </div>
 
-        <div className="relative flex min-h-[280px] flex-1 flex-col items-center justify-center overflow-hidden bg-[#0A0A0E] sm:min-h-[320px]">
-          <div
-            className="pointer-events-none absolute inset-0 opacity-[0.06]"
-            style={{
-              backgroundImage:
-                "linear-gradient(rgba(255,255,255,.5) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.5) 1px,transparent 1px)",
-              backgroundSize: "80px 60px",
-            }}
-          />
+        <div className="shrink-0 border-b border-divider bg-white px-4 py-3 sm:px-5">
+          <p className="label-caps label-caps--blue">{scenario.promptLabel}</p>
+          <p className="mt-1 text-[15px] leading-[1.5] text-ink">&ldquo;{scenario.prompt}&rdquo;</p>
+        </div>
 
-          <div className="absolute left-3 top-3 flex items-center gap-1.5 border border-white/10 bg-black/50 px-2.5 py-1 sm:left-3.5 sm:top-3.5">
-            <span
-              className={cn(
-                "h-1.5 w-1.5 rounded-full",
-                recording ? "animate-pulse bg-[#B83128]" : "bg-[#B83128]",
-              )}
-            />
-            <span className="font-mono text-[9px] uppercase tracking-[0.08em] text-white/60">{statusLabel}</span>
+        <div className="relative flex min-h-[280px] flex-1 flex-col items-center justify-center overflow-hidden bg-ink sm:min-h-[320px]">
+          <div
+            className="absolute left-3 top-3 z-10 inline-flex items-center gap-[7px] rounded-full border border-blue-line bg-ink px-3 py-1 text-[13px] font-semibold text-white sm:left-3.5 sm:top-3.5"
+            role="status"
+          >
+            <span aria-hidden className={cn("h-[7px] w-[7px] rounded-full", recording ? "bg-danger" : blobUrl ? "bg-signal" : "bg-on-blue-muted")} />
+            {statusLabel}
           </div>
 
           {showCamera ? (
@@ -516,112 +485,109 @@ export function VideoPitchCapture({
             />
           ) : (
             <>
-              <div className="mb-4 flex h-[80px] w-[80px] items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.04] sm:h-[100px] sm:w-[100px]">
-                <Video className="h-8 w-8 text-white/25 sm:h-9 sm:w-9" strokeWidth={1.2} />
-              </div>
-              <p className="mb-1.5 font-mono text-[10px] uppercase tracking-[0.1em] text-white/25">Camera ready</p>
-              <p className="mb-7 px-4 text-center text-xs text-white/40">Allow camera access to begin recording</p>
+              <Video aria-hidden="true" className="mb-3 h-8 w-8 text-on-blue-muted" strokeWidth={1.5} />
+              <p className="mb-1 text-[13px] text-on-blue-muted">Camera ready</p>
+              <p className="mb-6 px-4 text-center text-[13px] text-on-blue">Allow camera access to begin recording</p>
             </>
           )}
 
-          <div className="relative z-10 flex flex-wrap items-center justify-center gap-2 px-3 sm:gap-3.5">
+          <div className="relative z-10 mt-auto flex w-full flex-wrap items-center justify-center gap-3 px-3 pb-4 sm:gap-4">
             <button
-              className="inline-flex items-center gap-1.5 border border-white/12 bg-white/[0.08] px-3 py-1.5 text-[11px] text-white/50"
+              className="inline-flex items-center gap-1.5 rounded-full border border-blue-line px-3 py-1.5 text-[13px] text-on-blue-muted disabled:cursor-not-allowed"
               disabled
               type="button"
             >
-              <FileUp className="h-2.5 w-2.5" />
+              <FileUp aria-hidden="true" className="h-4 w-4" />
               Upload
             </button>
             {!recording ? (
               <button
-                className="flex h-14 w-14 items-center justify-center rounded-full border-[3px] border-white/15 bg-[#B83128] shadow-[0_0_0_6px_rgba(184,49,40,0.2)] sm:h-16 sm:w-16"
+                aria-label="Start recording"
+                className="flex h-14 w-14 items-center justify-center rounded-full border-[3px] border-white bg-danger sm:h-16 sm:w-16"
                 onClick={() => void startRecording()}
                 type="button"
               >
-                <span className="h-4 w-4 rounded-full bg-white sm:h-5 sm:w-5" />
+                <span aria-hidden="true" className="h-4 w-4 rounded-full bg-white sm:h-5 sm:w-5" />
               </button>
             ) : (
               <button
-                className="flex h-14 w-14 items-center justify-center rounded-full border-[3px] border-white/15 bg-[#B83128] sm:h-16 sm:w-16"
+                aria-label="Stop recording"
+                className="flex h-14 w-14 items-center justify-center rounded-full border-[3px] border-white bg-danger sm:h-16 sm:w-16"
                 onClick={stopRecording}
                 type="button"
               >
-                <span className="h-3.5 w-3.5 bg-white sm:h-4 sm:w-4" />
+                <span aria-hidden="true" className="h-3.5 w-3.5 rounded-[2px] bg-white sm:h-4 sm:w-4" />
               </button>
             )}
-            <button
-              className="inline-flex items-center gap-1.5 border border-white/12 bg-white/[0.08] px-3 py-1.5 text-[11px] text-white/50"
-              type="button"
-            >
-              <Clock className="h-2.5 w-2.5" />
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-line px-3 py-1.5 text-[13px] text-on-blue-muted">
+              <Clock aria-hidden="true" className="h-4 w-4" />
               {formatMaxDuration(scenario.maxDurationSec)}
-            </button>
+            </span>
           </div>
 
           {blobUrl && !recording ? (
             <button
-              className="absolute right-3 top-3 z-10 inline-flex items-center gap-1 border border-[#fecaca]/40 bg-[#fee2e2]/90 px-2.5 py-1 text-[11px] font-semibold text-[#dc2626] sm:right-3.5 sm:top-3.5"
+              className="absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full border border-danger bg-danger-soft px-3 py-1 text-[13px] font-bold text-danger disabled:opacity-50 sm:right-3.5 sm:top-3.5"
               disabled={uploading}
               onClick={discardRecording}
               type="button"
             >
-              <Trash2 className="h-3 w-3" />
+              <Trash2 aria-hidden="true" className="h-4 w-4" />
               Discard
             </button>
           ) : null}
-
-          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/85 to-transparent px-4 py-3 sm:px-5">
-            <p className="mb-1 font-mono text-[8.5px] uppercase tracking-[0.1em] text-white/40">
-              {scenario.promptLabel}
-            </p>
-            <p className="text-xs leading-relaxed text-white/80">&ldquo;{scenario.prompt}&rdquo;</p>
-          </div>
         </div>
 
-        <div className="shrink-0 border-t border-[#E2DFD9] bg-white px-4 py-3.5 sm:px-5">
-          <p className="mb-1.5 font-mono text-[8px] uppercase tracking-[0.12em] text-[#B0ADA8]">
-            Reflection (required for AI scoring)
-          </p>
-          <Textarea
-            className="min-h-[40px] resize-none border-[#E2DFD9] bg-[#F9F8F6] text-[11.5px] leading-relaxed text-[#6B6860]"
+        <div className="shrink-0 border-t border-divider bg-white px-4 py-4 sm:px-5">
+          <label className={LABEL_CLS} htmlFor={reflectionId}>
+            Reflection <span className="font-normal text-muted">(required for AI scoring)</span>
+          </label>
+          <textarea
+            className={cn(TEXTAREA_CLS, "mt-1.5 min-h-[64px] resize-none")}
+            id={reflectionId}
             onChange={(e) => setReflection(e.target.value)}
             placeholder="What story structure did you use? What would you change?"
             rows={2}
             value={reflection}
           />
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            {studioMode === "practice" ? (
-              <button className={SP_OUTLINE_BTN} disabled={uploading} onClick={() => void savePractice()} type="button">
-                {savedPractice ? <Check className="mr-1 h-3 w-3" /> : null}
-                Save practice
-              </button>
-            ) : null}
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <button
-              className="inline-flex items-center border border-[#0071CE] bg-[#0071CE] px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-[#005bb5]"
+              className={SECONDARY_BTN_CLS}
               disabled={coaching}
               onClick={() => void runAiCoach()}
               type="button"
             >
-              {coaching ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : null}
-              Get AI coaching →
+              {coaching ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : null}
+              Get AI coaching
             </button>
+            {studioMode === "practice" ? (
+              <button
+                className="btn-primary ml-auto inline-flex items-center gap-2"
+                disabled={uploading}
+                onClick={() => void savePractice()}
+                type="button"
+              >
+                {uploading ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : null}
+                {savedPractice ? <Check aria-hidden="true" className="h-4 w-4" /> : null}
+                Save practice
+              </button>
+            ) : null}
             {studioMode === "assigned" ? (
               <button
-                className="ml-auto inline-flex items-center bg-[#0033A1] px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-[#002878] disabled:opacity-50"
-                disabled={uploading || !blob || Boolean(queue.find((s) => s.id === selectedQueueSlotId)?.submissionId)}
+                className="btn-primary ml-auto inline-flex items-center gap-2"
+                disabled={uploading || !blob || selectedSlotPending}
                 onClick={() => void submitForReview()}
                 type="button"
               >
-                {uploading ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : null}
-                Submit for review →
+                {uploading ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : null}
+                Submit for review
               </button>
             ) : null}
           </div>
         </div>
       </div>
 
-      <div className="max-h-[45vh] min-h-0 overflow-y-auto bg-[#F9F8F6] lg:max-h-none">
+      <div className="max-h-[45vh] min-h-0 overflow-y-auto bg-white lg:max-h-none">
         <PitchCoachingRail
           hasSubmission={coachScores.length > 0}
           scores={coachScores}

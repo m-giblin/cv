@@ -1,9 +1,17 @@
 "use client";
 
-import { Loader2, Save } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { PlatformUnsavedBanner } from "@/components/platform/platform-unsaved-banner";
+import {
+  FIELD_HINT,
+  FIELD_LABEL,
+  LineCard,
+  Spinner,
+} from "@/components/platform/platform-ui";
+import { Toggle } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { isFormDirty } from "@/lib/platform/use-dirty-form";
 
 type Prefs = {
   emailOnCriticalSupport: boolean;
@@ -20,7 +28,9 @@ const DEFAULTS: Prefs = {
 };
 
 export function PlatformOperatorSettings() {
+  const digestId = useId();
   const [prefs, setPrefs] = useState<Prefs>(DEFAULTS);
+  const [savedPrefs, setSavedPrefs] = useState<Prefs>(DEFAULTS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -30,7 +40,7 @@ export function PlatformOperatorSettings() {
       .then((body) => {
         if (!body?.prefs) return;
         const incoming = body.prefs as Prefs & { channels?: Record<string, unknown> };
-        setPrefs({
+        const loaded: Prefs = {
           emailOnCriticalSupport: incoming.emailOnCriticalSupport ?? DEFAULTS.emailOnCriticalSupport,
           emailOnNewTenant: incoming.emailOnNewTenant ?? DEFAULTS.emailOnNewTenant,
           emailDigestHours: incoming.emailDigestHours ?? DEFAULTS.emailDigestHours,
@@ -38,7 +48,9 @@ export function PlatformOperatorSettings() {
             in_app: Boolean(incoming.channels?.in_app ?? true),
             email: Boolean(incoming.channels?.email ?? true),
           },
-        });
+        };
+        setPrefs(loaded);
+        setSavedPrefs(loaded);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -56,81 +68,90 @@ export function PlatformOperatorSettings() {
       return;
     }
     toast.success("Operator preferences saved.");
+    setSavedPrefs(prefs);
   }
 
-  if (loading) {
-    return (
-      <div className="flex justify-center py-16">
-        <Loader2 className="h-6 w-6 animate-spin text-[#0071CE]" />
-      </div>
-    );
+  const dirty = isFormDirty(prefs, savedPrefs);
+  const changedCount =
+    Number(prefs.emailOnCriticalSupport !== savedPrefs.emailOnCriticalSupport) +
+    Number(prefs.emailOnNewTenant !== savedPrefs.emailOnNewTenant) +
+    Number(prefs.emailDigestHours !== savedPrefs.emailDigestHours) +
+    Number(prefs.channels.in_app !== savedPrefs.channels.in_app) +
+    Number(prefs.channels.email !== savedPrefs.channels.email);
+
+  if (loading) return <Spinner label="Loading preferences" />;
+
+  const rows = [
+    ["emailOnCriticalSupport", "Email on critical support tickets", "Sent as soon as a critical ticket is opened."],
+    ["emailOnNewTenant", "Email when a new tenant is created", "Includes the tenant name and first admin."],
+    ["channels.in_app", "In-app notifications", "Shown in the notifications panel in the sidebar."],
+    ["channels.email", "Email channel", "Turn off to stop every operator email."],
+  ] as const;
+
+  function valueOf(key: (typeof rows)[number][0], source: Prefs) {
+    if (key === "channels.in_app") return source.channels.in_app;
+    if (key === "channels.email") return source.channels.email;
+    return source[key];
+  }
+
+  function setValue(key: (typeof rows)[number][0], value: boolean) {
+    if (key === "channels.in_app") {
+      setPrefs((p) => ({ ...p, channels: { ...p.channels, in_app: value } }));
+    } else if (key === "channels.email") {
+      setPrefs((p) => ({ ...p, channels: { ...p.channels, email: value } }));
+    } else {
+      setPrefs((p) => ({ ...p, [key]: value }));
+    }
   }
 
   return (
-    <div className="max-w-xl border border-[#E2DFD9] bg-white p-5">
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div>
-          <h2 className="font-display text-lg font-bold text-[#0D0E12]">Operator notifications</h2>
-          <p className="mt-1 text-sm text-[#6B6860]">
-            How you get notified about platform events. Applies to your Super Admin account.
-          </p>
-        </div>
-        <Button disabled={saving} onClick={() => void save()} type="button">
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          Save
-        </Button>
-      </div>
-
-      <div className="space-y-3 text-sm">
-        {(
-          [
-            ["emailOnCriticalSupport", "Email on critical support tickets"],
-            ["emailOnNewTenant", "Email when a new tenant is created"],
-            ["channels.in_app", "In-app notifications"],
-            ["channels.email", "Email channel enabled"],
-          ] as const
-        ).map(([key, label]) => {
-          const checked =
-            key === "channels.in_app"
-              ? prefs.channels.in_app
-              : key === "channels.email"
-                ? prefs.channels.email
-                : prefs[key as "emailOnCriticalSupport" | "emailOnNewTenant"];
-          return (
-            <label className="flex items-center gap-2.5" key={key}>
-              <input
-                checked={checked}
-                onChange={(event) => {
-                  const value = event.target.checked;
-                  if (key === "channels.in_app") {
-                    setPrefs((p) => ({ ...p, channels: { ...p.channels, in_app: value } }));
-                  } else if (key === "channels.email") {
-                    setPrefs((p) => ({ ...p, channels: { ...p.channels, email: value } }));
-                  } else {
-                    setPrefs((p) => ({ ...p, [key]: value }));
-                  }
-                }}
-                type="checkbox"
-              />
-              <span className="text-[#3D3C38]">{label}</span>
+    <div>
+      <LineCard className="max-w-3xl" meta="Your super admin account" title="Operator notifications">
+        <ul>
+          {rows.map(([key, label, hint]) => {
+            const checked = valueOf(key, prefs);
+            const changed = checked !== valueOf(key, savedPrefs);
+            return (
+              <li
+                className={`flex items-center justify-between gap-4 border-b border-divider px-5 py-3.5 ${changed ? "bg-signal-soft shadow-[inset_3px_0_0_var(--color-signal)]" : ""}`}
+                key={key}
+              >
+                <div className="min-w-0">
+                  <p className="text-[15px] font-bold text-ink">{label}</p>
+                  <p className="text-[13px] text-muted">{hint}</p>
+                </div>
+                <Toggle changed={changed} checked={checked} label={label} onChange={(value) => setValue(key, value)} />
+              </li>
+            );
+          })}
+          <li className="px-5 py-4">
+            <label className={FIELD_LABEL} htmlFor={digestId}>
+              Digest interval (hours)
             </label>
-          );
-        })}
+            <Input
+              className="w-32"
+              id={digestId}
+              max={168}
+              min={1}
+              onChange={(event) =>
+                setPrefs((p) => ({ ...p, emailDigestHours: Number(event.target.value) || 24 }))
+              }
+              type="number"
+              value={prefs.emailDigestHours}
+            />
+            <p className={FIELD_HINT}>Between 1 and 168 hours.</p>
+          </li>
+        </ul>
+      </LineCard>
 
-        <label className="block pt-2">
-          <span className="mb-1 block text-xs font-medium text-[#6B6860]">Digest interval (hours)</span>
-          <input
-            className="w-32 border border-[#E2DFD9] px-3 py-2"
-            min={1}
-            max={168}
-            onChange={(event) =>
-              setPrefs((p) => ({ ...p, emailDigestHours: Number(event.target.value) || 24 }))
-            }
-            type="number"
-            value={prefs.emailDigestHours}
-          />
-        </label>
-      </div>
+      <PlatformUnsavedBanner
+        count={changedCount}
+        onDiscard={() => setPrefs(savedPrefs)}
+        onSave={() => void save()}
+        saving={saving}
+        show={dirty}
+        summary="Operator notifications"
+      />
     </div>
   );
 }

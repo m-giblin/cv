@@ -30,38 +30,41 @@ export function ObjectionPracticePanel({
  solutionFocus,
  });
 
- return (
- <aside className="flex h-full min-h-0 flex-col border border-sp-blue/15 bg-white ">
- <header className="flex shrink-0 items-start justify-between gap-3 border-b border-sp-blue/10 px-4 py-4">
- <div className="min-w-0">
- <p className="text-xs font-bold uppercase tracking-wide text-sp-magenta">Practice this objection</p>
- <p className="mt-1 text-sm font-semibold text-sp-navy">{accountName}</p>
- <p className="mt-2 bg-sp-blue-soft/30 px-3 py-2 text-sm leading-snug text-sp-navy-muted">
- &ldquo;{objection}&rdquo;
- </p>
- <p className="mt-2 text-xs text-sp-navy-muted">
- Your prep brief stays in the center — scroll it while you practice here.
- </p>
- </div>
- <button
- aria-label="Close practice"
- className="shrink-0 p-2 text-sp-navy-muted transition hover:bg-sp-blue-soft/40 hover:text-sp-navy"
- onClick={onClose}
- type="button"
- >
- <X className="h-5 w-5" />
- </button>
- </header>
+  return (
+    <aside
+      aria-label="Objection practice"
+      className="flex min-h-0 flex-col rounded-[14px] border border-line bg-white"
+    >
+      <header className="flex shrink-0 items-start justify-between gap-3 border-b border-divider px-5 py-4">
+        <div className="flex min-w-0 flex-col gap-2">
+          <span className="label-caps label-caps--blue">Practice this objection</span>
+          <h2 className="text-base font-bold text-ink">{accountName}</h2>
+          <blockquote className="rounded-[10px] bg-blue-soft px-3 py-2 text-[15px] leading-[1.5] text-ink">
+            &ldquo;{objection}&rdquo;
+          </blockquote>
+          <p className="text-[13px] leading-[1.45] text-muted">
+            Your prep brief stays open alongside, so you can scroll it while you practice.
+          </p>
+        </div>
+        <button
+          aria-label="Close practice"
+          className="shrink-0 rounded-full p-2 text-muted transition hover:bg-blue-soft hover:text-ink"
+          onClick={onClose}
+          type="button"
+        >
+          <X aria-hidden className="h-4 w-4" />
+        </button>
+      </header>
 
- <div className="min-h-0 flex-1 overflow-y-auto p-4">
- <SimulationWorkspace
- assignment={assignment}
- key={`${objection}-${accountName}`}
- onClose={onClose}
- userLevel={userLevel as "Basic" | "Senior" | "Advisory"}
- variant="embedded"
- />
- </div>
- </aside>
- );
+      <div className="min-h-0 flex-1 overflow-y-auto p-4">
+        <SimulationWorkspace
+          assignment={assignment}
+          key={`${objection}-${accountName}`}
+          onClose={onClose}
+          userLevel={userLevel as "Basic" | "Senior" | "Advisory"}
+          variant="embedded"
+        />
+      </div>
+    </aside>
+  );
 }

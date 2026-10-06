@@ -16,3 +16,16 @@ pnpm-debug.log*
 design_handoff_se*/
 *.zip
 *.bak
+
+# local smoke-test scratch (contains TOTP secrets and env backups)
+.smoke/
+
+# design handoffs and archives are local reference only
+Design Archive/
+design_handoff_*/
+
+# local-only files (secrets, audit notes, agent config)
+.claude/
+.env.local.local-stack
+Security Audit Findings.xlsx
+Smoke Tests 101.md

@@ -4,13 +4,14 @@ import type { GoalTag } from "@/components/manager/development-plans/types";
 import { currentQuarter } from "@/lib/development/plan-utils";
 import type { CoachingCard, DevelopmentGoal, DevelopmentPlan, GoalQuarter, UserPlan } from "@/lib/types";
 
+/** Kept for the DevGoal shape; v3 renders no glyphs, so this is a plain word. */
 const EVIDENCE_ICON: Record<DevelopmentGoal["evidenceType"], string> = {
-  demo_recording: "🎬",
-  customer_reference: "🤝",
-  certification: "🏆",
-  deal_support: "💼",
-  shadow_notes: "👥",
-  other: "🎯",
+  demo_recording: "recording",
+  customer_reference: "reference",
+  certification: "certification",
+  deal_support: "deal",
+  shadow_notes: "shadow",
+  other: "other",
 };
 
 const STATUS_TAG: Record<DevelopmentGoal["overallStatus"], GoalTag> = {
@@ -78,16 +79,16 @@ function developmentGoalToDevGoal(goal: DevelopmentGoal, planYear: number): DevG
     icon: EVIDENCE_ICON[goal.evidenceType],
     title: goal.title,
     quarter: goalQuarterLabel(goal, planYear),
-    source: "Manager · Annual plan",
+    source: "From your manager's annual plan",
     progress,
     tag,
     tagBg: tagStyle.bg,
     tagColor: tagStyle.color,
     progressColor,
     dueDate: goalDueDate(goal),
-    dueDateColor: overdue ? "#B83128" : "#6B6860",
-    bg: overdue ? "#FFF8F7" : "#FAFAF8",
-    borderColor: overdue ? "rgba(184,49,40,.2)" : "#EEECE8",
+    dueDateColor: overdue ? "#B42318" : "#4A5878",
+    bg: overdue ? "#FCEBEA" : "#FFFFFF",
+    borderColor: overdue ? "#B42318" : "#D6DCE8",
     milestones: goal.quarterlyReviews.map((review) => ({
       label: `${review.quarter} checkpoint`,
       date: formatShortDate(review.dueDate),
@@ -116,9 +117,9 @@ function quarterSummariesFromPlan(plan: DevelopmentPlan): QuarterSummary[] {
         label,
         summary: isFuture ? "Not scheduled" : "No goals this quarter",
         needsAction: false,
-        bg: "#fff",
-        border: "#F0EFEB",
-        labelColor: "#A09D98",
+        bg: "#FFFFFF",
+        border: "#D6DCE8",
+        labelColor: "#4A5878",
       };
     }
 
@@ -127,7 +128,7 @@ function quarterSummariesFromPlan(plan: DevelopmentPlan): QuarterSummary[] {
     const inProgress = reviews.some((review) => review.status === "on_track" || review.status === "not_started");
     const isCurrent = label === nowQuarter;
 
-    let summary = `${done}/${reviews.length} checkpoints complete`;
+    let summary = `${done} of ${reviews.length} checkpoints complete`;
     if (overdue) {
       summary = "Action needed on quarterly reviews";
     } else if (inProgress && isCurrent) {
@@ -138,9 +139,9 @@ function quarterSummariesFromPlan(plan: DevelopmentPlan): QuarterSummary[] {
       label,
       summary,
       needsAction: overdue,
-      bg: overdue ? "#FFFAF5" : isCurrent ? "#F0F7FF" : "#fff",
-      border: overdue ? "rgba(212,129,10,.2)" : isCurrent ? "rgba(0,113,206,.15)" : "#F0EFEB",
-      labelColor: overdue ? "#D4810A" : isCurrent ? "#0071CE" : "#A09D98",
+      bg: overdue ? "#FBF1DF" : isCurrent ? "#E5ECFA" : "#FFFFFF",
+      border: overdue ? "#8A5300" : isCurrent ? "#3A62C0" : "#D6DCE8",
+      labelColor: overdue ? "#8A5300" : isCurrent ? "#0033A1" : "#4A5878",
     };
   });
 }
@@ -154,10 +155,10 @@ export function buildGrowthPlanSignals(params: {
 
   if (userPlan) {
     signals.push({
-      icon: "📋",
+      icon: userPlan.progress >= 35 ? "up" : "down",
       label: "Ramp progress",
       value: `${userPlan.progress}%`,
-      color: userPlan.progress >= 35 ? "#0A6E45" : "#B83128",
+      color: userPlan.progress >= 35 ? "#12703F" : "#B42318",
       detail: userPlan.name,
     });
   }
@@ -167,22 +168,22 @@ export function buildGrowthPlanSignals(params: {
     const latest = scored[0]?.score ?? 0;
     const earliest = scored.at(-1)?.score ?? latest;
     const delta = latest - earliest;
-    const trend = delta >= 0 ? `(↑${delta} pts)` : `(↓${Math.abs(delta)} pts)`;
+    const trend = delta >= 0 ? `up ${delta}` : `down ${Math.abs(delta)}`;
     signals.push({
-      icon: delta >= 0 ? "📈" : "📉",
+      icon: delta >= 0 ? "up" : "down",
       label: "Sim trend",
-      value: `${earliest}→${latest} ${trend}`,
-      color: delta >= 0 ? "#0A6E45" : "#B83128",
+      value: `${earliest} to ${latest}, ${trend}`,
+      color: delta >= 0 ? "#12703F" : "#B42318",
       detail: `Across ${scored.length} scored session${scored.length === 1 ? "" : "s"}`,
     });
   }
 
   if (coachingCards.length > 0 && coachingCards[0]?.gaps?.length) {
     signals.push({
-      icon: "🎯",
+      icon: "gap",
       label: "Top gap",
-      value: coachingCards[0].gaps[0] ?? "—",
-      color: "#D4810A",
+      value: coachingCards[0].gaps[0] ?? "None noted",
+      color: "#8A5300",
       detail: "From your latest coaching card",
     });
   }

@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChallengesWorkspaceBar } from "@/components/challenges/challenges-workspace-bar";
 import { ChallengesPortal } from "@/components/challenges/challenges-portal";
+import { ChallengesWorkspaceBar } from "@/components/challenges/challenges-workspace-bar";
+import { PracticeToolPage } from "@/components/practice/practice-tool-page";
 import type { AccessTier } from "@/lib/auth/rbac";
 import type { GapChallengeRecommendation } from "@/lib/challenges/gap-recommendations";
 import type { Challenge, ChallengeSubmission } from "@/lib/types";
@@ -26,7 +27,7 @@ export function ChallengesShell({
   showGenerator: boolean;
   gapRecommendations: GapChallengeRecommendation[];
 }) {
-  const backHref = tier === "se" ? "/dashboard" : "/my-practice";
+  const backHref = "/practice";
   const [showHelp, setShowHelp] = useState(false);
 
   const stats = useMemo(() => {
@@ -43,7 +44,7 @@ export function ChallengesShell({
   }, [challenges.length, submissions]);
 
   return (
-    <div className="flex min-h-[calc(100vh-44px)] flex-col bg-[#F5F4F0]">
+    <PracticeToolPage subtitle="Hands-on work, reviewed by your manager." testMode={testMode} title="Challenges">
       <ChallengesWorkspaceBar
         backHref={backHref}
         onToggleHelp={() => setShowHelp((open) => !open)}
@@ -54,10 +55,10 @@ export function ChallengesShell({
         tier={tier}
       />
       {showHelp ? (
-        <div className="shrink-0 border-b border-[#0071CE]/15 bg-[#EEF4FF]/60 px-5 py-2.5 text-[11px] leading-relaxed text-[#3D3C38]">
+        <p className="rounded-[10px] bg-blue-soft px-4 py-3 text-sm leading-[1.5] text-ink-2" id="challenges-help">
           Browse curated field scenarios, upload evidence, and submit for manager review. Challenges
           matching your competency gaps are sorted first.
-        </div>
+        </p>
       ) : null}
       <ChallengesPortal
         challenges={challenges}
@@ -68,6 +69,6 @@ export function ChallengesShell({
         submissions={submissions}
         tier={tier === "admin" || tier === "manager" || tier === "se" ? tier : "admin"}
       />
-    </div>
+    </PracticeToolPage>
   );
 }

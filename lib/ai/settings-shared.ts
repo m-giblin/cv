@@ -14,9 +14,12 @@ export type AiUsageSummary = {
   requestsToday: number;
   tokens30d: number;
   tokensToday: number;
+  /** Estimated USD at list price (see AI_PRICES_PER_MILLION). */
+  cost30d: number;
+  costToday: number;
   model: string;
   provider: AiProviderName;
-  byFeature: { feature: string; label: string; count: number; tokens: number }[];
+  byFeature: { feature: string; label: string; count: number; tokens: number; cost: number }[];
 };
 
 export function formatTokenCount(tokens: number): string {

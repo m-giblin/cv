@@ -1,10 +1,8 @@
 "use client";
 
-import { Loader2, Save, StickyNote } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 
 export function MentorCoachingNotesEditor({ seUserId }: { seUserId: string }) {
   const [notes, setNotes] = useState("");
@@ -48,38 +46,44 @@ export function MentorCoachingNotesEditor({ seUserId }: { seUserId: string }) {
     }
 
     setSavedNotes(notes);
-    toast.success("Mentor notes saved — visible to the SE's manager.");
+    toast.success("Mentor notes saved. The SE's manager can see them.");
   }
 
   return (
-    <section className="border border-[#E2DFD9] bg-[#F9F8F6] p-4">
+    <section className="rounded-[14px] border border-line bg-white p-4">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="flex items-center gap-2 text-sm font-bold text-[#0D0E12]">
-          <StickyNote className="h-4 w-4 text-[#5b21b6]" />
-          Mentor coaching notes
-        </h3>
+        <h3 className="text-[15px] font-bold text-ink">Mentor coaching notes</h3>
         {isDirty ? (
-          <Button disabled={isSaving} onClick={() => void save()} size="sm">
-            {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-            Save
-          </Button>
+          <button
+            className="btn-secondary inline-flex items-center gap-1.5 disabled:opacity-50"
+            disabled={isSaving}
+            onClick={() => void save()}
+            type="button"
+          >
+            {isSaving ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
+            Save notes
+          </button>
         ) : null}
       </div>
-      <p className="mt-1 text-xs text-[#6B6860]">
-        Shared with the SE&apos;s hiring manager — observations, ramp risks, and coaching context.
+      <p className="mt-1 text-sm text-muted">
+        Shared with the SE&apos;s hiring manager: observations, ramp risks and coaching context.
       </p>
       {isLoading ? (
-        <div className="mt-3 flex justify-center py-4">
-          <Loader2 className="h-5 w-5 animate-spin text-[#5b21b6]" />
+        <div className="mt-3 flex justify-center py-4" role="status">
+          <Loader2 aria-hidden className="h-5 w-5 animate-spin text-blue" />
+          <span className="sr-only">Loading notes…</span>
         </div>
       ) : (
-        <Textarea
-          className="mt-3 bg-white"
-          onChange={(event) => setNotes(event.target.value)}
-          placeholder="Ramp observations, strengths to reinforce, areas needing manager attention…"
-          rows={4}
-          value={notes}
-        />
+        <label className="mt-3 block">
+          <span className="sr-only">Mentor coaching notes</span>
+          <textarea
+            className="w-full rounded-[10px] border border-line-strong bg-white px-3 py-2 text-[15px] text-ink"
+            onChange={(event) => setNotes(event.target.value)}
+            placeholder="Ramp observations, strengths to reinforce, areas needing manager attention"
+            rows={4}
+            value={notes}
+          />
+        </label>
       )}
     </section>
   );

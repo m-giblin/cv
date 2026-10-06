@@ -20,7 +20,7 @@ export const GENAI_VS_AGENTIC_MODULES: LearnModule[] = [
       "Risks: hallucination, data leakage, shadow AI tools",
       "SE talk track: GenAI assists humans; it is not an identity",
     ],
-    href: "/challenges",
+    href: "/practice/challenges",
   },
   {
     id: "agentic-ai",
@@ -34,7 +34,7 @@ export const GENAI_VS_AGENTIC_MODULES: LearnModule[] = [
       "AIS registers agents from AWS, Azure, GCP, Salesforce, Copilot Studio",
       "Zero Standing Privilege (ZSP) for high-risk agent permissions",
     ],
-    href: "/simulations",
+    href: "/practice/simulations",
   },
   {
     id: "ais-positioning",
@@ -52,7 +52,7 @@ export const GENAI_VS_AGENTIC_MODULES: LearnModule[] = [
       "e5000001-0005-4000-8000-000000000003",
       "e5000001-0005-4000-8000-000000000006",
     ],
-    href: "/challenges",
+    href: "/practice/challenges",
   },
   {
     id: "customer-discovery",
@@ -65,7 +65,7 @@ export const GENAI_VS_AGENTIC_MODULES: LearnModule[] = [
       "Who is the human owner when an agent provisions access?",
       "What audit evidence exists for agent actions last quarter?",
     ],
-    href: "/market-pulse",
+    href: "/practice/quizzes",
   },
 ];
 

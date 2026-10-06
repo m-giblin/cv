@@ -1,19 +1,14 @@
 "use client";
 
-import {
- BookOpen,
- CheckCircle2,
- ExternalLink,
- FileUp,
- LayoutList,
- Search,
-} from "lucide-react";
+import { ExternalLink, Search } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { ChallengeSubmissionForm } from "@/components/challenges/submission-form";
-import { StatusBadge } from "@/components/status-badge";
-import { Button } from "@/components/ui/button";
+import { CARD_CLS, FIELD_CLS, LINE_CARD_CLS, SELECT_CLS } from "@/components/se/form-classes";
+import { Chip } from "@/components/ui/chip";
+import { StatusPill } from "@/components/ui/status-pill";
+import { Tag } from "@/components/ui/tag";
 import {
  type ChallengeFilter,
  filterChallenges,
@@ -27,7 +22,16 @@ import type { Challenge, ChallengeSubmission } from "@/lib/types";
 
 const ChallengeGenerator = dynamic(
  () => import("@/components/challenge-generator").then((mod) => mod.ChallengeGenerator),
- { loading: () => <div className="h-40 animate-pulse bg-stone-100" /> },
+ {
+ loading: () => (
+ <p
+ className="rounded-[14px] border border-dashed border-line-strong p-7 text-center text-[15px] text-muted"
+ role="status"
+ >
+ Loading generator...
+ </p>
+ ),
+ },
 );
 
 type PortalView = "browse" | "submissions" | "generate";
@@ -35,9 +39,9 @@ type PortalView = "browse" | "submissions" | "generate";
 const PAGE_SIZE = 12;
 
 const CHALLENGE_TIPS = [
- { label: "Discovery tip", color: "#0071ce", text: "Start with scope — how many identities, then how many of those are non-human?" },
- { label: "Agentic AI hook", color: "#7c3aed", text: '"Who is the human accountable when an agent provisions access?" — lands every time.' },
- { label: "Close with risk", color: "#ef4444", text: "Tie to their last audit. Evidence gap is the pain that creates urgency." },
+ { label: "Discovery tip", text: "Start with scope: how many identities, and how many of those are non-human?" },
+ { label: "Agentic AI hook", text: 'Ask "Who is the human accountable when an agent provisions access?" It lands every time.' },
+ { label: "Close with risk", text: "Tie to their last audit. Evidence gap is the pain that creates urgency." },
 ] as const;
 
 const VERTICALS = ["All verticals", "Enterprise", "SLED", "Healthcare", "Financial", "Federal"] as const;
@@ -91,53 +95,17 @@ function libraryStatus(submission?: ChallengeSubmission): LibraryStatus {
  return "Not started";
 }
 
-function statusDotColor(status: LibraryStatus) {
- if (status === "Approved") return "bg-emerald-500";
- if (status === "Submitted") return "bg-[#0071ce]";
- if (status === "In progress") return "bg-amber-400";
- if (status === "Redo requested") return "bg-red-500";
- return "bg-[#B0ADA8]";
-}
-
-function statusPillStyle(status: LibraryStatus): { background: string; color: string } {
- if (status === "Approved") return { background: "#dcfce7", color: "#166534" };
- if (status === "Submitted") return { background: "#ede9fe", color: "#5b21b6" };
- if (status === "In progress") return { background: "#dbeafe", color: "#1d4ed8" };
- if (status === "Redo requested") return { background: "#fee2e2", color: "#b91c1c" };
- return { background: "#ECEAE6", color: "#6B6860" };
+function StatusTag({ status }: { status: LibraryStatus }) {
+ if (status === "Approved") return <StatusPill tone="success">Approved</StatusPill>;
+ if (status === "Submitted") return <StatusPill tone="blue">Submitted</StatusPill>;
+ if (status === "In progress") return <StatusPill tone="blue">In progress</StatusPill>;
+ if (status === "Redo requested") return <StatusPill tone="danger">Redo requested</StatusPill>;
+ return <StatusPill tone="neutral">Not started</StatusPill>;
 }
 
 function primaryCompetency(challenge: Challenge) {
  const names = competencyNamesForChallenge(challenge);
  return names[0] ?? "General";
-}
-
-function difficultyPillStyle(difficulty: Challenge["difficulty"]) {
- if (difficulty === "advanced") return { background: "#ede9fe", color: "#5b21b6" };
- if (difficulty === "intermediate") return { background: "#fef3c7", color: "#b45309" };
- return { background: "#F5F4F0", color: "#6B6860" };
-}
-
-function levelPillStyle(level?: Challenge["targetLevel"]) {
- if (level === "Senior") return { background: "#e8f2fc", color: "#0057a8" };
- if (level === "Advisory") return { background: "#FFFBF0", color: "#D4810A" };
- return { background: "#ede9fe", color: "#5b21b6" };
-}
-
-function competencyBadgeTone(name: string) {
- const lower = name.toLowerCase();
- if (lower.includes("discovery")) return "bg-[#e8f2fc] text-[#0057a8]";
- if (lower.includes("objection")) return "bg-amber-50 text-amber-800";
- if (lower.includes("demo") || lower.includes("executive")) return "bg-violet-50 text-violet-800";
- return "bg-[#F5F4F0] text-[#3D3C38]";
-}
-
-function competencyPillClass(name: string) {
- const lower = name.toLowerCase();
- if (lower.includes("discovery") || lower.includes("governance")) return "bg-[#e8f2fc] text-[#0057a8]";
- if (lower.includes("workflow")) return "bg-[#F5F4F0] text-[#475569]";
- if (lower.includes("agent") || lower.includes("ai")) return "bg-[#EDE9FE] text-[#5b21b6]";
- return "bg-[#e8f2fc] text-[#0057a8]";
 }
 
 const FILTER_OPTIONS: { id: ChallengeFilter; label: string }[] = [
@@ -150,11 +118,26 @@ const FILTER_OPTIONS: { id: ChallengeFilter; label: string }[] = [
  { id: "done", label: "Earned" },
 ];
 
+const EMPTY_CLS =
+ "rounded-[14px] border border-dashed border-line-strong p-7 text-center text-[15px] text-muted";
+
 function SubmissionBadge({ submission }: { submission?: ChallengeSubmission }) {
  const statusInfo = libraryStatusLabel(submission);
  if (!statusInfo.status) return null;
- if (statusInfo.label) return <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-800">{statusInfo.label}</span>;
- return <StatusBadge status={statusInfo.status} />;
+ if (statusInfo.label) return <StatusPill tone="danger">{statusInfo.label}</StatusPill>;
+ switch (statusInfo.status) {
+ case "reviewed":
+ case "completed":
+ return <StatusPill tone="success">Reviewed</StatusPill>;
+ case "submitted":
+ return <StatusPill tone="blue">Submitted</StatusPill>;
+ case "under_review":
+ return <StatusPill tone="blue">Under review</StatusPill>;
+ case "in_progress":
+ return <StatusPill tone="blue">In progress</StatusPill>;
+ default:
+ return <StatusPill tone="neutral">Not started</StatusPill>;
+ }
 }
 
 export function ChallengesPortal({
@@ -356,7 +339,7 @@ export function ChallengesPortal({
  const params = new URLSearchParams(searchParams.toString());
  if (nextView === "browse") params.delete("view");
  else params.set("view", nextView);
- router.replace(`/challenges?${params.toString()}`, { scroll: false });
+ router.replace(`/practice/challenges?${params.toString()}`, { scroll: false });
  },
  [router, searchParams],
  );
@@ -366,7 +349,7 @@ export function ChallengesPortal({
  const params = new URLSearchParams(searchParams.toString());
  params.set("challenge", challengeId);
  if (view !== "browse") params.delete("view");
- router.replace(`/challenges?${params.toString()}`, { scroll: false });
+ router.replace(`/practice/challenges?${params.toString()}`, { scroll: false });
  },
  [router, searchParams, view],
  );
@@ -381,89 +364,98 @@ export function ChallengesPortal({
  }, [challenges.length, earnedTrophyChallengeIds.size, submissions]);
 
  return (
- <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+ <div className="flex min-w-0 flex-1 flex-col gap-5">
  {isFocused ? (
- <p className="shrink-0 border-b border-violet-200 bg-violet-50 px-5 py-2 text-xs font-semibold text-violet-900">
- Linked from your ramp plan — complete and submit when ready.
+ <p className="rounded-[12px] border border-dashed border-line-strong px-5 py-3 text-[15px] text-ink-2">
+ <span className="label-caps label-caps--blue mr-2">From your ramp</span>
+ Complete it and submit when you are ready.
  </p>
  ) : null}
 
  {view === "generate" ? (
- <div className="max-h-[min(72vh,900px)] overflow-y-auto p-4 lg:p-6">
+ <div className={`${LINE_CARD_CLS} p-5`}>
  <ChallengeGenerator showSave />
  </div>
  ) : view === "submissions" ? (
- <div className="max-h-[min(72vh,900px)] overflow-y-auto p-4 lg:p-6">
+ <div>
  {submissions.length === 0 ? (
- <div className="border border-dashed border-stone-300 px-6 py-12 text-center">
- <FileUp className="mx-auto h-8 w-8 text-stone-400" />
- <p className="mt-3 font-semibold text-stone-800">No submissions yet</p>
- <p className="mt-1 text-sm text-stone-500">Browse the library and submit your first challenge.</p>
- <Button className="mt-4" onClick={() => setView("browse")} type="button">
+ <div className={EMPTY_CLS}>
+ <p className="font-bold text-ink">No submissions yet</p>
+ <p className="mt-1">Browse the library and submit your first challenge.</p>
+ <button className="btn-primary mt-4" onClick={() => setView("browse")} type="button">
  Browse challenges
- </Button>
+ </button>
  </div>
  ) : (
- <div className="space-y-2">
+ <ul className={`${LINE_CARD_CLS} overflow-hidden`}>
  {submissions.map((submission) => {
  const challenge = challenges.find((c) => c.id === submission.challengeId);
  return (
+ <li className="border-b border-divider last:border-b-0" key={submission.id}>
  <button
- className="flex w-full items-center justify-between gap-4 border border-stone-200 px-4 py-3 text-left transition hover:border-[#0033a1]/30 hover:bg-[#e8f2fc]/30"
- key={submission.id}
+ className="flex w-full flex-wrap items-center justify-between gap-3 px-5 py-3.5 text-left hover:bg-blue-soft"
  onClick={() => {
  if (challenge) selectChallenge(challenge.id);
  setView("browse");
  }}
  type="button"
  >
- <div className="min-w-0">
- <p className="truncate font-semibold text-stone-900">{challenge?.title ?? "Challenge"}</p>
- <p className="text-xs text-stone-500">
+ <span className="min-w-0">
+ <span className="block truncate text-[15px] font-bold text-ink">{challenge?.title ?? "Challenge"}</span>
+ <span className="text-[13px] text-muted">
  {submission.submittedAt
  ? new Date(submission.submittedAt).toLocaleDateString()
  : "Draft"}
- </p>
- </div>
+ </span>
+ </span>
  <SubmissionBadge submission={submission} />
  </button>
+ </li>
  );
  })}
- </div>
+ </ul>
  )}
  </div>
  ) : (
- <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[380px_1fr]">
- <aside className="flex min-h-0 flex-col overflow-hidden border-b border-[#E2DFD9] bg-white lg:border-b-0 lg:border-r">
- <div className="shrink-0 border-b border-[#ECEAE6] px-3.5 py-2.5">
- <div className="mb-2 flex items-center gap-1.5 border border-[#E2DFD9] bg-[#F9F8F6] px-2.5 py-1.5">
- <Search className="h-2.5 w-2.5 shrink-0 text-[#B0ADA8]" strokeWidth={1.3} />
+ <div className="grid min-w-0 grid-cols-1 items-start gap-6 lg:grid-cols-[400px_minmax(0,1fr)]">
+ <aside aria-label="Challenge library" className={`${LINE_CARD_CLS} flex min-w-0 flex-col overflow-hidden`}>
+ <div className="flex flex-col gap-3 border-b border-divider px-5 py-4">
+ <div className="flex flex-col gap-1">
+ <label className="text-sm font-bold text-ink" htmlFor="challenge-search">
+ Search
+ </label>
+ <div className="relative">
+ <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
  <input
- className="min-w-0 flex-1 bg-transparent font-mono text-[10px] text-[#3D3C38] placeholder-[#B0ADA8] outline-none"
+ className={`${FIELD_CLS} pl-9`}
+ id="challenge-search"
  onChange={(e) => setQuery(e.target.value)}
  placeholder="Search challenges..."
+ type="search"
  value={query}
  />
  </div>
- <div className="mb-2 flex flex-wrap gap-1">
- {FILTER_OPTIONS.map((option) => (
- <button
- className={`px-2.5 py-0.5 text-[10px] font-semibold ${
- filter === option.id
- ? "border border-[#7c3aed] bg-[#7c3aed] text-white"
- : "border border-[#E2DFD9] bg-white text-[#6B6860]"
- }`}
- key={option.id}
- onClick={() => setFilter(option.id)}
- type="button"
- >
- {option.label}
- </button>
- ))}
  </div>
- <div className="grid grid-cols-2 gap-1 sm:grid-cols-4">
+ <div aria-label="Quick filters" className="flex flex-wrap gap-1.5" role="group">
+ {FILTER_OPTIONS.map((option) => (
+ <Chip active={filter === option.id} key={option.id} onClick={() => setFilter(option.id)}>
+ {option.label}
+ </Chip>
+ ))}
+ {gapRecommendations.length > 0 ? (
+ <Chip active={showGapsOnly} onClick={() => setShowGapsOnly((on) => !on)}>
+ My gaps only
+ </Chip>
+ ) : null}
+ </div>
+ <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+ <div className="flex flex-col gap-1">
+ <label className="text-sm font-bold text-ink" htmlFor="challenge-vertical">
+ Vertical
+ </label>
  <select
- className="cursor-pointer border border-[#E2DFD9] bg-white px-1.5 py-1 text-[9.5px] text-[#6B6860] outline-none"
+ className={SELECT_CLS}
+ id="challenge-vertical"
  onChange={(e) => setVerticalFilter(e.target.value as (typeof VERTICALS)[number])}
  value={verticalFilter}
  >
@@ -473,8 +465,14 @@ export function ChallengesPortal({
  </option>
  ))}
  </select>
+ </div>
+ <div className="flex flex-col gap-1">
+ <label className="text-sm font-bold text-ink" htmlFor="challenge-competency">
+ Competency
+ </label>
  <select
- className="cursor-pointer border border-[#E2DFD9] bg-white px-1.5 py-1 text-[9.5px] text-[#6B6860] outline-none"
+ className={SELECT_CLS}
+ id="challenge-competency"
  onChange={(e) => setCompetencyFilter(e.target.value as (typeof COMPETENCY_FILTERS)[number])}
  value={competencyFilter}
  >
@@ -484,8 +482,14 @@ export function ChallengesPortal({
  </option>
  ))}
  </select>
+ </div>
+ <div className="flex flex-col gap-1">
+ <label className="text-sm font-bold text-ink" htmlFor="challenge-status">
+ Status
+ </label>
  <select
- className="cursor-pointer border border-[#E2DFD9] bg-white px-1.5 py-1 text-[9.5px] text-[#6B6860] outline-none"
+ className={SELECT_CLS}
+ id="challenge-status"
  onChange={(e) => setStatusFilter(e.target.value as (typeof STATUS_FILTERS)[number])}
  value={statusFilter}
  >
@@ -495,8 +499,14 @@ export function ChallengesPortal({
  </option>
  ))}
  </select>
+ </div>
+ <div className="flex flex-col gap-1">
+ <label className="text-sm font-bold text-ink" htmlFor="challenge-sort">
+ Sort
+ </label>
  <select
- className="cursor-pointer border border-[#E2DFD9] bg-white px-1.5 py-1 text-[9.5px] text-[#6B6860] outline-none"
+ className={SELECT_CLS}
+ id="challenge-sort"
  onChange={(e) => setSortBy(e.target.value as (typeof SORT_OPTIONS)[number])}
  value={sortBy}
  >
@@ -508,25 +518,32 @@ export function ChallengesPortal({
  </select>
  </div>
  </div>
+ </div>
 
  {gapRecommendations.length > 0 ? (
- <div className="shrink-0 border-b border-[#ECEAE6] bg-[#F5F0FF] px-3.5 py-2">
- <p className="text-[11px] leading-relaxed text-[#3D3C38]">
- <strong className="text-[#0D0E12]">Gaps to close:</strong>{" "}
+ <div className="border-b border-divider bg-blue-soft px-5 py-3">
+ <p className="text-sm leading-[1.5] text-ink-2">
+ <strong className="text-ink">Gaps to close:</strong>{" "}
  {gapRecommendations
  .slice(0, 2)
  .map((item) => item.gapCompetency)
- .join(" and ")}{" "}
- — challenges sorted by your biggest gaps first
+ .join(" and ")}
+ . Challenges for your biggest gaps are sorted first.
  </p>
  </div>
  ) : null}
 
- <div className="min-h-0 flex-1 overflow-y-auto">
+ <p className="sr-only" role="status">
+ {filtered.length} challenges match
+ </p>
+
+ <div className="min-h-0 lg:max-h-[min(70vh,900px)] lg:overflow-y-auto">
  {filtered.length === 0 ? (
- <p className="px-4 py-8 text-center text-sm text-[#A09D98]">No matches.</p>
+ <p className="m-5 rounded-[14px] border border-dashed border-line-strong p-7 text-center text-[15px] text-muted">
+ No challenges match these filters.
+ </p>
  ) : (
- <div className="divide-y divide-[#F2F0EC]">
+ <ul>
  {visibleRows.map((challenge) => {
  const submission = submissionForChallenge(submissions, challenge.id);
  const status = libraryStatus(submission);
@@ -534,216 +551,160 @@ export function ChallengesPortal({
  const competency = primaryCompetency(challenge);
 
  return (
+ <li className="border-b border-divider last:border-b-0" key={challenge.id}>
  <button
- className={`w-full px-3.5 py-2.5 text-left transition ${
- isSelected ? "bg-[#F5F0FF]" : "hover:bg-[#F9F8F6]"
+ aria-current={isSelected ? "true" : undefined}
+ className={`flex w-full flex-col gap-1.5 px-5 py-3.5 text-left ${
+ isSelected ? "bg-blue-soft" : "hover:bg-surface-2"
  }`}
- key={challenge.id}
  onClick={() => selectChallenge(challenge.id)}
  type="button"
  >
- <div className="flex items-start gap-2">
- <span
- className={`mt-1 h-[7px] w-[7px] shrink-0 rounded-full ${statusDotColor(status)}`}
- />
- <div className="min-w-0 flex-1">
- <p className="mb-1 text-[11.5px] font-semibold leading-snug text-[#0D0E12]">
- {challenge.title}
- </p>
- <div className="flex flex-wrap items-center gap-1.5">
- <span className={`px-1.5 py-0.5 text-[10px] font-semibold ${competencyPillClass(competency)}`}>
- {competency}
+ <span className="text-[15px] font-bold leading-snug text-ink">{challenge.title}</span>
+ <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+ <StatusTag status={status} />
+ <span className="text-[13px] text-muted">
+ {competency}, about {challenge.estimatedMinutes} min
  </span>
- <span className="font-mono text-[8.5px] text-[#A09D98]">{challenge.estimatedMinutes} min</span>
- <span
- className="px-1.5 py-0.5 font-mono text-[8.5px] font-semibold"
- style={statusPillStyle(status)}
- >
- {status}
  </span>
- </div>
- </div>
- </div>
  </button>
+ </li>
  );
  })}
+ </ul>
+ )}
  {visibleCount < filtered.length ? (
- <div
- className={
- tier === "se"
- ? "border-t border-[#ECEAE6] px-[14px] py-[12px] text-center"
- : "p-3"
- }
- >
- {tier === "se" ? (
- <>
- <span className="text-[11.5px] text-[#A09D98]">
- Showing {visibleRows.length} of {filtered.length} challenges ·{" "}
- </span>
+ <div className="border-t border-divider px-5 py-3 text-center text-sm text-muted">
+ Showing {visibleRows.length} of {filtered.length}.{" "}
  <button
- className="text-[11.5px] font-semibold text-[#7c3aed]"
+ className="link"
  onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
  type="button"
- >
- Load more →
- </button>
- </>
- ) : (
- <Button
- className="w-full"
- onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
- type="button"
- variant="outline"
  >
  Load more ({filtered.length - visibleCount} remaining)
- </Button>
- )}
+ </button>
  </div>
  ) : null}
- </div>
- )}
  </div>
  </aside>
 
- <main className="min-h-[20rem] min-w-0 flex-1 overflow-y-auto bg-white lg:min-h-0">
+ <section aria-label="Challenge detail" className="min-w-0">
  {selectedChallenge ? (
- <div className="flex h-full flex-col overflow-hidden bg-white">
- <div className="h-[3px] shrink-0 bg-gradient-to-r from-[#5b21b6] to-[#7c3aed]" />
- <div className="flex-1 overflow-y-auto">
- <div className="border-b border-[#ECEAE6] px-5 py-4">
- <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
+ <article className={`${CARD_CLS} overflow-hidden`}>
+ <header className="border-b border-divider px-6 py-5">
+ <div className="mb-2 flex flex-wrap items-center gap-1.5">
  {selectedChallenge.targetLevel ? (
- <span
- className="px-2 py-0.5 text-[10px] font-bold"
- style={levelPillStyle(selectedChallenge.targetLevel)}
- >
- {selectedChallenge.targetLevel} SE
- </span>
+ <Tag tone="blue">{selectedChallenge.targetLevel} SE</Tag>
  ) : null}
- <span
- className="px-2 py-0.5 text-[10px] font-bold capitalize"
- style={difficultyPillStyle(selectedChallenge.difficulty)}
- >
- {selectedChallenge.difficulty}
- </span>
- <span
- className="px-2 py-0.5 text-[10px] font-bold"
- style={
- selectedChallenge.isAiGenerated
- ? { background: "#ede9fe", color: "#5b21b6" }
- : { background: "#dcfce7", color: "#166534" }
- }
- >
- {selectedChallenge.isAiGenerated ? "AI" : "Curated"}
- </span>
- <span
- className="px-2 py-0.5 text-[10px] font-bold"
- style={statusPillStyle(libraryStatus(selectedSubmission))}
- >
- {libraryStatus(selectedSubmission)}
- </span>
+ <Tag tone="neutral">{selectedChallenge.difficulty}</Tag>
+ <Tag tone="neutral">{selectedChallenge.isAiGenerated ? "AI" : "Curated"}</Tag>
+ <StatusTag status={libraryStatus(selectedSubmission)} />
  </div>
- <h2 className="font-display text-[19px] font-extrabold leading-tight tracking-[-0.02em] text-[#0D0E12]">
+ <h2 className="text-2xl font-extrabold leading-[1.15] tracking-[-0.015em] text-ink">
  {selectedChallenge.title}
  </h2>
- <p className="mt-1 font-mono text-[9.5px] text-[#A09D98]">
- {selectedChallenge.estimatedMinutes} min · {selectedChallenge.steps.length} steps
+ <p className="mt-1.5 text-[13px] text-muted">
+ About {selectedChallenge.estimatedMinutes} min, {selectedChallenge.steps.length} steps
  </p>
- <div className="mt-2 flex flex-wrap gap-1">
+ <div className="mt-2.5 flex flex-wrap gap-1.5">
  {competencyNamesForChallenge(selectedChallenge).map((name) => (
- <span className={`px-2 py-0.5 text-[10px] font-semibold ${competencyPillClass(name)}`} key={name}>
+ <Tag key={name} tone="neutral">
  {name}
- </span>
+ </Tag>
  ))}
  </div>
- </div>
+ </header>
 
- <div className="flex flex-col gap-3.5 px-5 py-4">
+ <div className="flex flex-col gap-6 px-6 py-5">
  {detailLoading ? (
- <div className="space-y-3">
- <div className="h-4 w-2/3 animate-pulse bg-[#ECEAE6]" />
- <div className="h-20 animate-pulse bg-[#F9F8F6]" />
- </div>
+ <p className={EMPTY_CLS} role="status">
+ Loading challenge details...
+ </p>
  ) : (
  <>
- <section className="bg-[#faf8ff] px-4 py-3">
- <h3 className="mb-1.5 font-mono text-[8px] uppercase tracking-[0.14em] text-[#5b21b6]">Scenario</h3>
- <p className="text-xs leading-relaxed text-[#3D3C38]">{selectedChallenge.description}</p>
+ <section>
+ <h3 className="text-[15px] font-bold text-ink">Scenario</h3>
+ <p className="mt-1.5 text-[15px] leading-[1.5] text-ink-2">{selectedChallenge.description}</p>
  </section>
 
- <section className="overflow-hidden border border-[#E2DFD9]">
- <div className="flex items-center justify-between bg-[#F9F8F6] px-3.5 py-2">
- <span className="font-mono text-[8px] uppercase tracking-[0.14em] text-[#5b21b6]">
- Coach tips (3)
- </span>
- </div>
- <div className="grid gap-2 p-2.5 sm:grid-cols-3">
+ <section>
+ <h3 className="text-[15px] font-bold text-ink">Coach tips</h3>
+ <ul className="mt-2 grid gap-3 sm:grid-cols-3">
  {CHALLENGE_TIPS.map((tip) => (
- <div className="border border-[#E2DFD9] bg-white px-2.5 py-2" key={tip.label}>
- <p className="mb-0.5 font-mono text-[8px] font-semibold tracking-[0.04em]" style={{ color: tip.color }}>
- {tip.label}
- </p>
- <p className="text-[10.5px] leading-relaxed text-[#6B6860]">{tip.text}</p>
- </div>
+ <li className={`${LINE_CARD_CLS} px-4 py-3`} key={tip.label}>
+ <p className="text-[13px] font-semibold text-blue">{tip.label}</p>
+ <p className="mt-1 text-sm leading-[1.5] text-ink-2">{tip.text}</p>
+ </li>
  ))}
- </div>
+ </ul>
  </section>
 
  {selectedChallenge.steps.length > 0 ? (
  <section>
- <h3 className="mb-2 font-mono text-[8px] uppercase tracking-[0.14em] text-[#0033A1]">Steps</h3>
+ <h3 className="text-[15px] font-bold text-ink">Steps</h3>
+ <ol className="mt-2 flex flex-col gap-2.5">
  {selectedChallenge.steps.map((step, index) => (
- <div className="mb-2 flex items-start gap-2.5" key={index}>
- <div className="flex h-5 w-5 shrink-0 items-center justify-center bg-[#EEF4FF] font-mono text-[9px] font-semibold text-[#0033A1]">
+ <li className="flex items-start gap-3" key={index}>
+ <span
+ aria-hidden="true"
+ className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-soft text-[13px] font-bold text-blue"
+ >
  {index + 1}
- </div>
- <p className="pt-0.5 text-xs leading-relaxed text-[#3D3C38]">{step}</p>
- </div>
+ </span>
+ <span className="sr-only">Step {index + 1}: </span>
+ <p className="pt-0.5 text-[15px] leading-[1.5] text-ink-2">{step}</p>
+ </li>
  ))}
+ </ol>
  </section>
  ) : null}
 
  {selectedChallenge.successCriteria.length > 0 ? (
  <section>
- <h3 className="mb-2 font-mono text-[8px] uppercase tracking-[0.14em] text-[#0033A1]">
- Success criteria
- </h3>
+ <h3 className="text-[15px] font-bold text-ink">Success criteria</h3>
+ <ul className="mt-2 flex flex-col gap-1.5">
  {selectedChallenge.successCriteria.map((criterion) => (
- <div className="mb-1.5 flex items-start gap-2" key={criterion}>
- <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#0A6E45]" strokeWidth={1.5} />
- <span className="text-xs leading-relaxed text-[#3D3C38]">{criterion}</span>
- </div>
+ <li className="flex items-start gap-2" key={criterion}>
+ <span aria-hidden="true" className="mt-[7px] block h-2.5 w-1.5 shrink-0 rotate-45 border-r-2 border-b-2 border-success" />
+ <span className="text-[15px] leading-[1.5] text-ink-2">{criterion}</span>
+ </li>
  ))}
+ </ul>
  </section>
  ) : null}
 
  {selectedChallenge.linkedResources.length > 0 ? (
  <section>
- <h3 className="mb-2 font-mono text-[8px] uppercase tracking-[0.14em] text-[#0033A1]">Resources</h3>
+ <h3 className="text-[15px] font-bold text-ink">Resources</h3>
+ <ul className="mt-2 flex flex-col gap-1.5">
  {selectedChallenge.linkedResources.map((resource) => (
+ <li key={resource}>
  <a
- className="flex items-center gap-1.5 border border-[#E2DFD9] bg-[#F9F8F6] px-2.5 py-1.5 text-[11.5px] text-[#0033A1] hover:bg-[#EEF4FF]"
+ className="link inline-flex items-center gap-1.5 text-sm"
  href={resource}
- key={resource}
  rel="noreferrer"
  target="_blank"
  >
- <BookOpen className="h-2.5 w-2.5" />
  {resource.replace(/^https?:\/\//, "").slice(0, 64)}
- <ExternalLink className="ml-auto h-2.5 w-2.5" />
+ <ExternalLink aria-hidden="true" className="h-4 w-4" />
+ <span className="sr-only">(opens in a new tab)</span>
  </a>
+ </li>
  ))}
+ </ul>
  </section>
  ) : null}
 
  {selectedSubmission?.managerFeedback ? (
- <section className="border border-amber-200 bg-amber-50 px-4 py-3">
- <h3 className="text-[10px] font-bold uppercase text-amber-900">Manager feedback</h3>
- <p className="mt-1.5 text-xs leading-relaxed text-amber-950">{selectedSubmission.managerFeedback}</p>
+ <section className="rounded-[14px] bg-warning-soft px-4 py-3">
+ <h3 className="text-[13px] font-semibold text-warning">
+ Manager feedback
+ </h3>
+ <p className="mt-1.5 text-[15px] leading-[1.5] text-ink">{selectedSubmission.managerFeedback}</p>
  </section>
  ) : null}
 
- <div className="mx-0 mb-5" id="challenge-submit">
+ <div id="challenge-submit">
  <ChallengeSubmissionForm
  challengeId={selectedChallenge.id}
  defaultReflection={selectedDraftText}
@@ -753,20 +714,14 @@ export function ChallengesPortal({
  </>
  )}
  </div>
- </div>
- </div>
+ </article>
  ) : (
- <div className="flex h-full items-center justify-center p-8 text-center">
- <div>
- <LayoutList className="mx-auto h-10 w-10 text-stone-300" />
- <p className="mt-3 font-semibold text-stone-700">Select a challenge</p>
- <p className="mt-1 text-sm text-stone-500">
- Use the list on the left to browse {stats.total} options.
- </p>
- </div>
+ <div className={EMPTY_CLS}>
+ <p className="font-bold text-ink">Select a challenge</p>
+ <p className="mt-1">Use the list to browse {stats.total} options.</p>
  </div>
  )}
- </main>
+ </section>
  </div>
  )}
  </div>

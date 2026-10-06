@@ -1,10 +1,34 @@
 "use client";
 
-import { Loader2, MessageCircleQuestion, Send } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import type { SupportRequest, SupportPriority } from "@/lib/tenant/types";
+import {
+ EmptyState,
+ Field,
+ LineCard,
+ LoadingState,
+ Meta,
+ SelectInput,
+ TextArea,
+ TextInput,
+} from "@/components/admin/admin-ui";
+import { StatusPill, type StatusTone } from "@/components/ui/status-pill";
+import type { SupportRequest, SupportPriority, SupportStatus } from "@/lib/tenant/types";
+
+const STATUS_TAG: Record<SupportStatus, { tone: StatusTone; label: string }> = {
+ open: { tone: "blue", label: "Open" },
+ in_progress: { tone: "warning", label: "In progress" },
+ resolved: { tone: "success", label: "Resolved" },
+ closed: { tone: "neutral", label: "Closed" },
+};
+
+function formatDay(value: string) {
+ const date = new Date(value);
+ if (Number.isNaN(date.getTime())) return "—";
+ const options: Intl.DateTimeFormatOptions = { weekday: "short", month: "short", day: "numeric" };
+ if (date.getFullYear() !== new Date().getFullYear()) options.year = "numeric";
+ return date.toLocaleDateString("en-US", options);
+}
 
 export function AdminHelpPanel() {
  const [tickets, setTickets] = useState<SupportRequest[]>([]);
@@ -33,7 +57,7 @@ export function AdminHelpPanel() {
  async function handleSubmit(event: React.FormEvent) {
  event.preventDefault();
  if (!subject.trim() || body.trim().length < 10) {
- toast.error("Subject and a detailed message (10+ chars) are required.");
+ toast.error("Add a subject and a message of at least 10 characters.");
  return;
  }
  setSubmitting(true);
@@ -61,40 +85,22 @@ export function AdminHelpPanel() {
  }
 
  if (loading) {
- return (
- <div className="flex justify-center py-12">
- <Loader2 className="h-6 w-6 animate-spin text-[#0033a1]" />
- </div>
- );
+ return <LoadingState label="Loading support requests…" />;
  }
 
  return (
- <div className="max-w-3xl space-y-6">
- <div>
- <h2 className="font-display text-[20px] font-extrabold text-[#0D0E12]">Help & support</h2>
- <p className="mt-1 text-[12px] text-[#6B6860]">
- Contact the platform operator for entitlements, integrations, or access issues.
+ <div className="flex max-w-3xl flex-col gap-6">
+ <LineCard title="New request">
+ <p className="mb-4 text-sm text-muted">
+ Contact the platform operator about entitlements, integrations or access issues.
  </p>
- </div>
-
- <form className="border border-[#E2DFD9] bg-white p-[18px_22px] " onSubmit={(e) => void handleSubmit(e)}>
- <div className="mb-3 flex items-center gap-2">
- <MessageCircleQuestion className="h-4 w-4 text-[#0033a1]" />
- <h3 className="text-[14px] font-bold text-[#0D0E12]">New request</h3>
- </div>
- <div className="space-y-3">
- <label className="block text-sm">
- <span className="mb-1 block font-medium text-[#3D3C38]">Subject</span>
- <input
- className="w-full border border-[#E2DFD9] px-3 py-2"
- onChange={(e) => setSubject(e.target.value)}
- value={subject}
- />
- </label>
- <label className="block text-sm">
- <span className="mb-1 block font-medium text-[#3D3C38]">Priority</span>
- <select
- className="w-full border border-[#E2DFD9] px-3 py-2"
+ <form className="flex flex-col gap-4" onSubmit={(e) => void handleSubmit(e)}>
+ <Field htmlFor="support-subject" label="Subject">
+ <TextInput id="support-subject" onChange={(e) => setSubject(e.target.value)} value={subject} />
+ </Field>
+ <Field htmlFor="support-priority" label="Priority">
+ <SelectInput
+ id="support-priority"
  onChange={(e) => setPriority(e.target.value as SupportPriority)}
  value={priority}
  >
@@ -102,44 +108,53 @@ export function AdminHelpPanel() {
  <option value="medium">Medium</option>
  <option value="high">High</option>
  <option value="critical">Critical</option>
- </select>
- </label>
- <label className="block text-sm">
- <span className="mb-1 block font-medium text-[#3D3C38]">Message</span>
- <textarea
- className="min-h-[120px] w-full border border-[#E2DFD9] px-3 py-2"
+ </SelectInput>
+ </Field>
+ <Field htmlFor="support-message" label="Message">
+ <TextArea
+ className="min-h-[120px]"
+ id="support-message"
  onChange={(e) => setBody(e.target.value)}
- placeholder="Describe what you need help with..."
+ placeholder="Describe what you need help with"
  value={body}
  />
- </label>
+ </Field>
+ <div>
+ <button className="btn-primary" disabled={submitting} type="submit">
+ {submitting ? "Submitting…" : "Submit request"}
+ </button>
  </div>
- <Button className="mt-4" disabled={submitting} type="submit">
- {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
- Submit request
- </Button>
  </form>
+ </LineCard>
 
- <div className="border border-[#E2DFD9] bg-white p-[18px_22px] ">
- <h3 className="mb-3 text-[14px] font-bold text-[#0D0E12]">Your requests</h3>
+ <LineCard bodyClassName="p-0" meta={tickets.length > 0 ? `${tickets.length} in total` : undefined} title="Your requests">
  {tickets.length === 0 ? (
- <p className="text-[12px] text-[#6B6860]">No support requests yet.</p>
+ <EmptyState>No support requests yet.</EmptyState>
  ) : (
- <div className="space-y-2">
- {tickets.map((ticket) => (
- <div className="border border-[#ECEAE6] px-3 py-2" key={ticket.id}>
- <p className="text-[12px] font-semibold text-[#3D3C38]">{ticket.subject}</p>
- <p className="text-[10.5px] text-[#A09D98]">
- {ticket.status.replace("_", " ")} · {ticket.priority} · {new Date(ticket.createdAt).toLocaleDateString()}
- </p>
+ <ul>
+ {tickets.map((ticket) => {
+ const status = STATUS_TAG[ticket.status] ?? STATUS_TAG.open;
+ return (
+ <li className="border-b border-divider px-5 py-3.5 last:border-b-0" key={ticket.id}>
+ <div className="flex flex-wrap items-center justify-between gap-3">
+ <p className="text-[15px] font-bold text-ink">{ticket.subject}</p>
+ <StatusPill tone={status.tone}>{status.label}</StatusPill>
+ </div>
+ <Meta className="mt-1 block text-muted">
+ {ticket.priority.charAt(0).toUpperCase() + ticket.priority.slice(1)} priority, opened {formatDay(ticket.createdAt)}
+ </Meta>
  {ticket.operatorReply ? (
- <p className="mt-2 rounded bg-[#f0f7ff] px-2 py-1 text-[11px] text-[#0D0E12]">{ticket.operatorReply}</p>
+ <div className="mt-2.5 rounded-[10px] bg-blue-soft px-3.5 py-2.5 text-sm text-ink">
+ <p className="label-caps label-caps--blue mb-1">Reply from the platform team</p>
+ <p>{ticket.operatorReply}</p>
+ </div>
  ) : null}
- </div>
- ))}
- </div>
+ </li>
+ );
+ })}
+ </ul>
  )}
- </div>
+ </LineCard>
  </div>
  );
 }

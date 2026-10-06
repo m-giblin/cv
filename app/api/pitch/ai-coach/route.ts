@@ -1,60 +1,57 @@
+import { generateObject } from "ai";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { enforceAiRateLimit } from "@/lib/ai/enforce-rate-limit";
+import { logAiUsage } from "@/lib/ai/log-usage";
+import { resolveAiProviderForUser } from "@/lib/ai/resolve-provider-for-user";
+import { requireAuthenticatedSession } from "@/lib/auth/require-authenticated";
+import { fallbackPitchTips, pitchReviewPrompt, pitchReviewSchema, pitchScoreRows } from "@/lib/pitch/coach";
 
 const coachSchema = z.object({
- title: z.string().min(3),
- reflection: z.string().min(10),
- scenario: z.string().min(2),
+  title: z.string().min(3),
+  reflection: z.string().min(10).max(6000),
+  scenario: z.string().min(2),
 });
 
+/** AI pitch review: rubric scores and tips both come from the model. Without AI, tips only, no scores. */
 export async function POST(request: Request) {
- const supabase = await createClient();
- if (!supabase) {
- return NextResponse.json({ configured: false, tips: [] });
- }
+  const session = await requireAuthenticatedSession();
+  if (session instanceof NextResponse) return session;
 
- const {
- data: { user },
- } = await supabase.auth.getUser();
- if (!user) {
- return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
- }
+  const parsed = coachSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  }
 
- const parsed = coachSchema.safeParse(await request.json());
- if (!parsed.success) {
- return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
- }
+  const { model, provider, modelName } = await resolveAiProviderForUser(session.supabase, session.user.id);
+  if (!model) {
+    return NextResponse.json({
+      source: "rules",
+      tips: fallbackPitchTips(parsed.data.reflection, parsed.data.scenario),
+      scores: [],
+    });
+  }
 
- const tips: string[] = [];
- const reflection = parsed.data.reflection.toLowerCase();
+  const rateLimited = await enforceAiRateLimit(session.supabase, session.user.id);
+  if (rateLimited) return rateLimited;
 
- if (!/outcome|business|risk|audit|governance/i.test(reflection)) {
- tips.push("Lead with a business outcome in the first 15 seconds — not product modules.");
- }
- if (!/sailpoint|isc|identity|agentic|ais/i.test(reflection)) {
- tips.push("Name SailPoint differentiation explicitly (ISC governance vs directory-only).");
- }
- if (parsed.data.scenario.includes("AIS") && !/agent|non-human|shadow/i.test(reflection)) {
- tips.push("AIS pitches should mention agent identity lifecycle — discover, govern, protect.");
- }
- if (parsed.data.scenario.includes("Competitive") && !/competitor|versus|differentiat/i.test(reflection)) {
- tips.push("Call out the competitor trap you're defusing — don't dodge it.");
- }
- if (reflection.length < 80) {
- tips.push("Expand your reflection — managers score storyline depth, not bullet fragments.");
- }
- if (tips.length === 0) {
- tips.push("Strong framing. Record with confidence — open with the customer's pain, close with a clear next step.");
- }
-
- return NextResponse.json({
- tips,
- rubric: {
- clarity: "Hook in 15s, no jargon wall",
- storyline: "Pain → SailPoint outcome → proof",
- differentiation: "Why ISC/AIS vs DIY or directory-only",
- callToAction: "Mutual next step agreed",
- },
- });
+  try {
+    const result = await generateObject({
+      model,
+      schema: pitchReviewSchema,
+      prompt: pitchReviewPrompt(parsed.data),
+      maxOutputTokens: 600,
+      temperature: 0.2,
+    });
+    await logAiUsage(session.supabase, {
+      feature: "pitch_coach",
+      provider,
+      model: modelName,
+      userId: session.user.id,
+      usage: result.usage,
+    });
+    return NextResponse.json({ source: "ai", tips: result.object.tips, scores: pitchScoreRows(result.object.scores) });
+  } catch {
+    return NextResponse.json({ error: "The AI review couldn't run just now. Try again in a moment." }, { status: 502 });
+  }
 }

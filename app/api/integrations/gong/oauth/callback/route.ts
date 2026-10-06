@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { exchangeGongCode } from "@/lib/integrations/gong-oauth";
+import { sealOAuthToken } from "@/lib/integrations/oauth-tokens";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
@@ -40,8 +41,8 @@ export async function GET(request: Request) {
  {
  user_id: user.id,
  provider: "gong",
- access_token: tokens.access_token,
- refresh_token: tokens.refresh_token ?? null,
+ access_token: sealOAuthToken(tokens.access_token),
+ refresh_token: sealOAuthToken(tokens.refresh_token ?? null),
  expires_at: expiresAt,
  updated_at: new Date().toISOString(),
  },

@@ -16,6 +16,8 @@ export async function getTenantUsageFleet(): Promise<TenantUsageFleet> {
         status: tenant.status,
         activeUsers: usage.activeUsers,
         aiCalls30d: usage.aiCalls,
+        aiTokens30d: usage.aiTokens,
+        aiCost30d: usage.aiCost,
         simulationSessions30d: usage.simulationSessions,
         seatQuota: tenant.seatQuota,
         billingStatus: tenant.billingStatus,
@@ -28,9 +30,11 @@ export async function getTenantUsageFleet(): Promise<TenantUsageFleet> {
       tenantCount: acc.tenantCount + 1,
       totalUsers: acc.totalUsers + row.activeUsers,
       aiCalls30d: acc.aiCalls30d + row.aiCalls30d,
+      aiTokens30d: acc.aiTokens30d + row.aiTokens30d,
+      aiCost30d: acc.aiCost30d + row.aiCost30d,
       simulationSessions30d: acc.simulationSessions30d + row.simulationSessions30d,
     }),
-    { tenantCount: 0, totalUsers: 0, aiCalls30d: 0, simulationSessions30d: 0 },
+    { tenantCount: 0, totalUsers: 0, aiCalls30d: 0, aiTokens30d: 0, aiCost30d: 0, simulationSessions30d: 0 },
   );
 
   return {

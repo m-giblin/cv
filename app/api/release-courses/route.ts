@@ -5,6 +5,7 @@ import { assignPlanToUser } from "@/lib/plans/assign-plan";
 import { getActiveAssignmentUserIdsForPlan } from "@/lib/plans/active-assignment";
 import { createNotification } from "@/lib/notifications/create-notification";
 import { requireManagerSession } from "@/lib/auth/require-manager";
+import { SE_ROUTES } from "@/lib/se/se-routes";
 
 const createSchema = z.object({
  name: z.string().min(3),
@@ -151,7 +152,7 @@ export async function PATCH(request: Request) {
  userId,
  title: `Release training: ${course.name}`,
  body: "Your manager assigned just-in-time release training.",
- actionUrl: "/resources",
+ actionUrl: SE_ROUTES.learn,
  });
 
  if (course.project_tag && process.env.SLACK_BOT_TOKEN) {

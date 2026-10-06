@@ -1,4 +1,5 @@
 import { generateObject } from "ai";
+import { logAiUsage } from "@/lib/ai/log-usage";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { enforceAiRateLimit } from "@/lib/ai/enforce-rate-limit";
@@ -48,7 +49,7 @@ export async function POST(request: Request) {
  const weekId = body.weekId ?? currentWeekId();
  const tenantId = (await resolveProfileTenantId(session.supabase, session.user.id)) ?? DEFAULT_TENANT_ID;
 
- const { model } = await resolveAiProviderForTenant(tenantId);
+ const { model, provider, modelName } = await resolveAiProviderForTenant(tenantId);
 
  let questions = defaultMarketPulseQuestions();
 
@@ -62,6 +63,14 @@ Each question needs 4 options, one correct answer, and a teaching explanation.
 Use ids pulse-1 through pulse-5. Focus on 2026 agentic identity messaging.`,
  });
  questions = result.object.questions;
+ await logAiUsage(session.supabase, {
+ feature: "market_pulse",
+ provider,
+ model: modelName,
+ userId: session.user.id,
+ usage: result.usage,
+ tenantId,
+ });
  }
 
  const { error } = await session.supabase.from("market_pulse_weeks").upsert(

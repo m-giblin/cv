@@ -1,328 +1,322 @@
 "use client";
 
-import { ChevronRight, Search } from "lucide-react";
-import { useMemo, useState } from "react";
-import { Input } from "@/components/ui/input";
-import {
-  ManagerStatStrip,
-  ROSTER_GRID_COLS,
-  SeAvatar,
-  healthBadgeStyle,
-  rampBarColor,
-  simScoreColor,
-} from "@/components/manager/manager-ui-primitives";
-import type { CoachingHealth } from "@/lib/manager/se-coaching-summary";
-import type { SeCoachingSummary } from "@/lib/manager/se-coaching-summary";
-import { Profile, UserPlan } from "@/lib/types";
-import { initials } from "@/lib/utils";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { TeamActionLink, TeamStatusTag, initialsOf } from "@/components/manager/team-member-bits";
+import { PageBody, PageHeader } from "@/components/ui/page-header";
+import { SegmentedToggle } from "@/components/ui/segmented-toggle";
+import { Stamp } from "@/components/ui/stamp";
+import { PersonCell, TableCard, rowHighlight, tdCls, thCls } from "@/components/ui/table";
+import { ageWords, numberWord, plural, sentence } from "@/lib/manager/copy";
+import { AT_RISK_READINESS, type TeamGate, type TeamMember, type TeamStatus } from "@/lib/manager/team-status";
+import { cn } from "@/lib/utils";
 
-type RosterFilter = "attention" | "all" | CoachingHealth;
+type View = "table" | "status";
+type SortKey = "urgency" | "name" | "readiness";
 
-const FILTER_OPTIONS: { id: RosterFilter; label: string }[] = [
- { id: "attention", label: "Needs attention" },
- { id: "coach_now", label: "Coach now" },
- { id: "waiting_on_se", label: "Waiting" },
- { id: "on_track", label: "On track" },
- { id: "all", label: "All" },
-];
+const VIEW_STORAGE_KEY = "manager-roster-view";
 
-const HEALTH_ORDER: Record<CoachingHealth, number> = {
- coach_now: 0,
- at_risk: 1,
- stalled: 2,
- waiting_on_se: 3,
- on_track: 4,
+const STAMP_WORD: Record<TeamGate["state"], string> = {
+  earned: "cleared",
+  ready: "ready to sign off",
+  partial: "in progress",
+  none: "not yet",
 };
 
-function quarterLabel(date: string) {
- const month = new Date(date).getMonth();
- const year = new Date(date).getFullYear();
- const quarter = Math.floor(month / 3) + 1;
- return `Q${quarter} ${year}`;
+function PersonButton({ member, onOpen, subline }: { member: TeamMember; onOpen: (id: string) => void; subline?: string }) {
+  return (
+    <button
+      aria-label={`Open ${member.fullName}`}
+      className="block min-w-0 cursor-pointer rounded-[8px] text-left"
+      onClick={() => onOpen(member.profileId)}
+      type="button"
+    >
+      <PersonCell initials={initialsOf(member.fullName)} name={member.fullName} subline={subline ?? member.subline} />
+    </button>
+  );
 }
 
-function isAttentionHealth(health: CoachingHealth) {
- return health !== "on_track";
+function ColumnHeader({ label, count, tone }: { label: string; count: number; tone: "danger" | "warning" | "success" }) {
+  const border = { danger: "border-danger", warning: "border-warning", success: "border-success" }[tone];
+  const text = { danger: "text-danger", warning: "text-warning", success: "text-success" }[tone];
+  return (
+    <h2 className={cn("flex items-center justify-between border-b-2 pb-2.5", border)}>
+      <span className="text-base font-extrabold text-ink">{label}</span>
+      <span className={cn("num text-sm font-bold", text)}>{count}</span>
+    </h2>
+  );
 }
 
-function inboxColor(count: number) {
- return count > 0 ? "#f59e0b" : "#A09D98";
+function GateStamps({ gates }: { gates: TeamGate[] }) {
+  return (
+    <ul aria-label="Career gates" className="flex gap-1.5">
+      {gates.map((gate) => (
+        <li className="flex flex-1 justify-center" key={gate.id} title={`${gate.label}: ${STAMP_WORD[gate.state]}`}>
+          <Stamp label={`${gate.label}: ${STAMP_WORD[gate.state]}`} size={20} state={gate.state} />
+        </li>
+      ))}
+    </ul>
+  );
 }
 
-function RosterRow({
- profile,
- plan,
- coaching,
- isSelected,
- onSelect,
+function pendingSubline(member: TeamMember) {
+  const pending = member.pending;
+  if (!pending) return member.subline;
+  return pending.count > 1 ? `${pending.title} and ${pending.count - 1} more` : pending.title;
+}
+
+function StatusColumns({
+  members,
+  onOpenProfile,
+  readinessAvailable,
 }: {
- profile: Profile;
- plan?: UserPlan;
- coaching?: SeCoachingSummary;
- isSelected: boolean;
- onSelect: () => void;
+  members: TeamMember[];
+  onOpenProfile: (id: string) => void;
+  readinessAvailable: boolean;
 }) {
- const progress = plan?.progress ?? coaching?.onboardingProgress ?? 0;
- const rampLabel = `${progress}%`;
- const rampColor = rampBarColor(progress);
- const sim = coaching?.latestSimScore ?? coaching?.avgSimScore ?? null;
- const health = coaching ? healthBadgeStyle(coaching.health) : healthBadgeStyle("on_track");
- const inboxCount = coaching?.openReviewCount ?? 0;
- const devGoals =
- coaching && coaching.devGoalsTotal > 0
- ? `${coaching.devGoalsOnTrack}/${coaching.devGoalsTotal}`
- : "—";
+  const by = (status: TeamStatus) => members.filter((member) => member.status === status);
+  const atRisk = by("at_risk");
+  const waiting = by("review_due");
+  const onTrack = by("on_track");
+  const empty = (text: string): ReactNode => (
+    <p className="rounded-[14px] border border-dashed border-line-strong px-[18px] py-4 text-sm text-muted">{text}</p>
+  );
 
- return (
- <button
- className={`grid w-full items-center border-b border-[#f9fafb] px-[16px] py-[11px] text-left transition hover:bg-[#f7fafd] ${
- isSelected ? "bg-[#f0f7ff]" : ""
- }`}
- onClick={onSelect}
- style={{ gridTemplateColumns: ROSTER_GRID_COLS }}
- type="button"
- >
- <div className="flex items-center gap-[9px]">
- <SeAvatar id={profile.id} initials={initials(profile.fullName)} size="md" />
- <div className="text-left">
- <p className="text-[12px] font-semibold text-[#3D3C38]">{profile.fullName}</p>
- <p className="text-[10px] capitalize text-[#A09D98]">{profile.level}</p>
- </div>
- </div>
- <span
- className="font-mono text-[8px] uppercase tracking-[0.08em] px-[9px] py-[2.5px] text-[9.5px] font-bold"
- style={{ background: health.bg, color: health.color }}
- >
- {health.label}
- </span>
- <div className="flex items-center gap-[7px]">
- <div className="h-[5px] w-[60px] overflow-hidden rounded-full bg-[#ECEAE6]">
- <div
- className="prog-fill h-full rounded-full"
- style={{ width: `${progress}%`, background: rampColor }}
- />
- </div>
- <span className="text-[11.5px] font-bold text-[#3D3C38]">{rampLabel}</span>
- </div>
- <span className="text-[12px] font-bold" style={{ color: simScoreColor(sim) }}>
- {sim ?? "—"}
- </span>
- <span className="text-[12px] text-[#3D3C38]">{devGoals}</span>
- <span className="text-[11px] font-semibold" style={{ color: inboxColor(inboxCount) }}>
- {inboxCount > 0 ? inboxCount : "—"}
- </span>
- <ChevronRight className="h-[13px] w-[13px] text-[#A09D98]" strokeWidth={1.5} />
- </button>
- );
+  return (
+    <div className="grid grid-cols-1 items-start gap-7 lg:grid-cols-3">
+      <section aria-label="At risk" className="flex flex-col gap-3.5">
+        <ColumnHeader count={atRisk.length} label="At risk" tone="danger" />
+        {atRisk.length === 0
+          ? empty("No one is at risk right now.")
+          : atRisk.map((member) => (
+              <article
+                className="flex flex-col gap-3 rounded-[14px] border border-line bg-white px-[18px] py-4 shadow-[inset_3px_0_0_var(--color-danger)]"
+                key={member.profileId}
+              >
+                <PersonButton member={member} onOpen={onOpenProfile} />
+                <GateStamps gates={member.gates} />
+                {member.reason ? <p className="text-sm leading-normal text-ink-2">{sentence(member.reason)}</p> : null}
+                <TeamActionLink
+                  className="self-start"
+                  member={member}
+                  onOpenProfile={onOpenProfile}
+                  readinessAvailable={readinessAvailable}
+                />
+              </article>
+            ))}
+      </section>
+
+      <section aria-label="Waiting on you" className="flex flex-col gap-3.5">
+        <ColumnHeader count={waiting.length} label="Waiting on you" tone="warning" />
+        {waiting.length === 0
+          ? empty("Nothing is waiting on you.")
+          : waiting.map((member) => (
+              <article className="rounded-[14px] border border-line bg-white px-[18px] py-3.5" key={member.profileId}>
+                <div className="flex items-start justify-between gap-3">
+                  <PersonButton member={member} onOpen={onOpenProfile} subline={pendingSubline(member)} />
+                  <span
+                    aria-label={member.readiness === null ? "No readiness score yet" : `Readiness ${member.readiness}`}
+                    className="num text-[26px] leading-none font-extrabold text-blue"
+                  >
+                    {member.readiness ?? "—"}
+                  </span>
+                </div>
+                <div className="mt-2.5 flex items-center justify-between gap-3">
+                  <span className="text-[13px] text-muted">
+                    {member.pending?.ageDays != null ? ageWords(member.pending.ageDays) : "Waiting"}
+                  </span>
+                  <TeamActionLink member={member} onOpenProfile={onOpenProfile} readinessAvailable={readinessAvailable} />
+                </div>
+              </article>
+            ))}
+      </section>
+
+      <section aria-label="On track" className="flex flex-col">
+        <ColumnHeader count={onTrack.length} label="On track" tone="success" />
+        {onTrack.length === 0 ? (
+          <div className="pt-3.5">{empty("No one is on track yet.")}</div>
+        ) : (
+          <ul>
+            {onTrack.map((member) => (
+              <li
+                className="flex items-center justify-between gap-3 border-t border-divider py-[11px] first:border-t-0"
+                key={member.profileId}
+              >
+                <PersonButton member={member} onOpen={onOpenProfile} />
+                <span className="num text-lg font-extrabold text-ink">{member.readiness ?? "—"}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        <p className="pt-3.5 text-[13px] leading-normal text-muted">
+          Click anyone to open their plan, scores and coaching notes in a side panel.
+        </p>
+      </section>
+    </div>
+  );
 }
 
+function RosterTable({
+  members,
+  onOpenProfile,
+  readinessAvailable,
+}: {
+  members: TeamMember[];
+  onOpenProfile: (id: string) => void;
+  readinessAvailable: boolean;
+}) {
+  const [sort, setSort] = useState<SortKey>("urgency");
+  const sorted = useMemo(() => {
+    if (sort === "name") return [...members].sort((a, b) => a.fullName.localeCompare(b.fullName));
+    if (sort === "readiness") return [...members].sort((a, b) => (b.readiness ?? -1) - (a.readiness ?? -1));
+    return members;
+  }, [members, sort]);
+
+  const sortHeader = (key: SortKey, label: string, className?: string) => (
+    <th
+      aria-sort={sort === key ? (key === "name" ? "ascending" : key === "readiness" ? "descending" : "other") : "none"}
+      className={cn(thCls, className)}
+      scope="col"
+    >
+      <button
+        className={cn("th cursor-pointer hover:text-ink", sort === key && "text-ink")}
+        onClick={() => setSort(key)}
+        title={`Sort by ${label.toLowerCase()}`}
+        type="button"
+      >
+        {label}
+      </button>
+    </th>
+  );
+
+  return (
+    <TableCard minWidth={940}>
+      <caption className="sr-only">Team roster. Click a column header to sort.</caption>
+      <thead>
+        <tr>
+          {sortHeader("name", "SE")}
+          {sortHeader("urgency", "Status", "w-[150px]")}
+          {sortHeader("readiness", "Ready", "w-[80px]")}
+          <th className={cn(thCls, "w-[100px]")} scope="col">
+            Ramp
+          </th>
+          <th className={cn(thCls, "w-[90px]")} scope="col">
+            Gates
+          </th>
+          <th className={thCls} scope="col">
+            Why
+          </th>
+          <th className={cn(thCls, "w-[150px] text-right")} scope="col">
+            Next
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {sorted.map((member) => (
+          <tr className={member.status === "at_risk" ? rowHighlight.danger : undefined} key={member.profileId}>
+            <td className={cn(tdCls, "py-3")}>
+              <PersonButton member={member} onOpen={onOpenProfile} />
+            </td>
+            <td className={tdCls}>
+              <TeamStatusTag status={member.status} />
+            </td>
+            <td className={tdCls}>
+              <span
+                className={cn(
+                  "num text-[22px] font-extrabold tracking-[-0.02em]",
+                  member.readiness !== null && member.readiness < AT_RISK_READINESS ? "text-danger" : "text-ink",
+                )}
+              >
+                {member.readiness ?? "—"}
+              </span>
+            </td>
+            <td className={cn(tdCls, "text-sm text-ink-2")}>
+              {member.rampTotal > 0 ? `${member.rampDone} of ${member.rampTotal}` : "No plan"}
+            </td>
+            <td className={cn(tdCls, "text-sm text-ink-2")}>
+              {member.gatesCleared} of {member.gates.length}
+            </td>
+            <td className={cn(tdCls, "text-sm text-ink-2")}>
+              {member.reason ?? <span className="text-muted">Nothing needed</span>}
+            </td>
+            <td className={cn(tdCls, "text-right")}>
+              <TeamActionLink member={member} onOpenProfile={onOpenProfile} readinessAvailable={readinessAvailable} />
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </TableCard>
+  );
+}
+
+function rosterAccent(count: number) {
+  if (count === 0) return undefined;
+  return `${numberWord(count, true)} ${plural(count, "person", "people")}, three piles.`;
+}
+
+/** Team › Roster (9b): one roster, two views (Table | By status). Every name opens the SE detail drawer. */
 export function ManagerTeamRoster({
- org,
- plans,
- coachingByUser,
- selectedProfileId,
- onSelectProfile,
+  members,
+  onSelectProfile,
+  readinessAvailable,
+  tabs,
 }: {
- org: Profile[];
- plans: UserPlan[];
- coachingByUser: Record<string, SeCoachingSummary>;
- selectedProfileId: string | null;
- onSelectProfile: (profileId: string) => void;
+  members: TeamMember[];
+  onSelectProfile: (profileId: string) => void;
+  readinessAvailable: boolean;
+  tabs?: ReactNode;
 }) {
- const [search, setSearch] = useState("");
- const [filter, setFilter] = useState<RosterFilter>("all");
+  const [view, setView] = useState<View>("status");
 
- const cohortSummary = useMemo(() => {
- const cohorts = new Map<string, number>();
- for (const profile of org) {
- const plan = plans.find((item) => item.userId === profile.id);
- const key = plan?.startDate ? quarterLabel(plan.startDate) : "Unassigned";
- cohorts.set(key, (cohorts.get(key) ?? 0) + 1);
- }
- return [...cohorts.entries()].map(([label, count]) => `${label} (${count})`).join(", ");
- }, [org, plans]);
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(VIEW_STORAGE_KEY);
+      if (stored === "table" || stored === "status") setView(stored);
+    } catch {
+      // storage unavailable; keep the default view
+    }
+  }, []);
 
- const sorted = useMemo(
- () =>
- [...org].sort((a, b) => {
- const healthA = coachingByUser[a.id]?.health ?? "on_track";
- const healthB = coachingByUser[b.id]?.health ?? "on_track";
- if (HEALTH_ORDER[healthA] !== HEALTH_ORDER[healthB]) {
- return HEALTH_ORDER[healthA] - HEALTH_ORDER[healthB];
- }
- return (
- (coachingByUser[a.id]?.onboardingProgress ?? 0) -
- (coachingByUser[b.id]?.onboardingProgress ?? 0)
- );
- }),
- [org, coachingByUser],
- );
+  const changeView = (next: string) => {
+    const value = next === "table" ? "table" : "status";
+    setView(value);
+    try {
+      window.localStorage.setItem(VIEW_STORAGE_KEY, value);
+    } catch {
+      // ignore
+    }
+  };
 
- const filterCounts = useMemo(() => {
- const counts: Record<RosterFilter, number> = {
- attention: 0,
- all: org.length,
- coach_now: 0,
- waiting_on_se: 0,
- stalled: 0,
- at_risk: 0,
- on_track: 0,
- };
- for (const profile of org) {
- const health = coachingByUser[profile.id]?.health ?? "on_track";
- counts[health] += 1;
- if (isAttentionHealth(health)) counts.attention += 1;
- }
- return counts;
- }, [org, coachingByUser]);
-
- const filtered = useMemo(() => {
- const query = search.trim().toLowerCase();
- return sorted.filter((profile) => {
- const coaching = coachingByUser[profile.id];
- const health = coaching?.health ?? "on_track";
-
- if (query && !profile.fullName.toLowerCase().includes(query)) {
- return false;
- }
-
- if (filter === "all") return true;
- if (filter === "attention") return isAttentionHealth(health);
- return health === filter;
- });
- }, [sorted, coachingByUser, search, filter]);
-
- const rosterStats = useMemo(() => {
-  const progresses = org.map((profile) => {
-   const plan = plans.find((item) => item.userId === profile.id);
-   return plan?.progress ?? coachingByUser[profile.id]?.onboardingProgress ?? 0;
-  });
-  const avgRamp = progresses.length
-   ? Math.round(progresses.reduce((sum, value) => sum + value, 0) / progresses.length)
-   : 0;
-  const simScores = org
-   .map((profile) => coachingByUser[profile.id]?.avgSimScore ?? coachingByUser[profile.id]?.latestSimScore)
-   .filter((score): score is number => score != null);
-  const avgSim = simScores.length
-   ? Math.round(simScores.reduce((sum, value) => sum + value, 0) / simScores.length)
-   : null;
-  const atRisk = org.filter((profile) => {
-   const health = coachingByUser[profile.id]?.health ?? "on_track";
-   return health === "coach_now" || health === "at_risk" || health === "stalled";
-  });
-  const inboxTotal = org.reduce((sum, profile) => sum + (coachingByUser[profile.id]?.openReviewCount ?? 0), 0);
-  const atRiskProfile = atRisk[0];
-
-  return { avgRamp, avgSim, atRiskCount: atRisk.length, atRiskProfile, inboxTotal };
- }, [org, plans, coachingByUser]);
-
- return (
- <>
- <ManagerStatStrip
-  items={[
-   { label: "Avg ramp", value: `${rosterStats.avgRamp}%` },
-   {
-    label: "Avg sim",
-    value: rosterStats.avgSim ?? "—",
-    sub: rosterStats.avgSim != null ? "Team average" : undefined,
-    subColor: "#0A6E45",
-   },
-   {
-    label: "At risk",
-    value: rosterStats.atRiskCount,
-    valueColor: "#B83128",
-    sub: rosterStats.atRiskProfile ? `${rosterStats.atRiskProfile.fullName.split(" ")[0]} →` : "None",
-    subColor: "#B83128",
-    highlight: rosterStats.atRiskCount > 0,
-    href: rosterStats.atRiskProfile ? `/manager?profile=${rosterStats.atRiskProfile.id}` : undefined,
-   },
-   {
-    label: "Inbox",
-    value: rosterStats.inboxTotal,
-    valueColor: rosterStats.inboxTotal > 0 ? "#D4810A" : "#0D0E12",
-    href: rosterStats.inboxTotal > 0 ? "/manager?section=inbox" : undefined,
-   },
-  ]}
- />
- <div className="overflow-hidden border border-[#E2DFD9] bg-white">
- <div className="space-y-3 border-b border-[#ECEAE6] p-[14px_18px]">
- <div>
- <h2 className="text-[12.5px] font-bold text-[#0D0E12]">Team roster</h2>
- <p className="mt-[1px] text-[10.5px] text-[#A09D98]">
- {org.length} SE{org.length === 1 ? "" : "s"}
- {cohortSummary ? ` · ${cohortSummary}` : ""}
- </p>
- </div>
-
- <div className="relative">
- <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#A09D98]" />
- <Input
- className="h-9 border-[#E2DFD9] pl-9 text-[12px]"
- onChange={(event) => setSearch(event.target.value)}
- placeholder="Search by name…"
- value={search}
- />
- </div>
-
- <div className="flex flex-wrap gap-[8px]">
- {FILTER_OPTIONS.map((option) => {
- const count = filterCounts[option.id];
- if (option.id !== "all" && count === 0) return null;
-
- return (
- <button
- className="font-mono text-[8px] uppercase tracking-[0.08em] px-[16px] py-[7px] text-[12px] font-semibold transition"
- key={option.id}
- onClick={() => setFilter(option.id)}
- style={
- filter === option.id
- ? { background: "#00143a", color: "white", border: "1.5px solid #00143a" }
- : { background: "white", color: "#6B6860", border: "1.5px solid #E2DFD9" }
- }
- type="button"
- >
- {option.label}
- {count > 0 ? ` (${count})` : ""}
- </button>
- );
- })}
- </div>
- </div>
-
- <div
- className="grid border-b border-[#ECEAE6] bg-[#F9F8F6] px-[16px] py-[9px]"
- style={{ gridTemplateColumns: ROSTER_GRID_COLS }}
- >
- {["SE", "Status", "Onboarding", "Sim avg", "Dev goals", "Inbox", ""].map((h) => (
- <span className="text-[9.5px] font-bold uppercase tracking-[0.07em] text-[#A09D98]" key={h || "chevron"}>
- {h}
- </span>
- ))}
- </div>
-
- <div className="max-h-[min(28rem,50vh)] overflow-y-auto">
- {filtered.length === 0 ? (
- <p className="px-4 py-8 text-center text-[12.5px] text-[#A09D98]">
- {search ? "No matches." : "No one in this filter."}
- </p>
- ) : (
- filtered.map((profile) => (
- <RosterRow
- coaching={coachingByUser[profile.id]}
- isSelected={selectedProfileId === profile.id}
- key={profile.id}
- onSelect={() => onSelectProfile(profile.id)}
- plan={plans.find((item) => item.userId === profile.id)}
- profile={profile}
- />
- ))
- )}
- </div>
-
- <p className="border-t border-[#ECEAE6] px-[16px] py-[10px] text-[10.5px] text-[#A09D98]">
- Click any row for the full growth story — detail opens in the side panel.
- </p>
- </div>
- </>
- );
+  return (
+    <>
+      <PageHeader
+        accent={rosterAccent(members.length)}
+        actions={
+          <SegmentedToggle
+            label="Roster view"
+            onChange={changeView}
+            options={[
+              { id: "table", label: "Table" },
+              { id: "status", label: "By status" },
+            ]}
+            value={view}
+          />
+        }
+        className="pb-[22px]"
+        eyebrow="Team"
+        title="Your team."
+      />
+      {tabs}
+      <PageBody className="pb-7">
+        {members.length === 0 ? (
+          <p className="rounded-[14px] border border-line bg-white px-5 py-10 text-center text-[15px] text-muted">
+            No one reports to you yet.
+          </p>
+        ) : view === "table" ? (
+          <RosterTable members={members} onOpenProfile={onSelectProfile} readinessAvailable={readinessAvailable} />
+        ) : (
+          <StatusColumns members={members} onOpenProfile={onSelectProfile} readinessAvailable={readinessAvailable} />
+        )}
+      </PageBody>
+    </>
+  );
 }

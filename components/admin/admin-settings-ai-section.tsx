@@ -1,149 +1,216 @@
 "use client";
 
-import { Loader2, Save } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
+import { AI_MODEL_OPTIONS, DEFAULT_AI_MODELS, formatUsd } from "@/lib/ai/models";
+import { TableCard, tdCls, thCls } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Field, LineCard, LoadingState, SelectInput, TextInput } from "@/components/admin/admin-ui";
+import { GlobalAiSettingsToggles } from "@/components/admin/global-ai-settings-toggles";
+import { Stat, StatStrip } from "@/components/ui/stat";
+import { StatusPill } from "@/components/ui/status-pill";
 import type { AiProviderName } from "@/lib/ai/provider";
-import type { PublicAiSettings } from "@/lib/ai/settings-shared";
+import { formatTokenCount, type AiUsageSummary, type PublicAiSettings } from "@/lib/ai/settings-shared";
 
-const MODEL_HINTS: Record<AiProviderName, string[]> = {
- xai: ["grok-3-mini", "grok-2-latest", "grok-beta"],
- openai: ["gpt-4.1-mini", "gpt-4o-mini", "gpt-4o"],
-};
+const MODEL_HINTS: Record<AiProviderName, string[]> = AI_MODEL_OPTIONS;
 
-export function AdminSettingsAiSection() {
- const [loading, setLoading] = useState(true);
- const [saving, setSaving] = useState(false);
- const [settings, setSettings] = useState<PublicAiSettings | null>(null);
- const [provider, setProvider] = useState<AiProviderName>("xai");
- const [model, setModel] = useState("grok-3-mini");
- const [apiKey, setApiKey] = useState("");
+/** Settings › AI: usage over 30 days, the provider form, and the global AI switches (moved here from Content). */
+export function AdminSettingsAiSection({ usage = null }: { usage?: AiUsageSummary | null }) {
+  return (
+    <>
+      {usage ? (
+        <>
+          <StatStrip>
+            <Stat label="Requests, 30 days" note={`${usage.requestsToday.toLocaleString("en-US")} today`} value={usage.requests30d.toLocaleString("en-US")} />
+            <Stat label="Tokens, 30 days" value={formatTokenCount(usage.tokens30d)} />
+            <Stat label="Est. cost, 30 days" note={`${formatUsd(usage.costToday)} today`} value={formatUsd(usage.cost30d)} />
+            <Stat
+              label="Busiest feature"
+              note={usage.byFeature[0] ? `${usage.byFeature[0].count.toLocaleString("en-US")} requests` : undefined}
+              tone="ink"
+              value={<span className="text-2xl">{usage.byFeature[0]?.label ?? "None yet"}</span>}
+            />
+          </StatStrip>
+          {usage.byFeature.length > 0 ? (
+            <TableCard minWidth={560}>
+              <caption className="sr-only">AI usage by feature, last 30 days</caption>
+              <thead>
+                <tr>
+                  <th className={thCls} scope="col">
+                    Feature
+                  </th>
+                  <th className={cn(thCls, "text-right")} scope="col">
+                    Requests
+                  </th>
+                  <th className={cn(thCls, "text-right")} scope="col">
+                    Tokens
+                  </th>
+                  <th className={cn(thCls, "text-right")} scope="col">
+                    Est. cost
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {usage.byFeature.map((row) => (
+                  <tr key={row.feature}>
+                    <td className={cn(tdCls, "text-sm font-bold text-ink")}>{row.label}</td>
+                    <td className={cn(tdCls, "num text-right text-sm text-ink-2")}>{row.count.toLocaleString("en-US")}</td>
+                    <td className={cn(tdCls, "num text-right text-sm text-ink-2")}>{formatTokenCount(row.tokens)}</td>
+                    <td className={cn(tdCls, "num text-right text-sm font-semibold text-ink")}>{formatUsd(row.cost)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </TableCard>
+          ) : null}
+          <p className="text-[13px] text-muted">
+            Costs are estimates at list price for each call&apos;s model and tokens. Your provider&apos;s invoice is the source of truth.
+          </p>
+        </>
+      ) : null}
+      <AiProviderForm />
+      <GlobalAiSettingsToggles />
+    </>
+  );
+}
 
- const load = useCallback(async () => {
- setLoading(true);
- const response = await fetch("/api/admin/ai-settings");
- setLoading(false);
+function AiProviderForm() {
+  const id = useId();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [settings, setSettings] = useState<PublicAiSettings | null>(null);
+  const [provider, setProvider] = useState<AiProviderName>("xai");
+  const [model, setModel] = useState(DEFAULT_AI_MODELS.xai);
+  const [apiKey, setApiKey] = useState("");
 
- if (!response.ok) {
- toast.error("Could not load AI settings.");
- return;
- }
+  const load = useCallback(async () => {
+    setLoading(true);
+    const response = await fetch("/api/admin/ai-settings");
+    setLoading(false);
 
- const body = (await response.json()) as { settings: PublicAiSettings };
- setSettings(body.settings);
- setProvider(body.settings.provider);
- setModel(body.settings.model);
- setApiKey("");
- }, []);
+    if (!response.ok) {
+      toast.error("Could not load AI settings.");
+      return;
+    }
 
- useEffect(() => {
- void load();
- }, [load]);
+    const body = (await response.json()) as { settings: PublicAiSettings };
+    setSettings(body.settings);
+    setProvider(body.settings.provider);
+    setModel(body.settings.model);
+    setApiKey("");
+  }, []);
 
- async function handleSave(event: React.FormEvent) {
- event.preventDefault();
- setSaving(true);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
- const response = await fetch("/api/admin/ai-settings", {
- method: "PATCH",
- headers: { "Content-Type": "application/json" },
- body: JSON.stringify({
- provider,
- model,
- apiKey: apiKey.trim() || undefined,
- }),
- });
+  async function handleSave(event: React.FormEvent) {
+    event.preventDefault();
+    setSaving(true);
 
- setSaving(false);
+    const response = await fetch("/api/admin/ai-settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        provider,
+        model,
+        apiKey: apiKey.trim() || undefined,
+      }),
+    });
 
- if (!response.ok) {
- const body = (await response.json()) as { error?: string };
- toast.error(body.error ?? "Could not save AI settings.");
- return;
- }
+    setSaving(false);
 
- toast.success("AI settings saved. New requests will use this provider.");
- setApiKey("");
- void load();
- }
+    if (!response.ok) {
+      const body = (await response.json()) as { error?: string };
+      toast.error(body.error ?? "Could not save AI settings.");
+      return;
+    }
 
- if (loading) {
- return (
- <div className="flex justify-center py-8">
- <Loader2 className="h-6 w-6 animate-spin text-[#0033a1]" />
- </div>
- );
- }
+    toast.success("AI settings saved. New requests will use this provider.");
+    setApiKey("");
+    void load();
+  }
 
- return (
- <form className="max-w-3xl space-y-4" onSubmit={handleSave}>
- <div>
- <p className="text-base font-bold text-stone-900">AI provider</p>
- <p className="text-xs text-stone-500">
- Vendor, model, and API key for sims, deal prep, and coaching cards. Keys are encrypted before storage.
- {settings?.source === "env" && !settings.hasApiKey ? " Currently falling back to server env vars." : null}
- </p>
- </div>
+  if (loading) {
+    return (
+      <LineCard title="AI provider">
+        <LoadingState label="Loading AI settings…" />
+      </LineCard>
+    );
+  }
 
- <div className="grid gap-3 sm:grid-cols-3">
- <label className="block space-y-1 text-sm">
- <span className="font-semibold text-stone-700">Vendor</span>
- <select
- className="h-10 w-full border border-stone-200 bg-white px-3"
- onChange={(event) => setProvider(event.target.value as AiProviderName)}
- value={provider}
- >
- <option value="xai">xAI (Grok)</option>
- <option value="openai">OpenAI</option>
- </select>
- </label>
+  const status = settings?.hasApiKey ? (
+    <StatusPill tone="success">Connected</StatusPill>
+  ) : (
+    <StatusPill tone="warning">No key</StatusPill>
+  );
 
- <label className="block space-y-1 text-sm sm:col-span-2">
- <span className="font-semibold text-stone-700">Model</span>
- <Input
- list={`ai-models-${provider}`}
- onChange={(event) => setModel(event.target.value)}
- placeholder={MODEL_HINTS[provider][0]}
- value={model}
- />
- <datalist id={`ai-models-${provider}`}>
- {MODEL_HINTS[provider].map((hint) => (
- <option key={hint} value={hint} />
- ))}
- </datalist>
- </label>
- </div>
+  return (
+    <LineCard actions={status} title="AI provider">
+      <form className="flex flex-col gap-4" onSubmit={handleSave}>
+        <p className="text-sm text-ink-2">
+          Vendor, model and API key for simulations, deal prep and coaching cards. Keys are encrypted before storage.
+          {settings?.source === "env" && !settings.hasApiKey ? " Currently falling back to server env vars." : null}
+        </p>
 
- <label className="block space-y-1 text-sm">
- <span className="font-semibold text-stone-700">API key</span>
- <Input
- autoComplete="off"
- onChange={(event) => setApiKey(event.target.value)}
- placeholder={settings?.hasApiKey ? `Saved (${settings.keyPreview ?? "configured"}) — enter to replace` : "Paste API key"}
- type="password"
- value={apiKey}
- />
- <p className="text-[10px] text-stone-500">
- Encrypted in Supabase (AES-256-GCM). The decryption key lives only in server env — not in the database.
- </p>
- </label>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Field htmlFor={`${id}-vendor`} label="Vendor">
+            <SelectInput
+              id={`${id}-vendor`}
+              onChange={(event) => setProvider(event.target.value as AiProviderName)}
+              value={provider}
+            >
+              <option value="xai">xAI (Grok)</option>
+              <option value="openai">OpenAI</option>
+            </SelectInput>
+          </Field>
 
- <div className="flex flex-wrap items-center gap-3">
- <Button disabled={saving} type="submit">
- {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
- Save AI settings
- </Button>
- {settings?.hasApiKey ? (
- <span className="text-xs text-emerald-700">
- Connected · {settings.provider} / {settings.model}
- {settings.keyPreview ? ` · ${settings.keyPreview}` : ""}
- </span>
- ) : (
- <span className="text-xs text-amber-700">No key configured — AI features run in demo mode.</span>
- )}
- </div>
- </form>
- );
+          <Field className="sm:col-span-2" htmlFor={`${id}-model`} label="Model">
+            <TextInput
+              id={`${id}-model`}
+              list={`${id}-models-${provider}`}
+              onChange={(event) => setModel(event.target.value)}
+              placeholder={MODEL_HINTS[provider][0]}
+              value={model}
+            />
+            <datalist id={`${id}-models-${provider}`}>
+              {MODEL_HINTS[provider].map((hint) => (
+                <option key={hint} value={hint} />
+              ))}
+            </datalist>
+          </Field>
+        </div>
+
+        <Field
+          hint="Encrypted at rest (AES-256-GCM). The decryption key lives only in server env, not in the database."
+          htmlFor={`${id}-key`}
+          label="API key"
+        >
+          <TextInput
+            autoComplete="off"
+            id={`${id}-key`}
+            onChange={(event) => setApiKey(event.target.value)}
+            placeholder={
+              settings?.hasApiKey ? `Saved (${settings.keyPreview ?? "configured"}). Type a new key to replace it` : "Paste an API key"
+            }
+            type="password"
+            value={apiKey}
+          />
+        </Field>
+
+        <div className="flex flex-wrap items-center gap-4 border-t border-divider pt-4">
+          <button className="btn-primary" disabled={saving} type="submit">
+            {saving ? "Saving…" : "Save AI settings"}
+          </button>
+          {settings?.hasApiKey ? (
+            <span className="text-sm text-ink-2">
+              Using {settings.provider === "openai" ? "OpenAI" : "xAI"} {settings.model}
+              {settings.keyPreview ? `, key ending ${settings.keyPreview.slice(-4)}` : ""}.
+            </span>
+          ) : (
+            <span className="text-[13px] text-warning">No key configured. AI features run in demo mode.</span>
+          )}
+        </div>
+      </form>
+    </LineCard>
+  );
 }

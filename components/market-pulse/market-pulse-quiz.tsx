@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Check } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { CARD_CLS, H2_CLS, LINE_CARD_CLS } from "@/components/se/form-classes";
+import { StatusPill } from "@/components/ui/status-pill";
 import { loadMarketPulseHistory, saveMarketPulseResult } from "@/lib/market-pulse/history";
 import { cn } from "@/lib/utils";
 
@@ -21,25 +22,32 @@ type Reinforcement = { id: string; title: string; reason: string };
 const COMPETITOR_REF = [
   {
     label: "Okta",
-    color: "#0071CE",
     text: "Workforce IGA only. No NHI lifecycle, no agent governance. Weak on SoD controls.",
   },
   {
     label: "Microsoft Entra",
-    color: "#5b21b6",
     text: "Good for workforce SSO. Agent governance is marketing, not product reality.",
   },
   {
     label: "Saviynt",
-    color: "#D4810A",
     text: "IGA competitor. Weak deployment track record. SoD complexity is a known pain.",
   },
 ] as const;
 
-function scoreColor(score: number) {
-  if (score >= 85) return "#0A6E45";
-  if (score >= 70) return "#0071CE";
-  return "#D4810A";
+const EMPTY_CLS =
+  "rounded-[14px] border border-dashed border-line-strong p-7 text-center text-[15px] text-muted";
+
+/** Score colour rule: danger < 60, warning 60–69, blue ≥ 70. Always paired with the number. */
+function scoreTextClass(score: number) {
+  if (score >= 70) return "text-blue";
+  if (score >= 60) return "text-warning";
+  return "text-danger";
+}
+
+function ScoreTag({ percent }: { percent: number }) {
+  if (percent >= 70) return <StatusPill tone="success">On track</StatusPill>;
+  if (percent >= 60) return <StatusPill tone="warning">Close</StatusPill>;
+  return <StatusPill tone="danger">Needs practice</StatusPill>;
 }
 
 function formatWeekLabel(weekId: string) {
@@ -90,15 +98,15 @@ export function MarketPulseQuiz({
   const weekLabel = formatWeekLabel(weekId);
   const focusTitle = useMemo(() => {
     const topic = questions[0]?.topic ?? "the field";
-    if (topic.toLowerCase().includes("okta")) return "SailPoint vs. Okta";
-    if (topic.toLowerCase().includes("entra")) return "SailPoint vs. Entra";
-    return `SailPoint vs. ${topic}`;
+    if (topic.toLowerCase().includes("okta")) return "Versus Okta";
+    if (topic.toLowerCase().includes("entra")) return "Versus Entra";
+    return `Versus ${topic}`;
   }, [questions]);
 
   useEffect(() => {
     onProgressHintChange?.(
       questions.length
-        ? `${weekLabel} · ${answeredCount} of ${questions.length} answered`
+        ? `${weekLabel}. ${answeredCount} of ${questions.length} answered.`
         : weekLabel,
     );
   }, [answeredCount, onProgressHintChange, questions.length, weekLabel]);
@@ -139,107 +147,128 @@ export function MarketPulseQuiz({
 
   if (loading) {
     return (
-      <div className="flex flex-1 items-center justify-center p-8 text-sm text-[#6B6860]">
-        Loading this week&apos;s market pulse…
-      </div>
+      <p className={EMPTY_CLS} role="status">
+        Loading this week&apos;s market pulse...
+      </p>
     );
   }
 
   if (questions.length === 0) {
-    return (
-      <div className="flex flex-1 items-center justify-center p-8 text-sm text-[#6B6860]">
-        Market pulse unavailable — check Supabase connection.
-      </div>
-    );
+    return <p className={EMPTY_CLS}>Market pulse is unavailable right now. Check the data connection and try again.</p>;
   }
 
+  const percent = Math.round((score / questions.length) * 100);
+
+  const historyRows = submitted
+    ? [
+        {
+          topic: focusTitle,
+          date: new Date().toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+          score: percent,
+        },
+        ...history
+          .filter((item) => item.weekId !== weekId)
+          .map((item) => ({
+            topic: `Week ${item.weekId}`,
+            date: new Date(item.completedAt).toLocaleDateString(undefined, {
+              month: "short",
+              day: "numeric",
+            }),
+            score: Math.round((item.score / item.total) * 100),
+          })),
+      ]
+    : history.map((item) => ({
+        topic: `Week ${item.weekId}`,
+        date: new Date(item.completedAt).toLocaleDateString(undefined, {
+          month: "short",
+          day: "numeric",
+        }),
+        score: Math.round((item.score / item.total) * 100),
+      }));
+
   return (
-    <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[1fr_300px]">
-      {/* Left — quiz */}
-      <div className="min-h-0 overflow-y-auto border-r border-[#E2DFD9] bg-white px-7 py-5">
-        <div className="mb-5">
-          <p className="mb-1 font-mono text-[8.5px] uppercase tracking-[0.16em] text-[#065F46]">
-            {weekLabel} · {focusTitle}
+    <div className="grid min-w-0 grid-cols-1 items-start gap-7 lg:grid-cols-[minmax(0,1fr)_300px]">
+      <div className="flex min-w-0 flex-col gap-4">
+        <div className="flex flex-col gap-2">
+          <p className="text-[13px] text-muted">
+            {weekLabel}. {focusTitle}, {questions.length} questions, about 4 min.
           </p>
-          <h1 className="font-display text-2xl font-extrabold leading-none tracking-[-0.03em] text-[#0D0E12]">
-            Market Pulse
-          </h1>
-          <p className="mt-1 text-xs text-[#6B6860]">
-            {questions.length} questions · ~4 min · Scores feed Competitive Positioning competency
-          </p>
+          <p className="text-sm text-ink-2">Scores feed your competitive positioning competency.</p>
+          <div className="flex items-center gap-3">
+            <div aria-hidden="true" className="flex flex-1 gap-[3px]">
+              {questions.map((question) => {
+                const answered = answers[question.id] !== undefined;
+                const explain = submitted ? explanationMap.get(question.id) : undefined;
+                const tone = explain
+                  ? explain.correctIndex === answers[question.id]
+                    ? "bg-success"
+                    : "bg-danger"
+                  : answered
+                    ? "bg-blue"
+                    : "bg-track";
+                return <span className={cn("h-2 flex-1 rounded-[2px]", tone)} key={question.id} />;
+              })}
+            </div>
+            <span className="shrink-0 text-[13px] text-muted">
+              {answeredCount} of {questions.length} answered
+            </span>
+          </div>
         </div>
 
-        <div className="mb-6 flex gap-1">
-          {questions.map((question, index) => {
-            const answered = answers[question.id] !== undefined;
-            const explained = submitted && explanationMap.has(question.id);
-            const correct =
-              explained && explanationMap.get(question.id)?.correctIndex === answers[question.id];
-            const color = submitted
-              ? correct || explained
-                ? "#0A6E45"
-                : answered
-                  ? "#D4810A"
-                  : "#ECEAE6"
-              : answered
-                ? "#0A6E45"
-                : "#ECEAE6";
-            return (
-              <div
-                className="h-[3px] flex-1 transition-colors"
-                key={question.id}
-                style={{ background: color }}
-                title={`Question ${index + 1}`}
-              />
-            );
-          })}
-        </div>
+        {submitted ? (
+          <section aria-live="polite" className={`${LINE_CARD_CLS} flex flex-wrap items-end gap-x-6 gap-y-3 px-5 py-4`} role="status">
+            <div>
+              <p className="label-caps">Your score</p>
+              <p className="text-[56px] font-extrabold leading-[0.85] tracking-[-0.04em] text-blue">
+                {score}
+                <span className="text-[28px] text-faint"> of {questions.length}</span>
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 pb-1">
+              <ScoreTag percent={percent} />
+              <span className="text-[13px] text-muted">{percent}% correct</span>
+            </div>
+          </section>
+        ) : null}
 
-        <div className="overflow-hidden border border-[#E2DFD9]">
+        <ol className={`${CARD_CLS} overflow-hidden`}>
           {questions.map((question, index) => {
             const num = String(index + 1).padStart(2, "0");
             const explain = explanationMap.get(question.id);
             const showResults = submitted && explain;
+            const headingId = `pulse-q-${question.id}`;
 
             return (
-              <div
-                className={cn(
-                  "border-b border-[#ECEAE6] px-4 py-4 last:border-b-0",
-                  index % 2 === 1 ? "bg-[#F9F8F6]" : "bg-white",
-                )}
-                key={question.id}
-              >
-                <div className="flex items-start gap-3">
-                  <span
-                    className={cn(
-                      "w-[22px] shrink-0 font-mono text-base leading-none",
-                      showResults ? "text-[#A09D98]" : "text-[#0D0E12]",
-                    )}
-                  >
+              <li className="border-b border-divider px-5 py-5 last:border-b-0" key={question.id}>
+                <div className="flex items-start gap-4">
+                  <span aria-hidden="true" className="w-7 shrink-0 text-[15px] font-medium text-muted">
                     {num}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="mb-2.5 text-[12.5px] font-semibold leading-snug text-[#0D0E12]">
+                    <p className="mb-1 text-[13px] font-semibold text-blue">{question.topic}</p>
+                    <p className="mb-3 text-base font-bold leading-[1.4] text-ink" id={headingId}>
+                      <span className="sr-only">Question {index + 1}: </span>
                       {question.question}
                     </p>
-                    <div className="flex flex-col gap-1.5">
+                    <div aria-labelledby={headingId} className="flex flex-col gap-2" role="group">
                       {question.options.map((option, optionIndex) => {
                         const selected = answers[question.id] === optionIndex;
                         const isCorrect = explain?.correctIndex === optionIndex;
-                        const showCorrect = showResults && isCorrect;
-                        const showWrong = showResults && selected && !isCorrect;
+                        const showCorrect = Boolean(showResults && isCorrect);
+                        const showWrong = Boolean(showResults && selected && !isCorrect);
 
                         return (
                           <button
+                            aria-pressed={selected}
                             className={cn(
-                              "flex items-center gap-2 border-[1.5px] px-2.5 py-1.5 text-left text-[11.5px] transition",
+                              "flex w-full items-center gap-3 rounded-[12px] px-4 py-3 text-left text-[15px] text-ink transition-colors disabled:cursor-default",
                               showCorrect
-                                ? "border-[#0A6E45] bg-[#EDFAF3] text-[#0A3D26]"
+                                ? "border border-success bg-success-soft"
                                 : showWrong
-                                  ? "border-red-200 bg-red-50 text-[#0D0E12]"
+                                  ? "border border-danger bg-danger-soft"
                                   : selected
-                                    ? "border-[#0071CE] bg-[#EEF4FF] text-[#0D0E12]"
-                                    : "border-[#E2DFD9] bg-white text-[#0D0E12]",
+                                    ? "border-[1.5px] border-blue bg-blue-soft"
+                                    : "border border-line bg-white enabled:hover:bg-surface-2",
                             )}
                             disabled={submitted}
                             key={option}
@@ -248,165 +277,122 @@ export function MarketPulseQuiz({
                             }
                             type="button"
                           >
-                            <span
-                              className={cn(
-                                "flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border-[1.5px]",
-                                showCorrect
-                                  ? "border-[#0A6E45] bg-[#0A6E45] text-white"
-                                  : selected
-                                    ? "border-[#0071CE] bg-[#0071CE]"
-                                    : "border-[#D4D1CB] bg-white",
-                              )}
-                            >
-                              {showCorrect ? <Check className="h-2 w-2" strokeWidth={2.5} /> : null}
+                            <span aria-hidden="true" className="w-4 shrink-0 text-[13px] text-muted">
+                              {String.fromCharCode(65 + optionIndex)}
                             </span>
                             <span className="flex-1">{option}</span>
                             {showCorrect ? (
-                              <span className="ml-auto font-mono text-[8px] text-[#0A6E45]">✓ Correct</span>
+                              <StatusPill tone="success">Correct{selected ? "" : " answer"}</StatusPill>
+                            ) : showWrong ? (
+                              <StatusPill tone="danger">Your answer</StatusPill>
+                            ) : selected ? (
+                              <StatusPill tone="blue">Selected</StatusPill>
                             ) : null}
                           </button>
                         );
                       })}
                     </div>
                     {showResults && explain?.explanation ? (
-                      <div className="mt-2 border-l-[3px] border-[#0A6E45] bg-[#F0FDF7] px-2.5 py-2">
-                        <p className="text-[11px] leading-relaxed text-[#0A3D26]">{explain.explanation}</p>
-                      </div>
+                      <p className="mt-3 rounded-[10px] bg-surface-2 px-4 py-3 text-sm leading-[1.5] text-ink-2">
+                        {explain.explanation}
+                      </p>
                     ) : null}
                   </div>
                 </div>
-              </div>
+              </li>
             );
           })}
-        </div>
+        </ol>
 
         {!submitted ? (
-          <div className="mt-3.5 flex justify-end">
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            {answeredCount < questions.length ? (
+              <span className="text-[13px] text-muted">Answer all {questions.length} questions to submit.</span>
+            ) : null}
             <button
-              className="bg-[#065F46] px-5 py-2 text-[11px] font-semibold text-white hover:bg-[#054a38] disabled:opacity-50"
+              className="btn-primary"
               disabled={answeredCount < questions.length}
               onClick={() => void handleSubmit()}
               type="button"
             >
-              Submit quiz →
+              Submit quiz
             </button>
           </div>
-        ) : (
-          <div className="mt-3.5 flex items-center justify-between">
-            <p className="font-mono text-sm text-[#0A6E45]">
-              Score {score}/{questions.length} (
-              {Math.round((score / questions.length) * 100)}%)
-            </p>
-          </div>
-        )}
+        ) : null}
 
         {submitted && reinforcements.length > 0 ? (
-          <div className="mt-5 border border-[#E2DFD9] bg-[#F9F8F6] p-4">
-            <p className="text-xs font-bold text-[#0D0E12]">Reinforce with practice</p>
-            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          <section aria-labelledby="pulse-reinforce" className="flex flex-col gap-2">
+            <h2 className={H2_CLS} id="pulse-reinforce">
+              Reinforce with practice
+            </h2>
+            <ul className={`${LINE_CARD_CLS} overflow-hidden`}>
               {reinforcements.map((item) => (
-                <div className="border border-[#E2DFD9] bg-white p-2.5" key={item.id}>
-                  <p className="text-[11px] font-semibold text-[#0D0E12]">{item.title}</p>
-                  <p className="mt-0.5 text-[10px] text-[#6B6860]">{item.reason}</p>
-                  <Link
-                    className="mt-1 inline-block text-[10px] font-semibold text-[#0071ce] hover:underline"
-                    href={`/challenges?challenge=${item.id}`}
-                  >
-                    Open challenge →
+                <li
+                  className="flex flex-wrap items-center justify-between gap-3 border-b border-divider px-5 py-3.5 last:border-b-0"
+                  key={item.id}
+                >
+                  <div className="min-w-0">
+                    <p className="text-[15px] font-bold text-ink">{item.title}</p>
+                    <p className="text-[13px] text-muted">{item.reason}</p>
+                  </div>
+                  <Link className="link text-sm" href={`/practice/challenges?challenge=${item.id}`}>
+                    Open challenge
                   </Link>
-                </div>
+                </li>
               ))}
-            </div>
-          </div>
+            </ul>
+          </section>
         ) : null}
       </div>
 
-      {/* Right — focus + reference + history */}
-      <aside className="min-h-0 overflow-y-auto bg-[#F9F8F6]">
-        <div className="relative overflow-hidden border-b border-[#E2DFD9] bg-[#00143A] px-4 py-3.5">
-          <div className="pointer-events-none absolute -right-5 -top-5 h-20 w-20 rounded-full bg-[#0A6E45]/30" />
-          <div className="relative z-10">
-            <p className="mb-1 font-mono text-[8px] uppercase tracking-[0.14em] text-white/40">
-              This week&apos;s focus
-            </p>
-            <p className="font-display text-sm font-extrabold tracking-[-0.01em] text-white">{focusTitle}</p>
-            <p className="mt-1 text-[11px] text-white/50">Agent governance · NHI sprawl · Workforce IGA</p>
-          </div>
+      <aside aria-label="Market pulse reference" className="flex min-w-0 flex-col gap-5">
+        <div className="rounded-[14px] border border-line bg-white px-5 py-4">
+          <p className="label-caps label-caps--blue">This week&apos;s focus</p>
+          <p className="mt-1 text-lg font-extrabold text-ink">{focusTitle}</p>
+          <p className="mt-1 text-sm text-ink-2">Agent governance, NHI sprawl and workforce IGA.</p>
         </div>
 
-        <div className="border-b border-[#E2DFD9] px-4 py-3">
-          <p className="mb-2 font-mono text-[8px] uppercase tracking-[0.12em] text-[#B0ADA8]">Quick reference</p>
-          <div className="flex flex-col gap-1.5">
+        <section aria-labelledby="pulse-ref" className="flex flex-col gap-2">
+          <h2 className="label-caps" id="pulse-ref">
+            Quick reference
+          </h2>
+          <ul className={`${LINE_CARD_CLS} overflow-hidden`}>
             {COMPETITOR_REF.map((item) => (
-              <div
-                className="border border-[#E2DFD9] border-l-2 bg-white px-2.5 py-2"
-                key={item.label}
-                style={{ borderLeftColor: item.color }}
-              >
-                <p
-                  className="mb-0.5 font-mono text-[8px] uppercase tracking-[0.06em]"
-                  style={{ color: item.color }}
-                >
-                  {item.label}
-                </p>
-                <p className="text-[11px] leading-relaxed text-[#3D3C38]">{item.text}</p>
-              </div>
+              <li className="border-b border-divider px-4 py-3 last:border-b-0" key={item.label}>
+                <p className="text-[13px] font-semibold text-blue">{item.label}</p>
+                <p className="mt-0.5 text-sm leading-[1.5] text-ink-2">{item.text}</p>
+              </li>
             ))}
-          </div>
-        </div>
+          </ul>
+        </section>
 
-        <div className="px-4 py-3">
-          <p className="mb-2 font-mono text-[8px] uppercase tracking-[0.12em] text-[#B0ADA8]">Your history</p>
+        <section aria-labelledby="pulse-history" className="flex flex-col gap-2">
+          <h2 className="label-caps" id="pulse-history">
+            Your history
+          </h2>
           {history.length === 0 && !submitted ? (
-            <p className="text-[11px] text-[#A09D98]">Complete this week&apos;s pulse to log your score.</p>
+            <p className="rounded-[14px] border border-dashed border-line-strong p-5 text-center text-sm text-muted">
+              Complete this week&apos;s pulse to log your score.
+            </p>
           ) : (
-            <div className="flex flex-col gap-1.5">
-              {(submitted
-                ? [
-                    {
-                      topic: focusTitle,
-                      date: new Date().toLocaleDateString(undefined, { month: "short", day: "numeric" }),
-                      score: Math.round((score / questions.length) * 100),
-                    },
-                    ...history
-                      .filter((item) => item.weekId !== weekId)
-                      .map((item) => ({
-                        topic: `Week ${item.weekId}`,
-                        date: new Date(item.completedAt).toLocaleDateString(undefined, {
-                          month: "short",
-                          day: "numeric",
-                        }),
-                        score: Math.round((item.score / item.total) * 100),
-                      })),
-                  ]
-                : history.map((item) => ({
-                    topic: `Week ${item.weekId}`,
-                    date: new Date(item.completedAt).toLocaleDateString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                    }),
-                    score: Math.round((item.score / item.total) * 100),
-                  }))
-              ).map((row) => (
-                <div
-                  className="flex items-center gap-2 border border-[#E2DFD9] bg-white px-2.5 py-1.5"
+            <ul className={`${LINE_CARD_CLS} overflow-hidden`}>
+              {historyRows.map((row) => (
+                <li
+                  className="flex items-center gap-3 border-b border-divider px-4 py-3 last:border-b-0"
                   key={`${row.topic}-${row.date}`}
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="text-[11px] font-medium text-[#0D0E12]">{row.topic}</p>
-                    <p className="font-mono text-[8.5px] text-[#A09D98]">{row.date}</p>
+                    <p className="text-sm font-semibold text-ink">{row.topic}</p>
+                    <p className="text-[13px] text-muted">{row.date}</p>
                   </div>
-                  <span
-                    className="font-mono text-sm"
-                    style={{ color: scoreColor(row.score) }}
-                  >
+                  <span className={cn("num text-sm font-bold", scoreTextClass(row.score))}>
                     {row.score}%
                   </span>
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
-        </div>
+        </section>
       </aside>
     </div>
   );

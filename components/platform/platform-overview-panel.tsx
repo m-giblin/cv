@@ -1,6 +1,22 @@
 "use client";
 
-import { AlertTriangle, Loader2, Ticket, Wrench } from "lucide-react";
+import {
+  EmptyLine,
+  KpiStrip,
+  LineCard,
+  PriorityTag,
+  ROW_LINK,
+  Spinner,
+  TABLE,
+  TABLE_SCROLL,
+  TD,
+  TD_META,
+  TD_MUTED,
+  TH,
+  THEAD_ROW,
+  TR,
+  TenantStatusTag,
+} from "@/components/platform/platform-ui";
 import type { SupportRequest, TenantHealth } from "@/lib/tenant/types";
 
 type OverviewData = {
@@ -25,9 +41,9 @@ function runbookForAlert(alert: string): { title: string; steps: string[] } {
   const lower = alert.toLowerCase();
   if (lower.includes("admin") && lower.includes("invite")) {
     return {
-      title: "Missing / pending tenant admin",
+      title: "Missing or pending tenant admin",
       steps: [
-        "Open the tenant → Provision",
+        "Open the tenant, then Provision",
         "Send or resend the admin invite",
         "If stuck, shadow as admin and verify email domain allowlist",
       ],
@@ -86,16 +102,10 @@ export function PlatformOverviewPanel({
   onSelectTenant: (tenantId: string) => void;
   onOpenSupport: () => void;
 }) {
-  if (loading) {
-    return (
-      <div className="flex justify-center py-16">
-        <Loader2 className="h-7 w-7 animate-spin text-[#0071ce]" />
-      </div>
-    );
-  }
+  if (loading) return <Spinner label="Loading tenant health" />;
 
   if (!data) {
-    return <p className="text-sm text-[#6B6860]">Could not load platform overview.</p>;
+    return <p className="text-[15px] text-muted">Could not load platform overview.</p>;
   }
 
   const { summary, health, recentTickets } = data;
@@ -103,148 +113,122 @@ export function PlatformOverviewPanel({
   const attentionTenants = health.filter((item) => item.alerts.length > 0);
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-px bg-[#E2DFD9] sm:grid-cols-3">
-        <div className="bg-white px-4 py-4">
-          <p className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#A09D98]">
-            Organizations
-          </p>
-          <p className="mt-1 font-display text-[28px] font-extrabold text-[#0D0E12]">
-            {summary.tenantCount}
-          </p>
-        </div>
-        <button
-          className="bg-white px-4 py-4 text-left transition hover:bg-[#F0F7FF]"
-          onClick={onOpenSupport}
-          type="button"
-        >
-          <p className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#A09D98]">
-            Open tickets
-          </p>
-          <p className="mt-1 font-display text-[28px] font-extrabold text-[#0D0E12]">
-            {summary.totalOpenTickets}
-          </p>
-        </button>
-        <div className="bg-white px-4 py-4">
-          <p className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#A09D98]">
-            Needs attention
-          </p>
-          <p className="mt-1 font-display text-[28px] font-extrabold text-[#B83128]">
-            {summary.tenantsNeedingAttention}
-          </p>
-        </div>
-      </div>
+    <div className="space-y-7">
+      <KpiStrip
+        items={[
+          { label: "Organizations", value: summary.tenantCount },
+          { label: "Open tickets", value: summary.totalOpenTickets },
+          {
+            label: "Need attention",
+            value: summary.tenantsNeedingAttention,
+            tone: summary.tenantsNeedingAttention > 0 ? "danger" : "blue",
+          },
+        ]}
+      />
 
       {attentionTenants.length > 0 ? (
-        <div className="border border-[#E2DFD9] bg-white">
-          <div className="flex items-center gap-2 border-b border-[#E2DFD9] bg-[#FFF8F0] px-4 py-3">
-            <AlertTriangle className="h-4 w-4 text-[#D4810A]" />
-            <h3 className="text-sm font-bold text-[#0D0E12]">Runbooks</h3>
-            <span className="font-mono text-[10px] text-[#A09D98]">
-              {attentionTenants.length} tenant{attentionTenants.length === 1 ? "" : "s"}
-            </span>
-          </div>
-          <div className="divide-y divide-[#F0EFEB]">
+        <LineCard meta={`${attentionTenants.length} tenant${attentionTenants.length === 1 ? "" : "s"}`} title="Runbooks">
+          <ul>
             {attentionTenants.map((item) => {
               const runbook = runbookForAlert(item.alerts[0] ?? "");
               return (
-                <div className="grid gap-4 px-4 py-3 lg:grid-cols-[1fr_1.2fr_auto]" key={item.tenantId}>
+                <li
+                  className="grid gap-4 border-b border-divider px-5 py-4 last:border-b-0 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_auto]"
+                  key={item.tenantId}
+                >
                   <div>
-                    <p className="font-semibold text-[#0D0E12]">{item.name}</p>
-                    <p className="mt-0.5 text-xs text-[#6B6860]">{item.alerts.join(" · ")}</p>
+                    <p className="text-[15px] font-bold text-ink">{item.name}</p>
+                    <p className="mt-0.5 text-[13px] font-semibold text-danger">{item.alerts.join(". ")}</p>
                   </div>
                   <div>
-                    <p className="flex items-center gap-1.5 text-xs font-semibold text-[#3D3C38]">
-                      <Wrench className="h-3.5 w-3.5" />
-                      {runbook.title}
-                    </p>
-                    <ol className="mt-1 list-decimal space-y-0.5 pl-4 text-xs text-[#6B6860]">
-                      {runbook.steps.map((step) => (
-                        <li key={step}>{step}</li>
+                    <p className="text-sm font-bold text-ink">{runbook.title}</p>
+                    <ol className="mt-1.5 space-y-1 text-sm text-ink-2">
+                      {runbook.steps.map((step, index) => (
+                        <li className="flex gap-2.5" key={step}>
+                          <span className="num w-4 shrink-0 font-bold text-blue">{index + 1}</span>
+                          {step}
+                        </li>
                       ))}
                     </ol>
                   </div>
                   <button
-                    className="h-fit border border-[#0071CE]/30 bg-[#F0F7FF] px-3 py-1.5 text-xs font-semibold text-[#0071CE]"
+                    className="btn-secondary h-fit w-fit"
                     onClick={() => onSelectTenant(item.tenantId)}
                     type="button"
                   >
                     Open tenant
                   </button>
-                </div>
+                </li>
               );
             })}
-          </div>
-        </div>
+          </ul>
+        </LineCard>
       ) : null}
 
-      <div className="overflow-hidden border border-[#E2DFD9] bg-white">
-        <div className="border-b border-[#E2DFD9] px-4 py-3">
-          <h3 className="text-sm font-bold text-[#0D0E12]">Fleet health</h3>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+      <LineCard meta={`${healthRows.length} tenants`} title="Fleet health">
+        <div className={TABLE_SCROLL}>
+          <table className={TABLE}>
             <thead>
-              <tr className="border-b border-[#E2DFD9] bg-[#F7F6F3] font-mono text-[8px] uppercase tracking-[0.1em] text-[#A09D98]">
-                <th className="px-4 py-2">Tenant</th>
-                <th className="px-4 py-2">Users</th>
-                <th className="px-4 py-2">AI (30d)</th>
-                <th className="px-4 py-2">Tickets</th>
-                <th className="px-4 py-2">Last activity</th>
-                <th className="px-4 py-2">Status</th>
+              <tr className={THEAD_ROW}>
+                <th className={TH} scope="col">Tenant</th>
+                <th className={TH} scope="col">Users</th>
+                <th className={TH} scope="col">AI calls 30d</th>
+                <th className={TH} scope="col">Tickets</th>
+                <th className={TH} scope="col">Last activity</th>
+                <th className={TH} scope="col">Status</th>
               </tr>
             </thead>
             <tbody>
               {healthRows.map((item) => (
-                <tr
-                  className="cursor-pointer border-b border-[#F0EFEB] hover:bg-[#F0F7FF]"
-                  key={item.tenantId}
-                  onClick={() => onSelectTenant(item.tenantId)}
-                >
-                  <td className="px-4 py-2 font-medium text-[#0D0E12]">{item.name}</td>
-                  <td className="px-4 py-2 text-[#6B6860]">{item.userCount}</td>
-                  <td className="px-4 py-2 text-[#6B6860]">{item.aiCalls30d}</td>
-                  <td className="px-4 py-2 text-[#6B6860]">{item.openSupportTickets}</td>
-                  <td className="px-4 py-2 text-[#6B6860]">
-                    {formatRelative(item.lastUserActivityAt)}
+                <tr className={TR} key={item.tenantId}>
+                  <td className={TD}>
+                    <button className={ROW_LINK} onClick={() => onSelectTenant(item.tenantId)} type="button">
+                      {item.name}
+                    </button>
                   </td>
-                  <td className="px-4 py-2 font-mono text-[10px] uppercase text-[#6B6860]">
-                    {item.status}
+                  <td className={`${TD_MUTED} num`}>{item.userCount}</td>
+                  <td className={`${TD_MUTED} num`}>{item.aiCalls30d}</td>
+                  <td className={`${TD_MUTED} num`}>{item.openSupportTickets}</td>
+                  <td className={TD_META}>{formatRelative(item.lastUserActivityAt)}</td>
+                  <td className={TD}>
+                    <TenantStatusTag status={item.status} />
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </div>
+      </LineCard>
 
-      {recentTickets.length > 0 ? (
-        <div className="border border-[#E2DFD9] bg-white">
-          <div className="flex items-center justify-between border-b border-[#E2DFD9] px-4 py-3">
-            <div className="flex items-center gap-2">
-              <Ticket className="h-4 w-4 text-[#0071ce]" />
-              <h3 className="text-sm font-bold text-[#0D0E12]">Recent support</h3>
-            </div>
-            <button
-              className="text-xs font-semibold text-[#0071ce] hover:underline"
-              onClick={onOpenSupport}
-              type="button"
-            >
-              View all
-            </button>
-          </div>
-          <div className="divide-y divide-[#F0EFEB]">
+      <LineCard
+        action={
+          <button className="link text-sm" onClick={onOpenSupport} type="button">
+            View all
+          </button>
+        }
+        title="Recent support"
+      >
+        {recentTickets.length === 0 ? (
+          <EmptyLine>No recent tickets.</EmptyLine>
+        ) : (
+          <ul>
             {recentTickets.map((ticket) => (
-              <div className="px-4 py-2.5 text-sm" key={ticket.id}>
-                <p className="font-medium text-[#0D0E12]">{ticket.subject}</p>
-                <p className="text-xs text-[#A09D98]">
-                  {ticket.tenantName ?? "Unknown"} · {ticket.priority} · {ticket.status}
-                </p>
-              </div>
+              <li
+                className="flex flex-wrap items-center justify-between gap-3 border-b border-divider px-5 py-3 last:border-b-0"
+                key={ticket.id}
+              >
+                <div className="min-w-0">
+                  <p className="text-[15px] font-semibold text-ink">{ticket.subject}</p>
+                  <p className="text-[13px] text-muted">
+                    {ticket.tenantName ?? "Unknown tenant"}, {ticket.status.replace("_", " ")}
+                  </p>
+                </div>
+                <PriorityTag priority={ticket.priority} />
+              </li>
             ))}
-          </div>
-        </div>
-      ) : null}
+          </ul>
+        )}
+      </LineCard>
     </div>
   );
 }

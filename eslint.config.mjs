@@ -16,6 +16,8 @@ const eslintConfig = [
       ".next/**",
       "node_modules/**",
       "next-env.d.ts",
+      "design_handoff_*/**",
+      "Design Archive/**",
     ],
   },
 ];

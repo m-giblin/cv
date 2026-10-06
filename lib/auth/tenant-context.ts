@@ -1,4 +1,6 @@
 import { cookies } from "next/headers";
+import { cache } from "react";
+import { getAuthenticatedUser } from "@/lib/data/get-authenticated-user";
 import { getAccessTier, type AccessTier } from "@/lib/auth/rbac";
 import {
   resolveEffectiveAccess,
@@ -18,15 +20,14 @@ export type TenantContext = {
   isShadowing: boolean;
 };
 
-export async function resolveTenantContext(): Promise<TenantContext | null> {
+/** Cached per request so the several loaders a page uses share one auth check and profile read. */
+export const resolveTenantContext = cache(async (): Promise<TenantContext | null> => {
   const supabase = await createClient();
   if (!supabase) {
     return null;
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthenticatedUser();
   if (!user) {
     return null;
   }
@@ -57,7 +58,7 @@ export async function resolveTenantContext(): Promise<TenantContext | null> {
     profileTenantId,
     isShadowing: access.isShadowing,
   };
-}
+});
 
 export type DashboardScope = "personal" | "org" | "tenant";
 

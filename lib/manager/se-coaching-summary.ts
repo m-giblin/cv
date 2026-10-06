@@ -144,7 +144,7 @@ export function buildSeCoachingSummary(params: {
         ? "Active today"
         : lastActiveDays === 1
           ? "Active yesterday"
-          : `Last active ${lastActiveDays}d ago`;
+          : `Last active ${lastActiveDays} days ago`;
 
   const currentStep = currentPlanStep(plan);
   const devStats = devGoalStats(developmentPlan);
@@ -192,7 +192,7 @@ export function buildSeCoachingSummary(params: {
   }
 
   if (simTrend && simTrend.direction !== "insufficient") {
-    storyParts.push(simTrendLabel.replace("Improving", "↑").replace("Slipping", "↓"));
+    storyParts.push(`Sims ${simTrendLabel.charAt(0).toLowerCase()}${simTrendLabel.slice(1)}`);
   }
 
   if (cohortBenchmark?.simDelta !== null && cohortBenchmark && Math.abs(cohortBenchmark.simDelta ?? 0) >= 5) {
@@ -202,7 +202,7 @@ export function buildSeCoachingSummary(params: {
         : `Below ${cohortBenchmark.cohortLabel} on sims`,
     );
   } else if (devStats.total > 0) {
-    storyParts.push(`Dev ${devStats.onTrack}/${devStats.total} on track`);
+    storyParts.push(`${devStats.onTrack} of ${devStats.total} development goals on track`);
   } else {
     storyParts.push(lastActiveLabel);
   }
@@ -257,7 +257,7 @@ export function buildSeCoachingSummary(params: {
   }
 
   const certsLabel = certSummary
-    ? `${certSummary.approved}/${certSummary.total || certSummary.items.length} certs`
+    ? `${certSummary.approved} of ${certSummary.total || certSummary.items.length} certs`
     : `${approvedCerts.length} certs`;
 
   const pendingCerts = certSummary?.items.filter((item) => item.status === "submitted").length ?? 0;
@@ -266,7 +266,10 @@ export function buildSeCoachingSummary(params: {
   return {
     health,
     healthLabel: HEALTH_LABELS[health],
-    storyLine: storyParts.join(" · "),
+    // One sentence: "2 awaiting your review, sims improving, last active 3 days ago."
+    storyLine: storyParts.length
+      ? `${storyParts.map((part, index) => (index === 0 ? part : part.charAt(0).toLowerCase() + part.slice(1))).join(", ")}.`
+      : "",
     currentFocus: currentStep?.title ?? developmentPlan?.goals[0]?.title ?? null,
     lastActiveLabel,
     lastActiveDays,

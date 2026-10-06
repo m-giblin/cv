@@ -82,9 +82,7 @@ async function fetchSupabaseSimulationsPageData(): Promise<SimulationsPageData |
     return null;
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthenticatedUser();
   if (!user) {
     return null;
   }
@@ -244,9 +242,7 @@ export async function getSimulationsPageDataForTier(tier: "se" | "manager" | "ad
     return result;
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthenticatedUser();
   if (!user) {
     return result;
   }

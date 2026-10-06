@@ -1,105 +1,137 @@
 "use client";
 
-import { Loader2, Star, ThumbsUp } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Loader2, ThumbsUp } from "lucide-react";
+import { useEffect, useId, useState } from "react";
 import { toast } from "sonner";
-import { SP_BLUE_BTN } from "@/components/se/sp-form-primitives";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
+import { H2_CLS, LABEL_CLS, LINE_CARD_CLS, TEXTAREA_CLS } from "@/components/se/form-classes";
+import { StatusPill } from "@/components/ui/status-pill";
+
+function ScoreRow({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
+  return (
+    <fieldset className="flex flex-wrap items-center gap-2">
+      <legend className="float-left w-32 text-sm font-bold text-ink">{label}</legend>
+      {[1, 2, 3, 4, 5].map((score) => {
+        const active = value === score;
+        return (
+          <button
+            aria-label={`${label} ${score} of 5`}
+            aria-pressed={active}
+            className={`h-9 min-w-9 rounded-[10px] px-2 text-sm font-semibold ${
+              active ? "bg-ink text-white" : "border border-line-strong bg-white text-ink hover:bg-blue-soft"
+            }`}
+            key={score}
+            onClick={() => onChange(score)}
+            type="button"
+          >
+            {score}
+          </button>
+        );
+      })}
+    </fieldset>
+  );
+}
 
 export function PitchPeerReviewForm({ pitchId }: { pitchId: string }) {
- const [clarity, setClarity] = useState(4);
- const [storyline, setStoryline] = useState(4);
- const [differentiation, setDifferentiation] = useState(4);
- const [comment, setComment] = useState("");
- const [endorsed, setEndorsed] = useState(false);
- const [saving, setSaving] = useState(false);
- const [existing, setExisting] = useState<{ endorsed: boolean } | null>(null);
+  const commentId = useId();
+  const endorseId = useId();
+  const [clarity, setClarity] = useState(4);
+  const [storyline, setStoryline] = useState(4);
+  const [differentiation, setDifferentiation] = useState(4);
+  const [comment, setComment] = useState("");
+  const [endorsed, setEndorsed] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [existing, setExisting] = useState<{ endorsed: boolean } | null>(null);
 
- useEffect(() => {
- void fetch(`/api/pitch/peer-reviews?pitchId=${pitchId}`)
- .then((response) => (response.ok ? response.json() : { reviews: [] }))
- .then((body: { reviews: Array<{ reviewer_id: string; endorsed: boolean }> }) => {
- if (body.reviews.length > 0) setExisting({ endorsed: body.reviews[0]!.endorsed });
- });
- }, [pitchId]);
+  useEffect(() => {
+    void fetch(`/api/pitch/peer-reviews?pitchId=${pitchId}`)
+      .then((response) => (response.ok ? response.json() : { reviews: [] }))
+      .then((body: { reviews: Array<{ reviewer_id: string; endorsed: boolean }> }) => {
+        if (body.reviews.length > 0) setExisting({ endorsed: body.reviews[0]!.endorsed });
+      });
+  }, [pitchId]);
 
- async function submit() {
- setSaving(true);
- const response = await fetch("/api/pitch/peer-reviews", {
- method: "POST",
- headers: { "Content-Type": "application/json" },
- body: JSON.stringify({
- pitchId,
- clarityScore: clarity,
- storylineScore: storyline,
- differentiationScore: differentiation,
- comment,
- endorsed,
- }),
- });
- setSaving(false);
- if (!response.ok) {
- toast.error("Could not save peer review.");
- return;
- }
- toast.success(endorsed ? "Endorsed — added to mentor picks" : "Peer feedback saved.");
- setExisting({ endorsed });
- }
+  async function submit() {
+    setSaving(true);
+    const response = await fetch("/api/pitch/peer-reviews", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        pitchId,
+        clarityScore: clarity,
+        storylineScore: storyline,
+        differentiationScore: differentiation,
+        comment,
+        endorsed,
+      }),
+    });
+    setSaving(false);
+    if (!response.ok) {
+      toast.error("Could not save peer review.");
+      return;
+    }
+    toast.success(endorsed ? "Endorsed — added to mentor picks" : "Peer feedback saved.");
+    setExisting({ endorsed });
+  }
 
- if (existing) {
- return (
- <div className="border border-[#E2DFD9] bg-white p-6">
- <h2 className="text-sm font-semibold text-[#0D0E12]">Your peer review</h2>
- <p className="mt-1 text-sm text-[#6B6860]">
- {existing.endorsed ? "You endorsed this pitch" : "Feedback submitted"}
- </p>
- </div>
- );
- }
+  if (existing) {
+    return (
+      <div className={`${LINE_CARD_CLS} flex flex-wrap items-center justify-between gap-3 px-5 py-4`}>
+        <h2 className={H2_CLS}>Your peer review</h2>
+        <span role="status">
+          <StatusPill tone={existing.endorsed ? "success" : "blue"}>
+            {existing.endorsed ? "Endorsed" : "Feedback submitted"}
+          </StatusPill>
+        </span>
+      </div>
+    );
+  }
 
- function ScoreRow({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
- return (
- <div className="flex flex-wrap items-center gap-2">
- <span className="w-28 text-xs font-semibold text-sp-navy">{label}</span>
- {[1, 2, 3, 4, 5].map((score) => (
- <button
- className={`border px-2 py-0.5 text-xs font-semibold ${
- value === score ? "border-sp-blue bg-sp-blue-soft text-sp-blue-deep" : "border-stone-200"
- }`}
- key={score}
- onClick={() => onChange(score)}
- type="button"
- >
- {score}
- </button>
- ))}
- </div>
- );
- }
-
- return (
- <div className="border border-[#E2DFD9] bg-white">
- <div className="border-b border-[#ECEAE6] p-6">
- <h2 className="text-base font-semibold text-[#0D0E12]">Peer review</h2>
- <p className="mt-1 text-sm text-[#6B6860]">
- Structured rubric — Allego-style feedback without the social feed noise.
- </p>
- </div>
- <div className="space-y-3 px-6 pb-6 pt-4">
- <ScoreRow label="Clarity" onChange={setClarity} value={clarity} />
- <ScoreRow label="Storyline" onChange={setStoryline} value={storyline} />
- <ScoreRow label="Differentiation" onChange={setDifferentiation} value={differentiation} />
- <Textarea onChange={(e) => setComment(e.target.value)} placeholder="One thing they nailed, one upgrade…" rows={2} value={comment} />
- <label className="flex items-center gap-2 text-sm">
- <input checked={endorsed} onChange={(e) => setEndorsed(e.target.checked)} type="checkbox" />
- <ThumbsUp className="h-4 w-4 text-sp-blue" />
- Endorse for peer library (mentor pick)
- </label>
- <button className={SP_BLUE_BTN} disabled={saving} onClick={() => void submit()} type="button">
- {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Submit peer review"}
- </button>
- </div>
- </div>
- );
+  return (
+    <div className={LINE_CARD_CLS}>
+      <div className="border-b border-divider px-5 py-4">
+        <h2 className={H2_CLS}>Peer review</h2>
+        <p className="mt-1 text-sm text-ink-2">Score it against the rubric. Your feedback goes to the presenter only.</p>
+      </div>
+      <div className="space-y-4 px-5 py-4">
+        <ScoreRow label="Clarity" onChange={setClarity} value={clarity} />
+        <ScoreRow label="Storyline" onChange={setStoryline} value={storyline} />
+        <ScoreRow label="Differentiation" onChange={setDifferentiation} value={differentiation} />
+        <div className="space-y-1.5">
+          <label className={LABEL_CLS} htmlFor={commentId}>
+            Comment
+          </label>
+          <textarea
+            className={TEXTAREA_CLS}
+            id={commentId}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="One thing they nailed, one upgrade…"
+            rows={2}
+            value={comment}
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            checked={endorsed}
+            className="h-4 w-4 rounded-xs accent-blue"
+            id={endorseId}
+            onChange={(e) => setEndorsed(e.target.checked)}
+            type="checkbox"
+          />
+          <label className="flex items-center gap-2 text-sm text-ink" htmlFor={endorseId}>
+            <ThumbsUp aria-hidden="true" className="h-4 w-4 text-blue" />
+            Endorse for peer library (mentor pick)
+          </label>
+        </div>
+        <button
+          className="btn-primary inline-flex items-center gap-2"
+          disabled={saving}
+          onClick={() => void submit()}
+          type="button"
+        >
+          {saving ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : null}
+          {saving ? "Saving…" : "Submit peer review"}
+        </button>
+      </div>
+    </div>
+  );
 }

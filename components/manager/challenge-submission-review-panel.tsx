@@ -1,9 +1,13 @@
 "use client";
 
-import { ExternalLink, FileText, Loader2, X } from "lucide-react";
+import { Loader2, Plus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ManagerCopilotDraft } from "@/components/manager/manager-copilot-draft";
+import { ScoreBar } from "@/components/ui/bars";
+import { StatusPill, type StatusTone } from "@/components/ui/status-pill";
+import { Tag } from "@/components/ui/tag";
 import { isPdfEvidence } from "@/lib/evidence/evidence-file-shared";
+import { cn } from "@/lib/utils";
 
 type ChallengeBrief = {
   title: string;
@@ -45,10 +49,34 @@ type ChallengeDetailResponse = {
   } | null;
 };
 
-function scoreTone(score: number) {
-  if (score >= 80) return { label: "Strong", color: "#0A6E45", bg: "#EDFAF3" };
-  if (score >= 70) return { label: "Developing", color: "#0071CE", bg: "#EEF4FF" };
-  return { label: "Below target", color: "#B83128", bg: "#FEF0EE" };
+function scoreTone(score: number): { label: string; pill: StatusTone; text: string } {
+  if (score >= 80) return { label: "Strong", pill: "success", text: "text-blue" };
+  if (score >= 70) return { label: "Developing", pill: "blue", text: "text-blue" };
+  if (score >= 60) return { label: "Below target", pill: "warning", text: "text-warning" };
+  return { label: "Below target", pill: "danger", text: "text-danger" };
+}
+
+const SECTION_TITLE = "label-caps mb-2 block";
+
+function BriefSection({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <section>
+      <h3 className={SECTION_TITLE}>{label}</h3>
+      {children}
+    </section>
+  );
+}
+
+function TagList({ items }: { items: string[] }) {
+  return (
+    <ul className="flex flex-wrap gap-2">
+      {items.map((item) => (
+        <li key={item}>
+          <Tag>{item}</Tag>
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 function ChallengeBriefModal({ challenge, onClose }: { challenge: ChallengeBrief; onClose: () => void }) {
@@ -56,96 +84,87 @@ function ChallengeBriefModal({ challenge, onClose }: { challenge: ChallengeBrief
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button
         aria-label="Close challenge brief"
-        className="absolute inset-0 bg-[#00143a]/45 backdrop-blur-[2px]"
+        className="absolute inset-0 bg-ink/45"
         onClick={onClose}
         type="button"
       />
       <div
         aria-labelledby="challenge-brief-title"
         aria-modal="true"
-        className="relative flex min-h-0 max-h-[min(85vh,720px)] w-full max-w-xl flex-col overflow-hidden border border-[#E2DFD9] bg-white shadow-xl"
+        className="relative flex min-h-0 max-h-[min(85vh,720px)] w-full max-w-xl flex-col overflow-hidden rounded-[14px] border border-line bg-white"
         role="dialog"
       >
-        <div className="flex items-start justify-between gap-3 border-b border-[#ECEAE6] bg-[#F9F8F6] px-4 py-3">
-          <div>
-            <p className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#A09D98]">Challenge brief</p>
-            <h2 className="text-[15px] font-bold text-[#0D0E12]" id="challenge-brief-title">
+        <div className="flex items-start justify-between gap-3 border-b border-divider px-5 py-4">
+          <div className="min-w-0">
+            <p className="label-caps label-caps--blue">Challenge brief</p>
+            <h2 className="mt-1 text-[22px] leading-tight font-extrabold tracking-[-0.015em] text-ink" id="challenge-brief-title">
               {challenge.title}
             </h2>
           </div>
           <button
             aria-label="Close"
-            className="p-1 text-[#6B6860] hover:bg-[#ECEAE6]"
+            className="rounded-full p-1.5 text-muted hover:bg-divider hover:text-ink"
             onClick={onClose}
             type="button"
           >
-            <X className="h-4 w-4" />
+            <X aria-hidden className="h-4 w-4" />
           </button>
         </div>
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4 pb-5">
-          <p className="font-mono text-[9px] text-[#A09D98]">
-            {challenge.estimatedMinutes} min
-            {challenge.targetLevel ? ` · ${challenge.targetLevel} level` : ""}
-            {challenge.difficulty ? ` · ${challenge.difficulty}` : ""}
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4 pb-5">
+          <p className="text-[13px] text-muted">
+            {[
+              `${challenge.estimatedMinutes} minutes`,
+              challenge.targetLevel ? `${challenge.targetLevel} level` : null,
+              challenge.difficulty || null,
+            ]
+              .filter(Boolean)
+              .join(", ")}
           </p>
           {challenge.description ? (
-            <section>
-              <p className="mb-1 font-mono text-[8px] uppercase tracking-[0.1em] text-[#A09D98]">Overview</p>
-              <p className="text-[12px] leading-relaxed text-[#3D3C38]">{challenge.description}</p>
-            </section>
+            <BriefSection label="Overview">
+              <p className="text-[15px] leading-normal text-ink-2">{challenge.description}</p>
+            </BriefSection>
           ) : null}
           {challenge.steps.length > 0 ? (
-            <section>
-              <p className="mb-1 font-mono text-[8px] uppercase tracking-[0.1em] text-[#A09D98]">Steps</p>
-              <ol className="list-decimal space-y-1.5 pl-4 text-[11.5px] leading-relaxed text-[#3D3C38]">
+            <BriefSection label="Steps">
+              <ol className="list-decimal space-y-1.5 pl-5 text-[15px] leading-normal text-ink-2 marker:text-muted">
                 {challenge.steps.map((step) => (
                   <li key={step}>{step}</li>
                 ))}
               </ol>
-            </section>
+            </BriefSection>
           ) : null}
           {challenge.successCriteria.length > 0 ? (
-            <section>
-              <p className="mb-1 font-mono text-[8px] uppercase tracking-[0.1em] text-[#A09D98]">
-                Success criteria (rubric)
-              </p>
-              <ul className="list-disc space-y-1 pl-4 text-[11.5px] leading-relaxed text-[#3D3C38]">
+            <BriefSection label="Success criteria">
+              <ul className="list-disc space-y-1 pl-5 text-[15px] leading-normal text-ink-2 marker:text-line-strong">
                 {challenge.successCriteria.map((item) => (
                   <li key={item}>{item}</li>
                 ))}
               </ul>
-            </section>
+            </BriefSection>
           ) : null}
           {challenge.linkedSolutions.length > 0 ? (
-            <section>
-              <p className="mb-1 font-mono text-[8px] uppercase tracking-[0.1em] text-[#A09D98]">Linked solutions</p>
-              <p className="text-[11px] text-[#6B6860]">{challenge.linkedSolutions.join(" · ")}</p>
-            </section>
+            <BriefSection label="Linked solutions">
+              <TagList items={challenge.linkedSolutions} />
+            </BriefSection>
           ) : null}
           {challenge.competencyNames.length > 0 ? (
-            <section>
-              <p className="mb-1 font-mono text-[8px] uppercase tracking-[0.1em] text-[#A09D98]">Competencies</p>
-              <p className="text-[11px] text-[#6B6860]">{challenge.competencyNames.join(" · ")}</p>
-            </section>
+            <BriefSection label="Competencies">
+              <TagList items={challenge.competencyNames} />
+            </BriefSection>
           ) : null}
           {challenge.linkedResources.length > 0 ? (
-            <section>
-              <p className="mb-1 font-mono text-[8px] uppercase tracking-[0.1em] text-[#A09D98]">Resources</p>
+            <BriefSection label="Resources">
               <ul className="space-y-1.5">
                 {challenge.linkedResources.map((resource) => (
-                  <li key={resource}>
-                    <a
-                      className="text-[11px] font-semibold text-[#0071ce] hover:underline"
-                      href={resource}
-                      rel="noreferrer"
-                      target="_blank"
-                    >
+                  <li className="min-w-0 break-all" key={resource}>
+                    <a className="link text-sm" href={resource} rel="noreferrer" target="_blank">
                       {resource.replace(/^https?:\/\//, "")}
                     </a>
                   </li>
                 ))}
               </ul>
-            </section>
+            </BriefSection>
           ) : null}
         </div>
       </div>
@@ -160,12 +179,12 @@ function openEvidence(item: ChallengeDetailResponse["evidence"][number], submiss
 
 export function ChallengeSubmissionReviewPanel({
   submissionId,
-  challengeTitle,
   onSuggestedGrade,
   onAppendMoment,
   onDraft,
 }: {
   submissionId: string;
+  /** Kept for callers; the panel loads its own title with the submission. */
   challengeTitle: string;
   onSuggestedGrade?: (grade: number) => void;
   onAppendMoment?: (text: string) => void;
@@ -185,7 +204,11 @@ export function ChallengeSubmissionReviewPanel({
       .then(async (response) => {
         if (!response.ok) {
           const body = (await response.json().catch(() => ({}))) as { error?: string };
-          throw new Error(body.error ?? "Could not load submission.");
+          throw new Error(
+            response.status === 403
+              ? "You can only open work from people in your reporting line, so this proof is hidden."
+              : (body.error ?? "Could not load submission."),
+          );
         }
         return response.json() as Promise<ChallengeDetailResponse>;
       })
@@ -210,16 +233,16 @@ export function ChallengeSubmissionReviewPanel({
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 border-t border-[#ECEAE6] px-[18px] py-4 text-[11px] text-[#6B6860]">
-        <Loader2 className="h-4 w-4 animate-spin" />
-        Loading challenge proof and AI assessment…
+      <div className="flex items-center gap-2 py-2 text-sm text-muted" role="status">
+        <Loader2 aria-hidden className="h-4 w-4 animate-spin" />
+        Loading challenge proof and AI assessment
       </div>
     );
   }
 
   if (error || !detail) {
     return (
-      <div className="border-t border-[#ECEAE6] px-[18px] py-3 text-[11px] text-[#B83128]">
+      <div className="rounded-[14px] bg-danger-soft px-4 py-3 text-sm font-semibold text-danger" role="alert">
         {error ?? "Submission details unavailable."}
       </div>
     );
@@ -233,67 +256,74 @@ export function ChallengeSubmissionReviewPanel({
         <ChallengeBriefModal challenge={detail.challenge} onClose={() => setShowBrief(false)} />
       ) : null}
 
-      <div className="space-y-3 border-t border-[#ECEAE6] px-[18px] pb-3 pt-3">
-        <div className="flex flex-wrap items-center gap-2">
-          {detail.aiReview && tone ? (
-            <span
-              className="px-2 py-0.5 font-mono text-[8px] font-bold uppercase tracking-[0.08em]"
-              style={{ background: tone.bg, color: tone.color }}
-            >
-              AI initial score · {detail.aiReview.score}/100 ({tone.label}) — suggested grade{" "}
-              {detail.aiReview.suggestedGrade}/5
-            </span>
-          ) : null}
-          <button
-            className="text-[10px] font-semibold text-[#0071ce] hover:underline"
-            onClick={() => setShowBrief(true)}
-            type="button"
-          >
-            View challenge brief →
-          </button>
-        </div>
+      <div className="min-w-0 space-y-6">
+        {detail.aiReview && tone ? (
+          <section className="space-y-3">
+            <div className="flex flex-wrap items-end gap-x-8 gap-y-3">
+              <div className="flex flex-col gap-1">
+                <span className="label-caps">AI initial score</span>
+                <span className={cn("num text-[44px] leading-none font-extrabold tracking-[-0.03em]", tone.text)}>
+                  {detail.aiReview.score}
+                  <span className="ml-1 text-[15px] font-semibold tracking-normal text-muted">of 100</span>
+                </span>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="label-caps">Suggested grade</span>
+                <span className="num text-[44px] leading-none font-extrabold tracking-[-0.03em] text-ink">
+                  {detail.aiReview.suggestedGrade}
+                  <span className="ml-1 text-[15px] font-semibold tracking-normal text-muted">of 5</span>
+                </span>
+              </div>
+              <StatusPill className="pb-1" tone={tone.pill}>
+                {tone.label}
+              </StatusPill>
+            </div>
+            <ScoreBar value={detail.aiReview.score} />
+          </section>
+        ) : null}
+        <button className="btn-secondary" onClick={() => setShowBrief(true)} type="button">
+          View challenge brief
+        </button>
 
         {detail.aiReview?.summary ? (
-          <div className="border-l-[3px] border-[#7c3aed] bg-[#F5F0FF] px-3 py-2.5">
-            <p className="mb-1 font-mono text-[8px] uppercase tracking-[0.1em] text-[#7c3aed]">
-              AI assessment — validate against evidence
-            </p>
-            <p className="text-[12px] leading-relaxed text-[#0D0E12]">{detail.aiReview.summary}</p>
+          <section>
+            <h3 className={SECTION_TITLE}>AI assessment</h3>
+            <p className="text-[15px] leading-normal text-ink-2">{detail.aiReview.summary}</p>
             {detail.aiReview.evidenceNotes ? (
-              <p className="mt-1.5 text-[10.5px] text-[#6B6860]">{detail.aiReview.evidenceNotes}</p>
+              <p className="mt-2 text-sm text-muted">{detail.aiReview.evidenceNotes}</p>
             ) : null}
-          </div>
+            <p className="mt-2 text-[13px] text-muted">Check it against the evidence before you approve.</p>
+          </section>
         ) : null}
 
         {detail.submission.reflectionText ? (
-          <div className="border border-[#E2DFD9] bg-[#F9F8F6] px-3 py-2">
-            <p className="mb-1 font-mono text-[8px] uppercase tracking-[0.1em] text-[#A09D98]">
-              SE reflection
-            </p>
-            <p className="text-[11px] italic leading-relaxed text-[#3D3C38]">
-              &ldquo;{detail.submission.reflectionText}&rdquo;
-            </p>
-          </div>
+          <section>
+            <h3 className={SECTION_TITLE}>Their reflection</h3>
+            <blockquote className="border-l-2 border-line-strong pl-4 text-[15px] leading-normal text-ink-2">
+              {detail.submission.reflectionText}
+            </blockquote>
+          </section>
         ) : null}
 
-        <div>
-          <p className="mb-1.5 font-mono text-[8px] uppercase tracking-[0.1em] text-[#6B6860]">
-            Submitted proof ({detail.evidence.length})
-          </p>
+        <section>
+          <h3 className={SECTION_TITLE}>
+            Submitted proof <span className="num">{detail.evidence.length}</span>
+          </h3>
           {detail.evidence.length === 0 ? (
-            <p className="border border-[#fecaca] bg-[#fef2f2] px-3 py-2 text-[11px] text-[#B83128]">
-              No evidence attached — ask the SE to resubmit with screenshots, exports, or workflow artifacts.
+            <p className="rounded-[14px] bg-danger-soft px-4 py-3 text-sm font-semibold text-danger">
+              No evidence attached. Ask the SE to resubmit with screenshots, exports or workflow artifacts.
             </p>
           ) : (
-            <div className="space-y-2">
+            <ul className="overflow-hidden rounded-[14px] border border-line bg-white">
               {detail.evidence.map((item, index) => (
-                <div className="border border-[#E2DFD9] bg-white p-2" key={`${item.label}-${index}`}>
+                <li className="border-b border-divider p-3 last:border-b-0" key={`${item.label}-${index}`}>
                   {item.unavailable ? (
-                    <p className="text-[11px] text-[#B83128]">
-                      {item.label} — file not found in storage. Ask the SE to re-upload.
+                    <p className="text-sm font-semibold text-danger">
+                      {item.label} is missing from storage. Ask the SE to re-upload it.
                     </p>
                   ) : item.kind === "image" && item.href ? (
                     <button
+                      aria-label={`Open ${item.label} in new tab`}
                       className="block w-full text-left"
                       onClick={() => openEvidence(item, submissionId, index)}
                       type="button"
@@ -301,73 +331,67 @@ export function ChallengeSubmissionReviewPanel({
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         alt={item.label}
-                        className="max-h-[280px] w-full rounded border border-[#ECEAE6] object-contain bg-[#0A0A0E]"
+                        className="max-h-[280px] w-full rounded-[10px] border border-line bg-ink object-contain"
                         src={item.href}
                       />
                     </button>
                   ) : isPdfEvidence(item) && item.href ? (
                     <div className="space-y-2">
                       <iframe
-                        className="h-[360px] w-full border border-[#ECEAE6] bg-white"
+                        className="h-[360px] w-full rounded-[10px] border border-line bg-white"
                         src={item.href}
                         title={item.label}
                       />
                       <button
-                        className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#0071ce] hover:underline"
+                        className="link text-sm"
                         onClick={() => openEvidence(item, submissionId, index)}
                         type="button"
                       >
-                        <FileText className="h-3.5 w-3.5" />
-                        Open {item.label} in new tab
+                        Open {item.label} in a new tab
                       </button>
                     </div>
                   ) : (
                     <button
-                      className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#0071ce] hover:underline"
+                      className="link text-left text-sm"
                       onClick={() => openEvidence(item, submissionId, index)}
                       type="button"
                     >
-                      {item.kind === "link" ? (
-                        <ExternalLink className="h-3.5 w-3.5" />
-                      ) : (
-                        <FileText className="h-3.5 w-3.5" />
-                      )}
                       Open {item.label}
                     </button>
                   )}
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
-        </div>
+        </section>
 
         {detail.aiReview && (detail.aiReview.strengths.length > 0 || detail.aiReview.gaps.length > 0) ? (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.07em] text-[#6B6860]">AI strengths</p>
-              <ul className="mt-1 list-disc pl-4 text-[11px] text-[#3D3C38]">
+          <div className="space-y-5">
+            <section>
+              <h3 className={SECTION_TITLE}>AI strengths</h3>
+              <ul className="list-disc space-y-1 pl-5 text-[15px] leading-normal text-ink-2 marker:text-line-strong">
                 {detail.aiReview.strengths.map((item) => (
                   <li key={item}>{item}</li>
                 ))}
               </ul>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.07em] text-[#6B6860]">AI gaps to validate</p>
-              <ul className="mt-1 space-y-1">
+            </section>
+            <section>
+              <h3 className={SECTION_TITLE}>AI gaps to validate</h3>
+              <ul className="overflow-hidden rounded-[14px] border border-line bg-white">
                 {detail.aiReview.gaps.map((gap) => (
-                  <li key={gap}>
+                  <li className="border-b border-divider last:border-b-0" key={gap}>
                     <button
-                      className="w-full border border-[#E2DFD9] bg-[#F9F8F6] px-3 py-2 text-left text-[11px] leading-relaxed text-[#3D3C38] transition hover:border-[#0071ce]/40 hover:bg-[#EEF4FF]"
+                      className="flex w-full items-start gap-2.5 px-4 py-3 text-left text-[15px] leading-normal text-ink-2 transition-colors hover:bg-blue-soft"
                       onClick={() => onAppendMoment?.(gap)}
                       type="button"
                     >
-                      <span className="mr-1.5 font-semibold text-[#0071ce]">→</span>
-                      {gap}
+                      <Plus aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-blue" />
+                      <span>{gap}</span>
                     </button>
                   </li>
                 ))}
               </ul>
-            </div>
+            </section>
           </div>
         ) : null}
 

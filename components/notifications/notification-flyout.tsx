@@ -4,10 +4,13 @@ import { useRouter } from "next/navigation";
 import { Bell, CheckCheck, Loader2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Notification } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+function formatWhen(iso: string | null | undefined) {
+ if (!iso) return null;
+ return new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+}
 
 function NotificationList({
  items,
@@ -17,29 +20,37 @@ function NotificationList({
  onOpen: (item: Notification) => void;
 }) {
  if (items.length === 0) {
- return <p className="px-4 py-8 text-center text-sm text-sp-navy-muted">No notifications yet.</p>;
+ return <p className="px-5 py-8 text-center text-sm text-muted">No notifications yet.</p>;
  }
 
  return (
- <div className="max-h-[min(24rem,60vh)] space-y-2 overflow-y-auto p-3">
+ <ul className="max-h-[min(26rem,60vh)] overflow-y-auto">
  {items.map((item) => (
+ <li className="border-b border-divider last:border-b-0" key={item.id}>
  <button
  className={cn(
- "w-full border p-3 text-left text-sm transition hover:bg-sp-blue-soft/30",
- item.readAt ? "border-sp-blue/5 bg-white/50" : "border-sp-blue/15 bg-white",
+ "w-full px-5 py-3 text-left transition-colors hover:bg-blue-soft",
+ !item.readAt && "bg-signal-soft",
  )}
- key={item.id}
  onClick={() => onOpen(item)}
  type="button"
  >
- <div className="flex items-start justify-between gap-2">
- <span className="font-semibold text-sp-navy">{item.title}</span>
- {!item.readAt ? <Badge tone="magenta">New</Badge> : null}
- </div>
- <p className="mt-1 text-xs leading-5 text-sp-navy-muted">{item.body}</p>
+ <span className="flex items-start justify-between gap-3">
+ <span className={cn("text-[15px] text-ink", item.readAt ? "font-semibold" : "font-bold")}>{item.title}</span>
+ {!item.readAt ? (
+ <span className="shrink-0 rounded-full bg-signal px-2 text-xs leading-[18px] font-medium text-ink uppercase">
+ New
+ </span>
+ ) : null}
+ </span>
+ <span className="mt-0.5 block text-sm leading-normal text-ink-2">{item.body}</span>
+ {formatWhen(item.createdAt) ? (
+ <span className="mt-1 block text-xs text-muted">{formatWhen(item.createdAt)}</span>
+ ) : null}
  </button>
+ </li>
  ))}
- </div>
+ </ul>
  );
 }
 
@@ -137,83 +148,80 @@ export function NotificationFlyout({
  setIsMarking(false);
  }
 
- const resolvedAppearance =
- appearance === "default" ? (align === "header" ? "header" : "default") : appearance;
-
- const triggerClass =
- resolvedAppearance === "sidebar-dark"
- ? "relative flex h-4 w-4 shrink-0 items-center justify-center text-white/50 transition hover:text-white/80"
- : resolvedAppearance === "header"
- ? "relative flex h-8 w-8 shrink-0 items-center justify-center border border-[#E2DFD9] bg-[#F5F4F0] text-[#3D3C38] transition hover:bg-white"
- : "relative flex h-9 w-9 shrink-0 items-center justify-center border border-sp-blue/15 bg-white text-sp-navy transition hover:bg-sp-blue-soft/40";
-
- const dotClass =
- resolvedAppearance === "sidebar-dark"
- ? "absolute -right-0.5 -top-0.5 h-[7px] w-[7px] rounded-full border-[1.5px] border-[#00143a] bg-[#cd27b0]"
- : resolvedAppearance === "header"
- ? "absolute right-[5px] top-[5px] h-1.5 w-1.5 rounded-full border-[1.5px] border-white bg-[#cc27b0]"
- : "absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-sp-magenta px-1 text-[10px] font-bold text-white";
-
- const showCountBadge = resolvedAppearance === "default" && unread.length > 0;
+ const onDark = appearance === "sidebar-dark";
 
  return (
  <div className="relative">
  <button
  aria-expanded={open}
+ aria-haspopup="dialog"
  aria-label={`Notifications${unread.length > 0 ? `, ${unread.length} unread` : ""}`}
- className={triggerClass}
+ className={cn(
+ "relative grid h-9 w-9 shrink-0 place-items-center rounded-[10px] transition-colors",
+ onDark
+ ? "text-on-blue hover:bg-blue-2 hover:text-white"
+ : "border-[1.5px] border-ink bg-white text-ink hover:bg-blue-soft",
+ )}
  onClick={() => setOpen((current) => !current)}
  ref={triggerRef}
  type="button"
  >
- <Bell
- className={resolvedAppearance === "sidebar-dark" ? "h-4 w-4" : "h-[15px] w-[15px]"}
- strokeWidth={resolvedAppearance === "header" ? 1.3 : 2}
- />
+ <Bell aria-hidden className="h-[18px] w-[18px]" strokeWidth={1.75} />
  {unread.length > 0 ? (
- showCountBadge ? (
- <span className={dotClass}>{unread.length > 9 ? "9+" : unread.length}</span>
+ onDark ? (
+ <span aria-hidden className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full border-[1.5px] border-blue bg-signal" />
  ) : (
- <span className={dotClass} />
+ <span
+ aria-hidden
+ className="absolute -top-1 -right-1 min-w-[18px] rounded-full bg-signal px-1 text-center text-xs leading-[18px] font-bold text-ink ring-2 ring-white"
+ >
+ {unread.length > 9 ? "9+" : unread.length}
+ </span>
  )
  ) : null}
  </button>
 
  {open ? (
  <>
- <div aria-hidden className="fixed inset-0 z-40 bg-sp-navy/10 lg:bg-transparent" />
+ <div aria-hidden className="fixed inset-0 z-40 bg-scrim lg:bg-transparent" />
  <div
+ aria-label="Notifications"
  className={cn(
- "fixed z-50 flex w-[min(22rem,calc(100vw-2rem))] flex-col overflow-hidden border border-sp-blue/15 bg-white shadow-sp-navy/10",
- align === "sidebar"
- ? "bottom-4 left-4 lg:bottom-6 lg:left-[15.75rem]"
- : "right-7 top-14",
+ "fixed z-50 flex w-[min(24rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-[14px] border border-line bg-white text-ink shadow-[var(--shadow-drag)]",
+ align === "sidebar" ? "bottom-4 left-4 lg:bottom-6 lg:left-[calc(var(--sidebar-width)+12px)]" : "top-[calc(var(--topbar-height)+8px)] right-4",
  )}
  ref={panelRef}
  role="dialog"
- aria-label="Notifications"
  >
- <div className="flex items-center justify-between border-b border-sp-blue/10 px-4 py-3">
+ <div className="flex items-center justify-between gap-3 border-b border-divider px-5 py-3.5">
  <div>
- <p className="text-sm font-bold text-sp-navy">Notifications</p>
- {unread.length > 0 ? (
- <p className="text-xs text-sp-navy-muted">{unread.length} unread</p>
- ) : null}
+ <p className="text-lg leading-[1.3] font-extrabold">Notifications</p>
+ {unread.length > 0 ? <p className="label-caps">{unread.length} unread</p> : null}
  </div>
- <div className="flex items-center gap-1">
+ <div className="flex items-center gap-2">
  {unread.length > 0 ? (
- <Button disabled={isMarking} onClick={() => void markAllRead()} size="sm" variant="ghost">
+ <button
+ className="link inline-flex items-center gap-1.5 text-sm disabled:opacity-60"
+ disabled={isMarking}
+ onClick={() => void markAllRead()}
+ type="button"
+ >
  {isMarking ? (
- <Loader2 className="h-3.5 w-3.5 animate-spin" />
+ <Loader2 aria-hidden className="h-3.5 w-3.5 animate-spin" />
  ) : (
- <CheckCheck className="h-3.5 w-3.5" />
+ <CheckCheck aria-hidden className="h-3.5 w-3.5" />
  )}
- <span className="sr-only sm:not-sr-only">Mark all read</span>
- </Button>
+ Mark all read
+ </button>
  ) : null}
- <Button onClick={() => setOpen(false)} size="sm" variant="ghost">
- <X className="h-4 w-4" />
- </Button>
+ <button
+ aria-label="Close notifications"
+ className="grid h-8 w-8 place-items-center rounded-full text-muted hover:bg-blue-soft hover:text-ink"
+ onClick={() => setOpen(false)}
+ type="button"
+ >
+ <X aria-hidden className="h-4 w-4" />
+ </button>
  </div>
  </div>
 

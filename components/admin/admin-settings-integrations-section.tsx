@@ -1,69 +1,109 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { GongConnectPanel } from "@/components/integrations/gong-connect-panel";
+import { toast } from "sonner";
+import { LineCard, LineRow, LoadingState } from "@/components/admin/admin-ui";
+import { StatusPill } from "@/components/ui/status-pill";
 
-const STATIC_INTEGRATIONS = [
- { name: "Supabase", status: "Auth, profiles, encrypted settings", stat: "Active", statBg: "#dcfce7", statColor: "#15803d", iconBg: "#dcfce7", iconColor: "#15803d" },
- { name: "Vercel", status: "Hosting and deployment pipeline", stat: "Active", statBg: "#dcfce7", statColor: "#15803d", iconBg: "#ECEAE6", iconColor: "#6B6860" },
-] as const;
+type StatusBody = {
+  signals?: Array<{ provider: string; status: string }>;
+  configured?: { gong?: boolean; slack?: boolean };
+};
+
+type IntegrationRow = {
+  name: string;
+  description: string;
+  connected: boolean;
+  statusLabel: string;
+  action?: React.ReactNode;
+};
 
 export function AdminSettingsIntegrationsSection() {
- const [loading, setLoading] = useState(true);
- const [gongConnected, setGongConnected] = useState(false);
- const [slackConnected, setSlackConnected] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [gongConnected, setGongConnected] = useState(false);
+  const [slackConnected, setSlackConnected] = useState(false);
+  const [connecting, setConnecting] = useState(false);
 
- useEffect(() => {
- void fetch("/api/integrations/status")
- .then((response) => (response.ok ? response.json() : null))
- .then((body: { configured?: { gong?: boolean; slack?: boolean } } | null) => {
- setGongConnected(Boolean(body?.configured?.gong));
- setSlackConnected(Boolean(body?.configured?.slack));
- setLoading(false);
- })
- .catch(() => setLoading(false));
- }, []);
+  useEffect(() => {
+    void fetch("/api/integrations/status")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body: StatusBody | null) => {
+        const gong = body?.signals?.find((signal) => signal.provider === "gong");
+        setGongConnected(gong?.status === "connected");
+        setSlackConnected(Boolean(body?.configured?.slack));
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
 
- if (loading) {
- return (
- <div className="flex justify-center py-8">
- <Loader2 className="h-6 w-6 animate-spin text-[#0033a1]" />
- </div>
- );
- }
+  async function connectGong() {
+    setConnecting(true);
+    const response = await fetch("/api/integrations/gong/oauth/start");
+    if (!response.ok) {
+      const body = (await response.json().catch(() => ({}))) as { hint?: string };
+      toast.message("Gong needs a workspace key or OAuth", {
+        description: body.hint ?? "Ask your admin to set GONG_API_KEY or finish registering the Gong OAuth app.",
+      });
+      setConnecting(false);
+      return;
+    }
 
- const rows = [
- { name: "Gong", status: "Pre-call intel and call briefs in Deal Prep", stat: gongConnected ? "Connected" : "Not connected", statBg: gongConnected ? "#dcfce7" : "#fef3c7", statColor: gongConnected ? "#15803d" : "#b45309", iconBg: "#e8f2fc", iconColor: "#0071ce" },
- { name: "Slack", status: "Q&A routing and SME escalations", stat: slackConnected ? "Connected" : "Configure token", statBg: slackConnected ? "#dcfce7" : "#fef3c7", statColor: slackConnected ? "#15803d" : "#b45309", iconBg: "#e8f2fc", iconColor: "#0071ce" },
- ...STATIC_INTEGRATIONS,
- ];
+    const body = (await response.json()) as { authorizeUrl: string };
+    window.location.href = body.authorizeUrl;
+  }
 
- return (
- <div className="max-w-3xl space-y-4">
- <p className="text-[12px] text-[#6B6860]">Workspace connections and environment-backed services.</p>
- <GongConnectPanel />
- <div className="border border-[#E2DFD9] bg-white p-[18px_22px] ">
- <div className="space-y-[10px]">
- {rows.map((integration) => (
- <div className="flex items-center gap-[12px] border border-[#E2DFD9] bg-[#F9F8F6] px-[12px] py-[10px]" key={integration.name}>
- <div className="flex h-[32px] w-[32px] shrink-0 items-center justify-center " style={{ background: integration.iconBg }}>
- <svg fill="none" height="15" stroke={integration.iconColor} strokeLinecap="round" strokeWidth="1.5" viewBox="0 0 16 16" width="15">
- <rect height="10" rx="2" width="10" x="3" y="3" />
- <path d="M6 8h4" />
- </svg>
- </div>
- <div className="flex-1">
- <p className="text-[12px] font-semibold text-[#3D3C38]">{integration.name}</p>
- <p className="text-[10.5px] text-[#A09D98]">{integration.status}</p>
- </div>
- <span className="font-mono text-[8px] uppercase tracking-[0.08em] px-[8px] py-[2px] text-[9.5px] font-bold" style={{ background: integration.statBg, color: integration.statColor }}>
- {integration.stat}
- </span>
- </div>
- ))}
- </div>
- </div>
- </div>
- );
+  if (loading) {
+    return <LoadingState label="Checking integrations…" />;
+  }
+
+  const rows: IntegrationRow[] = [
+    {
+      name: "Gong",
+      description: gongConnected
+        ? "Pre-call intel and call briefs in Deal Prep. Briefs merge into prep when you generate it."
+        : "Pre-call intel and call briefs in Deal Prep.",
+      connected: gongConnected,
+      statusLabel: gongConnected ? "Connected" : "Not connected",
+      action: gongConnected ? undefined : (
+        <button className="btn-primary" disabled={connecting} onClick={() => void connectGong()} type="button">
+          {connecting ? "Connecting…" : "Connect Gong"}
+        </button>
+      ),
+    },
+    {
+      name: "Slack",
+      description: "Q&A routing and SME escalations.",
+      connected: slackConnected,
+      statusLabel: slackConnected ? "Connected" : "Needs a token",
+    },
+    {
+      name: "Supabase",
+      description: "Auth, profiles and encrypted settings.",
+      connected: true,
+      statusLabel: "Active",
+    },
+    {
+      name: "Vercel",
+      description: "Hosting and deployment pipeline.",
+      connected: true,
+      statusLabel: "Active",
+    },
+  ];
+
+  return (
+    <div className="flex max-w-3xl flex-col gap-6">
+      <LineCard bodyClassName="p-0" meta="Workspace and environment" title="Connections">
+        {rows.map((row) => (
+          <LineRow className="flex flex-wrap items-center gap-x-4 gap-y-2" key={row.name}>
+            <div className="min-w-0 flex-1">
+              <p className="text-[15px] font-bold text-ink">{row.name}</p>
+              <p className="mt-0.5 text-sm text-muted">{row.description}</p>
+            </div>
+            <StatusPill tone={row.connected ? "success" : "warning"}>{row.statusLabel}</StatusPill>
+            {row.action}
+          </LineRow>
+        ))}
+      </LineCard>
+    </div>
+  );
 }

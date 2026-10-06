@@ -2,182 +2,182 @@
 
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
-import { ArrowRightIcon, GlobeIcon, LockIcon, MailIcon } from "@/components/auth/login-icons";
+import { useId, useState } from "react";
+import { Input } from "@/components/ui/input";
 import { allowedEmailError } from "@/lib/auth/email-domain";
 import { mapAuthErrorMessage } from "@/lib/auth/errors";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
 import { createClient } from "@/lib/supabase/client";
 
-const inputClass =
- "w-full border border-[#D4D1CB] bg-white py-[11px] pl-[40px] pr-[14px] text-[14px] text-[#0D0E12] outline-none transition placeholder:text-[#B0ADA8] focus:border-[#0071CE]";
-
 export function LoginForm({ initialError }: { initialError?: string | null }) {
- const [email, setEmail] = useState("");
- const [password, setPassword] = useState("");
- const [isSubmitting, setIsSubmitting] = useState(false);
+  const emailId = useId();
+  const passwordId = useId();
+  const errorId = useId();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(initialError ?? null);
 
- useEffect(() => {
- if (initialError) {
- toast.error(initialError);
- }
- }, [initialError]);
+  // Errors show in the card's alert box (design), not as toasts.
+  function fail(message: string) {
+    setError(message);
+  }
 
- async function handleSsoSignIn() {
- const supabase = createClient();
- if (!supabase) return;
+  async function handleSsoSignIn() {
+    const supabase = createClient();
+    if (!supabase) return;
 
- setIsSubmitting(true);
- const domain = process.env.NEXT_PUBLIC_SSO_DOMAIN ?? "sailpoint.com";
+    setIsSubmitting(true);
+    const domain = process.env.NEXT_PUBLIC_SSO_DOMAIN ?? "sailpoint.com";
 
- const { data, error } = await supabase.auth.signInWithSSO({ domain });
+    const { data, error: ssoError } = await supabase.auth.signInWithSSO({ domain });
 
- if (error) {
- toast.error(error.message);
- setIsSubmitting(false);
- return;
- }
+    if (ssoError) {
+      fail(ssoError.message);
+      setIsSubmitting(false);
+      return;
+    }
 
- if (data?.url) {
- window.location.href = data.url;
- }
- }
+    if (data?.url) {
+      window.location.href = data.url;
+    }
+  }
 
- const ssoEnabled = Boolean(process.env.NEXT_PUBLIC_SSO_DOMAIN);
+  const ssoEnabled = Boolean(process.env.NEXT_PUBLIC_SSO_DOMAIN);
 
- async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
- event.preventDefault();
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
 
- const domainError = allowedEmailError(email);
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())) {
+      fail("Enter your work email address.");
+      return;
+    }
+    if (!password) {
+      fail("Enter your password.");
+      return;
+    }
 
- if (domainError) {
- toast.error(domainError);
- return;
- }
+    const domainError = allowedEmailError(email);
 
- setIsSubmitting(true);
+    if (domainError) {
+      fail(domainError);
+      return;
+    }
 
- const supabase = createClient();
+    setIsSubmitting(true);
 
- if (!supabase) {
- toast.error("Supabase is not configured. Check your environment variables.");
- setIsSubmitting(false);
- return;
- }
+    const supabase = createClient();
 
- const { data: signInData, error } = await supabase.auth.signInWithPassword({
- email: email.trim().toLowerCase(),
- password,
- });
+    if (!supabase) {
+      fail("Supabase is not configured. Check your environment variables.");
+      setIsSubmitting(false);
+      return;
+    }
 
- if (error) {
- toast.error(mapAuthErrorMessage(error.message));
- setIsSubmitting(false);
- return;
- }
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
 
- const user = signInData.user;
+    if (signInError) {
+      fail(mapAuthErrorMessage(signInError.message));
+      setIsSubmitting(false);
+      return;
+    }
 
- if (!user?.email || allowedEmailError(user.email)) {
- await supabase.auth.signOut();
- toast.error(allowedEmailError(user?.email ?? "") ?? "Sign-in was denied.");
- setIsSubmitting(false);
- return;
- }
+    const user = signInData.user;
 
- const { data: aal, error: aalError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (!user?.email || allowedEmailError(user.email)) {
+      await supabase.auth.signOut();
+      fail(allowedEmailError(user?.email ?? "") ?? "Sign-in was denied.");
+      setIsSubmitting(false);
+      return;
+    }
 
- if (aalError) {
- toast.error(aalError.message);
- setIsSubmitting(false);
- return;
- }
+    const { data: aal, error: aalError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
 
- let destination: (typeof AUTH_ROUTES)[keyof typeof AUTH_ROUTES] = AUTH_ROUTES.mfaEnroll;
- if (aal?.currentLevel === "aal2") {
- destination = AUTH_ROUTES.dashboard;
- } else if (aal?.nextLevel === "aal2") {
- destination = AUTH_ROUTES.mfaVerify;
- }
+    if (aalError) {
+      fail(aalError.message);
+      setIsSubmitting(false);
+      return;
+    }
 
- // Full navigation so Supabase auth cookies are on the request before middleware runs.
- window.location.assign(destination);
- }
+    let destination: (typeof AUTH_ROUTES)[keyof typeof AUTH_ROUTES] = AUTH_ROUTES.mfaEnroll;
+    if (aal?.currentLevel === "aal2") {
+      destination = AUTH_ROUTES.dashboard;
+    } else if (aal?.nextLevel === "aal2") {
+      destination = AUTH_ROUTES.mfaVerify;
+    }
 
- return (
- <form className="space-y-[14px]" onSubmit={handleSubmit}>
- {ssoEnabled ? (
- <div className="lp-3">
- <button
- className="flex w-full items-center justify-center gap-[8px] border border-[#D4D1CB] bg-white py-[11px] text-[13px] font-semibold text-[#3D3C38] transition hover:border-[#0071CE] hover:text-[#0071CE]"
- disabled={isSubmitting}
- onClick={() => void handleSsoSignIn()}
- type="button"
- >
- <GlobeIcon />
- Continue with SSO
- </button>
- </div>
- ) : null}
+    // Full navigation so Supabase auth cookies are on the request before middleware runs.
+    window.location.assign(destination);
+  }
 
- {ssoEnabled ? (
- <div className="lp-3 flex items-center gap-[12px]">
- <div className="h-px flex-1 bg-[#E2DFD9]" />
- <span className="font-mono text-[9px] uppercase tracking-[0.08em] text-[#B0ADA8]">or password</span>
- <div className="h-px flex-1 bg-[#E2DFD9]" />
- </div>
- ) : null}
+  return (
+    <form aria-describedby={error ? errorId : undefined} className="flex flex-col gap-3.5" noValidate onSubmit={handleSubmit}>
+      {error ? (
+        <p className="m-0 rounded-[10px] border border-danger bg-danger-soft px-3.5 py-2.5 text-sm leading-[1.45] text-danger" id={errorId} role="alert">
+          {error}
+        </p>
+      ) : null}
 
- <div className="lp-3">
- <label className="mb-[6px] block font-mono text-[9px] uppercase tracking-[0.1em] text-[#6B6860]">
- Email
- </label>
- <div className="relative">
- <MailIcon className="pointer-events-none absolute left-[13px] top-1/2 -translate-y-1/2 opacity-50" />
- <input
- autoComplete="email"
- className={inputClass}
- onChange={(e) => setEmail(e.target.value)}
- placeholder="you@company.com"
- required
- type="email"
- value={email}
- />
- </div>
- </div>
+      {ssoEnabled ? (
+        <>
+          <button
+            className="w-full rounded-full border border-line-strong bg-white px-[18px] py-[11px] text-[15px] font-bold text-ink hover:border-ink"
+            disabled={isSubmitting}
+            onClick={() => void handleSsoSignIn()}
+            type="button"
+          >
+            Continue with SSO
+          </button>
+          <div className="flex items-center gap-3" role="presentation">
+            <span className="h-px flex-1 bg-line" />
+            <span className="text-[13px] text-muted">or use a password</span>
+            <span className="h-px flex-1 bg-line" />
+          </div>
+        </>
+      ) : null}
 
- <div className="lp-3">
- <div className="mb-[6px] flex items-center justify-between">
- <label className="font-mono text-[9px] uppercase tracking-[0.1em] text-[#6B6860]">Password</label>
- <Link className="text-[11px] font-semibold text-[#0071CE] hover:text-[#005aab]" href="/login/forgot-password">
- Forgot?
- </Link>
- </div>
- <div className="relative">
- <LockIcon className="pointer-events-none absolute left-[13px] top-1/2 -translate-y-1/2 opacity-50" />
- <input
- autoComplete="current-password"
- className={inputClass}
- onChange={(e) => setPassword(e.target.value)}
- placeholder="••••••••"
- required
- type="password"
- value={password}
- />
- </div>
- </div>
+      <div>
+        <label className="mb-1.5 block text-sm font-bold text-ink" htmlFor={emailId}>
+          Work email
+        </label>
+        <Input
+          autoComplete="email"
+          id={emailId}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@company.com"
+          required
+          type="email"
+          value={email}
+        />
+      </div>
 
- <div className="lp-4 pt-[4px]">
- <button
- className="flex w-full items-center justify-center gap-[8px] bg-[#0071CE] py-[12px] text-[13px] font-bold text-white transition hover:bg-[#005aab] disabled:opacity-60"
- disabled={isSubmitting}
- type="submit"
- >
- {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRightIcon />}
- Sign in
- </button>
- </div>
- </form>
- );
+      <div>
+        <div className="mb-1.5 flex items-baseline justify-between gap-3">
+          <label className="block text-sm font-bold text-ink" htmlFor={passwordId}>
+            Password
+          </label>
+          <Link className="link text-sm" href="/login/forgot-password">
+            Forgot password?
+          </Link>
+        </div>
+        <Input
+          autoComplete="current-password"
+          id={passwordId}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          type="password"
+          value={password}
+        />
+      </div>
+
+      <button className="btn-primary inline-flex w-full items-center justify-center gap-2 !py-3" disabled={isSubmitting} type="submit">
+        {isSubmitting ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
+        {isSubmitting ? "Signing in…" : "Sign in"}
+      </button>
+    </form>
+  );
 }

@@ -1,8 +1,7 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { AdminTabPageHeader } from "@/components/admin/admin-tab-page-header";
+import { EmptyState, KpiStrip, LineCard, LoadingState, Meta, Notice } from "@/components/admin/admin-ui";
 import type { AnalyticsData } from "@/lib/data/get-analytics-data";
 
 type ManagerProgressRow = {
@@ -17,13 +16,6 @@ type ExtendedAnalytics = AnalyticsData & {
  managerProgress?: ManagerProgressRow[];
 };
 
-function managerBarColor(pct: number) {
- if (pct >= 80) return "#10b981";
- if (pct >= 60) return "#0071ce";
- if (pct >= 40) return "#f59e0b";
- return "#ef4444";
-}
-
 function sparklinePath(data: number[]) {
  const w = 700;
  const h = 70;
@@ -36,11 +28,6 @@ function sparklinePath(data: number[]) {
  return [x, y] as const;
  });
  return pts.map((p, i) => `${i === 0 ? "M" : "L"}${p[0]},${p[1]}`).join(" ");
-}
-
-function sparklineArea(data: number[]) {
- const line = sparklinePath(data);
- return `${line} L700,70 L0,70 Z`;
 }
 
 export function AnalyticsDashboard() {
@@ -58,15 +45,11 @@ export function AnalyticsDashboard() {
  }, []);
 
  if (isLoading) {
- return (
- <div className="flex justify-center py-12">
- <Loader2 className="h-8 w-8 animate-spin text-[#0071ce]" />
- </div>
- );
+ return <LoadingState label="Loading analytics…" />;
  }
 
  if (!data) {
- return <p className="text-sm text-[#6B6860]">Analytics unavailable.</p>;
+ return <Notice>Analytics are unavailable right now. Try again in a few minutes.</Notice>;
  }
 
  const managerRows = data.managerProgress ?? [];
@@ -75,141 +58,128 @@ export function AnalyticsDashboard() {
  const priorAvg = simTrend.length > 1 ? simTrend[simTrend.length - 2]! : latestAvg;
  const trend = latestAvg - priorAvg;
 
- const certBreakdown = [
- { label: "Segment 1 gates", pct: `${Math.min(100, data.certClearanceRate + 8)}%` },
- { label: "Segment 2 gates", pct: `${Math.min(100, data.certClearanceRate)}%` },
- { label: "Segment 3 gates", pct: `${Math.max(0, data.certClearanceRate - 12)}%` },
- ];
-
  return (
- <div className="animate-[fadeUp_0.2s_ease-out] space-y-6">
- <AdminTabPageHeader
- subtitle="Ramp progress, field readiness, and simulation trends across the org."
- title="Analytics"
- />
-
- <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
- {[
- { label: "Total users", value: String(data.totalUsers), border: "#0071ce" },
- { label: "Active plans", value: String(data.activePlans), border: "#10b981" },
- { label: "Pending reviews", value: String(data.pendingReviews), border: "#f59e0b" },
+ <div className="flex flex-col gap-6">
+ <KpiStrip
+ items={[
+ { label: "Total users", value: data.totalUsers },
+ { label: "Active plans", value: data.activePlans },
+ { label: "Pending reviews", value: data.pendingReviews },
  {
- label: "Avg time-to-ready",
- value: data.avgDaysToComplete !== null ? `${data.avgDaysToComplete}d` : "—",
- border: "#cc27b0",
+ label: "Avg time to ready",
+ value: data.avgDaysToComplete !== null ? data.avgDaysToComplete : "—",
+ suffix: data.avgDaysToComplete !== null ? " days" : undefined,
  },
- ].map((kpi) => (
+ ]}
+ />
+
+ <div className="grid items-start gap-6 lg:grid-cols-2">
+ <LineCard meta="Ramp completeness" title="Average plan progress by manager">
+ {managerRows.length === 0 ? (
+ <EmptyState className="py-4">No manager cohort data available.</EmptyState>
+ ) : (
+ <ul className="flex flex-col gap-4">
+ {managerRows.map((row) => (
+ <li key={row.managerName}>
+ <div className="mb-1.5 flex items-baseline justify-between gap-3">
+ <span className="text-sm font-bold text-ink">{row.managerName}</span>
+ <span className="text-[15px] font-extrabold text-blue tabular-nums">{row.avgProgress}%</span>
+ </div>
  <div
- className="border border-[#E2DFD9] bg-white p-[14px_16px]"
- key={kpi.label}
- style={{ borderLeftWidth: 3, borderLeftColor: kpi.border }}
+ aria-label={`${row.managerName} average plan progress`}
+ aria-valuemax={100}
+ aria-valuemin={0}
+ aria-valuenow={row.avgProgress}
+ className="h-2 overflow-hidden rounded-full bg-divider"
+ role="progressbar"
  >
- <p className="text-[10px] font-bold uppercase tracking-[0.06em] text-[#A09D98]">{kpi.label}</p>
- <p className="mt-1 font-display text-[26px] font-extrabold leading-none text-[#0D0E12]">{kpi.value}</p>
+ <div className="h-full rounded-full bg-blue" style={{ width: `${row.avgProgress}%` }} />
+ </div>
+ <Meta className="mt-1 block text-muted">
+ {row.seCount} SEs, {row.planCount} plans
+ </Meta>
+ </li>
+ ))}
+ </ul>
+ )}
+ </LineCard>
+
+ <LineCard meta="Certification gates" title="Field readiness">
+ <dl className="grid grid-cols-1 overflow-hidden rounded-[10px] border border-line sm:grid-cols-3">
+ {[
+ { label: "Clearance rate", value: `${data.certClearanceRate}%` },
+ { label: "Gates cleared", value: data.certApprovedTotal },
+ { label: "Pending sign-offs", value: data.certPendingSignoffs },
+ ].map((stat) => (
+ <div
+ className="flex flex-col gap-1 border-b border-divider px-4 py-3.5 last:border-b-0 sm:border-r sm:border-b-0 sm:last:border-r-0"
+ key={stat.label}
+ >
+ <dt className="label-caps whitespace-nowrap">{stat.label}</dt>
+ <dd className="num text-4xl leading-none font-extrabold tracking-[-0.03em] text-blue">{stat.value}</dd>
  </div>
  ))}
- </section>
-
- <section className="grid gap-4 lg:grid-cols-2">
- <div className="border border-[#E2DFD9] bg-white p-[16px_18px]">
- <p className="mb-[4px] text-[12.5px] font-bold text-[#0D0E12]">Avg plan progress by manager</p>
- <p className="mb-[12px] text-[11px] text-[#6B6860]">Ramp completeness across all active plans</p>
- <div className="space-y-[10px]">
- {managerRows.length === 0 ? (
- <p className="text-sm text-[#A09D98]">No manager cohort data available.</p>
- ) : (
- managerRows.map((row) => (
- <div key={row.managerName}>
- <div className="mb-[4px] flex justify-between">
- <span className="text-[11.5px] font-semibold text-[#3D3C38]">{row.managerName}</span>
- <span className="text-[11.5px] font-bold text-[#0071ce]">{row.avgProgress}%</span>
+ </dl>
+ <div className="mt-4">
+ <div className="mb-1.5 flex items-baseline justify-between">
+ <span className="text-sm text-ink-2">Gate clearance across the org</span>
+ <span className="text-[15px] font-extrabold text-blue tabular-nums">{data.certClearanceRate}%</span>
  </div>
- <div className="h-[7px] overflow-hidden rounded-full bg-[#e8f2fc]">
  <div
- className="prog-fill h-full rounded-full"
- style={{ width: `${row.avgProgress}%`, background: managerBarColor(row.avgProgress) }}
+ aria-label="Gate clearance rate"
+ aria-valuemax={100}
+ aria-valuemin={0}
+ aria-valuenow={data.certClearanceRate}
+ className="h-2 overflow-hidden rounded-full bg-divider"
+ role="progressbar"
+ >
+ <div
+ className="h-full rounded-full bg-blue"
+ style={{ width: `${Math.min(100, Math.max(0, data.certClearanceRate))}%` }}
  />
  </div>
- <p className="mt-[2px] text-[10px] text-[#A09D98]">
- {row.seCount} SEs · {row.planCount} plans
- </p>
  </div>
- ))
- )}
- </div>
+ </LineCard>
  </div>
 
- <div className="border border-[#E2DFD9] bg-white p-[16px_18px]">
- <p className="mb-[4px] text-[12.5px] font-bold text-[#0D0E12]">Field readiness</p>
- <p className="mb-[12px] text-[11px] text-[#6B6860]">Certification gate clearance across the org</p>
- <div className="mb-[14px] flex gap-[16px]">
- <div className="flex-1 border border-[#bbf7d0] bg-[#f0fdf4] p-[12px] text-center">
- <p className="font-display text-[28px] font-extrabold leading-none text-[#15803d]">
- {data.certClearanceRate}%
- </p>
- <p className="mt-[4px] text-[10px] text-[#16a34a]">Gate clearance rate</p>
- </div>
- <div className="flex-1 border border-[#bfdbfe] bg-[#f0f7ff] p-[12px] text-center">
- <p className="font-display text-[28px] font-extrabold leading-none text-[#1d4ed8]">
- {data.certApprovedTotal}
- </p>
- <p className="mt-[4px] text-[10px] text-[#2563eb]">Gates cleared total</p>
- </div>
- <div className="flex-1 border border-[#fde68a] bg-[#fef3c7] p-[12px] text-center">
- <p className="font-display text-[28px] font-extrabold leading-none text-[#b45309]">
- {data.certPendingSignoffs}
- </p>
- <p className="mt-[4px] text-[10px] text-[#d97706]">Pending sign-offs</p>
- </div>
- </div>
- <div className="space-y-[7px]">
- {certBreakdown.map((cb) => (
- <div key={cb.label}>
- <div className="mb-[3px] flex justify-between">
- <span className="text-[11px] text-[#3D3C38]">{cb.label}</span>
- <span className="text-[11px] font-bold text-[#0D0E12]">{cb.pct}</span>
- </div>
- <div className="h-[5px] overflow-hidden rounded-full bg-[#ECEAE6]">
- <div className="prog-fill h-full rounded-full bg-[#cc27b0]" style={{ width: cb.pct }} />
- </div>
- </div>
- ))}
- </div>
- </div>
- </section>
-
- <div className="border border-[#E2DFD9] bg-white p-[16px_18px]">
- <div className="mb-[12px] flex items-center justify-between">
- <div>
- <p className="text-[12.5px] font-bold text-[#0D0E12]">Simulation score trend</p>
- <p className="text-[11px] text-[#6B6860]">4-week rolling average across all SEs</p>
- </div>
- {simTrend.length >= 2 ? (
- <p className="font-display text-[24px] font-extrabold text-[#0D0E12]">
- {latestAvg}{" "}
- <span className={`text-[14px] font-semibold ${trend >= 0 ? "text-[#10b981]" : "text-[#ef4444]"}`}>
- {trend >= 0 ? "↑" : "↓"} {Math.abs(trend)}
+ <LineCard
+ actions={
+ simTrend.length >= 2 ? (
+ <p className="flex items-baseline gap-2">
+ <span className="num text-2xl font-extrabold text-blue">{latestAvg}</span>
+ <span className={`text-[13px] font-semibold ${trend > 0 ? "text-success" : trend < 0 ? "text-danger" : "text-muted"}`}>
+ {trend > 0 ? `Up ${trend} on last week` : trend < 0 ? `Down ${Math.abs(trend)} on last week` : "No change on last week"}
  </span>
  </p>
- ) : null}
- </div>
+ ) : null
+ }
+ meta="Four-week rolling average"
+ title="Simulation score trend"
+ >
  {simTrend.length >= 2 ? (
- <svg height="70" preserveAspectRatio="none" viewBox="0 0 700 70" width="100%">
- <defs>
- <linearGradient id="sparkGrad" x1="0" x2="0" y1="0" y2="1">
- <stop offset="0%" stopColor="#0071ce" stopOpacity="0.15" />
- <stop offset="100%" stopColor="#0071ce" stopOpacity="0" />
- </linearGradient>
- </defs>
- <path d={sparklineArea(simTrend)} fill="url(#sparkGrad)" />
- <path d={sparklinePath(simTrend)} fill="none" stroke="#0071ce" strokeLinecap="round" strokeWidth="2.5" />
+ <svg
+ aria-label={`Simulation score trend, latest ${latestAvg}`}
+ height="70"
+ preserveAspectRatio="none"
+ role="img"
+ viewBox="0 0 700 70"
+ width="100%"
+ >
+ <path
+ d={sparklinePath(simTrend)}
+ fill="none"
+ stroke="var(--color-blue)"
+ strokeLinecap="round"
+ strokeWidth="2.5"
+ vectorEffect="non-scaling-stroke"
+ />
  </svg>
  ) : (
- <p className="text-sm text-[#A09D98]">
- Sim trend data is not available yet — scores will appear after coaching cards are reviewed.
- </p>
+ <EmptyState className="py-4">
+ There is no simulation trend yet. Scores appear after coaching cards are reviewed.
+ </EmptyState>
  )}
- </div>
+ </LineCard>
  </div>
  );
 }

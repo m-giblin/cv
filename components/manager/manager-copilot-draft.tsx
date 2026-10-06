@@ -3,7 +3,6 @@
 import { Loader2, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 
 export function ManagerCopilotDraft({
   strengths,
@@ -56,7 +55,7 @@ export function ManagerCopilotDraft({
       const body = (await response.json()) as { draft: string };
       onDraft(body.draft);
       if (!autoDraft) {
-        toast.success("Draft ready — edit before sending.");
+        toast.success("Draft ready. Edit it before sending.");
       }
     } finally {
       setLoading(false);
@@ -71,9 +70,14 @@ export function ManagerCopilotDraft({
   }, [autoDraft]);
 
   return (
-    <Button disabled={loading} onClick={() => void handleDraft()} size="sm" type="button" variant="outline">
-      {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-      {autoDraft && loading ? "Drafting feedback…" : "Regenerate draft (co-pilot)"}
-    </Button>
+    <button
+      className="btn-secondary inline-flex items-center gap-2 disabled:opacity-50"
+      disabled={loading}
+      onClick={() => void handleDraft()}
+      type="button"
+    >
+      {loading ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : <Sparkles aria-hidden className="h-4 w-4" />}
+      {autoDraft && loading ? "Drafting feedback…" : "Redraft with AI"}
+    </button>
   );
 }

@@ -1,11 +1,10 @@
-import { MfaLeftPanel } from "@/components/auth/mfa-left-panel";
-import { MfaRightPanel } from "@/components/auth/mfa-right-panel";
+import { AuthShell } from "@/components/auth/auth-shell";
+import { MfaVerifyDescription, MfaVerifyForm } from "@/components/auth/mfa-verify-form";
 
 export default function MfaVerifyPage() {
- return (
- <div className="flex min-h-screen">
- <MfaLeftPanel />
- <MfaRightPanel />
- </div>
- );
+  return (
+    <AuthShell description={<MfaVerifyDescription />} eyebrow="Step 2 of 2 / Verify" title="Check your authenticator.">
+      <MfaVerifyForm />
+    </AuthShell>
+  );
 }

@@ -35,8 +35,8 @@ export function SpacedReinforcementRedirect({
  if (!autoAssign) return null;
 
  return (
- <div className="flex items-center gap-2 border border-sp-blue/15 bg-sp-blue-soft/30 px-4 py-3 text-sm text-sp-navy-muted">
- <Loader2 className="h-4 w-4 animate-spin text-sp-blue" />
+ <div className="mx-[var(--gutter)] mt-4 flex items-center gap-2 rounded-[10px] bg-blue-soft px-4 py-3 text-sm text-ink-2" role="status">
+ <Loader2 aria-hidden className="h-4 w-4 animate-spin text-blue motion-reduce:animate-none" />
  Assigning your {competency ? `${competency} ` : ""}reinforcement simulation…
  </div>
  );

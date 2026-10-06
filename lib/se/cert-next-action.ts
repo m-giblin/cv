@@ -45,7 +45,7 @@ export function computeCertNextAction(
       certificationType: nextType,
       label: CERT_LABELS[nextType] ?? nextType.replaceAll("_", " "),
       status: "submitted",
-      href: "/certifications",
+      href: "/readiness/certification",
     };
   }
 
@@ -53,7 +53,7 @@ export function computeCertNextAction(
     certificationType: nextType,
     label: CERT_LABELS[nextType] ?? nextType.replaceAll("_", " "),
     status,
-    href: "/certifications",
+    href: "/readiness/certification",
   };
 }
 

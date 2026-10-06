@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
+import { PageBody, PageHeader } from "@/components/ui/page-header";
+import { StatusPill } from "@/components/ui/status-pill";
 import { mapProfile } from "@/lib/data/get-dashboard-data";
 import { createClient } from "@/lib/supabase/server";
 
@@ -31,11 +33,17 @@ export default async function MaintenancePage({
 
  return (
  <AppShell contentWidth="default" currentUser={mapProfile(profileRow)} notifications={[]}>
- <div className="mx-auto max-w-lg py-16 text-center">
- <p className="text-xs font-bold uppercase tracking-wider text-[#6B6860]">Maintenance</p>
- <h1 className="mt-2 font-display text-2xl font-extrabold text-[#0D0E12]">We&apos;ll be right back</h1>
- <p className="mt-4 text-sm leading-relaxed text-[#3D3C38]">{message}</p>
+ <PageHeader eyebrow="Maintenance" title="We'll be right back" />
+ <PageBody className="pb-8">
+ <div
+ className="max-w-2xl rounded-[14px] border border-line bg-white px-6 py-5 shadow-[inset_3px_0_0_var(--color-signal)]"
+ role="status"
+ >
+ <StatusPill tone="warning">Temporarily unavailable</StatusPill>
+ <p className="mt-3 max-w-[640px] text-base leading-normal text-ink">{message}</p>
+ <p className="mt-3 text-sm text-ink-2">Your progress is saved. Refresh this page in a few minutes.</p>
  </div>
+ </PageBody>
  </AppShell>
  );
 }

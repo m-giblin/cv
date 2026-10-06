@@ -1,13 +1,11 @@
 "use client";
 
-import { Download, Loader2 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { AdminTabPageHeader } from "@/components/admin/admin-tab-page-header";
-import { Button } from "@/components/ui/button";
+import { AdminTable, EmptyState, LoadingState, Meta, Td, Th } from "@/components/admin/admin-ui";
+import { Chip } from "@/components/ui/chip";
+import { Tag } from "@/components/ui/tag";
 import type { Profile } from "@/lib/types";
-
-const AUDIT_COLS = "100px 140px 1fr 1fr 90px";
 
 type AuditEntry = {
  id: string;
@@ -19,21 +17,39 @@ type AuditEntry = {
  created_at: string;
 };
 
-function auditTypeBadge(action: string) {
+const AUDIT_TYPES = ["User", "Plan", "Sim", "Review", "AI", "Config", "Admin"] as const;
+type AuditType = (typeof AUDIT_TYPES)[number];
+
+function auditType(action: string): AuditType {
  const lower = action.toLowerCase();
- if (lower.includes("user")) return { type: "User", typeBg: "#dbeafe", typeColor: "#1d4ed8" };
- if (lower.includes("plan")) return { type: "Plan", typeBg: "#e8f2fc", typeColor: "#0057a8" };
- if (lower.includes("sim")) return { type: "Sim", typeBg: "#fdf0fa", typeColor: "#a51e8e" };
+ if (lower.includes("user")) return "User";
+ if (lower.includes("plan")) return "Plan";
+ if (lower.includes("sim")) return "Sim";
  if (lower.includes("competency") || lower.includes("certification") || lower.includes("submission")) {
- return { type: "Review", typeBg: "#fef3c7", typeColor: "#b45309" };
+ return "Review";
  }
  if (lower.includes("ai") || lower.includes("coaching")) {
- return { type: "AI", typeBg: "#ede9fe", typeColor: "#5b21b6" };
+ return "AI";
  }
  if (lower.includes("platform") || lower.includes("development")) {
- return { type: "Config", typeBg: "#e0f2fe", typeColor: "#0369a1" };
+ return "Config";
  }
- return { type: "Admin", typeBg: "#ECEAE6", typeColor: "#6B6860" };
+ return "Admin";
+}
+
+function formatDateTime(value: string) {
+ const date = new Date(value);
+ if (Number.isNaN(date.getTime())) return "—";
+ const options: Intl.DateTimeFormatOptions = { weekday: "short", month: "short", day: "numeric" };
+ if (date.getFullYear() !== new Date().getFullYear()) options.year = "numeric";
+ const day = date.toLocaleDateString("en-US", options);
+ const time = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+ return `${day}, ${time}`;
+}
+
+function humanizeAction(action: string) {
+ const text = action.replaceAll(/[._:-]+/g, " ").trim();
+ return text ? text.charAt(0).toUpperCase() + text.slice(1).toLowerCase() : "—";
 }
 
 function resolveActorName(actorId: string | null, profiles: Profile[]): string {
@@ -60,6 +76,12 @@ function resolveActorName(actorId: string | null, profiles: Profile[]): string {
 export function AuditLogPanel({ profiles = [] }: { profiles?: Profile[] }) {
  const [logs, setLogs] = useState<AuditEntry[]>([]);
  const [isLoading, setIsLoading] = useState(true);
+ const [typeFilter, setTypeFilter] = useState<AuditType | "All">("All");
+
+ const visibleLogs = useMemo(
+ () => (typeFilter === "All" ? logs : logs.filter((log) => auditType(log.action) === typeFilter)),
+ [logs, typeFilter],
+ );
 
  const loadLogs = useCallback(async () => {
  setIsLoading(true);
@@ -81,69 +103,69 @@ export function AuditLogPanel({ profiles = [] }: { profiles?: Profile[] }) {
  }, [loadLogs]);
 
  return (
- <div className="space-y-4">
- <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
- <AdminTabPageHeader
- subtitle="Immutable record of admin, manager, and configuration actions across the platform."
- title="Audit Log"
- />
- <Button asChild className="shrink-0 self-start" size="sm" variant="outline">
- <a href="/api/admin/audit-log?format=csv">
- <Download className="h-4 w-4" />
+ <div className="flex flex-col gap-6">
+ <div className="flex flex-wrap items-center justify-between gap-3">
+ <div aria-label="Filter by event type" className="flex flex-wrap gap-2" role="group">
+ {(["All", ...AUDIT_TYPES] as const).map((option) => (
+ <Chip
+ active={typeFilter === option}
+ count={option === "All" ? logs.length : logs.filter((log) => auditType(log.action) === option).length}
+ key={option}
+ onClick={() => setTypeFilter(option)}
+ >
+ {option}
+ </Chip>
+ ))}
+ </div>
+ <a className="btn-secondary inline-flex items-center gap-1.5" href="/api/admin/audit-log?format=csv">
  Export CSV
  </a>
- </Button>
  </div>
 
  {isLoading ? (
- <div className="flex justify-center py-8">
- <Loader2 className="h-6 w-6 animate-spin text-sp-blue" />
- </div>
+ <LoadingState label="Loading audit log…" />
  ) : (
- <div className="max-h-[480px] overflow-hidden overflow-y-auto border border-[#E2DFD9] bg-white">
- <div
- className="grid border-b border-[#ECEAE6] bg-[#F9F8F6] px-[18px] py-[10px]"
- style={{ gridTemplateColumns: AUDIT_COLS }}
- >
- {["Timestamp", "Actor", "Event", "Target", "Type"].map((header) => (
- <span className="text-[9.5px] font-bold uppercase tracking-[0.07em] text-[#A09D98]" key={header}>
- {header}
- </span>
- ))}
- </div>
- {logs.length === 0 ? (
- <p className="px-5 py-8 text-center text-sm text-[#A09D98]">No audit entries yet.</p>
+ <AdminTable caption="Audit log" minWidth={820}>
+ <thead>
+ <tr>
+ <Th>When</Th>
+ <Th>Actor</Th>
+ <Th>Event</Th>
+ <Th>Target</Th>
+ <Th>Type</Th>
+ </tr>
+ </thead>
+ <tbody>
+ {visibleLogs.length === 0 ? (
+ <tr>
+ <td colSpan={5}>
+ <EmptyState>{logs.length === 0 ? "No audit entries yet." : "No entries of this type."}</EmptyState>
+ </td>
+ </tr>
  ) : (
- logs.map((log) => {
- const badge = auditTypeBadge(log.action);
- return (
- <div
- className="grid items-center border-b border-[#f9fafb] px-[18px] py-[9px] hover:bg-[#f7fafd]"
- key={log.id}
- style={{ gridTemplateColumns: AUDIT_COLS }}
- >
- <span className="text-[11px] tabular-nums text-[#A09D98]">
- {new Date(log.created_at).toLocaleString()}
- </span>
- <span className="truncate text-[11.5px] font-semibold text-[#3D3C38]">
+ visibleLogs.map((log) => (
+ <tr className="hover:bg-bg" key={log.id}>
+ <Td className="whitespace-nowrap">
+ <Meta>{formatDateTime(log.created_at)}</Meta>
+ </Td>
+ <Td className="max-w-[180px] truncate text-sm font-bold">
  {resolveActorName(log.actor_id, profiles)}
- </span>
- <span className="truncate text-[11.5px] text-[#3D3C38]">{log.action}</span>
- <span className="truncate text-[11.5px] text-[#3D3C38]">
+ </Td>
+ <Td className="max-w-[260px] truncate text-sm" title={log.action}>
+ {humanizeAction(log.action)}
+ </Td>
+ <Td className="max-w-[220px] truncate text-sm text-ink-2">
  {log.target_type}
- {log.target_id ? ` · ${log.target_id.slice(0, 8)}...` : ""}
- </span>
- <span
- className="w-fit font-mono text-[8px] uppercase tracking-[0.08em] px-[7px] py-[2px] text-[9.5px] font-bold"
- style={{ background: badge.typeBg, color: badge.typeColor }}
- >
- {badge.type}
- </span>
- </div>
- );
- })
+ {log.target_id ? `, ${log.target_id.slice(0, 8)}…` : ""}
+ </Td>
+ <Td>
+ <Tag>{auditType(log.action)}</Tag>
+ </Td>
+ </tr>
+ ))
  )}
- </div>
+ </tbody>
+ </AdminTable>
  )}
  </div>
  );

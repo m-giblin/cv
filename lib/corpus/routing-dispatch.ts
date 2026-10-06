@@ -112,7 +112,7 @@ export async function escalateStaleCorpusInquiries(supabase: SupabaseClient<Data
         userId: admin.id,
         title: "SME Q&A SLA breach",
         body: inquiry.question.slice(0, 120),
-        actionUrl: "/admin?tab=corpus",
+        actionUrl: "/admin/content/corpus",
       });
     }
   }

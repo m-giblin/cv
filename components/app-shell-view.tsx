@@ -1,169 +1,230 @@
 "use client";
 
-import Link from "next/link";
-import { CSSProperties, ReactNode, Suspense } from "react";
-import { NavMobile, NavSidebar } from "@/components/nav-sidebar";
-import { NavTopBar } from "@/components/nav-top-bar";
+import { usePathname, useSearchParams } from "next/navigation";
+import { AssistantWidget } from "@/components/help/assistant-widget";
+import { CSSProperties, ReactNode, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { SidebarContent, type SidebarPerson } from "@/components/nav/app-sidebar";
+import { CommandPalette } from "@/components/nav/command-palette";
+import { TopBar } from "@/components/nav/top-bar";
+import { useNavFlags } from "@/components/nav/use-nav-flags";
 import { ShadowTenantBanner } from "@/components/platform/shadow-tenant-banner";
-import { TenantBrandMark, TenantBrandText } from "@/components/tenant/tenant-brand-mark";
-import { TenantBrandingProvider, useTenantBranding } from "@/components/tenant/tenant-branding-provider";
-import { SidebarUserFooter } from "@/components/sidebar-user-footer";
-import { WorkspaceSwitcher } from "@/components/workspace-switcher";
-import { MobilePracticeShell } from "@/components/practice/mobile-practice-shell";
+import { TenantBrandingProvider } from "@/components/tenant/tenant-branding-provider";
 import { UatBugTracker } from "@/components/uat/uat-bug-tracker";
-import { NotificationFlyout } from "@/components/notifications/notification-flyout";
+import { WorkspaceSwitcher } from "@/components/workspace-switcher";
 import type { AccessTier } from "@/lib/auth/rbac";
-import { getWorkspaceHome, type WorkspaceHat } from "@/lib/auth/workspace";
+import { resolveActiveWorkspace, type WorkspaceHat } from "@/lib/auth/workspace";
+import { pageTitle, paletteEntries } from "@/lib/navigation/nav-model";
 import type { TenantShellBranding } from "@/lib/tenant/shell-branding";
+import { PRODUCT_NAME } from "@/lib/tenant/shell-branding-shared";
 import { Notification, Profile } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-function AdminTenantBadge() {
-  const branding = useTenantBranding();
-  const slug = branding.tenantSlug ? `${branding.tenantSlug}.sailpoint.io` : branding.productTagline;
+function DocumentTitle({ workspace }: { workspace: WorkspaceHat }) {
+  const pathname = usePathname();
+  const params = useSearchParams();
+
+  useEffect(() => {
+    document.title = pageTitle(workspace, pathname, params, PRODUCT_NAME);
+  }, [workspace, pathname, params]);
+
+  return null;
+}
+
+function MobileDrawer({
+  open,
+  onClose,
+  children,
+}: {
+  open: boolean;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  const pathname = usePathname();
+
+  useEffect(() => {
+    onClose();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  if (!open) return null;
 
   return (
-    <div className="mt-2 flex items-center justify-between border border-white/[0.08] bg-white/[0.05] px-2.5 py-1.5">
-      <div className="min-w-0">
-        <div className="truncate text-[11px] font-medium text-white/75">{branding.productName}</div>
-        <div className="truncate font-mono text-[8px] tracking-[0.06em] text-white/30">{slug}</div>
-      </div>
-      <div className="flex shrink-0 items-center gap-1">
-        <span className="animate-pulse-dot h-1.5 w-1.5 rounded-full bg-[#0A6E45]" />
-        <span className="font-mono text-[8px] text-white/30">Active</span>
+    <div className="fixed inset-0 z-40 lg:hidden">
+      <div aria-hidden className="absolute inset-0 bg-scrim" onClick={onClose} />
+      <div
+        aria-label="Navigation"
+        aria-modal="true"
+        className="absolute inset-y-0 left-0 w-[280px] max-w-[85vw] overflow-y-auto border-r border-line bg-white"
+        role="dialog"
+      >
+        {children}
       </div>
     </div>
   );
 }
 
-function SidebarLogo({
-  homeHref,
-  workspace,
-}: {
-  homeHref: string;
-  workspace: WorkspaceHat;
-}) {
-  return (
-    <div className="shrink-0 border-b border-white/[0.07] px-4 pb-4 pt-5">
-      <Link className="flex items-center gap-2.5" href={homeHref}>
-        <TenantBrandMark />
-        <TenantBrandText
-          taglineClassName="font-mono text-[8px] tracking-[0.14em] text-white/30"
-          titleClassName="font-display text-[14px] font-extrabold text-white"
-        />
-      </Link>
-      {workspace === "tenant_admin" ? <AdminTenantBadge /> : null}
-    </div>
-  );
+function isTypingTarget(target: EventTarget | null) {
+  const el = target as HTMLElement | null;
+  return Boolean(el && (el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName)));
+}
+
+type ContentWidth = "default" | "wide" | "full";
+
+/** Practice tools and the platform console use the full width; everything else is "wide". */
+function contentWidthForPath(pathname: string): ContentWidth {
+  if (pathname === "/maintenance") return "default";
+  if (pathname.startsWith("/practice/") || pathname === "/platform" || pathname.startsWith("/platform/")) return "full";
+  return "wide";
 }
 
 export function AppShellView({
   children,
   currentUser,
   notifications,
-  contentWidth = "default",
-  tier,
-  workspace,
+  contentWidth: contentWidthProp,
+  workspace: workspaceProp,
+  workspaceCookie = null,
   workspaceHats,
   shadowTenantName,
   shadowMode,
   branding,
+  people,
+  navCounts,
   forgeEnabled = false,
+  assistantEnabled = false,
 }: {
   children: ReactNode;
   currentUser: Profile;
   notifications: Notification[];
-  contentWidth?: "default" | "wide" | "full";
-  tier: AccessTier;
-  workspace: WorkspaceHat;
+  /** Omit to derive from the URL (persistent layout). */
+  contentWidth?: ContentWidth;
+  tier?: AccessTier;
+  /** Omit to derive from the URL, the workspace cookie and shadow mode (persistent layout). */
+  workspace?: WorkspaceHat;
+  workspaceCookie?: string | null;
   workspaceHats: WorkspaceHat[];
   shadowTenantName: string | null;
   shadowMode: "admin" | "manager" | "se" | null;
   branding: TenantShellBranding;
+  people?: SidebarPerson[];
+  navCounts?: Record<string, string | number>;
   forgeEnabled?: boolean;
+  assistantEnabled?: boolean;
 }) {
+  const pathname = usePathname();
+  // The layout stays mounted across navigations, so the active workspace and width follow the URL.
+  const workspace =
+    workspaceProp ?? resolveActiveWorkspace({ hats: workspaceHats, cookieValue: workspaceCookie, pathname, shadowMode });
+  const contentWidth = contentWidthProp ?? contentWidthForPath(pathname);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const flags = useNavFlags(workspace);
+  const entries = useMemo(() => paletteEntries(workspace, flags), [workspace, flags]);
+  const closeDrawer = useCallback(() => setDrawerOpen(false), []);
   const myNotifications = notifications.filter((item) => item.userId === currentUser.id);
-  const homeHref = getWorkspaceHome(workspace);
-  const shellStyle = {
-    "--tenant-primary": branding.primaryColor,
-  } as CSSProperties;
+  const shellStyle = { "--tenant-primary": branding.primaryColor } as CSSProperties;
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setPaletteOpen((value) => !value);
+      } else if (event.key === "/" && !isTypingTarget(event.target)) {
+        event.preventDefault();
+        setPaletteOpen(true);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const sidebar = (onNavigate?: () => void) => (
+    <Suspense fallback={null}>
+      <SidebarContent
+        counts={navCounts}
+        flags={flags}
+        notifications={myNotifications}
+        onNavigate={onNavigate}
+        people={workspace === "se" ? people : undefined}
+        workspace={workspace}
+      />
+    </Suspense>
+  );
 
   return (
     <TenantBrandingProvider branding={branding}>
-      <div className="design-northstar min-h-screen bg-[#F5F4F0]" style={shellStyle}>
-        {shadowTenantName && shadowMode ? (
-          <ShadowTenantBanner mode={shadowMode} tenantName={shadowTenantName} />
-        ) : null}
+      <div className="min-h-screen bg-bg" style={shellStyle}>
+        <a
+          className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-full focus:bg-signal focus:px-4 focus:py-2 focus:text-ink"
+          href="#main-content"
+        >
+          Skip to main content
+        </a>
+        <Suspense fallback={null}>
+          <DocumentTitle workspace={workspace} />
+        </Suspense>
 
-        <header className="relative border-b border-white/10 bg-[#00143a] px-4 py-3 lg:hidden">
-          <div
-            className="pointer-events-none absolute inset-x-0 top-0 h-[2px]"
-            style={{ background: "linear-gradient(90deg,#0033a1,#0071ce,#cc27b0)" }}
-          />
-          <div className="flex items-center justify-between gap-3">
-            <Link className="flex items-center gap-2.5" href={homeHref}>
-              <TenantBrandMark className="!h-8 !w-8" />
-              <TenantBrandText
-                layout="inline"
-                titleClassName="font-display text-sm font-bold text-white"
-              />
-            </Link>
-            <NotificationFlyout
-              align="header"
-              appearance="sidebar-dark"
-              notifications={myNotifications}
+        <TopBar
+          currentUser={currentUser}
+          menuOpen={drawerOpen}
+          notifications={myNotifications}
+          onOpenMenu={() => setDrawerOpen(true)}
+          onOpenPalette={() => setPaletteOpen(true)}
+          workspace={workspace}
+          workspaceHats={workspaceHats}
+        />
+
+        <MobileDrawer onClose={closeDrawer} open={drawerOpen}>
+          {workspaceHats.length > 1 ? (
+            <div className="border-b border-line bg-blue px-6 py-4 sm:hidden">
+              <WorkspaceSwitcher activeHat={workspace} hats={workspaceHats} />
+            </div>
+          ) : null}
+          {sidebar(closeDrawer)}
+        </MobileDrawer>
+
+        <div className="flex">
+          <aside className="sticky top-[var(--topbar-height)] hidden h-[calc(100vh-var(--topbar-height))] w-[var(--sidebar-width)] shrink-0 overflow-y-auto border-r border-line bg-white lg:block">
+            {sidebar()}
+          </aside>
+
+          <div className="min-w-0 flex-1">
+            {shadowTenantName && shadowMode ? (
+              <ShadowTenantBanner mode={shadowMode} tenantName={shadowTenantName} />
+            ) : null}
+            <main
+              className={cn(
+                "pb-7 outline-none",
+                contentWidth === "full"
+                  ? "w-full"
+                  : contentWidth === "wide"
+                    ? "mx-auto w-full max-w-[1600px]"
+                    : "mx-auto w-full max-w-[1400px]",
+              )}
+              id="main-content"
+              tabIndex={-1}
+            >
+              {children}
+            </main>
+            {assistantEnabled ? <AssistantWidget workspace={workspace} /> : null}
+            <UatBugTracker
+              enabled={forgeEnabled}
+              reporterEmail={currentUser.email}
+              reporterName={currentUser.fullName}
             />
           </div>
-          <Suspense fallback={null}>
-            <NavMobile workspace={workspace} />
-          </Suspense>
-        </header>
-
-        <aside className="fixed inset-y-0 left-0 z-20 hidden w-[220px] flex-col bg-[#00143a] lg:flex">
-          <div
-            className="pointer-events-none absolute inset-x-0 top-0 z-10 h-[2px]"
-            style={{ background: "linear-gradient(90deg,#0033a1,#0071ce,#cc27b0)" }}
-          />
-          <SidebarLogo homeHref={homeHref} workspace={workspace} />
-          <div className="sp-sidebar-scroll min-h-0 flex-1 overflow-y-auto py-3">
-            <Suspense fallback={<div className="px-5 py-2 text-xs text-white/40">Loading…</div>}>
-              <NavSidebar notifications={myNotifications} workspace={workspace} />
-            </Suspense>
-          </div>
-          <div className="shrink-0 border-t border-white/[0.07] px-3 pb-2 pt-3">
-            <WorkspaceSwitcher activeHat={workspace} hats={workspaceHats} />
-          </div>
-          <SidebarUserFooter currentUser={currentUser} notifications={notifications} />
-        </aside>
-
-        <div className="lg:pl-[220px]">
-          <div className="hidden lg:block">
-            <NavTopBar
-              currentUser={currentUser}
-              notifications={myNotifications}
-              tier={tier}
-              workspace={workspace}
-            />
-          </div>
-          <main
-            className={cn(
-              "bg-[#F5F4F0] px-0 py-0 pb-20 lg:pb-6",
-              contentWidth === "full"
-                ? "w-full"
-                : contentWidth === "wide"
-                  ? "mx-auto w-full max-w-[1600px]"
-                  : "mx-auto w-full max-w-7xl",
-            )}
-          >
-            {children}
-          </main>
-          <MobilePracticeShell />
-          <UatBugTracker
-            enabled={forgeEnabled}
-            reporterEmail={currentUser.email}
-            reporterName={currentUser.fullName}
-          />
         </div>
+
+        <CommandPalette entries={entries} onClose={() => setPaletteOpen(false)} open={paletteOpen} />
       </div>
     </TenantBrandingProvider>
   );

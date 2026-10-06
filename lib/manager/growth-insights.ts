@@ -97,10 +97,10 @@ export function buildSimTrend(cards: CoachingCard[]): SimTrend {
     const delta = latest - priorAverage;
     if (delta >= 8) {
       direction = "improving";
-      directionLabel = `Improving (+${Math.round(delta)} vs prior avg)`;
+      directionLabel = `Improving, up ${Math.round(delta)} on the prior average`;
     } else if (delta <= -8) {
       direction = "declining";
-      directionLabel = `Slipping (${Math.round(delta)} vs prior avg)`;
+      directionLabel = `Slipping, down ${Math.abs(Math.round(delta))} on the prior average`;
     }
   } else if (points.length === 2 && latest !== null) {
     const delta = latest - points[0].score;
@@ -151,19 +151,19 @@ export function buildCohortBenchmark(params: {
   if (userSimAvg !== null && cohortSimAvg !== null) {
     const simDelta = Math.round((userSimAvg - cohortSimAvg) * 10) / 10;
     if (simDelta >= 5) {
-      simComparisonLabel = `${simDelta} pts above ${cohortLabel} cohort avg (${cohortSimAvg})`;
+      simComparisonLabel = `${simDelta} points above the ${cohortLabel} cohort average of ${cohortSimAvg}`;
     } else if (simDelta <= -5) {
-      simComparisonLabel = `${Math.abs(simDelta)} pts below ${cohortLabel} cohort avg (${cohortSimAvg})`;
+      simComparisonLabel = `${Math.abs(simDelta)} points below the ${cohortLabel} cohort average of ${cohortSimAvg}`;
     } else {
-      simComparisonLabel = `In line with ${cohortLabel} cohort avg (${cohortSimAvg})`;
+      simComparisonLabel = `In line with the ${cohortLabel} cohort average of ${cohortSimAvg}`;
     }
   }
 
-  let onboardingComparisonLabel = `Onboarding ${userOnboardingProgress}% vs cohort ${cohortOnboardingAvg}%`;
+  let onboardingComparisonLabel = `Onboarding ${userOnboardingProgress}% against a cohort average of ${cohortOnboardingAvg}%`;
   if (onboardingDelta >= 10) {
-    onboardingComparisonLabel = `${onboardingDelta} pts ahead of ${cohortLabel} cohort on onboarding`;
+    onboardingComparisonLabel = `${onboardingDelta} points ahead of the ${cohortLabel} cohort on onboarding`;
   } else if (onboardingDelta <= -10) {
-    onboardingComparisonLabel = `${Math.abs(onboardingDelta)} pts behind ${cohortLabel} cohort on onboarding`;
+    onboardingComparisonLabel = `${Math.abs(onboardingDelta)} points behind the ${cohortLabel} cohort on onboarding`;
   } else {
     onboardingComparisonLabel = `Onboarding in line with ${cohortLabel} cohort`;
   }
@@ -224,7 +224,7 @@ export function buildQuarterlyAlert(developmentPlan?: DevelopmentPlan | null): Q
     };
   }
 
-  const dueLabel = earliestDue ? format(new Date(earliestDue), "MMM d") : "";
+  const dueLabel = earliestDue ? format(new Date(earliestDue), "EEE, MMM d") : "";
   const label = overdue
     ? `${quarter} ${year} quarterly review overdue (${pendingGoals} goal${pendingGoals === 1 ? "" : "s"})`
     : `${quarter} ${year} quarterly review due ${dueLabel} (${pendingGoals} pending)`;

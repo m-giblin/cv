@@ -1,4 +1,5 @@
 import "server-only";
+import { DEFAULT_AI_MODELS } from "@/lib/ai/models";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -149,7 +150,7 @@ export async function savePlatformSettings(
     const { error } = await admin.from("platform_settings").insert({
       id: crypto.randomUUID(),
       provider: "xai",
-      model: "grok-3-mini",
+      model: DEFAULT_AI_MODELS.xai,
       session_idle_minutes: payload.session_idle_minutes ?? DEFAULT_SESSION_IDLE_MINUTES,
       feature_flags: payload.feature_flags ?? mergeFeatureFlags({}),
       audit_log_retention_days: payload.audit_log_retention_days ?? DEFAULT_AUDIT_LOG_RETENTION_DAYS,

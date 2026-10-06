@@ -1,220 +1,321 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import {
+  EmptyLine,
+  FIELD_LABEL,
+  PriorityTag,
+  SELECT,
+  Spinner,
+  TABLE,
+  TABLE_SCROLL,
+  TABLE_WRAP,
+  TD,
+  TD_META,
+  TD_MUTED,
+  TH,
+  THEAD_ROW,
+  TR,
+  formatDateTime,
+  humanize,
+} from "@/components/platform/platform-ui";
+import { Chip } from "@/components/ui/chip";
+import { Drawer } from "@/components/ui/drawer";
+import { StatusPill } from "@/components/ui/status-pill";
+import { FilterBar, TwoLineCell, rowHighlight } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 import { supportSlaStatus } from "@/lib/platform/support-sla";
 import type { SupportRequest, SupportStatus } from "@/lib/tenant/types";
+import { cn } from "@/lib/utils";
 
 const STATUS_OPTIONS: SupportStatus[] = ["open", "in_progress", "resolved", "closed"];
+const FILTERS = ["active", "open", "in_progress", "resolved", "closed", "all"] as const;
+
+function statusLabel(value: string) {
+  return humanize(value);
+}
+
+function StatusTag({ status }: { status: SupportStatus }) {
+  const tone = status === "resolved" || status === "closed" ? "success" : status === "in_progress" ? "blue" : "neutral";
+  return <StatusPill tone={tone}>{statusLabel(status)}</StatusPill>;
+}
 
 export function PlatformSupportQueue({
- tenantId,
- operators = [],
- onSelectTenant,
- onShadowTenant,
+  tenantId,
+  operators = [],
+  onSelectTenant,
+  onShadowTenant,
 }: {
- tenantId?: string | null;
- operators?: Array<{ id: string; fullName: string; email: string }>;
- onSelectTenant?: (tenantId: string) => void;
- onShadowTenant?: (tenantId: string) => void;
+  tenantId?: string | null;
+  operators?: Array<{ id: string; fullName: string; email: string }>;
+  onSelectTenant?: (tenantId: string) => void;
+  onShadowTenant?: (tenantId: string) => void;
 }) {
- const [tickets, setTickets] = useState<SupportRequest[]>([]);
- const [loading, setLoading] = useState(true);
- const [filter, setFilter] = useState<SupportStatus | "active" | "all">("active");
- const [savingId, setSavingId] = useState<string | null>(null);
- const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
+  const statusId = useId();
+  const assignId = useId();
+  const replyId = useId();
+  const notesId = useId();
+  const [tickets, setTickets] = useState<SupportRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<SupportStatus | "active" | "all">("active");
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
+  const [openId, setOpenId] = useState<string | null>(null);
 
- const load = useCallback(async () => {
- setLoading(true);
- const params = new URLSearchParams();
- if (tenantId) params.set("tenantId", tenantId);
- if (filter !== "all") params.set("status", filter);
- const response = await fetch(`/api/platform/support?${params.toString()}`);
- setLoading(false);
- if (!response.ok) {
- toast.error("Could not load support tickets.");
- return;
- }
- const body = (await response.json()) as { tickets: SupportRequest[] };
- setTickets(body.tickets ?? []);
- }, [filter, tenantId]);
+  const load = useCallback(async () => {
+    setLoading(true);
+    const params = new URLSearchParams();
+    if (tenantId) params.set("tenantId", tenantId);
+    if (filter !== "all") params.set("status", filter);
+    const response = await fetch(`/api/platform/support?${params.toString()}`);
+    setLoading(false);
+    if (!response.ok) {
+      toast.error("Could not load support tickets.");
+      return;
+    }
+    const body = (await response.json()) as { tickets: SupportRequest[] };
+    setTickets(body.tickets ?? []);
+  }, [filter, tenantId]);
 
- useEffect(() => {
- void load();
- }, [load]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
- async function updateTicket(
- id: string,
- patch: {
- status?: SupportStatus;
- operatorNotes?: string | null;
- operatorReply?: string | null;
- assignedTo?: string | null;
- },
- ) {
- setSavingId(id);
- const response = await fetch(`/api/platform/support/${id}`, {
- method: "PATCH",
- headers: { "Content-Type": "application/json" },
- body: JSON.stringify(patch),
- });
- setSavingId(null);
- if (!response.ok) {
- toast.error("Could not update ticket.");
- return;
- }
- toast.success("Ticket updated.");
- void load();
- }
+  const closeDrawer = useCallback(() => setOpenId(null), []);
 
- if (loading) {
- return (
- <div className="flex justify-center py-16">
- <Loader2 className="h-7 w-7 animate-spin text-[#0071ce]" />
- </div>
- );
- }
+  async function updateTicket(
+    id: string,
+    patch: {
+      status?: SupportStatus;
+      operatorNotes?: string | null;
+      operatorReply?: string | null;
+      assignedTo?: string | null;
+    },
+  ) {
+    setSavingId(id);
+    const response = await fetch(`/api/platform/support/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    setSavingId(null);
+    if (!response.ok) {
+      toast.error("Could not update ticket.");
+      return;
+    }
+    toast.success("Ticket updated.");
+    void load();
+  }
 
- return (
- <div className="space-y-4">
- <div className="flex flex-wrap gap-2">
- {(["active", "open", "in_progress", "resolved", "closed", "all"] as const).map((value) => (
- <button
- className={`px-3 py-1.5 text-sm font-medium transition ${
- filter === value ? "bg-[#0071ce] text-white" : "border border-[#E2DFD9] bg-white text-[#3D3C38]"
- }`}
- key={value}
- onClick={() => setFilter(value)}
- type="button"
- >
- {value === "active" ? "Open + in progress" : value.replace("_", " ")}
- </button>
- ))}
- </div>
+  const ticket = tickets.find((item) => item.id === openId) ?? null;
+  const operatorName = (id: string | null | undefined) =>
+    id ? (operators.find((op) => op.id === id)?.fullName ?? "Assigned") : "Unassigned";
 
- {tickets.length === 0 ? (
- <p className="text-sm text-[#6B6860]">No support tickets match this filter.</p>
- ) : (
- <div className="space-y-3">
- {tickets.map((ticket) => {
- const sla = supportSlaStatus(ticket.createdAt, ticket.priority, ticket.status, ticket.firstResponseAt);
- return (
- <div
- className={`border bg-white p-4 ${
- sla.breached ? "border-red-200" : "border-[#E2DFD9]"
- }`}
- key={ticket.id}
- >
- <div className="flex flex-wrap items-start justify-between gap-2">
- <div>
- <p className="font-semibold text-[#0D0E12]">{ticket.subject}</p>
- <p className="mt-1 text-xs text-[#A09D98]">
- {ticket.tenantName ?? "Unknown tenant"} · {ticket.reporterName ?? ticket.reporterEmail ?? "Reporter"} ·{" "}
- {new Date(ticket.createdAt).toLocaleString()}
- </p>
- </div>
- <div className="flex flex-col items-end gap-1">
- <span className="rounded-full bg-[#ECEAE6] px-2 py-0.5 text-xs font-semibold uppercase text-[#6B6860]">
- {ticket.priority}
- </span>
- <span className={`text-xs font-medium ${sla.breached ? "text-red-600" : "text-[#6B6860]"}`}>
- {sla.label}
- </span>
- </div>
- </div>
- <p className="mt-3 whitespace-pre-wrap text-sm text-[#3D3C38]">{ticket.body}</p>
- {ticket.operatorReply ? (
- <div className="mt-3 bg-[#f0f7ff] px-3 py-2 text-sm text-[#0D0E12]">
- <p className="text-xs font-bold uppercase text-[#0071ce]">Reply to tenant</p>
- <p className="mt-1">{ticket.operatorReply}</p>
- </div>
- ) : null}
- <div className="mt-4 flex flex-wrap items-center gap-2">
- <select
- className="border border-[#E2DFD9] px-2 py-1.5 text-sm"
- disabled={savingId === ticket.id}
- onChange={(event) => void updateTicket(ticket.id, { status: event.target.value as SupportStatus })}
- value={ticket.status}
- >
- {STATUS_OPTIONS.map((status) => (
- <option key={status} value={status}>
- {status.replace("_", " ")}
- </option>
- ))}
- </select>
- {operators.length > 0 ? (
- <select
- className="border border-[#E2DFD9] px-2 py-1.5 text-sm"
- disabled={savingId === ticket.id}
- onChange={(event) =>
- void updateTicket(ticket.id, {
- assignedTo: event.target.value || null,
- })
- }
- value={ticket.assignedTo ?? ""}
- >
- <option value="">Unassigned</option>
- {operators.map((op) => (
- <option key={op.id} value={op.id}>
- {op.fullName}
- </option>
- ))}
- </select>
- ) : null}
- {onSelectTenant ? (
- <Button onClick={() => onSelectTenant(ticket.tenantId)} type="button" variant="outline">
- Open tenant
- </Button>
- ) : null}
- {onShadowTenant ? (
- <Button onClick={() => onShadowTenant(ticket.tenantId)} type="button" variant="outline">
- Shadow tenant
- </Button>
- ) : null}
- </div>
- <label className="mt-3 block text-sm">
- <span className="mb-1 block font-medium text-[#3D3C38]">Reply to tenant (visible in Help)</span>
- <textarea
- className="min-h-[60px] w-full border border-[#E2DFD9] px-3 py-2 text-sm"
- onChange={(event) =>
- setReplyDrafts((current) => ({ ...current, [ticket.id]: event.target.value }))
- }
- placeholder="Status update the tenant admin will see…"
- value={replyDrafts[ticket.id] ?? ticket.operatorReply ?? ""}
- />
- <Button
- className="mt-2"
- disabled={savingId === ticket.id}
- onClick={() => {
- const reply = (replyDrafts[ticket.id] ?? ticket.operatorReply ?? "").trim();
- void updateTicket(ticket.id, { operatorReply: reply || null });
- }}
- type="button"
- variant="outline"
- >
- Send reply
- </Button>
- </label>
- <label className="mt-3 block text-sm">
- <span className="mb-1 block font-medium text-[#3D3C38]">Internal operator notes</span>
- <textarea
- className="min-h-[60px] w-full border border-[#E2DFD9] px-3 py-2 text-sm"
- defaultValue={ticket.operatorNotes ?? ""}
- onBlur={(event) => {
- const next = event.target.value.trim() || null;
- if (next !== (ticket.operatorNotes ?? null)) {
- void updateTicket(ticket.id, { operatorNotes: next });
- }
- }}
- />
- </label>
- </div>
- );
- })}
- </div>
- )}
- </div>
- );
+  return (
+    <div className="space-y-4">
+      <FilterBar
+        show={
+          <div aria-label="Filter tickets by status" className="flex flex-wrap gap-1.5" role="group">
+            {FILTERS.map((value) => (
+              <Chip active={filter === value} key={value} onClick={() => setFilter(value)}>
+                {value === "active" ? "Open and in progress" : statusLabel(value)}
+              </Chip>
+            ))}
+          </div>
+        }
+      />
+
+      {loading ? (
+        <Spinner label="Loading tickets" />
+      ) : (
+        <div className={TABLE_WRAP}>
+          {tickets.length === 0 ? (
+            <EmptyLine>No support tickets match this filter.</EmptyLine>
+          ) : (
+            <div className={TABLE_SCROLL}>
+              <table className={TABLE}>
+                <thead>
+                  <tr className={THEAD_ROW}>
+                    <th className={TH} scope="col">Ticket</th>
+                    {tenantId ? null : <th className={TH} scope="col">Tenant</th>}
+                    <th className={TH} scope="col">Priority</th>
+                    <th className={TH} scope="col">SLA</th>
+                    <th className={TH} scope="col">Status</th>
+                    <th className={TH} scope="col">Owner</th>
+                    <th className={`${TH} text-right`} scope="col">
+                      <span className="sr-only">Action</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tickets.map((item) => {
+                    const sla = supportSlaStatus(item.createdAt, item.priority, item.status, item.firstResponseAt);
+                    return (
+                      <tr className={cn(TR, sla.breached && rowHighlight.danger)} key={item.id}>
+                        <td className={TD}>
+                          <TwoLineCell
+                            subline={`${item.reporterName ?? item.reporterEmail ?? "Reporter"}, ${formatDateTime(item.createdAt)}`}
+                            title={item.subject}
+                          />
+                        </td>
+                        {tenantId ? null : <td className={TD_MUTED}>{item.tenantName ?? "Unknown tenant"}</td>}
+                        <td className={TD}>
+                          <PriorityTag priority={item.priority} />
+                        </td>
+                        <td className={TD}>
+                          {sla.breached ? (
+                            <StatusPill tone="danger">{sla.label}</StatusPill>
+                          ) : (
+                            <span className="num text-[13px] text-ink-2">{sla.label}</span>
+                          )}
+                        </td>
+                        <td className={TD}>
+                          <StatusTag status={item.status} />
+                        </td>
+                        <td className={TD_META}>{operatorName(item.assignedTo)}</td>
+                        <td className={`${TD} text-right`}>
+                          <button className="link" onClick={() => setOpenId(item.id)} type="button">
+                            Review<span className="sr-only"> {item.subject}</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      <Drawer
+        footer={
+          ticket ? (
+            <>
+              {onSelectTenant ? (
+                <button className="btn-secondary" onClick={() => onSelectTenant(ticket.tenantId)} type="button">
+                  Open tenant
+                </button>
+              ) : null}
+              {onShadowTenant ? (
+                <button className="btn-secondary" onClick={() => onShadowTenant(ticket.tenantId)} type="button">
+                  Shadow tenant
+                </button>
+              ) : null}
+            </>
+          ) : undefined
+        }
+        onClose={closeDrawer}
+        open={ticket != null}
+        title={ticket?.subject ?? "Ticket"}
+      >
+        {ticket ? (
+          <div className="space-y-5">
+            <div className="flex flex-wrap items-center gap-2">
+              <PriorityTag priority={ticket.priority} />
+              <StatusTag status={ticket.status} />
+            </div>
+            <p className="text-[13px] text-muted">
+              From {ticket.reporterName ?? ticket.reporterEmail ?? "the reporter"} at {ticket.tenantName ?? "an unknown tenant"},{" "}
+              {formatDateTime(ticket.createdAt)}
+            </p>
+            <p className="text-[15px] leading-normal whitespace-pre-wrap text-ink">{ticket.body}</p>
+
+            {ticket.operatorReply ? (
+              <div className="rounded-[10px] bg-blue-soft px-4 py-3">
+                <p className="label-caps label-caps--blue">Reply sent to tenant</p>
+                <p className="mt-1 text-[15px] text-ink">{ticket.operatorReply}</p>
+              </div>
+            ) : null}
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className={FIELD_LABEL} htmlFor={statusId}>
+                  Status
+                </label>
+                <select
+                  className={SELECT}
+                  disabled={savingId === ticket.id}
+                  id={statusId}
+                  onChange={(event) => void updateTicket(ticket.id, { status: event.target.value as SupportStatus })}
+                  value={ticket.status}
+                >
+                  {STATUS_OPTIONS.map((status) => (
+                    <option key={status} value={status}>
+                      {statusLabel(status)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {operators.length > 0 ? (
+                <div>
+                  <label className={FIELD_LABEL} htmlFor={assignId}>
+                    Owner
+                  </label>
+                  <select
+                    className={SELECT}
+                    disabled={savingId === ticket.id}
+                    id={assignId}
+                    onChange={(event) => void updateTicket(ticket.id, { assignedTo: event.target.value || null })}
+                    value={ticket.assignedTo ?? ""}
+                  >
+                    <option value="">Unassigned</option>
+                    {operators.map((op) => (
+                      <option key={op.id} value={op.id}>
+                        {op.fullName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
+            </div>
+
+            <div>
+              <label className={FIELD_LABEL} htmlFor={replyId}>
+                Reply to tenant <span className="font-normal text-muted">(visible in Help)</span>
+              </label>
+              <Textarea
+                className="min-h-[96px]"
+                id={replyId}
+                onChange={(event) => setReplyDrafts((current) => ({ ...current, [ticket.id]: event.target.value }))}
+                placeholder="Status update the tenant admin will see"
+                value={replyDrafts[ticket.id] ?? ticket.operatorReply ?? ""}
+              />
+              <button
+                className="btn-secondary mt-2"
+                disabled={savingId === ticket.id}
+                onClick={() => {
+                  const reply = (replyDrafts[ticket.id] ?? ticket.operatorReply ?? "").trim();
+                  void updateTicket(ticket.id, { operatorReply: reply || null });
+                }}
+                type="button"
+              >
+                Send reply
+              </button>
+            </div>
+
+            <div>
+              <label className={FIELD_LABEL} htmlFor={notesId}>
+                Internal operator notes
+              </label>
+              <Textarea
+                className="min-h-[96px]"
+                defaultValue={ticket.operatorNotes ?? ""}
+                id={notesId}
+                key={ticket.id}
+                onBlur={(event) => {
+                  const next = event.target.value.trim() || null;
+                  if (next !== (ticket.operatorNotes ?? null)) {
+                    void updateTicket(ticket.id, { operatorNotes: next });
+                  }
+                }}
+              />
+              <p className="mt-1 text-[13px] text-muted">Saved when you leave the field.</p>
+            </div>
+          </div>
+        ) : null}
+      </Drawer>
+    </div>
+  );
 }

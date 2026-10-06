@@ -158,10 +158,19 @@ export async function POST(request: Request) {
  .eq("id", parsed.data.simulationAssignmentId);
  }
 
+ // Auto-completing the linked simulation plan step is a convenience, not part of saving
+ // the coaching card. If that step sits in a locked segment or behind an unmet
+ // prerequisite, submitAssignmentStep throws — and letting that escape used to 500 the
+ // whole request, discarding a coaching card that had already been written.
+ let linkedPlanStep = true;
+ try {
  await submitSimulationPlanSteps(supabase, {
  userId: user.id,
  simulationAssignmentId: parsed.data.simulationAssignmentId,
  });
+ } catch {
+ linkedPlanStep = false;
+ }
 
  await supabase.from("activity_logs").insert({
  user_id: user.id,
@@ -186,5 +195,5 @@ export async function POST(request: Request) {
  });
  }
 
- return NextResponse.json({ id: data.id, isPractice: false, practiceRoundsCompleted });
+ return NextResponse.json({ id: data.id, isPractice: false, practiceRoundsCompleted, linkedPlanStep });
 }

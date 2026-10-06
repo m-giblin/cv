@@ -18,14 +18,14 @@ export const WORKSPACE_HAT_LABELS: Record<WorkspaceHat, string> = {
   platform: "Super Admin",
   tenant_admin: "Tenant Admin",
   manager: "Manager",
-  se: "User",
+  se: "Sales engineer",
 };
 
 export const WORKSPACE_HAT_DESCRIPTIONS: Record<WorkspaceHat, string> = {
   platform: "Platform Console — tenants, support, global ops",
   tenant_admin: "Tenant Admin — users, plans, settings for this org",
   manager: "Manager — team coaching, program, readiness",
-  se: "User — personal ramp, practice, readiness",
+  se: "Sales engineer — personal ramp, practice, readiness",
 };
 
 const HAT_SET = new Set<string>(WORKSPACE_HAT_ORDER);
@@ -119,7 +119,7 @@ export function getWorkspaceHome(hat: WorkspaceHat): string {
     case "tenant_admin":
       return "/admin";
     case "manager":
-      return "/manager?section=command";
+      return "/manager";
     case "se":
       return "/dashboard";
     default: {
@@ -215,7 +215,7 @@ export function resolveActiveWorkspace(params: {
 
 /** Whether this hat may open the given app path (UI gate; APIs still use role tier). */
 export function workspaceCanAccessPath(hat: WorkspaceHat, pathname: string): boolean {
-  if (pathname.startsWith("/account") || pathname.startsWith("/auth")) return true;
+  if (pathname.startsWith("/account") || pathname.startsWith("/auth") || pathname.startsWith("/help")) return true;
 
   switch (hat) {
     case "platform":
@@ -273,12 +273,14 @@ export function workspaceCanAccessPath(hat: WorkspaceHat, pathname: string): boo
 export function pathRequiresWorkspaceHat(pathname: string): WorkspaceHat | null {
   if (pathname.startsWith("/platform")) return "platform";
   if (pathname.startsWith("/admin")) return "tenant_admin";
+  // /plan-calendar is deliberately not listed. NAV_ITEMS renders it for SEs and
+  // canAccessRoute() grants them access, so demanding the manager hat here made the sidebar
+  // link 307 every SE straight back to /dashboard. /plans — the assignment workspace — is a
+  // genuinely manager-only surface and stays gated.
   if (
     pathname.startsWith("/manager") ||
     pathname === "/plans" ||
-    pathname.startsWith("/plans/") ||
-    pathname === "/plan-calendar" ||
-    pathname.startsWith("/plan-calendar/")
+    pathname.startsWith("/plans/")
   ) {
     return "manager";
   }
