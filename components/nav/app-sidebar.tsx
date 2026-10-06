@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { LinkPending } from "@/components/nav/link-pending";
 import { usePathname, useSearchParams } from "next/navigation";
 import type { WorkspaceHat } from "@/lib/auth/workspace";
 import { canonicalAdminHref } from "@/lib/admin/admin-routes";
@@ -78,7 +79,10 @@ export function SidebarContent({
                 href={item.href}
                 onClick={onNavigate}
               >
-                <span className="truncate">{item.label}</span>
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="truncate">{item.label}</span>
+                  <LinkPending />
+                </span>
                 {inbox > 0 ? (
                   <span className="num rounded-full bg-signal px-2.5 text-[13px] leading-[22px] font-bold text-ink">
                     {inbox > 99 ? "99+" : inbox}
@@ -96,13 +100,14 @@ export function SidebarContent({
                         <Link
                           aria-current={childActive ? "page" : undefined}
                           className={cn(
-                            "block py-1.5 pr-6 pl-10 text-sm no-underline",
+                            "flex items-center gap-2 py-1.5 pr-6 pl-10 text-sm no-underline",
                             childActive ? "font-bold text-blue" : "font-medium text-ink-2 hover:text-ink",
                           )}
                           href={child.href}
                           onClick={onNavigate}
                         >
                           {child.label}
+                          <LinkPending />
                         </Link>
                       </li>
                     );

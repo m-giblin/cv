@@ -218,15 +218,22 @@ async function attachPercentileRanks(
     computed_at: new Date().toISOString(),
   }));
 
-  await supabase.from("readiness_score_snapshots").upsert(snapshotRows, { onConflict: "user_id" });
-
-  const { data: cohortSnapshots } = await supabase
-    .from("readiness_score_snapshots")
-    .select("level, composite")
-    .eq("tenant_id", tenantId);
+  // Write this team's snapshots and read the cohort at the same time; the fresh rows replace any
+  // stale copies of the same people in the cohort read, so the result matches write-then-read.
+  const [, { data: storedSnapshots }] = await Promise.all([
+    supabase.from("readiness_score_snapshots").upsert(snapshotRows, { onConflict: "user_id" }),
+    supabase.from("readiness_score_snapshots").select("user_id, level, composite").eq("tenant_id", tenantId),
+  ]);
+  const freshIds = new Set(snapshotRows.map((row) => row.user_id));
+  const cohortSnapshots = [
+    ...((storedSnapshots ?? []) as Array<{ user_id: string; level: string; composite: number }>).filter(
+      (row) => !freshIds.has(row.user_id),
+    ),
+    ...snapshotRows,
+  ];
 
   const byLevel: Record<string, number[]> = {};
-  for (const row of (cohortSnapshots ?? []) as Array<{ level: string; composite: number }>) {
+  for (const row of cohortSnapshots as Array<{ level: string; composite: number }>) {
     byLevel[row.level] ??= [];
     byLevel[row.level].push(row.composite);
   }

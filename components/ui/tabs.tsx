@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { LinkPending } from "@/components/nav/link-pending";
 import { cn } from "@/lib/utils";
 
 export type TabItem = { id: string; label: string; href?: string; count?: number | string };
@@ -36,6 +37,7 @@ export function Tabs({
         return item.href ? (
           <Link aria-current={active ? "page" : undefined} className={cls} href={item.href} key={item.id}>
             {content}
+            <LinkPending className="ml-1.5 align-middle" />
           </Link>
         ) : (
           <button aria-pressed={active} className={cls} key={item.id} onClick={() => onChange?.(item.id)} type="button">

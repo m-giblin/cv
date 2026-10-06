@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { getAuthenticatedUser } from "@/lib/data/get-authenticated-user";
 import { getAccessTier } from "@/lib/auth/rbac";
 import {
   canShadowTenantStatus,
@@ -33,9 +34,7 @@ export async function canReviewUserWork(targetUserId: string) {
     return false;
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthenticatedUser();
 
   if (!user || user.id === targetUserId) {
     return false;

@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { getAuthenticatedUser } from "@/lib/data/get-authenticated-user";
 import { cookies } from "next/headers";
 import { getDemoDashboardData, getSubtree } from "@/lib/demo-data";
 import { getAccessTier } from "@/lib/auth/rbac";
@@ -221,9 +222,7 @@ async function fetchSupabaseManagerPageData(): Promise<DashboardData | null> {
     return null;
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthenticatedUser();
   if (!user) {
     return null;
   }
@@ -422,7 +421,7 @@ async function fetchSupabaseManagerPageData(): Promise<DashboardData | null> {
 
 export const getManagerPageData = cache(async (): Promise<{ data: DashboardData; source: DataSource }> => {
   const supabase = await createClient();
-  const user = supabase ? (await supabase.auth.getUser()).data.user : null;
+  const user = supabase ? await getAuthenticatedUser() : null;
 
   try {
     const live = await fetchSupabaseManagerPageData();

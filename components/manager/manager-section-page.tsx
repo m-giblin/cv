@@ -1,6 +1,5 @@
 import dynamic from "next/dynamic";
 import { Suspense } from "react";
-import { AppShell } from "@/components/app-shell";
 import type { ManagerSection } from "@/components/manager/manager-page-shell";
 import { MANAGER_SECTION_PATHS } from "@/lib/manager/manager-routes";
 import { buildCoachingCadence } from "@/lib/manager/coaching-cadence";
@@ -34,6 +33,7 @@ import { loadPlatformSettings } from "@/lib/platform/settings";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { getEffectiveAccess } from "@/lib/auth/effective-access";
+import { resolveTenantContext } from "@/lib/auth/tenant-context";
 import {
  fetchMenteeAssignments,
  fetchMentorCoachingNotesForManager,
@@ -59,9 +59,12 @@ const ManagerPageShell = dynamic(
 );
 
 export async function ManagerSectionPage({ section }: { section: ManagerSection }) {
- const { data, role } = await requireManagerPageAccess();
+ // Settings only need the user's tenant, so they load alongside the page data.
+ const [{ data, role }, settings] = await Promise.all([
+  requireManagerPageAccess(),
+  resolveTenantContext().then((context) => loadPlatformSettings(context?.profileTenantId ?? undefined)),
+ ]);
  const { isShadowing } = await getEffectiveAccess(data.currentUser.role, data.currentUser.tenantId ?? null);
- const settings = await loadPlatformSettings(data.currentUser.tenantId ?? undefined);
  if (!isManagerSectionAllowed(section, settings.featureFlags)) {
  redirect(MANAGER_SECTION_PATHS.command);
  }
@@ -425,7 +428,7 @@ export async function ManagerSectionPage({ section }: { section: ManagerSection 
  const mentors = eligibleMentorsForOrg(data.profiles, orgIds);
 
  return (
- <AppShell contentWidth="wide" currentUser={data.currentUser} notifications={data.notifications}>
+ <>
  <Suspense
  fallback={
  <div aria-busy="true" className="flex min-h-[40vh] items-center justify-center" role="status">
@@ -468,6 +471,6 @@ export async function ManagerSectionPage({ section }: { section: ManagerSection 
  viewerRole={role}
  />
  </Suspense>
- </AppShell>
+ </>
  );
 }

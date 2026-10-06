@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { canAccessRoute, getHomeRoute } from "@/lib/auth/rbac";
 import { getEffectiveAccess } from "@/lib/auth/effective-access";
+import { AUTH_ROUTES } from "@/lib/auth/routes";
+import { resolveTenantContext } from "@/lib/auth/tenant-context";
 import { getAdminPageData } from "@/lib/data/get-admin-page-data";
 import {
   challengesPageDataAsDashboardSlice,
@@ -162,4 +164,19 @@ export async function requireChallengesPageAccess(): Promise<{
     tier,
     role: data.currentUser.role as ProfileRole,
   };
+}
+
+/**
+ * Access check for pages that don't need a dataset: one cached auth check and profile read
+ * instead of a full page loader.
+ */
+export async function requirePathAccess(pathname: string) {
+  const context = await resolveTenantContext();
+  if (!context) redirect(AUTH_ROUTES.login);
+
+  if (!canAccessRoute(context.tier, pathname)) {
+    redirect(getHomeRoute(context.tier));
+  }
+
+  return { tier: context.tier, role: context.role };
 }

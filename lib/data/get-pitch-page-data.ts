@@ -38,9 +38,7 @@ async function fetchSupabasePitchPageData(): Promise<PitchPageData | null> {
     return null;
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthenticatedUser();
 
   if (!user) {
     return null;

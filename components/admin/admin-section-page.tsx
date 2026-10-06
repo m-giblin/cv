@@ -1,5 +1,5 @@
+import { headers } from "next/headers";
 import { Suspense } from "react";
-import { AppShell } from "@/components/app-shell";
 import { AdminConsole } from "@/components/admin/admin-console";
 import { LoadingState } from "@/components/admin/admin-ui";
 import { loadPracticeUsage } from "@/lib/admin/practice-usage";
@@ -14,8 +14,6 @@ import {
 } from "@/lib/data/get-pending-review-breakdown";
 import { getDemoDashboardData } from "@/lib/demo-data";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getEffectiveAccess } from "@/lib/auth/effective-access";
-import { getTenantShellBranding } from "@/lib/tenant/shell-branding";
 
 /** `practice` loads library usage figures; only the Content › Practice route needs them. */
 export async function AdminSectionPage({ practice = false }: { practice?: boolean } = {}) {
@@ -25,14 +23,13 @@ export async function AdminSectionPage({ practice = false }: { practice?: boolea
  const seUserIds = seUserIdsFromProfiles(data.profiles);
  const demoData = source === "demo" ? getDemoDashboardData() : null;
 
- // Independent lookups run together. The shell's branding is cached per request, so starting it
- // here means AppShell finds it ready instead of adding another round trip after the page data.
- const access = await getEffectiveAccess(data.currentUser.role, data.currentUser.tenantId ?? null);
- void getTenantShellBranding(access.isShadowing ? access.tenantId : (data.currentUser.tenantId ?? access.tenantId)).catch(
- () => undefined,
- );
+ // Independent lookups run together.
+ // Only the sections that show these figures pay for them.
+ const pathname = (await headers()).get("x-pathname") ?? "";
+ const needsAiUsage = practice || pathname.startsWith("/admin/settings/ai");
+ const needsReviews = pathname === "/admin" || pathname.startsWith("/admin/content/reviews");
  const [aiUsage, practiceUsage, pendingReviewBreakdown] = await Promise.all([
- adminClient ? loadAiUsageSummary(adminClient, scopedTenantId ?? undefined) : Promise.resolve(null),
+ adminClient && needsAiUsage ? loadAiUsageSummary(adminClient, scopedTenantId ?? undefined) : Promise.resolve(null),
  practice && adminClient && scopedTenantId
  ? loadPracticeUsage(adminClient, scopedTenantId).catch(() => null)
  : Promise.resolve(null),
@@ -44,7 +41,7 @@ export async function AdminSectionPage({ practice = false }: { practice?: boolea
  plans: data.plans,
  }),
  )
- : tenantId
+ : tenantId && needsReviews
  ? fetchPendingReviewBreakdown(tenantId, seUserIds)
  : Promise.resolve({
  challengeSubmissions: 0,
@@ -72,7 +69,7 @@ export async function AdminSectionPage({ practice = false }: { practice?: boolea
  }));
 
  return (
- <AppShell contentWidth="wide" currentUser={data.currentUser} notifications={data.notifications}>
+ <>
  <Suspense fallback={<LoadingState label="Loading admin console…" />}>
  <AdminConsole
  activity={data.activity}
@@ -87,6 +84,6 @@ export async function AdminSectionPage({ practice = false }: { practice?: boolea
  profiles={data.profiles}
  />
  </Suspense>
- </AppShell>
+ </>
  );
 }

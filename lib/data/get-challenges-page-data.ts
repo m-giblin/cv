@@ -130,9 +130,7 @@ async function fetchSupabaseChallengesPageData(): Promise<ChallengesPageData | n
     return null;
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthenticatedUser();
 
   if (!user) {
     return null;
@@ -298,9 +296,7 @@ export async function getChallengesPageDataForTier(tier: "se" | "manager" | "adm
     return result;
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthenticatedUser();
   if (!user) {
     return result;
   }

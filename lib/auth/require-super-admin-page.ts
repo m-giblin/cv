@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { getAuthenticatedUser } from "@/lib/data/get-authenticated-user";
 import { getAccessTier, getHomeRoute } from "@/lib/auth/rbac";
 import { createClient } from "@/lib/supabase/server";
 import { mapProfile } from "@/lib/data/get-dashboard-data";
@@ -10,9 +11,7 @@ export async function requireSuperAdminPageAccess() {
     redirect("/login");
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthenticatedUser();
   if (!user) {
     redirect("/login");
   }

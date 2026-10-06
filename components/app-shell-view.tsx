@@ -11,7 +11,7 @@ import { TenantBrandingProvider } from "@/components/tenant/tenant-branding-prov
 import { UatBugTracker } from "@/components/uat/uat-bug-tracker";
 import { WorkspaceSwitcher } from "@/components/workspace-switcher";
 import type { AccessTier } from "@/lib/auth/rbac";
-import type { WorkspaceHat } from "@/lib/auth/workspace";
+import { resolveActiveWorkspace, type WorkspaceHat } from "@/lib/auth/workspace";
 import { pageTitle, paletteEntries } from "@/lib/navigation/nav-model";
 import type { TenantShellBranding } from "@/lib/tenant/shell-branding";
 import { PRODUCT_NAME } from "@/lib/tenant/shell-branding-shared";
@@ -76,12 +76,22 @@ function isTypingTarget(target: EventTarget | null) {
   return Boolean(el && (el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName)));
 }
 
+type ContentWidth = "default" | "wide" | "full";
+
+/** Practice tools and the platform console use the full width; everything else is "wide". */
+function contentWidthForPath(pathname: string): ContentWidth {
+  if (pathname === "/maintenance") return "default";
+  if (pathname.startsWith("/practice/") || pathname === "/platform" || pathname.startsWith("/platform/")) return "full";
+  return "wide";
+}
+
 export function AppShellView({
   children,
   currentUser,
   notifications,
-  contentWidth = "default",
-  workspace,
+  contentWidth: contentWidthProp,
+  workspace: workspaceProp,
+  workspaceCookie = null,
   workspaceHats,
   shadowTenantName,
   shadowMode,
@@ -93,9 +103,12 @@ export function AppShellView({
   children: ReactNode;
   currentUser: Profile;
   notifications: Notification[];
-  contentWidth?: "default" | "wide" | "full";
-  tier: AccessTier;
-  workspace: WorkspaceHat;
+  /** Omit to derive from the URL (persistent layout). */
+  contentWidth?: ContentWidth;
+  tier?: AccessTier;
+  /** Omit to derive from the URL, the workspace cookie and shadow mode (persistent layout). */
+  workspace?: WorkspaceHat;
+  workspaceCookie?: string | null;
   workspaceHats: WorkspaceHat[];
   shadowTenantName: string | null;
   shadowMode: "admin" | "manager" | "se" | null;
@@ -104,6 +117,11 @@ export function AppShellView({
   navCounts?: Record<string, string | number>;
   forgeEnabled?: boolean;
 }) {
+  const pathname = usePathname();
+  // The layout stays mounted across navigations, so the active workspace and width follow the URL.
+  const workspace =
+    workspaceProp ?? resolveActiveWorkspace({ hats: workspaceHats, cookieValue: workspaceCookie, pathname, shadowMode });
+  const contentWidth = contentWidthProp ?? contentWidthForPath(pathname);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const flags = useNavFlags(workspace);

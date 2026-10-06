@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getAuthenticatedUser } from "@/lib/data/get-authenticated-user";
 import { User } from "@supabase/supabase-js";
 import { getAccessTier } from "@/lib/auth/rbac";
 import { createClient } from "@/lib/supabase/server";
@@ -19,9 +20,7 @@ export async function requireSuperAdminSession(): Promise<SuperAdminSession | Ne
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthenticatedUser();
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
