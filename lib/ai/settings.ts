@@ -31,6 +31,7 @@ const FEATURE_LABELS: Record<string, string> = {
   manager_copilot: "Manager copilot",
   market_pulse: "Market Pulse quizzes",
   assistant: "Bosun questions",
+  pitch_coach: "Pitch reviews",
 };
 
 function envFallback(): PlatformAiSettings {

@@ -28,16 +28,6 @@ type ScenarioView = {
   maxDurationSec: number;
 };
 
-function deriveScores(reflection: string, tipCount: number): PitchScoreRow[] {
-  const len = reflection.trim().length;
-  const base = Math.min(92, 68 + Math.floor(len / 8) - tipCount * 4);
-  return [
-    { label: "Clarity & structure", score: Math.max(55, base + 2) },
-    { label: "Value articulation", score: Math.max(50, base - 4) },
-    { label: "Confidence & pacing", score: Math.max(52, base) },
-  ];
-}
-
 function fallbackScenarios(): ScenarioView[] {
   return PITCH_SCENARIOS.map((item) => ({
     id: item.id,
@@ -219,10 +209,17 @@ export function VideoPitchCapture({
       body: JSON.stringify({ title, reflection, scenario: scenario.label }),
     });
     setCoaching(false);
-    if (!response.ok) return;
-    const body = (await response.json()) as { tips: string[] };
+    const body = (await response.json().catch(() => null)) as
+      | { tips?: string[]; scores?: PitchScoreRow[]; source?: "ai" | "rules"; error?: string }
+      | null;
+    if (!response.ok || !body?.tips) {
+      toast.error(body?.error ?? "The AI review couldn't run just now.");
+      return;
+    }
     setCoachTips(body.tips);
-    setCoachScores(deriveScores(reflection, body.tips.length));
+    // Scores only ever come from the AI review; rule-based tips leave the rubric empty.
+    setCoachScores(body.scores ?? []);
+    if (body.source === "rules") toast.message("AI isn't configured, so you got tips without scores.");
   }
 
   async function startRecording() {
