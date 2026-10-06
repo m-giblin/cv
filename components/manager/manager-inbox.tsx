@@ -748,7 +748,7 @@ export function ManagerInbox({
             <div className="grid min-h-0 flex-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_minmax(420px,520px)] lg:overflow-hidden">
               <section
                 aria-label="The work"
-                className="flex min-w-0 flex-col gap-4 px-8 py-6 text-[15px] leading-normal text-ink-2 lg:overflow-y-auto"
+                className="flex min-w-0 flex-col gap-4 px-8 py-6 *:shrink-0 text-[15px] leading-normal text-ink-2 lg:overflow-y-auto"
               >
                 <p className="label-caps">The work</p>
                 <p className="m-0">{helperText(activeItem)}</p>
@@ -805,7 +805,7 @@ export function ManagerInbox({
 
               <section
                 aria-label="Your sign-off"
-                className="flex min-w-0 flex-col gap-4 border-t border-line bg-white px-7 py-6 text-[15px] leading-normal text-ink-2 lg:overflow-y-auto lg:border-t-0 lg:border-l"
+                className="flex min-w-0 flex-col gap-4 border-t border-line bg-white *:shrink-0 px-7 py-6 text-[15px] leading-normal text-ink-2 lg:overflow-y-auto lg:border-t-0 lg:border-l"
               >
                 <p className="label-caps">Your sign-off</p>
                 {usesStructuredSignoff(activeItem) ? (

@@ -72,6 +72,7 @@ export function SimTemplateEditor({
 
   return (
     <Drawer
+      size="form"
       footer={
         <>
           <button className="btn-primary" disabled={saving} form={formId} type="submit">
@@ -215,6 +216,7 @@ export function PitchScenarioEditor({
 
   return (
     <Drawer
+      size="form"
       footer={
         <>
           <button className="btn-primary" disabled={saving} form={formId} type="submit">

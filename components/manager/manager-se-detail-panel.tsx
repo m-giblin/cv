@@ -288,8 +288,60 @@ export function ManagerSeDetailPanel({
           </button>
         </>
       }
+      mainLabel="Overview"
       onClose={onClose}
       open
+      side={
+        <>
+          <Section title="Mentor and notes">
+            {plan ? (
+              <ManagerReassignMentor
+                assignmentId={plan.id}
+                currentMentorId={plan.mentorId}
+                mentors={mentors}
+                seName={profile.fullName}
+              />
+            ) : null}
+            {mentorNotes ? (
+              <MentorNotesForManager
+                mentorName={mentorNotes.mentorName}
+                notes={mentorNotes.notes}
+                updatedAt={mentorNotes.updatedAt}
+              />
+            ) : null}
+            <ManagerCoachingNotes initialNotes={managerNotes} seUserId={profile.id} />
+          </Section>
+
+          <Section title="Assign a simulation">
+            <SimulationAssignForm
+              assignees={[profile]}
+              defaultAssigneeId={profile.id}
+              submitVariant="secondary"
+              teamAssignees={teamAssignees ?? profiles}
+            />
+          </Section>
+
+          <Section title="Field activity">
+            <FieldActivity fullName={profile.fullName} />
+          </Section>
+
+          <Section title="Recent activity">
+            {activity.length > 0 ? (
+              <LineList>
+                {activity.slice(0, 10).map((item) => (
+                  <LineRow key={item.id}>
+                    <span className="text-sm text-ink">{item.title}</span>
+                    <span className="shrink-0 text-[13px] text-muted">{shortDate(item.createdAt)}</span>
+                  </LineRow>
+                ))}
+              </LineList>
+            ) : (
+              <p className="text-sm">No activity recorded yet.</p>
+            )}
+          </Section>
+        </>
+      }
+      sideLabel="Coach"
       title={
         <span className="flex items-center gap-3.5">
           <span
@@ -299,13 +351,13 @@ export function ManagerSeDetailPanel({
             {initials(profile.fullName)}
           </span>
           <span className="flex min-w-0 flex-col">
-            <span className="text-[22px] leading-[1.15] font-extrabold tracking-[-0.015em] text-ink">{profile.fullName}</span>
-            <span className="text-[13px] font-normal text-muted">{subline}</span>
+            <span className="text-[28px] leading-[1.1] font-extrabold tracking-[-0.02em] text-ink">{profile.fullName}</span>
+            <span className="text-sm font-normal tracking-normal text-muted">{subline}</span>
           </span>
         </span>
       }
     >
-      <div className="flex flex-col gap-5 text-[15px] text-ink-2">
+      <>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
           <StatusPill tone={HEALTH_TONE[coaching.health]}>{coaching.healthLabel}</StatusPill>
           <span className="text-[13px] text-muted">{coaching.lastActiveLabel}</span>
@@ -522,15 +574,6 @@ export function ManagerSeDetailPanel({
           ) : null}
         </Section>
 
-        <Section title="Assign a simulation">
-          <SimulationAssignForm
-            assignees={[profile]}
-            defaultAssigneeId={profile.id}
-            submitVariant="secondary"
-            teamAssignees={teamAssignees ?? profiles}
-          />
-        </Section>
-
         <Section title="Simulation trend">
           <SimTrendChart trend={simTrend} />
           {cohortBenchmark ? (
@@ -598,44 +641,7 @@ export function ManagerSeDetailPanel({
           )}
         </Section>
 
-        <Section title="Field activity">
-          <FieldActivity fullName={profile.fullName} />
-        </Section>
-
-        <Section title="Mentor and notes">
-          {plan ? (
-            <ManagerReassignMentor
-              assignmentId={plan.id}
-              currentMentorId={plan.mentorId}
-              mentors={mentors}
-              seName={profile.fullName}
-            />
-          ) : null}
-          {mentorNotes ? (
-            <MentorNotesForManager
-              mentorName={mentorNotes.mentorName}
-              notes={mentorNotes.notes}
-              updatedAt={mentorNotes.updatedAt}
-            />
-          ) : null}
-          <ManagerCoachingNotes initialNotes={managerNotes} seUserId={profile.id} />
-        </Section>
-
-        <Section title="Recent activity">
-          {activity.length > 0 ? (
-            <LineList>
-              {activity.slice(0, 10).map((item) => (
-                <LineRow key={item.id}>
-                  <span className="text-sm text-ink">{item.title}</span>
-                  <span className="shrink-0 text-[13px] text-muted">{shortDate(item.createdAt)}</span>
-                </LineRow>
-              ))}
-            </LineList>
-          ) : (
-            <p className="text-sm">No activity recorded yet.</p>
-          )}
-        </Section>
-      </div>
+      </>
     </Drawer>
   );
 }

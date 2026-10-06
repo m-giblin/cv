@@ -370,6 +370,7 @@ function SubmitDrawer({ row, onClose, onDone }: { row: GateRow | null; onClose: 
 
   return (
     <Drawer
+      size="form"
       footer={
         <button className="btn-primary" disabled={saving} onClick={() => void submit()} type="button">
           {saving ? "Submitting…" : "Submit for sign-off"}

@@ -351,6 +351,7 @@ export function ContentAssetManagement() {
       )}
 
       <Drawer
+        size="form"
         footer={
           <>
             <button className="btn-primary" disabled={isSaving} form={formId} type="submit">

@@ -474,6 +474,7 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  ) : null}
 
  <Drawer
+   size="form"
  footer={
  <>
  <button className="btn-primary" disabled={isSaving} form="admin-user-form" type="submit">

@@ -100,6 +100,7 @@ export function CreateTenantModal({ open, creating, onClose, onSubmit }: CreateT
 
   return (
     <Drawer
+      size="form"
       footer={
         <>
           <button

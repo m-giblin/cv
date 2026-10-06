@@ -205,6 +205,7 @@ export function TeamReadiness({
       </PageBody>
 
       <Drawer
+        size="form"
         onClose={closeDrawer}
         open={assigning !== null}
         title={assigning ? `Assign practice for ${assigning.name}` : "Assign practice"}
