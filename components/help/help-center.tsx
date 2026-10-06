@@ -2,12 +2,10 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Search } from "lucide-react";
+import { ChevronRight, Search } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Chip } from "@/components/ui/chip";
 import { Drawer } from "@/components/ui/drawer";
 import { PageBody, PageHeader } from "@/components/ui/page-header";
-import { Tag } from "@/components/ui/tag";
 import { searchHelp } from "@/lib/help/search";
 import { HELP_AUDIENCE_LABELS, type HelpArticle, type HelpAudience } from "@/lib/help/types";
 import { cn } from "@/lib/utils";
@@ -32,6 +30,17 @@ export function HelpCenter({ articles, audiences }: { articles: HelpArticle[]; a
     [articles, audience, category],
   );
   const results = useMemo(() => searchHelp(scoped, query), [query, scoped]);
+  const categoryCounts = useMemo(
+    () =>
+      categories.map((name) => ({
+        name,
+        label: name,
+        count: articles.filter(
+          (article) => article.category === name && (audience === "all" || article.audience.includes(audience)),
+        ).length,
+      })),
+    [articles, audience, categories],
+  );
 
   const openId = searchParams.get("article");
   const open = articles.find((article) => article.id === openId) ?? null;
@@ -72,68 +81,87 @@ export function HelpCenter({ articles, audiences }: { articles: HelpArticle[]; a
           />
         </label>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Chip active={category === "all"} onClick={() => setCategory("all")}>
-            All topics
-          </Chip>
-          {categories.map((name) => (
-            <Chip active={category === name} key={name} onClick={() => setCategory(name)}>
-              {name}
-            </Chip>
-          ))}
-          {audiences.length > 1 ? (
-            <>
-              <span aria-hidden className="mx-1 h-[26px] w-px bg-line" />
-              <span className="label-caps">For</span>
-              <Chip active={audience === "all"} onClick={() => setAudience("all")}>
-                Everyone
-              </Chip>
-              {audiences.map((item) => (
-                <Chip active={audience === item} key={item} onClick={() => setAudience(item)}>
-                  {HELP_AUDIENCE_LABELS[item]}
-                </Chip>
+        <div className="grid gap-8 lg:grid-cols-[220px_minmax(0,1fr)]">
+          <nav aria-label="Help topics" className="lg:sticky lg:top-6 lg:self-start">
+            <ul className="flex flex-col border-l border-line">
+              {[{ name: "all", label: "All topics", count: articles.length }, ...categoryCounts].map((item) => (
+                <li key={item.name}>
+                  <button
+                    aria-current={category === item.name ? "true" : undefined}
+                    className={cn(
+                      "-ml-px flex w-full items-center justify-between gap-3 border-l-2 py-2 pr-2 pl-4 text-left text-[14px]",
+                      category === item.name
+                        ? "border-blue font-bold text-ink"
+                        : "border-transparent text-ink-2 hover:border-line-strong hover:text-ink",
+                    )}
+                    onClick={() => setCategory(item.name)}
+                    type="button"
+                  >
+                    {item.label}
+                    <span className="num text-[12px] text-muted">{item.count}</span>
+                  </button>
+                </li>
               ))}
-            </>
-          ) : null}
-        </div>
+            </ul>
+            {audiences.length > 1 ? (
+              <label className="mt-6 flex flex-col gap-1.5 pl-4 text-[13px] text-ink-2">
+                Written for
+                <select
+                  className="rounded-[10px] border border-line-strong bg-white px-3 py-2 text-[14px] text-ink"
+                  onChange={(event) => setAudience(event.target.value as HelpAudience | "all")}
+                  value={audience}
+                >
+                  <option value="all">Every role</option>
+                  {audiences.map((item) => (
+                    <option key={item} value={item}>
+                      {HELP_AUDIENCE_LABELS[item]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+          </nav>
 
-        <p aria-live="polite" className="text-sm text-muted">
-          {results.length} {results.length === 1 ? "article" : "articles"}
-          {query.trim() ? ` for “${query.trim()}”` : ""}
-        </p>
+          <div className="flex min-w-0 flex-col gap-8">
+            <p aria-live="polite" className="text-sm text-muted">
+              {results.length} {results.length === 1 ? "article" : "articles"}
+              {query.trim() ? ` for “${query.trim()}”` : ""}
+            </p>
 
-        {results.length === 0 ? (
-          <div className="rounded-[14px] border border-dashed border-line-strong bg-white px-6 py-8">
-            <p className="text-[15px] font-bold text-ink">Nothing matches that yet.</p>
-            <p className="mt-1 text-sm text-ink-2">Try fewer words, or ask the assistant in the corner of the screen.</p>
+            {results.length === 0 ? (
+              <div className="rounded-[14px] border border-line bg-white px-6 py-8">
+                <p className="text-[15px] font-bold text-ink">Nothing matches that yet.</p>
+                <p className="mt-1 text-sm text-ink-2">Try fewer words, or ask the Bosun in the corner of the screen.</p>
+              </div>
+            ) : (
+              grouped.map((group) => (
+                <section className="flex flex-col gap-3" key={group.category}>
+                  <h2 className="text-[18px] font-extrabold text-ink">{group.category}</h2>
+                  <ul className="divide-y divide-line overflow-hidden rounded-[14px] border border-line-strong bg-white shadow-[var(--shadow-card)]">
+                    {group.items.map((article) => (
+                      <li key={article.id}>
+                        <button
+                          className="group flex w-full items-center gap-4 px-5 py-4 text-left hover:bg-blue-soft/40 focus-visible:bg-blue-soft/40 focus-visible:outline-none"
+                          onClick={() => setOpen(article.id)}
+                          type="button"
+                        >
+                          <span className="flex min-w-0 flex-1 flex-col gap-1">
+                            <span className="text-[16px] font-bold text-ink group-hover:text-blue">{article.title}</span>
+                            <span className="text-[14px] leading-snug text-ink-2">{article.summary}</span>
+                          </span>
+                          <span className="num hidden shrink-0 text-[13px] text-muted sm:inline">
+                            {article.steps.length} steps
+                          </span>
+                          <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-muted group-hover:text-blue" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ))
+            )}
           </div>
-        ) : (
-          grouped.map((group) => (
-            <section className="flex flex-col gap-3" key={group.category}>
-              <h2 className="label-caps">{group.category}</h2>
-              <ul className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
-                {group.items.map((article) => (
-                  <li key={article.id}>
-                    <button
-                      className="group flex h-full w-full flex-col gap-2 rounded-[14px] border border-line bg-white p-4 text-left hover:border-blue"
-                      onClick={() => setOpen(article.id)}
-                      type="button"
-                    >
-                      <span className="text-[16px] font-extrabold text-ink group-hover:text-blue">{article.title}</span>
-                      <span className="line-clamp-2 text-sm text-ink-2">{article.summary}</span>
-                      <span className="mt-auto flex flex-wrap items-center gap-2 pt-1 text-[12px] text-muted">
-                        <span className="num">{article.steps.length} steps</span>
-                        {audiences.length > 1
-                          ? article.audience.map((item) => <Tag key={item}>{HELP_AUDIENCE_LABELS[item]}</Tag>)
-                          : null}
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))
-        )}
+        </div>
       </PageBody>
 
       {open ? <ArticleWorkbench article={open} articles={articles} onClose={() => setOpen(null)} onOpen={setOpen} /> : null}
