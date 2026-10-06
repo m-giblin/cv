@@ -3,7 +3,13 @@
 import { useEffect, useId, useState } from "react";
 import { toast } from "sonner";
 import { PlatformUnsavedBanner } from "@/components/platform/platform-unsaved-banner";
-import { FIELD_HINT, FIELD_LABEL, LineCard, Spinner, Toggle } from "@/components/platform/platform-ui";
+import {
+  FIELD_HINT,
+  FIELD_LABEL,
+  LineCard,
+  Spinner,
+} from "@/components/platform/platform-ui";
+import { Toggle } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { isFormDirty } from "@/lib/platform/use-dirty-form";
 
@@ -107,12 +113,12 @@ export function PlatformOperatorSettings() {
             const changed = checked !== valueOf(key, savedPrefs);
             return (
               <li
-                className={`flex items-center justify-between gap-4 border-b border-divider px-5 py-3.5 ${changed ? "bg-signal-soft" : ""}`}
+                className={`flex items-center justify-between gap-4 border-b border-divider px-5 py-3.5 ${changed ? "bg-signal-soft shadow-[inset_3px_0_0_var(--color-signal)]" : ""}`}
                 key={key}
               >
                 <div className="min-w-0">
                   <p className="text-[15px] font-bold text-ink">{label}</p>
-                  <p className="text-sm text-muted">{hint}</p>
+                  <p className="text-[13px] text-muted">{hint}</p>
                 </div>
                 <Toggle changed={changed} checked={checked} label={label} onChange={(value) => setValue(key, value)} />
               </li>

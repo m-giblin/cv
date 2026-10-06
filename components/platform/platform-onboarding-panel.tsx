@@ -2,18 +2,22 @@
 
 import {
   EmptyLine,
+  ROW_LINK,
   TABLE,
   TABLE_SCROLL,
   TABLE_WRAP,
   TD,
-  TD_MONO,
+  TD_META,
   TD_MUTED,
   TH,
   THEAD_ROW,
   TR,
+  TenantStatusTag,
   formatDate,
 } from "@/components/platform/platform-ui";
-import { Tag } from "@/components/ui/tag";
+import { Stamp } from "@/components/ui/stamp";
+import { StatusPill } from "@/components/ui/status-pill";
+import { rowHighlight } from "@/components/ui/table";
 import type { OnboardingFunnelEntry, OnboardingStage } from "@/lib/platform/mission-control-types";
 import { ONBOARDING_STAGE_LABELS } from "@/lib/platform/mission-control-types";
 import { cn } from "@/lib/utils";
@@ -29,9 +33,9 @@ const STAGES: OnboardingStage[] = [
 const STAGE_HINTS: Record<OnboardingStage, string> = {
   created: "Tenant exists but no admin invite has been sent yet.",
   admin_invited: "Admin invite is pending acceptance.",
-  admin_accepted: "Tenant admin signed in — still waiting for SE users.",
-  has_users: "Users are in the tenant — waiting for first practice/activity.",
-  first_activity: "Onboarding complete — tenant has real activity.",
+  admin_accepted: "Tenant admin signed in. Still waiting for SE users.",
+  has_users: "Users are in the tenant. Waiting for their first practice or activity.",
+  first_activity: "Onboarding complete. The tenant has real activity.",
 };
 
 function nextActions(entry: OnboardingFunnelEntry): string {
@@ -45,7 +49,7 @@ function nextActions(entry: OnboardingFunnelEntry): string {
     case "has_users":
       return "Encourage a first challenge, sim, or plan assignment.";
     case "first_activity":
-      return "No blockers — monitor Health and Support as usual.";
+      return "No blockers. Watch Health and Support as usual.";
     default: {
       const _exhaustive: never = entry.stage;
       return _exhaustive;
@@ -62,8 +66,8 @@ function StageRunway({ stageIndex }: { stageIndex: number }) {
           className={cn(
             "h-2 w-6 rounded-[2px]",
             index < stageIndex && "bg-blue",
-            index === stageIndex && (stageIndex === STAGES.length - 1 ? "bg-blue" : "bg-signal outline outline-[1.5px] outline-ink"),
-            index > stageIndex && "bg-divider",
+            index === stageIndex && (stageIndex === STAGES.length - 1 ? "bg-blue" : "bg-signal outline-2 outline-ink"),
+            index > stageIndex && "bg-track",
           )}
           key={stage}
         />
@@ -121,11 +125,11 @@ export function PlatformOnboardingPanel({
                   const active = selected?.tenantId === entry.tenantId;
                   const done = entry.stage === "first_activity";
                   return (
-                    <tr className={cn(TR, active && "bg-blue-soft")} key={entry.tenantId}>
+                    <tr className={cn(TR, active && rowHighlight.selected)} key={entry.tenantId}>
                       <td className={TD}>
                         <button
                           aria-pressed={active}
-                          className="link text-left"
+                          className={ROW_LINK}
                           onClick={() => onSelectTenant(entry.tenantId)}
                           type="button"
                         >
@@ -133,12 +137,10 @@ export function PlatformOnboardingPanel({
                         </button>
                       </td>
                       <td className={TD}>
-                        <Tag tone={done ? "success" : "neutral"}>
-                          <span aria-hidden>{done ? "✓" : "•"}</span> {ONBOARDING_STAGE_LABELS[entry.stage]}
-                        </Tag>
+                        <StatusPill tone={done ? "success" : "blue"}>{ONBOARDING_STAGE_LABELS[entry.stage]}</StatusPill>
                       </td>
-                      <td className={`${TD_MUTED} tabular-nums`}>{entry.userCount}</td>
-                      <td className={TD_MONO}>{formatDate(entry.createdAt)}</td>
+                      <td className={`${TD_MUTED} num`}>{entry.userCount}</td>
+                      <td className={TD_META}>{formatDate(entry.createdAt)}</td>
                       <td className={TD}>
                         <StageRunway stageIndex={entry.stageIndex} />
                       </td>
@@ -155,14 +157,15 @@ export function PlatformOnboardingPanel({
         {!selected ? (
           <p className="text-[15px] text-muted">Select a tenant from the list.</p>
         ) : (
-          <div className="space-y-5 rounded-[14px] border-[1.5px] border-ink bg-white p-5">
+          <div className="space-y-5 rounded-[14px] border border-line bg-white p-5">
             <div>
-              <p className="label-mono">Onboarding detail</p>
+              <p className="label-caps">Onboarding detail</p>
               <h2 className="mt-1 text-2xl leading-[1.15] font-extrabold tracking-[-0.015em] text-ink">
                 {selected.name}
               </h2>
-              <p className="mt-1 font-mono text-xs text-muted">
-                {selected.slug} · {selected.status.toUpperCase()}
+              <p className="mt-1 flex flex-wrap items-center gap-x-3 text-[13px] text-muted">
+                {selected.slug}
+                <TenantStatusTag status={selected.status} />
               </p>
             </div>
 
@@ -172,17 +175,7 @@ export function PlatformOnboardingPanel({
                 const current = stage === selected.stage;
                 return (
                   <li className="flex items-start gap-3" key={stage}>
-                    <span
-                      aria-hidden
-                      className={cn(
-                        "mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full font-mono text-xs",
-                        done && !current && "bg-blue text-white",
-                        current && "border-[1.5px] border-ink bg-signal text-ink",
-                        !done && "border-2 border-line-strong text-muted",
-                      )}
-                    >
-                      {done && !current ? "✓" : index + 1}
-                    </span>
+                    <Stamp className="mt-0.5" size={20} state={current ? "ready" : done ? "earned" : "none"} />
                     <span className={cn("text-[15px]", current ? "font-bold text-ink" : "text-ink-2")}>
                       {ONBOARDING_STAGE_LABELS[stage]}
                       <span className="sr-only">{current ? " (current)" : done ? " (done)" : " (to do)"}</span>
@@ -195,8 +188,8 @@ export function PlatformOnboardingPanel({
               })}
             </ol>
 
-            <div className="rounded-[10px] bg-signal-soft px-4 py-3">
-              <p className="label-mono text-ink">Next action</p>
+            <div className="rounded-[10px] bg-signal-soft px-4 py-3 shadow-[inset_3px_0_0_var(--color-signal)]">
+              <p className="label-caps text-ink">Next action</p>
               <p className="mt-1 text-[15px] text-ink">{nextActions(selected)}</p>
             </div>
 

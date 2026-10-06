@@ -5,11 +5,12 @@ import {
   KpiStrip,
   LineCard,
   PriorityTag,
+  ROW_LINK,
   Spinner,
   TABLE,
   TABLE_SCROLL,
   TD,
-  TD_MONO,
+  TD_META,
   TD_MUTED,
   TH,
   THEAD_ROW,
@@ -40,9 +41,9 @@ function runbookForAlert(alert: string): { title: string; steps: string[] } {
   const lower = alert.toLowerCase();
   if (lower.includes("admin") && lower.includes("invite")) {
     return {
-      title: "Missing / pending tenant admin",
+      title: "Missing or pending tenant admin",
       steps: [
-        "Open the tenant → Provision",
+        "Open the tenant, then Provision",
         "Send or resend the admin invite",
         "If stuck, shadow as admin and verify email domain allowlist",
       ],
@@ -137,17 +138,14 @@ export function PlatformOverviewPanel({
                 >
                   <div>
                     <p className="text-[15px] font-bold text-ink">{item.name}</p>
-                    <p className="mt-0.5 text-sm text-ink-2">
-                      <span aria-hidden className="text-danger">▲ </span>
-                      {item.alerts.join(" · ")}
-                    </p>
+                    <p className="mt-0.5 text-[13px] font-semibold text-danger">{item.alerts.join(". ")}</p>
                   </div>
                   <div>
-                    <p className="label-mono">{runbook.title}</p>
+                    <p className="text-sm font-bold text-ink">{runbook.title}</p>
                     <ol className="mt-1.5 space-y-1 text-sm text-ink-2">
                       {runbook.steps.map((step, index) => (
                         <li className="flex gap-2.5" key={step}>
-                          <span className="font-mono text-xs leading-5 text-blue">{String(index + 1).padStart(2, "0")}</span>
+                          <span className="num w-4 shrink-0 font-bold text-blue">{index + 1}</span>
                           {step}
                         </li>
                       ))}
@@ -184,14 +182,14 @@ export function PlatformOverviewPanel({
               {healthRows.map((item) => (
                 <tr className={TR} key={item.tenantId}>
                   <td className={TD}>
-                    <button className="link text-left" onClick={() => onSelectTenant(item.tenantId)} type="button">
+                    <button className={ROW_LINK} onClick={() => onSelectTenant(item.tenantId)} type="button">
                       {item.name}
                     </button>
                   </td>
-                  <td className={`${TD_MUTED} tabular-nums`}>{item.userCount}</td>
-                  <td className={`${TD_MUTED} tabular-nums`}>{item.aiCalls30d}</td>
-                  <td className={`${TD_MUTED} tabular-nums`}>{item.openSupportTickets}</td>
-                  <td className={TD_MONO}>{formatRelative(item.lastUserActivityAt)}</td>
+                  <td className={`${TD_MUTED} num`}>{item.userCount}</td>
+                  <td className={`${TD_MUTED} num`}>{item.aiCalls30d}</td>
+                  <td className={`${TD_MUTED} num`}>{item.openSupportTickets}</td>
+                  <td className={TD_META}>{formatRelative(item.lastUserActivityAt)}</td>
                   <td className={TD}>
                     <TenantStatusTag status={item.status} />
                   </td>
@@ -221,8 +219,8 @@ export function PlatformOverviewPanel({
               >
                 <div className="min-w-0">
                   <p className="text-[15px] font-semibold text-ink">{ticket.subject}</p>
-                  <p className="font-mono text-xs text-muted">
-                    {ticket.tenantName ?? "Unknown"} · {ticket.status.replace("_", " ").toUpperCase()}
+                  <p className="text-[13px] text-muted">
+                    {ticket.tenantName ?? "Unknown tenant"}, {ticket.status.replace("_", " ")}
                   </p>
                 </div>
                 <PriorityTag priority={ticket.priority} />

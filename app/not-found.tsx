@@ -1,17 +1,15 @@
 import Link from "next/link";
-import { SignalMark } from "@/components/shell/signal-mark";
-import { PRODUCT_NAME } from "@/lib/tenant/shell-branding-shared";
+import { BrandLockup } from "@/components/auth/brand-lockup";
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen bg-bg">
-      <main className="mx-auto flex min-h-screen max-w-xl flex-col justify-center gap-4 px-6" id="main-content">
-        <p className="mb-6 flex items-center gap-2.5 text-base font-bold text-ink">
-          <SignalMark />
-          {PRODUCT_NAME}
-        </p>
-        <p className="label-mono">Error 404</p>
-        <h1 className="text-[32px] leading-[1.05] font-extrabold tracking-[-0.02em] text-ink">
+    <div className="flex min-h-screen flex-col bg-bg">
+      <header className="flex h-[60px] shrink-0 items-center bg-blue px-6">
+        <BrandLockup />
+      </header>
+      <main className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center gap-4 px-6 py-12" id="main-content">
+        <p className="label-caps label-caps--blue">Error 404</p>
+        <h1 className="page-title text-ink max-sm:text-[32px]">
           We can&apos;t find that page.
         </h1>
         <p className="text-[15px] leading-normal text-ink-2">

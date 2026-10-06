@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowUpRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { BuyerRoomPayload } from "@/lib/buyer-shares/room";
 
@@ -69,8 +70,8 @@ export function BuyerShareRoom({ token }: { token: string }) {
  if (error) {
  return (
  <main className="flex min-h-screen items-center justify-center bg-bg px-6" id="main-content">
- <div className="max-w-md rounded-[14px] border-[1.5px] border-ink bg-white p-6 text-center">
- <p className="label-mono">Shared room</p>
+ <div className="max-w-md rounded-[14px] border border-line bg-white p-6 text-center">
+ <p className="label-caps label-caps--blue">Shared room</p>
  <h1 className="mt-1 text-2xl font-extrabold text-ink">{error}</h1>
  <p className="mt-2 text-[15px] text-ink-2">Ask the person who sent you this link for a fresh one.</p>
  </div>
@@ -94,31 +95,29 @@ export function BuyerShareRoom({ token }: { token: string }) {
  <div className="min-h-screen bg-bg">
  <header className="bg-blue px-4 pt-10 pb-24 text-white sm:px-10">
  <div className="mx-auto max-w-2xl">
- <p className="font-mono text-xs font-medium tracking-[0.03em] text-signal uppercase">Shared with you</p>
- <h1 className="mt-2 text-[32px] leading-[1.05] font-extrabold tracking-[-0.02em]">{room.title}</h1>
- <p className="mt-2 text-base text-on-blue">{room.accountName}</p>
+ <p className="label-caps text-signal">Shared with you</p>
+ <h1 className="page-title mt-3 max-sm:text-[32px]">{room.title}</h1>
+ <p className="mt-3 text-lg text-on-blue">{room.accountName}</p>
  {payload.seName ? (
- <p className="mt-1 font-mono text-xs text-on-blue-muted">PREPARED BY {payload.seName.toUpperCase()}</p>
+ <p className="mt-1 text-sm text-on-blue">Prepared by {payload.seName}</p>
  ) : null}
  </div>
  </header>
 
  <main className="mx-auto -mt-16 max-w-2xl px-4 pb-12 sm:px-0" id="main-content">
- <div className="space-y-7 rounded-[14px] border-[1.5px] border-ink bg-white p-6 sm:p-8">
+ <div className="space-y-7 rounded-[14px] border border-line bg-white p-6 sm:p-8">
  <section>
- <h2 className="label-mono text-blue">Executive summary</h2>
+ <h2 className="label-caps label-caps--blue">Executive summary</h2>
  <p className="mt-2 text-[15px] leading-normal text-ink">{payload.executiveSummary}</p>
  </section>
 
  {payload.personalizationBullets.length > 0 ? (
  <section>
- <h2 className="label-mono text-blue">For your organization</h2>
+ <h2 className="label-caps label-caps--blue">For your organization</h2>
  <ul className="mt-2 space-y-1.5 text-[15px] leading-normal text-ink">
  {payload.personalizationBullets.map((bullet) => (
- <li className="flex gap-2.5" key={bullet}>
- <span aria-hidden className="text-blue">
- ◆
- </span>
+ <li className="flex gap-3" key={bullet}>
+ <span aria-hidden className="mt-[9px] h-1.5 w-1.5 shrink-0 rounded-full bg-blue" />
  {bullet}
  </li>
  ))}
@@ -128,7 +127,7 @@ export function BuyerShareRoom({ token }: { token: string }) {
 
  {payload.resources.length > 0 ? (
  <section>
- <h2 className="label-mono text-blue">Resources</h2>
+ <h2 className="label-caps label-caps--blue">Resources</h2>
  <ul className="mt-3 overflow-hidden rounded-[14px] border border-line">
  {payload.resources.map((resource, index) => (
  <li className="border-b border-divider last:border-b-0" key={`${resource.label}-${index}`}>
@@ -139,12 +138,12 @@ export function BuyerShareRoom({ token }: { token: string }) {
  </div>
  ) : (
  <button
- className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-[15px] font-bold text-blue hover:bg-blue-soft"
+ className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-[15px] font-bold text-blue hover:bg-blue-soft hover:underline"
  onClick={() => trackResource(resource.label, resource.url)}
  type="button"
  >
  {resource.label}
- <span aria-hidden>→</span>
+ <ArrowUpRight aria-hidden className="h-4 w-4 shrink-0" />
  </button>
  )}
  </li>

@@ -71,21 +71,16 @@ export function PlatformConfirmDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-      <div aria-hidden className="absolute inset-0 bg-[rgba(10,26,63,0.25)]" onClick={onCancel} />
+      <div aria-hidden className="absolute inset-0 bg-[rgb(11_23_51/0.45)]" onClick={onCancel} />
       <div
         aria-describedby={description ? descriptionId : undefined}
         aria-labelledby={titleId}
         aria-modal="true"
-        className="relative w-full max-w-md rounded-[16px] border-[1.5px] border-ink bg-white p-6"
+        className="relative w-full max-w-md rounded-[16px] border border-line bg-white p-6 shadow-[0_24px_60px_rgb(11_23_51/0.25)]"
         ref={panelRef}
         role="alertdialog"
       >
         <h2 className="text-lg leading-[1.3] font-extrabold text-ink" id={titleId}>
-          {destructive ? (
-            <span aria-hidden className="mr-1.5 text-danger">
-              ▲
-            </span>
-          ) : null}
           {title}
         </h2>
         {description ? (
@@ -100,7 +95,7 @@ export function PlatformConfirmDialog({
           <button
             className={
               destructive
-                ? "inline-flex items-center gap-2 rounded-full border-[1.5px] border-danger bg-danger px-5 py-2.5 text-[15px] font-bold text-white hover:bg-[color-mix(in_srgb,var(--color-danger),black_12%)] disabled:opacity-60"
+                ? "inline-flex items-center gap-2 rounded-full border border-danger bg-danger px-[22px] py-2.5 text-[15px] font-bold text-white hover:bg-[color-mix(in_srgb,var(--color-danger),black_12%)] disabled:opacity-60"
                 : "btn-primary inline-flex items-center gap-2"
             }
             disabled={busy}

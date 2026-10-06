@@ -9,15 +9,17 @@ import {
   TABLE_SCROLL,
   TABLE_WRAP,
   TD,
-  TD_MONO,
+  TD_META,
   TD_MUTED,
   TH,
   THEAD_ROW,
   TR,
-  Toggle,
 } from "@/components/platform/platform-ui";
+import { Toggle } from "@/components/ui/checkbox";
 import { Chip } from "@/components/ui/chip";
 import { SegmentedToggle } from "@/components/ui/segmented-toggle";
+import { StatusPill } from "@/components/ui/status-pill";
+import { FilterBar, rowHighlight } from "@/components/ui/table";
 import { Tag } from "@/components/ui/tag";
 import { FEATURE_FLAG_CATEGORY_LABELS, previewEntitledSurfaces } from "@/lib/platform/feature-flags";
 import {
@@ -91,15 +93,14 @@ export function PlatformTenantEntitlements({
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <p className="font-mono text-xs text-muted uppercase tracking-[0.03em]">
-          Package <span className="text-ink">{packageLabel}</span>
+        <p className="text-sm text-muted">
+          Package <span className="font-semibold text-ink">{packageLabel}</span>
           {billingPlan ? (
             <>
-              {" "}
-              · plan <span className="text-ink">{billingPlan}</span>
+              , plan <span className="font-semibold text-ink">{billingPlan}</span>
             </>
-          ) : null}{" "}
-          · {enabledCount} modules on
+          ) : null}
+          , <span className="num font-semibold text-ink">{enabledCount}</span> modules on
         </p>
         <SegmentedToggle
           label="Entitlements view"
@@ -133,10 +134,10 @@ export function PlatformTenantEntitlements({
               >
                 <span className="flex items-center justify-between gap-2">
                   <span className="text-[15px] font-bold text-ink">{preset.label}</span>
-                  {active ? <Tag tone="blue">✓ Active</Tag> : null}
+                  {active ? <StatusPill tone="blue">Active</StatusPill> : null}
                 </span>
                 <span className="mt-1 block text-sm text-ink-2">{preset.description}</span>
-                <span className="mt-2 block font-mono text-xs text-muted">PLAN → {preset.billingPlan}</span>
+                <span className="mt-2 block text-[13px] text-muted">Sets the plan to {preset.billingPlan}</span>
               </button>
             );
           })}
@@ -145,16 +146,20 @@ export function PlatformTenantEntitlements({
 
       {panel === "modules" ? (
         <div className="space-y-3">
-          <div aria-label="Filter modules by area" className="flex flex-wrap gap-1.5" role="group">
-            <Chip active={area === "all"} onClick={() => setArea("all")}>
-              All
-            </Chip>
-            {Object.keys(flagsByCategory).map((category) => (
-              <Chip active={area === category} key={category} onClick={() => setArea(category)}>
-                {FEATURE_FLAG_CATEGORY_LABELS[category] ?? category}
-              </Chip>
-            ))}
-          </div>
+          <FilterBar
+            show={
+              <div aria-label="Filter modules by area" className="flex flex-wrap gap-1.5" role="group">
+                <Chip active={area === "all"} onClick={() => setArea("all")}>
+                  All
+                </Chip>
+                {Object.keys(flagsByCategory).map((category) => (
+                  <Chip active={area === category} key={category} onClick={() => setArea(category)}>
+                    {FEATURE_FLAG_CATEGORY_LABELS[category] ?? category}
+                  </Chip>
+                ))}
+              </div>
+            }
+          />
           <div className={TABLE_WRAP}>
             <div className={TABLE_SCROLL}>
               <table className={TABLE}>
@@ -173,24 +178,24 @@ export function PlatformTenantEntitlements({
                     const parentBlocked = storedOn && !effective;
                     const changed = changedIds.includes(flag.id);
                     return (
-                      <tr className={cn(TR, changed && "bg-signal-soft")} key={flag.id}>
+                      <tr className={cn(TR, changed && rowHighlight.ready)} key={flag.id}>
                         <td className={TD}>
                           <p className="font-bold">
                             {flag.label}
                             {changed ? <ChangedMark /> : null}
                           </p>
-                          <p className="text-sm text-muted">{flag.description}</p>
+                          <p className="text-[13px] text-muted">{flag.description}</p>
                           <div className="mt-1 flex flex-wrap gap-1.5">
-                            {flag.kind === "ops" ? <Tag>• Ops</Tag> : null}
-                            {parentBlocked ? <Tag tone="warning">▲ Needs parent</Tag> : null}
+                            {flag.kind === "ops" ? <Tag>Ops</Tag> : null}
+                            {parentBlocked ? <StatusPill tone="warning">Needs parent</StatusPill> : null}
                           </div>
                         </td>
                         <td className={TD_MUTED}>
                           <Tag>{FEATURE_FLAG_CATEGORY_LABELS[category] ?? category}</Tag>
                         </td>
-                        <td className={TD_MONO}>
+                        <td className={TD_META}>
                           {flag.dependsOn?.length
-                            ? flag.dependsOn.map((id) => (FLAG_LABELS.get(id) ?? id).toUpperCase()).join(", ")
+                            ? flag.dependsOn.map((id) => FLAG_LABELS.get(id) ?? id).join(", ")
                             : "—"}
                         </td>
                         <td className={`${TD} text-right`}>
@@ -227,10 +232,10 @@ export function PlatformTenantEntitlements({
                 <tbody>
                   {preview.map((surface) => (
                     <tr className={TR} key={surface.id}>
-                      <td className={`${TD} font-semibold`}>{surface.label}</td>
-                      <td className={TD_MONO}>{surface.href}</td>
+                      <td className={`${TD} font-bold`}>{surface.label}</td>
+                      <td className={TD_META}>{surface.href}</td>
                       <td className={`${TD} text-right`}>
-                        {surface.allowed ? <Tag tone="success">✓ Allowed</Tag> : <Tag>○ Blocked</Tag>}
+                        {surface.allowed ? <StatusPill tone="success">Allowed</StatusPill> : <StatusPill tone="neutral">Blocked</StatusPill>}
                       </td>
                     </tr>
                   ))}
@@ -251,9 +256,9 @@ export function PlatformTenantEntitlements({
                   key={item.id}
                 >
                   <span className="text-[15px] font-semibold text-ink">{item.label}</span>
-                  <span className="flex items-center gap-2 font-mono text-xs text-muted">
-                    DEFAULT {item.defaultEnabled ? "ON" : "OFF"} →
-                    {item.effective ? <Tag tone="success">✓ On</Tag> : <Tag tone="warning">○ Off</Tag>}
+                  <span className="flex items-center gap-3 text-[13px] text-muted">
+                    Default {item.defaultEnabled ? "on" : "off"}, now
+                    {item.effective ? <StatusPill tone="success">On</StatusPill> : <StatusPill tone="warning">Off</StatusPill>}
                   </span>
                 </li>
               ))}
@@ -276,7 +281,7 @@ export function PlatformTenantEntitlements({
             ? changedIds
                 .slice(0, 3)
                 .map((id) => FLAG_LABELS.get(id) ?? id)
-                .join(" · ") + (changedIds.length > 3 ? ` · +${changedIds.length - 3}` : "")
+                .join(", ") + (changedIds.length > 3 ? ` and ${changedIds.length - 3} more` : "")
             : undefined
         }
       />

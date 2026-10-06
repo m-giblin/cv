@@ -16,7 +16,7 @@ export default function MfaEnrollPage() {
       }}
       backLink={{ href: "/login", label: "Back to sign in" }}
       description="Scan the QR code, then enter a code to turn on MFA."
-      eyebrow="Step 2 of 2 · Enroll MFA"
+      eyebrow="Step 2 of 2 / Enroll MFA"
       title="Set up your authenticator"
     >
       <MfaEnrollForm />

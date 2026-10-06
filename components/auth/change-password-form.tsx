@@ -64,7 +64,7 @@ export function ChangePasswordForm() {
  return (
  <div className="space-y-4">
  <div>
- <p className="label-mono">Step 1 of 2</p>
+ <p className="label-caps label-caps--blue">Step 1 of 2</p>
  <h2 className="mt-1 text-lg leading-[1.3] font-extrabold text-ink">Verify MFA</h2>
  </div>
  <MfaReauthGate onVerified={() => setMfaVerified(true)} purpose="changing your password" />
@@ -75,13 +75,13 @@ export function ChangePasswordForm() {
  return (
  <form className="space-y-5" onSubmit={handleSubmit}>
  <div>
- <p className="label-mono">Step 2 of 2</p>
+ <p className="label-caps label-caps--blue">Step 2 of 2</p>
  <h2 className="mt-1 text-lg leading-[1.3] font-extrabold text-ink">New password</h2>
  <p className="mt-1 text-sm text-muted">At least 8 characters. Use a passphrase you don&apos;t use anywhere else.</p>
  </div>
 
- <p className="rounded-[10px] border-[1.5px] border-success bg-success-soft px-3.5 py-2.5 text-sm text-success" role="status">
- <span aria-hidden>✓ </span>Identity verified. Enter your new password.
+ <p className="rounded-[10px] border border-success/30 bg-success-soft px-3.5 py-2.5 text-sm text-success" role="status">
+ Identity verified. Enter your new password.
  </p>
 
  <div>

@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useId, useState } from "react";
 import { FIELD_HINT, FIELD_LABEL } from "@/components/platform/platform-ui";
 import { Drawer } from "@/components/ui/drawer";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -121,7 +122,7 @@ export function CreateTenantModal({ open, creating, onClose, onSubmit }: CreateT
     >
       <form className="space-y-7" id={field("form")} onSubmit={handleSubmit}>
         <section className="space-y-4">
-          <h3 className="label-mono">Organization</h3>
+          <h3 className="label-caps">Organization</h3>
           <div>
             <label className={FIELD_LABEL} htmlFor={field("name")}>
               Organization name <span className="font-normal text-muted">(required)</span>
@@ -144,7 +145,6 @@ export function CreateTenantModal({ open, creating, onClose, onSubmit }: CreateT
             </label>
             <Input
               aria-describedby={field("slug-hint")}
-              className="font-mono text-sm"
               id={field("slug")}
               onChange={(event) => {
                 setSlugTouched(true);
@@ -160,7 +160,7 @@ export function CreateTenantModal({ open, creating, onClose, onSubmit }: CreateT
         </section>
 
         <section className="space-y-4">
-          <h3 className="label-mono">Access and branding</h3>
+          <h3 className="label-caps">Access and branding</h3>
           <div>
             <label className={FIELD_LABEL} htmlFor={field("domains")}>
               Allowed email domains
@@ -183,13 +183,12 @@ export function CreateTenantModal({ open, creating, onClose, onSubmit }: CreateT
             <div className="flex gap-2">
               <input
                 aria-label="Pick primary colour"
-                className="h-10 w-12 shrink-0 cursor-pointer rounded-[10px] border-[1.5px] border-ink bg-white p-1"
+                className="h-10 w-12 shrink-0 cursor-pointer rounded-[10px] border border-line-strong bg-white p-1"
                 onChange={(event) => update("primaryColor", event.target.value)}
                 type="color"
                 value={form.primaryColor}
               />
               <Input
-                className="font-mono text-sm"
                 id={field("color")}
                 onChange={(event) => update("primaryColor", event.target.value)}
                 placeholder="#0033A1"
@@ -224,7 +223,7 @@ export function CreateTenantModal({ open, creating, onClose, onSubmit }: CreateT
         </section>
 
         <section className="space-y-4">
-          <h3 className="label-mono">First tenant admin</h3>
+          <h3 className="label-caps">First tenant admin</h3>
           <p className="text-sm text-ink-2">Optional. Invite the person who will manage users and settings.</p>
           <div>
             <label className={FIELD_LABEL} htmlFor={field("admin-email")}>
@@ -252,12 +251,11 @@ export function CreateTenantModal({ open, creating, onClose, onSubmit }: CreateT
             />
           </div>
           <label className="flex cursor-pointer items-start gap-2.5 text-[15px] text-ink" htmlFor={field("invite")}>
-            <input
+            <Checkbox
               checked={form.sendAdminInvite}
-              className="mt-1 h-4 w-4 accent-[var(--color-blue)]"
+              className="mt-0.5"
               id={field("invite")}
               onChange={(event) => update("sendAdminInvite", event.target.checked)}
-              type="checkbox"
             />
             Send the new admin a password-set invite email
           </label>

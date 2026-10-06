@@ -53,23 +53,16 @@ export function ShadowTenantBanner({
 
   return (
     <div
-      className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b-[1.5px] border-ink bg-signal-soft px-[var(--gutter)] py-2.5 text-ink max-lg:px-4"
-      role="region"
       aria-label="Shadow session"
+      className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-signal-edge/40 bg-signal-soft px-[var(--page-pad-x)] py-2.5 text-ink max-lg:px-4"
+      role="region"
     >
-      <p className="text-sm leading-snug">
-        <span className="mr-2 font-mono text-xs font-medium uppercase tracking-[0.03em]">
-          <span aria-hidden>● </span>Shadowing
-        </span>
-        <span className="font-semibold">{MODE_LABEL[mode]}</span> in <span className="font-semibold">{tenantName}</span>
-        <span className="text-ink-2"> · switch workspaces anytime, or return to the platform console.</span>
+      <p className="text-sm leading-snug text-ink">
+        <span className="font-bold">Shadowing</span> {tenantName} as{" "}
+        <span className="font-semibold">{MODE_LABEL[mode].toLowerCase()}</span>.
+        <span className="text-ink-2"> Switch workspaces any time, or return to the platform console.</span>
       </p>
-      <button
-        className="btn-secondary shrink-0 px-4 py-1.5 text-sm"
-        disabled={exiting}
-        onClick={() => void backToPlatform()}
-        type="button"
-      >
+      <button className="btn-secondary shrink-0" disabled={exiting} onClick={() => void backToPlatform()} type="button">
         {exiting ? "Returning…" : "Back to platform"}
       </button>
     </div>

@@ -1,6 +1,6 @@
 import { AppShell } from "@/components/app-shell";
 import { AccountProfilePanel } from "@/components/account/account-profile-panel";
-import { PageHeader } from "@/components/ui/page-header";
+import { PageBody, PageHeader } from "@/components/ui/page-header";
 import { computeAccountBadges } from "@/lib/account/achievements";
 import { requireAppAccess } from "@/lib/auth/require-access";
 import { fetchCertificationsForUsers } from "@/lib/data/get-certifications-data";
@@ -15,11 +15,14 @@ export default async function AccountPage() {
 
   return (
     <AppShell currentUser={data.currentUser} notifications={data.notifications}>
-      <PageHeader eyebrow="Profile, trophies and milestones" title="Your account" />
-      <div className="px-[var(--gutter)] pb-8">
+      <PageHeader eyebrow="Profile, badges and milestones" title="Your account" />
+      <PageBody className="pb-8">
         {source === "demo" ? (
-          <p className="mb-5 rounded-[10px] border-[1.5px] border-warning bg-warning-soft px-4 py-2.5 text-sm text-warning" role="status">
-            <span aria-hidden>▲ </span>Demo data mode. Connect Supabase for live profile sync.
+          <p
+            className="mb-5 max-w-[640px] rounded-[10px] border border-signal-edge/40 bg-signal-soft px-4 py-2.5 text-sm text-ink"
+            role="status"
+          >
+            Demo data mode. Connect Supabase for live profile sync.
           </p>
         ) : null}
 
@@ -30,7 +33,7 @@ export default async function AccountPage() {
           profile={data.currentUser}
           trophies={trophies}
         />
-      </div>
+      </PageBody>
     </AppShell>
   );
 }

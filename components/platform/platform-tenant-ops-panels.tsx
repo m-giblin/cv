@@ -11,12 +11,13 @@ import {
   LineCard,
   SELECT,
   Spinner,
-  Toggle,
   formatDate,
   formatDateTime,
+  humanize,
 } from "@/components/platform/platform-ui";
+import { Toggle } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Tag } from "@/components/ui/tag";
+import { StatusPill } from "@/components/ui/status-pill";
 import { Textarea } from "@/components/ui/textarea";
 import { isFormDirty } from "@/lib/platform/use-dirty-form";
 import type {
@@ -63,20 +64,20 @@ export function PlatformInviteList({
           key={invite.id}
         >
           <div className="min-w-0">
-            <p className="text-[15px] font-semibold text-ink">{invite.fullName}</p>
-            <p className="font-mono text-xs text-muted">
+            <p className="text-[15px] font-bold text-ink">{invite.fullName}</p>
+            <p className="text-[13px] text-muted">
               {invite.email}
-              {invite.lastSentAt ? ` · sent ${formatDate(invite.lastSentAt)}` : ""}
-              {invite.expiresAt ? ` · expires ${formatDate(invite.expiresAt)}` : ""}
+              {invite.lastSentAt ? `. Sent ${formatDate(invite.lastSentAt)}` : ""}
+              {invite.expiresAt ? `, expires ${formatDate(invite.expiresAt)}` : ""}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {invite.status === "pending" ? (
-              <Tag tone="warning">• Pending</Tag>
+              <StatusPill tone="warning">Pending</StatusPill>
             ) : invite.status === "accepted" ? (
-              <Tag tone="success">✓ Accepted</Tag>
+              <StatusPill tone="success">Accepted</StatusPill>
             ) : (
-              <Tag>○ {invite.status}</Tag>
+              <StatusPill tone="neutral">{humanize(invite.status)}</StatusPill>
             )}
             {invite.status === "pending" ? (
               <>
@@ -240,7 +241,7 @@ export function PlatformCommercialPanel({
             >
               {["trial", "active", "past_due", "canceled", "exempt"].map((value) => (
                 <option key={value} value={value}>
-                  {value.replace("_", " ")}
+                  {humanize(value)}
                 </option>
               ))}
             </select>
@@ -291,7 +292,7 @@ export function PlatformCommercialPanel({
             >
               {["none", "pending", "verified", "failed"].map((value) => (
                 <option key={value} value={value}>
-                  {value}
+                  {humanize(value)}
                 </option>
               ))}
             </select>
@@ -302,9 +303,9 @@ export function PlatformCommercialPanel({
       <LineCard title="Data export">
         <div className="flex flex-wrap items-center justify-between gap-4 p-5">
           <div>
-            <p className="font-mono text-xs text-muted uppercase">
-              Status {tenant.exportStatus}
-              {tenant.exportCompletedAt ? ` · ${formatDateTime(tenant.exportCompletedAt)}` : ""}
+            <p className="text-[13px] text-muted">
+              Export status: {humanize(String(tenant.exportStatus))}
+              {tenant.exportCompletedAt ? `, ${formatDateTime(tenant.exportCompletedAt)}` : ""}
             </p>
             <p className="mt-1 text-sm text-ink-2">Offboarding lives in the tenant header, next to Suspend.</p>
           </div>
@@ -430,7 +431,7 @@ export function PlatformSsoPanel({
     <div>
       <LineCard meta="Platform SSO stays the fallback" title="Tenant SSO">
         <div className="space-y-4 p-5">
-          <div className={`flex items-center justify-between gap-4 rounded-[10px] px-4 py-3 ${enabled !== saved.enabled ? "bg-signal-soft" : "bg-surface-2"}`}>
+          <div className={`flex items-center justify-between gap-4 rounded-[10px] px-4 py-3 ${enabled !== saved.enabled ? "bg-signal-soft" : "bg-bg"}`}>
             <div>
               <p className="text-[15px] font-bold text-ink">SSO for this tenant</p>
               <p className="text-sm text-muted">{enabled ? "On: users sign in through the provider below." : "Off: users sign in with password and MFA."}</p>
@@ -464,7 +465,7 @@ export function PlatformSsoPanel({
               Provider metadata (JSON)
             </label>
             <Textarea
-              className="min-h-[160px] font-mono text-xs"
+              className="min-h-[160px] text-[13px]"
               id={metadataId}
               onChange={(e) => setMetadataJson(e.target.value)}
               value={metadataJson}
@@ -597,10 +598,10 @@ export function PlatformWebhooksPanel({ tenantId }: { tenantId: string }) {
                 key={hook.id}
               >
                 <div className="min-w-0">
-                  <p className="truncate font-mono text-sm text-ink">{hook.url}</p>
+                  <p className="truncate text-[15px] font-bold text-ink">{hook.url}</p>
                   <div className="mt-1 flex flex-wrap items-center gap-2">
-                    {hook.enabled ? <Tag tone="success">✓ Enabled</Tag> : <Tag>○ Disabled</Tag>}
-                    <span className="font-mono text-xs text-muted">{hook.events.join(", ") || "no events"}</span>
+                    {hook.enabled ? <StatusPill tone="success">Enabled</StatusPill> : <StatusPill tone="neutral">Disabled</StatusPill>}
+                    <span className="text-[13px] text-muted">{hook.events.join(", ") || "No events"}</span>
                   </div>
                 </div>
                 <button className="link text-sm" onClick={() => void removeHook(hook.id)} type="button">

@@ -12,16 +12,18 @@ import {
   TABLE_SCROLL,
   TABLE_WRAP,
   TD,
-  TD_MONO,
+  TD_META,
   TD_MUTED,
   TH,
   THEAD_ROW,
   TR,
   formatDateTime,
+  humanize,
 } from "@/components/platform/platform-ui";
 import { Chip } from "@/components/ui/chip";
 import { Drawer } from "@/components/ui/drawer";
-import { Tag } from "@/components/ui/tag";
+import { StatusPill } from "@/components/ui/status-pill";
+import { FilterBar, TwoLineCell, rowHighlight } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { supportSlaStatus } from "@/lib/platform/support-sla";
 import type { SupportRequest, SupportStatus } from "@/lib/tenant/types";
@@ -31,13 +33,12 @@ const STATUS_OPTIONS: SupportStatus[] = ["open", "in_progress", "resolved", "clo
 const FILTERS = ["active", "open", "in_progress", "resolved", "closed", "all"] as const;
 
 function statusLabel(value: string) {
-  return value.replace("_", " ");
+  return humanize(value);
 }
 
 function StatusTag({ status }: { status: SupportStatus }) {
-  if (status === "resolved" || status === "closed") return <Tag tone="success">✓ {statusLabel(status)}</Tag>;
-  if (status === "in_progress") return <Tag tone="blue">● {statusLabel(status)}</Tag>;
-  return <Tag>• {statusLabel(status)}</Tag>;
+  const tone = status === "resolved" || status === "closed" ? "success" : status === "in_progress" ? "blue" : "neutral";
+  return <StatusPill tone={tone}>{statusLabel(status)}</StatusPill>;
 }
 
 export function PlatformSupportQueue({
@@ -113,13 +114,17 @@ export function PlatformSupportQueue({
 
   return (
     <div className="space-y-4">
-      <div aria-label="Filter tickets by status" className="flex flex-wrap gap-1.5" role="group">
-        {FILTERS.map((value) => (
-          <Chip active={filter === value} key={value} onClick={() => setFilter(value)}>
-            {value === "active" ? "Open + in progress" : statusLabel(value)}
-          </Chip>
-        ))}
-      </div>
+      <FilterBar
+        show={
+          <div aria-label="Filter tickets by status" className="flex flex-wrap gap-1.5" role="group">
+            {FILTERS.map((value) => (
+              <Chip active={filter === value} key={value} onClick={() => setFilter(value)}>
+                {value === "active" ? "Open and in progress" : statusLabel(value)}
+              </Chip>
+            ))}
+          </div>
+        }
+      />
 
       {loading ? (
         <Spinner label="Loading tickets" />
@@ -147,12 +152,12 @@ export function PlatformSupportQueue({
                   {tickets.map((item) => {
                     const sla = supportSlaStatus(item.createdAt, item.priority, item.status, item.firstResponseAt);
                     return (
-                      <tr className={cn(TR, sla.breached && "bg-danger-soft")} key={item.id}>
+                      <tr className={cn(TR, sla.breached && rowHighlight.danger)} key={item.id}>
                         <td className={TD}>
-                          <p className="font-semibold">{item.subject}</p>
-                          <p className="font-mono text-xs text-muted">
-                            {item.reporterName ?? item.reporterEmail ?? "Reporter"} · {formatDateTime(item.createdAt)}
-                          </p>
+                          <TwoLineCell
+                            subline={`${item.reporterName ?? item.reporterEmail ?? "Reporter"}, ${formatDateTime(item.createdAt)}`}
+                            title={item.subject}
+                          />
                         </td>
                         {tenantId ? null : <td className={TD_MUTED}>{item.tenantName ?? "Unknown tenant"}</td>}
                         <td className={TD}>
@@ -160,15 +165,15 @@ export function PlatformSupportQueue({
                         </td>
                         <td className={TD}>
                           {sla.breached ? (
-                            <Tag tone="danger">▲ {sla.label}</Tag>
+                            <StatusPill tone="danger">{sla.label}</StatusPill>
                           ) : (
-                            <span className="font-mono text-xs text-ink-2">{sla.label}</span>
+                            <span className="num text-[13px] text-ink-2">{sla.label}</span>
                           )}
                         </td>
                         <td className={TD}>
                           <StatusTag status={item.status} />
                         </td>
-                        <td className={TD_MONO}>{operatorName(item.assignedTo)}</td>
+                        <td className={TD_META}>{operatorName(item.assignedTo)}</td>
                         <td className={`${TD} text-right`}>
                           <button className="link" onClick={() => setOpenId(item.id)} type="button">
                             Review<span className="sr-only"> {item.subject}</span>
@@ -211,15 +216,15 @@ export function PlatformSupportQueue({
               <PriorityTag priority={ticket.priority} />
               <StatusTag status={ticket.status} />
             </div>
-            <p className="font-mono text-xs text-muted">
-              {ticket.tenantName ?? "Unknown tenant"} · {ticket.reporterName ?? ticket.reporterEmail ?? "Reporter"} ·{" "}
+            <p className="text-[13px] text-muted">
+              From {ticket.reporterName ?? ticket.reporterEmail ?? "the reporter"} at {ticket.tenantName ?? "an unknown tenant"},{" "}
               {formatDateTime(ticket.createdAt)}
             </p>
             <p className="text-[15px] leading-normal whitespace-pre-wrap text-ink">{ticket.body}</p>
 
             {ticket.operatorReply ? (
               <div className="rounded-[10px] bg-blue-soft px-4 py-3">
-                <p className="label-mono text-blue">Reply sent to tenant</p>
+                <p className="label-caps label-caps--blue">Reply sent to tenant</p>
                 <p className="mt-1 text-[15px] text-ink">{ticket.operatorReply}</p>
               </div>
             ) : null}

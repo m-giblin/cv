@@ -51,7 +51,7 @@ export function PlatformGlobalSearch({
       <input
         aria-controls={open ? listId : undefined}
         aria-expanded={open}
-        className="h-10 w-full rounded-full border-[1.5px] border-ink bg-white py-2 pl-10 pr-4 text-sm text-ink placeholder:text-muted"
+        className="h-10 w-full rounded-full border border-line-strong bg-white py-2 pl-10 pr-4 text-sm text-ink placeholder:text-muted focus:border-blue"
         id={inputId}
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={(e) => {
@@ -64,7 +64,7 @@ export function PlatformGlobalSearch({
       />
       {open ? (
         <div
-          className="absolute right-0 z-30 mt-1.5 w-full min-w-[280px] overflow-hidden rounded-[14px] border-[1.5px] border-ink bg-white"
+          className="absolute right-0 z-30 mt-1.5 w-full min-w-[280px] overflow-hidden rounded-[14px] border border-line bg-white"
           id={listId}
           role="listbox"
         >
@@ -90,9 +90,9 @@ export function PlatformGlobalSearch({
                 type="button"
               >
                 <span className="text-sm font-semibold text-ink">{result.label}</span>
-                <span className="font-mono text-xs text-muted">
-                  {result.type.toUpperCase()}
-                  {result.sublabel ? ` · ${result.sublabel}` : ""}
+                <span className="text-[13px] text-muted">
+                  {result.type.charAt(0).toUpperCase() + result.type.slice(1)}
+                  {result.sublabel ? `, ${result.sublabel}` : ""}
                 </span>
               </button>
             ))

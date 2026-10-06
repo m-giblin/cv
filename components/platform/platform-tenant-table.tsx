@@ -6,7 +6,7 @@ import {
   BillingStatusTag,
   TABLE,
   TD,
-  TD_MONO,
+  TD_META,
   TD_MUTED,
   TH,
   THEAD_ROW,
@@ -14,7 +14,10 @@ import {
   TenantStatusTag,
   formatDate,
 } from "@/components/platform/platform-ui";
+import { Checkbox } from "@/components/ui/checkbox";
 import { DataTablePagination, DataTableShell, DataTableToolbar, paginate } from "@/components/ui/data-table";
+import { StatusPill } from "@/components/ui/status-pill";
+import { rowHighlight } from "@/components/ui/table";
 import type { Tenant } from "@/lib/tenant/types";
 import { cn } from "@/lib/utils";
 
@@ -125,19 +128,19 @@ export function PlatformTenantTable({
                     scope="col"
                   >
                     <button
-                      className="inline-flex items-center gap-1 font-mono text-xs uppercase hover:text-on-blue"
+                      className="th inline-flex items-center gap-1 hover:text-ink"
                       onClick={() => toggleSort(column.key)}
                       type="button"
                     >
                       {column.label}
                       {active ? (
                         sortDir === "asc" ? (
-                          <ArrowUp aria-hidden className="h-3.5 w-3.5 text-signal" />
+                          <ArrowUp aria-hidden className="h-3.5 w-3.5 text-blue" />
                         ) : (
-                          <ArrowDown aria-hidden className="h-3.5 w-3.5 text-signal" />
+                          <ArrowDown aria-hidden className="h-3.5 w-3.5 text-blue" />
                         )
                       ) : (
-                        <ArrowUpDown aria-hidden className="h-3.5 w-3.5 text-on-blue-muted" />
+                        <ArrowUpDown aria-hidden className="h-3.5 w-3.5 text-faint" />
                       )}
                     </button>
                   </th>
@@ -149,38 +152,40 @@ export function PlatformTenantTable({
             {rows.map((tenant) => {
               const checked = bulkSelected.includes(tenant.id);
               return (
-                <tr className={cn(TR, checked && "bg-blue-soft")} key={tenant.id}>
-                  <td className="py-3 pl-[18px]">
-                    <input
-                      aria-label={`Select ${tenant.name}`}
+                <tr className={cn(TR, checked && rowHighlight.selected)} key={tenant.id}>
+                  <td className="py-[13px] pl-5 align-middle">
+                    <Checkbox
                       checked={checked}
-                      className="h-4 w-4 accent-[var(--color-blue)]"
+                      label={`Select ${tenant.name}`}
                       onChange={(event) => onToggleBulkSelect(tenant.id, event.target.checked)}
-                      type="checkbox"
                     />
                   </td>
                   <td className={TD}>
-                    <button className="link text-left" onClick={() => onOpenTenant(tenant.id)} type="button">
+                    <button
+                      className="text-left text-[15px] font-bold text-ink hover:text-blue hover:underline"
+                      onClick={() => onOpenTenant(tenant.id)}
+                      type="button"
+                    >
                       {tenant.name}
                     </button>
-                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                      <span className="font-mono text-xs text-muted">{tenant.slug}</span>
+                    <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <span className="text-[13px] text-muted">{tenant.slug}</span>
                       {tenant.status !== "active" ? <TenantStatusTag status={tenant.status} /> : null}
-                      {tenant.maintenanceMode ? <span className="font-mono text-xs text-warning">▲ MAINTENANCE</span> : null}
+                      {tenant.maintenanceMode ? <StatusPill tone="warning">Maintenance on</StatusPill> : null}
                     </div>
                   </td>
                   <td className={TD_MUTED}>{tenant.billingPlan ?? "—"}</td>
-                  <td className={`${TD_MUTED} tabular-nums`}>{tenant.seatQuota ?? "—"}</td>
+                  <td className={`${TD_MUTED} num`}>{tenant.seatQuota ?? "—"}</td>
                   <td className={TD}>
                     <BillingStatusTag status={tenant.billingStatus} />
                   </td>
-                  <td className={TD_MONO}>{formatDate(tenant.updatedAt)}</td>
+                  <td className={TD_META}>{formatDate(tenant.updatedAt)}</td>
                 </tr>
               );
             })}
             {rows.length === 0 ? (
               <tr>
-                <td className="px-[18px] py-8 text-center text-sm text-muted" colSpan={COLUMNS.length + 1}>
+                <td className="px-5 py-8 text-center text-sm text-muted" colSpan={COLUMNS.length + 1}>
                   No tenants match “{search}”.
                 </td>
               </tr>

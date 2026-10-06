@@ -37,8 +37,8 @@ export function CorpusFeedbackWidget({
  const body = (await response.json()) as { routed?: boolean };
  toast.success(
  body.routed
- ? "Feedback sent — your question was routed to the SME channel."
- : "Thanks — feedback recorded for admin review.",
+ ? "Feedback sent. Your question went to the SME channel."
+ : "Thanks. Your feedback is recorded for admin review.",
  );
  setComment("");
  setQuestion("");
@@ -48,14 +48,14 @@ export function CorpusFeedbackWidget({
  }
 
  return (
- <div className="rounded-[14px] border border-line bg-surface-2 p-4 text-sm">
- <p className="flex items-center gap-2 font-semibold text-ink">
- <MessageCircleQuestion className="h-4 w-4 text-blue" />
- Feedback on: {assetTitle}
+ <div className="rounded-[14px] border border-line bg-white p-4 text-sm">
+ <p className="flex items-center gap-2 text-[15px] font-bold text-ink">
+ <MessageCircleQuestion aria-hidden className="h-4 w-4 text-blue" />
+ Feedback on {assetTitle}
  </p>
  <Textarea
  aria-label="What's confusing about this resource?"
- className="mt-2 bg-white"
+ className="mt-2"
  onChange={(event) => setComment(event.target.value)}
  placeholder="What's confusing about this resource?"
  rows={2}
@@ -63,23 +63,25 @@ export function CorpusFeedbackWidget({
  />
  <Textarea
  aria-label="Ask a question"
- className="mt-2 bg-white"
+ className="mt-2"
  onChange={(event) => setQuestion(event.target.value)}
- placeholder="Ask a question (routes to SME by project tag)…"
+ placeholder="Ask a question. It goes to the SME for this project tag."
  rows={2}
  value={question}
  />
  <div className="mt-2 flex flex-wrap gap-2">
  <Button disabled={loading} onClick={() => void submit(true)} size="sm" type="button" variant="secondary">
- {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Flag confusing"}
+ {loading ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
+ {loading ? "Sending…" : "Flag as confusing"}
  </Button>
  <Button
  disabled={loading || !question.trim()}
  onClick={() => void submit(false)}
  size="sm"
  type="button"
+ variant="secondary"
  >
- Ask SME
+ Ask an SME
  </Button>
  </div>
  </div>

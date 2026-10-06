@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Sparkles } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -29,9 +29,9 @@ export function ChallengeGenerator({ showSave = false }: { showSave?: boolean })
  resolver: zodResolver(formSchema),
  defaultValues: {
  level: "Basic",
- topic: "Shadow AI risk discovery",
+ topic: "",
  difficulty: "intermediate",
- recentActivity: "Recently submitted Entra ID connector walkthrough and needs practice asking discovery questions.",
+ recentActivity: "",
  },
  });
 
@@ -73,11 +73,11 @@ export function ChallengeGenerator({ showSave = false }: { showSave?: boolean })
  Personalize by SE level, solution area, difficulty, and recent progress context.
  </CardDescription>
  </CardHeader>
- <form className="space-y-4 px-6 pb-6" onSubmit={form.handleSubmit(onSubmit)}>
- <label className="block space-y-2 text-sm font-medium text-ink-2">
+ <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
+ <label className="block space-y-1.5 text-sm font-semibold text-ink">
  SE level
  <select
- className="h-10 w-full rounded-[10px] border border-line bg-white px-3 text-sm text-ink focus:border-blue"
+ className="h-10 w-full rounded-[10px] border border-line-strong bg-white px-3 text-[15px] text-ink focus:border-blue"
  {...form.register("level")}
  >
  <option>Basic</option>
@@ -85,14 +85,19 @@ export function ChallengeGenerator({ showSave = false }: { showSave?: boolean })
  <option>Advisory</option>
  </select>
  </label>
- <label className="block space-y-2 text-sm font-medium text-ink-2">
+ <label className="block space-y-1.5 text-sm font-semibold text-ink">
  Topic or solution area
- <Input {...form.register("topic")} />
+ <Input placeholder="For example, access review discovery" {...form.register("topic")} />
+ {form.formState.errors.topic ? (
+ <span className="block text-[13px] font-semibold text-danger" role="alert">
+ {form.formState.errors.topic.message}
+ </span>
+ ) : null}
  </label>
- <label className="block space-y-2 text-sm font-medium text-ink-2">
+ <label className="block space-y-1.5 text-sm font-semibold text-ink">
  Difficulty
  <select
- className="h-10 w-full rounded-[10px] border border-line bg-white px-3 text-sm text-ink focus:border-blue"
+ className="h-10 w-full rounded-[10px] border border-line-strong bg-white px-3 text-[15px] text-ink focus:border-blue"
  {...form.register("difficulty")}
  >
  <option value="foundational">Foundational</option>
@@ -100,26 +105,26 @@ export function ChallengeGenerator({ showSave = false }: { showSave?: boolean })
  <option value="advanced">Advanced</option>
  </select>
  </label>
- <label className="block space-y-2 text-sm font-medium text-ink-2">
+ <label className="block space-y-1.5 text-sm font-semibold text-ink">
  Recent activity context
- <Textarea {...form.register("recentActivity")} />
+ <Textarea placeholder="What the SE has worked on lately (optional)" {...form.register("recentActivity")} />
  </label>
- <Button className="w-full" disabled={isGenerating} type="submit">
- {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
- Generate structured challenge
+ <Button className="w-full" disabled={isGenerating} type="submit" variant="primary">
+ {isGenerating ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
+ {isGenerating ? "Generating…" : "Generate challenge"}
  </Button>
  </form>
  </Card>
 
  <Card>
  <CardHeader>
- <CardTitle>{challenge?.title ?? "Generated challenge preview"}</CardTitle>
+ <CardTitle>{challenge?.title ?? "Preview"}</CardTitle>
  <CardDescription>
- {challenge?.description ?? "Generated output will appear here and can be persisted to Supabase as an AI-generated challenge."}
+ {challenge?.description ?? "Review the challenge here before you save or assign it."}
  </CardDescription>
  </CardHeader>
  {challenge ? (
- <div className="space-y-5 px-6 pb-6">
+ <div className="space-y-5">
  <div>
  <p className="text-sm font-semibold text-ink">Steps</p>
  <ol className="mt-2 list-decimal space-y-2 pl-5 text-sm leading-6 text-ink-2">
@@ -132,14 +137,23 @@ export function ChallengeGenerator({ showSave = false }: { showSave?: boolean })
  {challenge.successCriteria.map((criterion) => <li key={criterion}>{criterion}</li>)}
  </ul>
  </div>
- <div className="rounded-[10px] bg-surface-2 p-4 text-sm text-ink-2">
- {challenge.estimatedMinutes} minutes • {challenge.difficulty} • {challenge.linkedSolutions.join(", ")}
- </div>
+ <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 rounded-[10px] border border-line bg-bg p-4 text-sm">
+ <dt className="text-muted">Time</dt>
+ <dd className="num font-semibold text-ink">About {challenge.estimatedMinutes} min</dd>
+ <dt className="text-muted">Difficulty</dt>
+ <dd className="font-semibold text-ink capitalize">{challenge.difficulty}</dd>
+ {challenge.linkedSolutions.length > 0 ? (
+ <>
+ <dt className="text-muted">Solutions</dt>
+ <dd className="font-semibold text-ink">{challenge.linkedSolutions.join(", ")}</dd>
+ </>
+ ) : null}
+ </dl>
  {showSave ? <SaveChallengeButton challenge={challenge} /> : null}
  </div>
  ) : (
- <div className="mx-6 mb-6 rounded-[14px] border border-dashed border-dash p-8 text-center text-sm text-muted">
- Submit the form to call the structured AI endpoint.
+ <div className="rounded-[12px] border border-dashed border-line-strong p-8 text-center text-sm text-muted">
+ Fill in the form and generate. The challenge appears here.
  </div>
  )}
  </Card>

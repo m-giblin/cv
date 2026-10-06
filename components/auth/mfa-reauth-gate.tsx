@@ -3,7 +3,7 @@
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { OtpInput } from "@/components/design/otp-input";
+import { OtpInput } from "@/components/auth/otp-input";
 import { createClient } from "@/lib/supabase/client";
 
 export function MfaReauthGate({
@@ -94,8 +94,7 @@ export function MfaReauthGate({
 
  if (!factorId) {
  return (
- <p className="rounded-[10px] border-[1.5px] border-warning bg-warning-soft px-4 py-3 text-sm leading-normal text-warning" role="alert">
- <span aria-hidden>▲ </span>
+ <p className="rounded-[10px] border border-signal-edge/40 bg-signal-soft px-4 py-3 text-sm leading-normal text-ink" role="alert">
  Multi-factor authentication is required before you can change your password. Enroll MFA at sign-in, then return
  here.
  </p>

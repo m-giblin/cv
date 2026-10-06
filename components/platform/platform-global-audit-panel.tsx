@@ -9,7 +9,7 @@ import {
   TABLE,
   TABLE_WRAP,
   TD,
-  TD_MONO,
+  TD_META,
   TD_MUTED,
   TH,
   THEAD_ROW,
@@ -17,6 +17,7 @@ import {
   formatDateTime,
 } from "@/components/platform/platform-ui";
 import { Chip } from "@/components/ui/chip";
+import { rowHighlight } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import type { PlatformAuditEntry } from "@/lib/tenant/types";
 
@@ -24,16 +25,16 @@ function summarizeDetails(entry: PlatformAuditEntry): string | null {
   const d = entry.details ?? {};
   if (entry.action === "tenant.feature_flags.updated") {
     const pkg = typeof d.packageId === "string" ? d.packageId : "custom";
-    return `package: ${pkg}${d.billingPlan ? ` · plan: ${String(d.billingPlan)}` : ""}`;
+    return `package: ${pkg}${d.billingPlan ? `, plan: ${String(d.billingPlan)}` : ""}`;
   }
   if (entry.action === "workspace.hat_switched") {
-    return `${String(d.from ?? "—")} → ${String(d.to ?? "—")}`;
+    return `from ${String(d.from ?? "—")} to ${String(d.to ?? "—")}`;
   }
   if (entry.action === "tenant.maintenance_updated") {
     return d.maintenanceMode ? "maintenance on" : "maintenance off";
   }
   if (entry.action === "tenant.bulk_operation") {
-    return `${String(d.action ?? "")}${d.presetId ? ` · ${String(d.presetId)}` : ""} · ok ${String(d.okCount ?? 0)}`;
+    return `${String(d.action ?? "")}${d.presetId ? ` (${String(d.presetId)})` : ""}, ${String(d.okCount ?? 0)} succeeded`;
   }
   if (entry.action === "operator.impersonation_started") {
     return `user ${entry.targetId?.slice(0, 8) ?? "—"}`;
@@ -92,7 +93,7 @@ export function PlatformGlobalAuditPanel({ tenantId }: { tenantId?: string | nul
       toast.error(body.error ?? "Audit write probe failed.");
       return;
     }
-    setWriteHealth(`Write OK via ${body.via ?? "unknown"}${body.readable ? " · readable" : ""}`);
+    setWriteHealth(`Write OK via ${body.via ?? "unknown"}${body.readable ? ", readable" : ""}`);
     toast.success(`Audit write healthy (${body.via})`);
     await load();
   }
@@ -102,10 +103,10 @@ export function PlatformGlobalAuditPanel({ tenantId }: { tenantId?: string | nul
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="font-mono text-xs text-muted uppercase tracking-[0.03em]" aria-live="polite">
-          {logs.length} events
-          {newest ? ` · newest ${newest}` : ""}
-          {writeHealth ? ` · ${writeHealth}` : ""}
+        <p aria-live="polite" className="num text-[13px] text-muted">
+          {logs.length} {logs.length === 1 ? "event" : "events"}
+          {newest ? `, newest ${newest}` : ""}
+          {writeHealth ? `. ${writeHealth}` : ""}
         </p>
         <div className="flex flex-wrap items-center gap-2">
           <Chip active={platformOpsOnly} onClick={() => setPlatformOpsOnly((value) => !value)}>
@@ -141,7 +142,7 @@ export function PlatformGlobalAuditPanel({ tenantId }: { tenantId?: string | nul
           ) : (
             <div className="max-h-[640px] overflow-auto">
               <table className={TABLE}>
-                <thead className="sticky top-0 z-[1]">
+                <thead className="sticky top-0 z-[1] bg-white">
                   <tr className={THEAD_ROW}>
                     <th className={cn(TH, "w-10")} scope="col">
                       <span className="sr-only">Details</span>
@@ -159,30 +160,30 @@ export function PlatformGlobalAuditPanel({ tenantId }: { tenantId?: string | nul
                     const summary = summarizeDetails(entry);
                     return (
                       <Fragment key={entry.id}>
-                        <tr className={cn(TR, open && "bg-blue-soft")}>
-                          <td className="py-3 pl-[18px]">
+                        <tr className={cn(TR, open && rowHighlight.selected)}>
+                          <td className="py-[13px] pl-5">
                             <button
                               aria-expanded={open}
                               aria-label={`${open ? "Hide" : "Show"} details for ${entry.action}`}
-                              className="grid h-7 w-7 place-items-center rounded-full text-muted hover:bg-blue-soft hover:text-ink"
+                              className="grid h-7 w-7 place-items-center rounded-full text-muted hover:bg-divider hover:text-ink"
                               onClick={() => setExpandedId(open ? null : entry.id)}
                               type="button"
                             >
                               {open ? <ChevronDown aria-hidden className="h-4 w-4" /> : <ChevronRight aria-hidden className="h-4 w-4" />}
                             </button>
                           </td>
-                          <td className={TD_MONO}>{formatDateTime(entry.createdAt)}</td>
+                          <td className={TD_META}>{formatDateTime(entry.createdAt)}</td>
                           <td className={TD_MUTED}>
                             {entry.tenantName ?? (entry.tenantId ? entry.tenantId.slice(0, 8) : "—")}
                           </td>
                           <td className={TD_MUTED}>{entry.actorName ?? "—"}</td>
-                          <td className={cn(TD, "font-mono text-xs font-medium")}>{entry.action}</td>
+                          <td className={cn(TD, "text-[13px] font-semibold")}>{entry.action}</td>
                           <td className={TD_MUTED}>{summary ?? entry.targetType}</td>
                         </tr>
                         {open ? (
-                          <tr className={cn(TR, "bg-surface-2")}>
-                            <td className="px-[18px] py-3" colSpan={6}>
-                              <pre className="overflow-x-auto font-mono text-xs leading-relaxed text-ink-2">
+                          <tr className={cn(TR, "bg-bg")}>
+                            <td className="px-5 py-3" colSpan={6}>
+                              <pre className="overflow-x-auto text-[13px] leading-relaxed text-ink-2">
                                 {JSON.stringify(
                                   {
                                     targetType: entry.targetType,

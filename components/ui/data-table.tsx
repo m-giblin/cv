@@ -37,8 +37,8 @@ export function DataTableToolbar({
           value={search}
         />
       </div>
-      <p className="font-mono text-xs text-muted uppercase tracking-[0.03em]" aria-live="polite">
-        {filtered === total ? `${total} rows` : `${filtered} of ${total} rows`}
+      <p className="num text-[13px] text-muted" aria-live="polite">
+        {filtered === total ? `${total} ${total === 1 ? "row" : "rows"}` : `${filtered} of ${total} rows`}
       </p>
     </div>
   );
@@ -59,12 +59,12 @@ export function DataTablePagination({
 
   return (
     <nav aria-label="Pagination" className="flex items-center justify-between pt-1">
-      <p className="font-mono text-xs text-muted uppercase tracking-[0.03em]">
+      <p className="num text-[13px] text-muted">
         Page {page} of {pageCount}
       </p>
       <div className="flex gap-2">
         <button
-          className="btn-secondary inline-flex items-center gap-1 disabled:border-line-strong disabled:text-muted"
+          className="btn-secondary inline-flex items-center gap-1 disabled:border-line disabled:bg-divider disabled:text-muted"
           disabled={page <= 1}
           onClick={() => onPageChange(page - 1)}
           type="button"
@@ -73,7 +73,7 @@ export function DataTablePagination({
           Previous
         </button>
         <button
-          className="btn-secondary inline-flex items-center gap-1 disabled:border-line-strong disabled:text-muted"
+          className="btn-secondary inline-flex items-center gap-1 disabled:border-line disabled:bg-divider disabled:text-muted"
           disabled={page >= pageCount}
           onClick={() => onPageChange(page + 1)}
           type="button"

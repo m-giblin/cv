@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { QrCodeDisplay } from "@/components/auth/qr-code-display";
-import { OtpInput } from "@/components/design/otp-input";
+import { OtpInput } from "@/components/auth/otp-input";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
 import { mfaTotpIssuer } from "@/lib/auth/mfa-issuer";
 import { createClient } from "@/lib/supabase/client";
@@ -136,8 +136,8 @@ export function MfaEnrollForm() {
 
  if (!enrollState) {
  return (
- <p className="rounded-[10px] border-[1.5px] border-danger bg-danger-soft px-3.5 py-2.5 text-sm text-danger" role="alert">
- <span aria-hidden>▲ </span>Unable to load MFA enrollment. Refresh and try again.
+ <p className="rounded-[10px] border border-danger/30 bg-danger-soft px-3.5 py-2.5 text-sm text-danger" role="alert">
+ Unable to load MFA enrollment. Refresh and try again.
  </p>
  );
  }
@@ -148,9 +148,9 @@ export function MfaEnrollForm() {
  <QrCodeDisplay qrCode={enrollState.qrCode} />
  </div>
 
- <div className="rounded-[10px] border-[1.5px] border-dashed border-dash px-4 py-3">
- <p className="label-mono">Can&apos;t scan? Enter this key</p>
- <p className="mt-1.5 font-mono text-sm break-all text-ink">{enrollState.secret}</p>
+ <div className="rounded-[12px] border border-dashed border-line-strong px-4 py-3">
+ <p className="label-caps label-caps--blue">Can&apos;t scan? Enter this key</p>
+ <p className="num mt-1.5 text-[15px] font-semibold break-all text-ink">{enrollState.secret}</p>
  </div>
 
  <form className="space-y-6" onSubmit={handleVerify}>

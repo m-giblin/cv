@@ -2,19 +2,22 @@
 
 import {
   EmptyLine,
+  ROW_LINK,
   TABLE,
   TABLE_SCROLL,
   TABLE_WRAP,
   TD,
-  TD_MONO,
+  TD_META,
   TD_MUTED,
   TH,
   THEAD_ROW,
   TR,
   formatDateTime,
 } from "@/components/platform/platform-ui";
-import { Tag } from "@/components/ui/tag";
+import { StatusPill } from "@/components/ui/status-pill";
 import type { ShadowSession } from "@/lib/platform/mission-control-types";
+
+const MODE_LABEL: Record<string, string> = { admin: "Tenant admin", manager: "Manager", se: "Sales engineer" };
 
 export function PlatformShadowLog({
   sessions,
@@ -48,21 +51,21 @@ export function PlatformShadowLog({
           <tbody>
             {sessions.map((session) => (
               <tr className={TR} key={`${session.id}-${session.startedAt}`}>
-                <td className={`${TD} font-semibold`}>{session.actorName ?? session.actorId.slice(0, 8)}</td>
+                <td className={`${TD} font-bold`}>{session.actorName ?? session.actorId.slice(0, 8)}</td>
                 <td className={TD_MUTED}>
                   {session.tenantId && onSelectTenant ? (
-                    <button className="link text-left" onClick={() => onSelectTenant(session.tenantId!)} type="button">
+                    <button className={ROW_LINK} onClick={() => onSelectTenant(session.tenantId!)} type="button">
                       {session.tenantName ?? session.tenantId.slice(0, 8)}
                     </button>
                   ) : (
                     (session.tenantName ?? "—")
                   )}
                 </td>
-                <td className={TD_MONO}>{session.mode ? session.mode.toUpperCase() : "—"}</td>
-                <td className={TD_MONO}>{formatDateTime(session.startedAt)}</td>
-                <td className={TD_MONO}>{session.durationMinutes != null ? `${session.durationMinutes} MIN` : "—"}</td>
+                <td className={TD_META}>{session.mode ? (MODE_LABEL[session.mode] ?? session.mode) : "—"}</td>
+                <td className={TD_META}>{formatDateTime(session.startedAt)}</td>
+                <td className={TD_META}>{session.durationMinutes != null ? `${session.durationMinutes} min` : "—"}</td>
                 <td className={TD}>
-                  {session.active ? <Tag tone="signal">● Active</Tag> : <Tag>○ Ended</Tag>}
+                  {session.active ? <StatusPill tone="warning">Active</StatusPill> : <StatusPill tone="neutral">Ended</StatusPill>}
                 </td>
               </tr>
             ))}

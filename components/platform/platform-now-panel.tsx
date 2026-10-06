@@ -1,12 +1,14 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Tag } from "@/components/ui/tag";
+import { StatusPill } from "@/components/ui/status-pill";
+import { rowHighlight } from "@/components/ui/table";
 import {
   EmptyLine,
   KpiStrip,
   LineCard,
   PriorityTag,
+  ROW_LINK,
   Spinner,
   TABLE,
   TABLE_SCROLL,
@@ -51,7 +53,7 @@ export function PlatformNowPanel({
             label: "SLA breached",
             value: summary.slaBreached,
             tone: summary.slaBreached > 0 ? "danger" : "blue",
-            note: summary.slaBreached > 0 ? "▲ Reply now" : undefined,
+            note: summary.slaBreached > 0 ? "Reply now" : undefined,
           },
           { label: "Tenants with alerts", value: summary.tenantsNeedingAttention },
           { label: "Active shadows", value: summary.activeShadowSessions },
@@ -84,8 +86,8 @@ export function PlatformNowPanel({
                   </thead>
                   <tbody>
                     {criticalTickets.map((ticket) => (
-                      <tr className={ticket.slaBreached ? `${TR} bg-danger-soft` : TR} key={ticket.id}>
-                        <td className={`${TD} font-semibold`}>{ticket.subject}</td>
+                      <tr className={ticket.slaBreached ? `${TR} ${rowHighlight.danger}` : TR} key={ticket.id}>
+                        <td className={`${TD} font-bold`}>{ticket.subject}</td>
                         <td className={TD_MUTED}>
                           {ticket.tenantId ? (
                             <button className="link" onClick={() => onSelectTenant(ticket.tenantId)} type="button">
@@ -100,9 +102,9 @@ export function PlatformNowPanel({
                         </td>
                         <td className={TD}>
                           {ticket.slaBreached ? (
-                            <Tag tone="danger">▲ {ticket.slaLabel}</Tag>
+                            <StatusPill tone="danger">{ticket.slaLabel}</StatusPill>
                           ) : (
-                            <span className="font-mono text-xs text-ink-2">{ticket.slaLabel}</span>
+                            <span className="num text-[13px] text-ink-2">{ticket.slaLabel}</span>
                           )}
                         </td>
                       </tr>
@@ -124,16 +126,13 @@ export function PlatformNowPanel({
                     key={item.tenantId}
                   >
                     <button
-                      className="link w-fit text-left text-[15px]"
+                      className={`${ROW_LINK} w-fit`}
                       onClick={() => onSelectTenant(item.tenantId)}
                       type="button"
                     >
                       {item.name}
                     </button>
-                    <span className="text-sm text-ink-2">
-                      <span aria-hidden className="text-warning">▲ </span>
-                      {item.alerts.join(" · ")}
-                    </span>
+                    <span className="text-sm font-semibold text-warning">{item.alerts.join(". ")}</span>
                   </li>
                 ))}
               </ul>
@@ -156,7 +155,7 @@ export function PlatformNowPanel({
               <ul>
                 {maintenanceTenants.map((t) => (
                   <li className="border-b border-divider px-5 py-3 last:border-b-0" key={t.tenantId}>
-                    <button className="link text-left" onClick={() => onSelectTenant(t.tenantId)} type="button">
+                    <button className={ROW_LINK} onClick={() => onSelectTenant(t.tenantId)} type="button">
                       {t.name}
                     </button>
                     {t.message ? <p className="mt-0.5 text-sm text-ink-2">{t.message}</p> : null}

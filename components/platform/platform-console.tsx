@@ -21,7 +21,7 @@ import { PlatformUnsavedBanner } from "@/components/platform/platform-unsaved-ba
 import { PlatformUsagePanel } from "@/components/platform/platform-usage-panel";
 import { PlatformConfirmDialog } from "@/components/platform/platform-confirm-dialog";
 import {
-  BTN_ON_BLUE,
+  BTN_ON_NAVY,
   BillingStatusTag,
   FIELD_HINT,
   FIELD_LABEL,
@@ -32,9 +32,10 @@ import {
   formatDateTime,
 } from "@/components/platform/platform-ui";
 import { ActionBar } from "@/components/ui/action-bar";
-import { Chip } from "@/components/ui/chip";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
+import { StatusPill } from "@/components/ui/status-pill";
+import { Tabs } from "@/components/ui/tabs";
 import { Tag } from "@/components/ui/tag";
 import { Textarea } from "@/components/ui/textarea";
 import { isFormDirty } from "@/lib/platform/use-dirty-form";
@@ -436,8 +437,8 @@ export function PlatformConsole() {
     setSaving(false);
     toast.success(
       billingPlan
-        ? `Entitlements saved · plan set to ${billingPlan}.`
-        : "Entitlements saved (custom package — plan unchanged).",
+        ? `Entitlements saved. Plan set to ${billingPlan}.`
+        : "Entitlements saved. Custom package, plan unchanged.",
     );
     setSavedFlags(featureFlags);
     void loadTenants();
@@ -618,7 +619,7 @@ export function PlatformConsole() {
   let header: { eyebrow?: string; title: React.ReactNode; actions?: React.ReactNode };
   switch (consoleView) {
     case "now":
-      header = { eyebrow: "Platform · mission control", title: "Now", actions: search };
+      header = { eyebrow: "Mission control", title: "Now", actions: search };
       break;
     case "onboarding":
       header = {
@@ -640,13 +641,13 @@ export function PlatformConsole() {
       header = { eyebrow: "Tenants", title: "Health", actions: search };
       break;
     case "support":
-      header = { eyebrow: "Platform · tickets", title: "Support", actions: search };
+      header = { eyebrow: "Tickets", title: "Support", actions: search };
       break;
     case "global-audit":
       header = { eyebrow: "Platform ops", title: "Global audit", actions: search };
       break;
     case "usage":
-      header = { eyebrow: "Fleet · last 30 days", title: "Usage", actions: search };
+      header = { eyebrow: "Fleet, last 30 days", title: "Usage", actions: search };
       break;
     case "settings":
       header = { eyebrow: "Your operator preferences", title: "Settings", actions: search };
@@ -688,7 +689,7 @@ export function PlatformConsole() {
               ),
             }
           : {
-              eyebrow: `${tenants.length} tenants · ${activeCount} active`,
+              eyebrow: `${tenants.length} tenants, ${activeCount} active`,
               title: "Tenants",
               actions: (
                 <>
@@ -706,7 +707,7 @@ export function PlatformConsole() {
     <div className="flex min-h-0 flex-col">
       <PageHeader actions={header.actions} eyebrow={header.eyebrow} title={header.title} />
 
-      <div className="min-h-0 flex-1 px-[var(--gutter)] pb-8 pt-2">
+      <div className="min-h-0 flex-1 px-[var(--page-pad-x)] pb-8 pt-2 max-sm:px-4">
         {consoleView === "now" ? (
           <PlatformNowPanel
             data={mission?.now ?? null}
@@ -793,19 +794,19 @@ export function PlatformConsole() {
             />
 
             {bulkSelected.length > 0 ? (
-              <div className="sticky bottom-0 z-10 -mx-[var(--gutter)]">
+              <div className="sticky bottom-0 z-10 -mx-[var(--page-pad-x)] max-sm:-mx-4">
                 <ActionBar
                   count={`${bulkSelected.length} selected`}
                   primary={
                     <div className="flex flex-wrap gap-2">
-                      <button className={BTN_ON_BLUE} onClick={() => void handleBulkAction("suspend")} type="button">
+                      <button className={BTN_ON_NAVY} onClick={() => void handleBulkAction("suspend")} type="button">
                         Suspend
                       </button>
-                      <button className={BTN_ON_BLUE} onClick={() => void handleBulkAction("activate")} type="button">
+                      <button className={BTN_ON_NAVY} onClick={() => void handleBulkAction("activate")} type="button">
                         Activate
                       </button>
                       <button
-                        className={BTN_ON_BLUE}
+                        className={BTN_ON_NAVY}
                         onClick={() => void handleBulkAction("apply_preset", "ae-pilot")}
                         type="button"
                       >
@@ -815,7 +816,7 @@ export function PlatformConsole() {
                   }
                   secondary={
                     <button
-                      className="text-sm font-bold text-white underline decoration-on-blue-muted decoration-2 underline-offset-[3px] hover:decoration-white"
+                      className="text-sm font-bold text-white underline decoration-on-navy-muted decoration-2 underline-offset-4 hover:decoration-white"
                       onClick={() => setBulkSelected([])}
                       type="button"
                     >
@@ -844,10 +845,10 @@ export function PlatformConsole() {
                     {detail.usage.activeUsers}/{selected.seatQuota} seats
                   </Tag>
                 ) : null}
-                {selected.maintenanceMode ? <Tag tone="warning">▲ Maintenance</Tag> : null}
+                {selected.maintenanceMode ? <StatusPill tone="warning">Maintenance on</StatusPill> : null}
                 {detail.settings.updatedAt ? (
-                  <span className="font-mono text-xs text-muted">
-                    SETTINGS UPDATED {formatDateTime(detail.settings.updatedAt).toUpperCase()}
+                  <span className="text-[13px] text-muted">
+                    Settings updated {formatDateTime(detail.settings.updatedAt)}
                   </span>
                 ) : null}
               </div>
@@ -915,7 +916,7 @@ export function PlatformConsole() {
                   )}
                   {selected.status !== "offboarded" ? (
                     <button
-                      className="rounded-full border-[1.5px] border-danger px-[18px] py-[9px] text-sm font-bold text-danger hover:bg-danger-soft disabled:opacity-60"
+                      className="rounded-full border border-danger bg-white px-[18px] py-[9px] text-sm font-semibold text-danger hover:bg-danger-soft disabled:opacity-60"
                       disabled={offboarding}
                       onClick={() => setOffboardConfirm(true)}
                       type="button"
@@ -927,13 +928,12 @@ export function PlatformConsole() {
               </div>
             </LineCard>
 
-            <div aria-label="Tenant sections" className="flex flex-wrap gap-1.5" role="group">
-              {tenantTabs.map((item) => (
-                <Chip active={tab === item.id} key={item.id} onClick={() => setTenantTab(item.id)}>
-                  {item.label}
-                </Chip>
-              ))}
-            </div>
+            <Tabs
+              items={tenantTabs}
+              label="Tenant sections"
+              onChange={(id) => setTenantTab(id as TenantTab)}
+              value={tab}
+            />
 
             {tab === "entitlements" ? (
               <PlatformTenantEntitlements
@@ -961,7 +961,6 @@ export function PlatformConsole() {
                         Primary colour
                       </label>
                       <Input
-                        className="font-mono text-sm"
                         id="platform-branding-color"
                         onChange={(event) =>
                           setBranding((current) => ({ ...current, primaryColor: event.target.value }))

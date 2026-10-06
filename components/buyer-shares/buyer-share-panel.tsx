@@ -17,7 +17,6 @@ export function BuyerSharePanel({
 }) {
  const [shareUrl, setShareUrl] = useState<string | null>(null);
  const [creating, setCreating] = useState(false);
- const [views, setViews] = useState<number | null>(null);
 
  async function createRoom() {
  setCreating(true);
@@ -27,7 +26,7 @@ export function BuyerSharePanel({
  body: JSON.stringify({
  prepSessionId: sessionId ?? undefined,
  accountName,
- title: `${accountName} — SailPoint briefing`,
+ title: `${accountName} briefing`,
  prepOutput: prep,
  }),
  });
@@ -40,7 +39,7 @@ export function BuyerSharePanel({
 
  const body = (await response.json()) as { shareUrl: string };
  setShareUrl(body.shareUrl);
- toast.success("Buyer room created — copy the link for your prospect.");
+ toast.success("Buyer room created. Copy the link for your prospect.");
  }
 
  async function copyLink() {
@@ -54,28 +53,28 @@ export function BuyerSharePanel({
  <div className="flex flex-wrap items-start justify-between gap-3">
  <div>
  <p className="flex items-center gap-2 text-sm font-bold text-ink">
- <Link2 className="h-4 w-4 text-blue" />
- Buyer room (DSR-lite)
+ <Link2 aria-hidden className="h-4 w-4 text-blue" />
+ Buyer room
  </p>
- <p className="mt-1 text-xs text-muted">
- Share a tracked link with your buyer — see when they open resources. Beats Seismic LiveDocs for ramp SEs.
+ <p className="mt-1 max-w-[520px] text-[13px] text-muted">
+ Share a tracked link with your buyer and see when they open resources.
  </p>
  </div>
  {!shareUrl ? (
  <Button disabled={creating} onClick={() => void createRoom()} size="sm" type="button">
- {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create share link"}
+ {creating ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
+ {creating ? "Creating…" : "Create share link"}
  </Button>
  ) : (
  <Button onClick={() => void copyLink()} size="sm" type="button" variant="outline">
- <Copy className="h-4 w-4" />
+ <Copy aria-hidden className="h-4 w-4" />
  Copy link
  </Button>
  )}
  </div>
  {shareUrl ? (
- <p className="mt-3 break-all rounded-[10px] bg-surface-2 px-3 py-2 font-mono text-xs text-ink-2">{shareUrl}</p>
+ <p className="mt-3 break-all rounded-[10px] border border-line bg-bg px-3 py-2 text-[13px] text-ink-2">{shareUrl}</p>
  ) : null}
- {views !== null ? <p className="mt-2 text-xs text-ink-2">{views} buyer views</p> : null}
  </div>
  );
 }

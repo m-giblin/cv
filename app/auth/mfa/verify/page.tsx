@@ -16,11 +16,11 @@ export default function MfaVerifyPage() {
       }}
       backLink={{ href: "/login", label: "Back to sign in" }}
       description="Enter the 6-digit code from your authenticator app."
-      eyebrow="Step 2 of 2 · Verify"
+      eyebrow="Step 2 of 2 / Verify"
       title="Confirm it's you"
     >
       <MfaVerifyForm />
-      <p className="mt-6 rounded-[10px] bg-surface-2 px-4 py-3 text-sm leading-normal text-ink-2">
+      <p className="mt-6 rounded-[12px] border border-dashed border-line-strong px-4 py-3 text-sm leading-normal text-ink-2">
         <strong className="font-semibold text-ink">Can&apos;t reach your authenticator?</strong> Ask your manager or IT
         admin to reset MFA.
       </p>

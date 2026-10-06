@@ -33,8 +33,8 @@ export function OtpInput({
           {digits.map((digit, index) => (
             <div
               className={cn(
-                "flex h-[52px] w-full max-w-[52px] items-center justify-center rounded-[10px] border-[1.5px] bg-white font-mono text-[22px] font-medium text-ink",
-                digit.trim() ? "border-ink" : "border-line-strong",
+                "num flex h-[52px] w-full max-w-[52px] items-center justify-center rounded-[10px] border bg-white text-[22px] font-bold text-ink",
+                digit.trim() ? "border-ink-2" : "border-line-strong",
                 focused && index === focusIndex && "border-blue outline-2 outline-offset-2 outline-blue",
               )}
               key={index}
@@ -57,7 +57,7 @@ export function OtpInput({
           value={value}
         />
       </div>
-      <p className="mt-2 font-mono text-xs text-muted">CODE REFRESHES EVERY 30 SECONDS</p>
+      <p className="mt-2 text-[13px] text-muted">The code refreshes every 30 seconds.</p>
     </div>
   );
 }

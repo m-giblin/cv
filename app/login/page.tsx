@@ -18,7 +18,7 @@ export default async function LoginPage({
   return (
     <AuthShell
       description={`Use your work email (${allowedEmailDomainsLabel()}). You'll confirm with your authenticator next.`}
-      eyebrow="Step 1 of 2 · Sign in"
+      eyebrow="Step 1 of 2 / Sign in"
       title="Welcome back"
     >
       <LoginForm initialError={initialError} />

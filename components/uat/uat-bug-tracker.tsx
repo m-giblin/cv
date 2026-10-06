@@ -1,12 +1,12 @@
 "use client";
 
-import { Loader2, X } from "lucide-react";
+import { ArrowUpRight, Loader2, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { SegmentedToggle } from "@/components/ui/segmented-toggle";
-import { Tag } from "@/components/ui/tag";
+import { StatusPill } from "@/components/ui/status-pill";
 import { Textarea } from "@/components/ui/textarea";
 import { openUatBugWindow } from "@/lib/uat/open-uat-bug-window";
 import { cn } from "@/lib/utils";
@@ -103,26 +103,24 @@ export function UatBugTracker({
  // (unsaved changes, bulk approve) so it never covers their primary button. Toasts sit bottom-centre.
  return (
  <button
- className="fixed right-4 bottom-[84px] z-[60] inline-flex items-center gap-2 rounded-full border-[1.5px] border-ink bg-white px-4 py-2 text-sm font-bold text-ink hover:bg-blue-soft"
+ className="fixed right-4 bottom-[84px] z-[60] inline-flex items-center gap-2 rounded-full border border-line-strong bg-white px-4 py-2 text-sm font-semibold text-ink hover:border-ink"
  onClick={() => openUatBugWindow()}
  type="button"
  >
  UAT bugs
  {backlogCount > 0 ? (
- <span className="rounded-full bg-signal px-2 font-mono text-xs leading-[18px] font-medium text-ink">
+ <span className="num rounded-full bg-signal px-2 text-[13px] leading-5 font-bold text-ink">
  {backlogCount}
  <span className="sr-only"> in backlog</span>
  </span>
  ) : null}
  <span className="sr-only">(opens a new window)</span>
- <span aria-hidden className="text-muted">
- ↗
- </span>
+ <ArrowUpRight aria-hidden className="h-4 w-4 text-muted" />
  </button>
  );
 }
 
-/** Full bug tracker UI — rendered inside the dedicated /uat-bugs popup window. */
+/** Full bug tracker UI, rendered inside the dedicated /uat-bugs popup window. */
 export function UatBugTrackerPanel({
  reporterName,
  reporterEmail,
@@ -271,7 +269,7 @@ export function UatBugTrackerPanel({
  } else if (files.length > 0) {
  toast.success(`Logged ${key} with ${files.length} attachment(s).`);
  } else {
- toast.success(`Logged ${key} — assigned to ${meta?.assigneeEmail ?? "Matt"}.`);
+ toast.success(`Logged ${key}. Assigned to ${meta?.assigneeEmail ?? "Matt"}.`);
  }
 
  setTitle("");
@@ -332,18 +330,18 @@ export function UatBugTrackerPanel({
  const statuses = meta?.statuses ?? ["backlog", "todo", "in_progress", "in_review", "done"];
  const forgeUrl = meta?.forgeUrl ?? "https://forge-nu-ochre.vercel.app";
  const selectClass =
- "h-10 w-full rounded-[10px] border-[1.5px] border-ink bg-white px-3 text-[15px] text-ink focus:border-blue";
+ "h-10 w-full rounded-[10px] border border-line-strong bg-white px-3 text-[15px] text-ink focus:border-blue";
  const labelClass = "mb-1.5 block text-sm font-semibold text-ink";
 
  return (
  <div className="flex min-h-screen flex-col bg-bg">
- <header className="flex shrink-0 items-center justify-between gap-3 bg-blue px-5 py-3.5 text-white">
+ <header className="flex h-[60px] shrink-0 items-center justify-between gap-3 bg-blue px-5 text-white">
  <div>
  <p className="text-base font-bold leading-tight">UAT bug tracker</p>
- <p className="font-mono text-xs text-on-blue-muted">FORGE · {projectKey}</p>
+ <p className="text-[13px] text-on-blue">Forge project {projectKey}</p>
  </div>
  <div className="flex items-center gap-3">
- <a className="text-sm font-bold text-white underline decoration-signal decoration-2 underline-offset-[3px]" href={forgeUrl} rel="noreferrer" target="_blank">
+ <a className="text-sm font-bold text-white underline decoration-signal decoration-2 underline-offset-4" href={forgeUrl} rel="noreferrer" target="_blank">
  Open Forge<span className="sr-only"> (opens a new tab)</span>
  </a>
  <button
@@ -363,7 +361,7 @@ export function UatBugTrackerPanel({
  onChange={(id) => setTab(id as Tab)}
  options={[
  { id: "report", label: "Report bug" },
- { id: "backlog", label: `Backlog · ${issues.length}` },
+ { id: "backlog", label: `Backlog (${issues.length})` },
  ]}
  value={tab}
  />
@@ -371,8 +369,7 @@ export function UatBugTrackerPanel({
 
  <main className="min-h-0 flex-1 overflow-y-auto p-5" id="main-content">
  {meta?.forgeReachable === false ? (
- <p className="mb-4 rounded-[10px] border-[1.5px] border-warning bg-warning-soft px-3.5 py-2.5 text-sm text-warning" role="alert">
- <span aria-hidden>▲ </span>
+ <p className="mb-4 rounded-[10px] border border-signal-edge/40 bg-signal-soft px-3.5 py-2.5 text-sm text-ink" role="alert">
  <strong>Forge connection issue.</strong> {meta.forgeError ?? "API unreachable."} You can still file bugs, but
  submissions may fail until Forge is healthy.
  </p>
@@ -468,8 +465,8 @@ export function UatBugTrackerPanel({
 
  <div
  className={cn(
- "rounded-[14px] border-2 border-dashed px-4 py-5 text-center transition-colors",
- dragOver ? "border-blue bg-blue-soft" : "border-dash bg-white",
+ "rounded-[14px] border-[1.5px] border-dashed px-4 py-5 text-center transition-colors",
+ dragOver ? "border-blue bg-blue-soft" : "border-line-strong bg-white",
  )}
  onDragEnter={(event) => {
  event.preventDefault();
@@ -484,7 +481,7 @@ export function UatBugTrackerPanel({
  }}
  >
  <p className="text-sm font-semibold text-ink">Drop screenshots here, or paste with Ctrl/Cmd+V</p>
- <p className="mt-1 font-mono text-xs text-muted">PNG, JPG, GIF, WEBP, PDF · MAX 10 MB EACH · UP TO 5</p>
+ <p className="mt-1 text-[13px] text-muted">Images or PDF, up to 5 files, 10 MB each.</p>
  <button className="link mt-2 text-sm" onClick={() => fileInputRef.current?.click()} type="button">
  Browse files
  </button>
@@ -509,7 +506,7 @@ export function UatBugTrackerPanel({
  className="flex items-center justify-between gap-2 border-b border-divider px-3 py-2 text-sm last:border-b-0"
  key={`${file.name}-${file.size}`}
  >
- <span className="truncate font-mono text-xs text-ink">{file.name}</span>
+ <span className="truncate text-[13px] text-ink">{file.name}</span>
  <button
  aria-label={`Remove ${file.name}`}
  className="grid h-7 w-7 place-items-center rounded-full text-muted hover:bg-danger-soft hover:text-danger"
@@ -536,7 +533,7 @@ export function UatBugTrackerPanel({
  ) : (
  <div className="space-y-3">
  <div className="flex items-center justify-between">
- <p className="label-mono">Backlog · triage one at a time</p>
+ <p className="label-caps">Backlog, triage one at a time</p>
  <button className="link text-sm" onClick={() => void loadIssues()} type="button">
  Refresh
  </button>
@@ -556,7 +553,7 @@ export function UatBugTrackerPanel({
  {issues.map((issue) => {
  const open = selectedId === issue.id;
  return (
- <li className={cn("border-b border-divider last:border-b-0", open && "bg-blue-soft")} key={issue.id}>
+ <li className={cn("border-b border-divider last:border-b-0", open && "bg-blue-soft shadow-[inset_3px_0_0_var(--color-blue)]")} key={issue.id}>
  <button
  aria-expanded={open}
  className="w-full px-4 py-3 text-left"
@@ -564,21 +561,20 @@ export function UatBugTrackerPanel({
  type="button"
  >
  <span className="flex items-start justify-between gap-2">
- <span className="font-mono text-xs font-medium text-blue">
+ <span className="num text-[13px] font-bold text-blue">
  {projectKey}-{issue.number}
  </span>
- <Tag tone={issue.priority === "critical" ? "danger" : issue.priority === "high" ? "warning" : "neutral"}>
- {issue.priority === "critical" ? "▲" : issue.priority === "high" ? "●" : "•"}{" "}
+ <StatusPill tone={issue.priority === "critical" ? "danger" : issue.priority === "high" ? "warning" : "neutral"}>
  {PRIORITY_LABELS[issue.priority] ?? issue.priority}
- </Tag>
+ </StatusPill>
  </span>
- <span className="mt-1 block text-[15px] font-semibold text-ink">{issue.title}</span>
+ <span className="mt-1 block text-[15px] font-bold text-ink">{issue.title}</span>
  </button>
 
  {open ? (
  <div className="space-y-3 px-4 pb-4">
  {issue.description ? (
- <pre className="max-h-32 overflow-auto rounded-[10px] bg-white p-3 font-mono text-xs whitespace-pre-wrap text-ink-2">
+ <pre className="max-h-32 overflow-auto rounded-[10px] border border-line bg-white p-3 text-[13px] whitespace-pre-wrap text-ink-2">
  {issue.description}
  </pre>
  ) : null}
@@ -595,7 +591,7 @@ export function UatBugTrackerPanel({
  >
  {statuses.map((status) => (
  <option key={status} value={status}>
- {status.replace(/_/g, " ")}
+ {status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, " ")}
  </option>
  ))}
  </select>

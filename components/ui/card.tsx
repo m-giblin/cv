@@ -1,7 +1,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-/** Line card: white, 1px line border, radius 14. Use `border-[1.5px] border-ink` for the one featured object. */
+/** Line card: white, 1px line border, radius 14, no shadow. */
 export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return <div className={cn("rounded-[14px] border border-line bg-white p-5", className)} {...props} />;
 }

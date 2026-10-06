@@ -115,8 +115,7 @@ export function LoginForm({ initialError }: { initialError?: string | null }) {
   return (
     <form aria-describedby={error ? errorId : undefined} className="space-y-5" onSubmit={handleSubmit}>
       {error ? (
-        <p className="rounded-[10px] border-[1.5px] border-danger bg-danger-soft px-3.5 py-2.5 text-sm text-danger" id={errorId} role="alert">
-          <span aria-hidden>▲ </span>
+        <p className="rounded-[10px] border border-danger/30 bg-danger-soft px-3.5 py-2.5 text-sm text-danger" id={errorId} role="alert">
           {error}
         </p>
       ) : null}
@@ -133,7 +132,7 @@ export function LoginForm({ initialError }: { initialError?: string | null }) {
           </button>
           <div className="flex items-center gap-3" role="presentation">
             <span className="h-px flex-1 bg-line" />
-            <span className="label-mono">or use a password</span>
+            <span className="text-[13px] text-muted">or use a password</span>
             <span className="h-px flex-1 bg-line" />
           </div>
         </>
