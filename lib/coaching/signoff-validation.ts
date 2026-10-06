@@ -61,7 +61,7 @@ export function validateCoachingSignoff(
 
   if (tier === "hard") {
     if (!input.confidence || input.confidence < 1 || input.confidence > 5) {
-      errors.push("Rate your confidence in their readiness (1–5).");
+      errors.push("Rate your confidence in their readiness (1 to 5).");
     }
     if (!input.liveAttestation) {
       errors.push("Confirm live coaching attestation for this gate.");
@@ -84,7 +84,7 @@ export function validateCoachingSignoff(
     (input.aiDraft ? normalize(combinedFeedback(input)) !== normalize(input.aiDraft) : true);
 
   if (hasAiSuggestions && !aiDraftEdited) {
-    errors.push("Edit at least one AI suggestion before signing off — make it yours.");
+    errors.push("Edit at least one AI suggestion before signing off. Make it yours.");
   }
 
   return {

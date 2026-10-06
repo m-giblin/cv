@@ -231,8 +231,7 @@ body {
 
 @layer components {
  /* Letter-spaced label: page eyebrows, rail section titles and table headers only. */
- .label-caps,
- .label-mono {
+ .label-caps {
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.16em;

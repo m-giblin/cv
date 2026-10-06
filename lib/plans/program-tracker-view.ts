@@ -50,7 +50,7 @@ export function classifyMilestoneDueDate(isoDate: string, refDate = new Date()):
 export const MILESTONE_BUCKET_LABELS: Record<MilestoneBucket, string> = {
   overdue: "Overdue",
   thisWeek: "Due this week",
-  upcoming: "Upcoming · next 2 weeks",
+  upcoming: "Upcoming in the next 2 weeks",
   later: "Later",
 };
 
@@ -343,7 +343,7 @@ function milestoneFromStep(
     initials: initials(person.fullName),
     avatarBg: avatarGradientForId(person.id),
     label: step.title,
-    program: `${plan.name} · ${phaseLabel}`,
+    program: `${plan.name}, ${phaseLabel}`,
     isoDate: step.dueDate,
   };
 }
@@ -671,7 +671,7 @@ export function buildProgramTrackerView({
       seInitials: initials(person.fullName),
       seName: person.fullName.split(" ")[0] ?? person.fullName,
       avatarBg: avatarGradientForId(person.id),
-      title: `${person.fullName.split(" ")[0]} — ${gate.title} sign-off pending`,
+      title: `${person.fullName.split(" ")[0]}: ${gate.title} sign-off pending`,
       actionLabel: "Sign off →",
       actionStyle: "amber",
     });

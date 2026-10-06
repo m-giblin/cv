@@ -14,13 +14,13 @@ export type RunwaySegment = {
 export function Runway({
   segments,
   currentWeek,
-  endLabel = "Field ready",
   onNavy = false,
   showLabels = true,
   className,
 }: {
   segments: RunwaySegment[];
   currentWeek: number;
+  /** Kept for compatibility; the last segment label carries the destination. */
   endLabel?: string;
   onNavy?: boolean;
   showLabels?: boolean;
@@ -80,7 +80,7 @@ export function Runway({
               )}
               key={segment.label}
             >
-              {index === segments.length - 1 && index !== currentSegment ? `${segment.label} · ${endLabel}` : segment.label}
+              {segment.label}
             </span>
           ))}
         </div>

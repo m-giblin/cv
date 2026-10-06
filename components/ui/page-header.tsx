@@ -27,7 +27,7 @@ export function PageHeader({ eyebrow, title, accent, subtitle, actions, size = "
         {eyebrow ? <p className="label-caps label-caps--blue">{eyebrow}</p> : null}
         <h1
           className={cn(
-            "page-title text-ink max-sm:text-[32px] max-sm:whitespace-normal",
+            "page-title text-ink max-sm:text-[32px] xl:whitespace-nowrap",
             size === "hero" && "text-[52px]",
           )}
         >

@@ -60,10 +60,10 @@ export type ProgramTrackerModel = {
 };
 
 const PHASE_LABELS = [
-  "Phase 1 · Foundations",
-  "Phase 2 · Technical",
-  "Phase 3 · Field Apply",
-  "Phase 4 · Cert Gates",
+  "Phase 1: Foundations",
+  "Phase 2: Technical",
+  "Phase 3: Field Apply",
+  "Phase 4: Cert Gates",
 ] as const;
 
 const PHASE_STATUS: Record<PhaseCellStatus, Omit<PhaseCell, "status">> = {
@@ -77,26 +77,26 @@ export const PROGRAM_PHASE_DEFINITIONS = [
   {
     bg: "#E5ECFA",
     border: "#D6DCE8",
-    name: "Phase 1 — Foundations (Wks 1–2)",
-    desc: "Product overview · ISC basics · Sales motion · IGA landscape",
+    name: "Phase 1: Foundations, weeks 1 to 2",
+    desc: "Product overview, ISC basics, Sales motion, IGA landscape",
   },
   {
     bg: "#E9EDF5",
     border: "#D6DCE8",
-    name: "Phase 2 — Technical Depth (Wks 3–4)",
-    desc: "Demo env setup · ISC lab · Technical challenges · Architecture",
+    name: "Phase 2: Technical Depth, weeks 3 to 4",
+    desc: "Demo env setup, ISC lab, Technical challenges, Architecture",
   },
   {
     bg: "#FFF6E0",
     border: "#D6DCE8",
-    name: "Phase 3 — Field Application (Wks 5–6)",
-    desc: "Discovery sims · Deal prep · Objection handling · SLED/ENT verticals",
+    name: "Phase 3: Field Application, weeks 5 to 6",
+    desc: "Discovery sims, Deal prep, Objection handling, SLED/ENT verticals",
   },
   {
     bg: "#E7F4EC",
     border: "#D6DCE8",
-    name: "Phase 4 — Cert Gates (Ongoing)",
-    desc: "Solo discovery · Executive demo · Competitive bakeoff · Manager sign-off",
+    name: "Phase 4: Cert gates, ongoing",
+    desc: "Solo discovery, Executive demo, Competitive bakeoff, Manager sign-off",
   },
 ] as const;
 
@@ -271,7 +271,7 @@ export function buildProgramTrackerModel({
       milestones.push({
         date: format(due, "MMM d"),
         isoDate: step.dueDate,
-        label: `${first} — ${step.title}`,
+        label: `${first}: ${step.title}`,
         ...meta,
       });
     }
@@ -281,7 +281,7 @@ export function buildProgramTrackerModel({
 
   return {
     cohortSize: org.length,
-    levelSummary: `${basicCount} basic · ${seniorCount} senior`,
+    levelSummary: `${basicCount} basic, ${seniorCount} senior`,
     onTrack,
     onTrackPct: org.length > 0 ? Math.round((onTrack / org.length) * 100) : 0,
     blocked: blockedCount,

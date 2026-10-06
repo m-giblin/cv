@@ -37,6 +37,7 @@
   ],
   "exclude": [
     "node_modules",
-    "design_handoff_*"
+    "design_handoff_*",
+    "Design Archive"
   ]
 }

@@ -38,14 +38,14 @@ function NotificationList({
  <span className="flex items-start justify-between gap-3">
  <span className={cn("text-[15px] text-ink", item.readAt ? "font-semibold" : "font-bold")}>{item.title}</span>
  {!item.readAt ? (
- <span className="shrink-0 rounded-full bg-signal px-2 font-mono text-xs leading-[18px] font-medium text-ink uppercase">
+ <span className="shrink-0 rounded-full bg-signal px-2 text-xs leading-[18px] font-medium text-ink uppercase">
  New
  </span>
  ) : null}
  </span>
  <span className="mt-0.5 block text-sm leading-normal text-ink-2">{item.body}</span>
  {formatWhen(item.createdAt) ? (
- <span className="mt-1 block font-mono text-xs text-muted">{formatWhen(item.createdAt)}</span>
+ <span className="mt-1 block text-xs text-muted">{formatWhen(item.createdAt)}</span>
  ) : null}
  </button>
  </li>
