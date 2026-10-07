@@ -42,7 +42,7 @@ export function ManagerCoachingNotes({
   }
 
   return (
-    <section className="rounded-[14px] border border-line bg-white p-4">
+    <section className="rounded-[14px] border border-line bg-white p-4 shadow-[var(--shadow-card)]">
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-[15px] font-bold text-ink">Private coaching notes</h3>
         {isDirty ? (

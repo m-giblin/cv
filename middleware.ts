@@ -232,6 +232,16 @@ export async function middleware(request: NextRequest) {
   }
 
   const profileContext = await getProfileContext(supabase, user.id);
+  // Inactive people (for example a bulk upload not yet activated) can't sign in. If the status
+  // column isn't there yet the query errors and everyone counts as active.
+  const { data: statusRow } = await supabase.from("profiles").select("status").eq("id", user.id).maybeSingle();
+  if ((statusRow as { status?: string } | null)?.status === "inactive") {
+    await supabase.auth.signOut();
+    const loginUrl = new URL(AUTH_ROUTES.login, request.url);
+    loginUrl.searchParams.set("error", "inactive");
+    return NextResponse.redirect(loginUrl);
+  }
+
   const tenantEmailError = await validateProfileTenantEmail(user.email, profileContext.tenantId);
   if (tenantEmailError) {
     await supabase.auth.signOut();

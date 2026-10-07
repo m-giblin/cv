@@ -20,6 +20,8 @@ export type Database = {
           tenant_id: string | null;
           avatar_url: string | null;
           workspace_hats: string[] | null;
+          status: string;
+          invited_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -33,6 +35,8 @@ export type Database = {
           tenant_id?: string | null;
           avatar_url?: string | null;
           workspace_hats?: string[] | null;
+          status?: string;
+          invited_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -46,6 +50,7 @@ export type Database = {
           description: string | null;
           is_template: boolean;
           is_locked: boolean;
+          is_archived: boolean;
           created_by: string | null;
           created_at: string;
           updated_at: string;
@@ -57,6 +62,7 @@ export type Database = {
           description?: string | null;
           is_template?: boolean;
           is_locked?: boolean;
+          is_archived?: boolean;
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -328,6 +334,7 @@ export type Database = {
           session_data: Json;
           transcript: Json;
           tenant_id: string | null;
+          due_date: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -344,6 +351,7 @@ export type Database = {
           session_data?: Json;
           transcript?: Json;
           tenant_id?: string | null;
+          due_date?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -539,6 +547,8 @@ export type Database = {
           created_at: string;
           updated_at: string;
           tenant_id: string | null;
+          source_playbook_id: string | null;
+          source_version: number | null;
         };
         Insert: {
           id?: string;
@@ -552,6 +562,9 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          tenant_id?: string | null;
+          source_playbook_id?: string | null;
+          source_version?: number | null;
         };
         Update: Partial<Database["public"]["Tables"]["simulation_templates"]["Insert"]>;
         Relationships: [];
@@ -1556,7 +1569,7 @@ export type Database = {
           id: string;
           user_id: string;
           title: string;
-          evidence_path: string;
+          evidence_path: string | null;
           reflection_text: string | null;
           target_type: Database["public"]["Enums"]["pitch_target_type"];
           target_id: string | null;
@@ -1569,12 +1582,15 @@ export type Database = {
           tenant_id: string | null;
           scenario_id: string | null;
           queue_slot_id: string | null;
+          response_mode: string;
+          transcript: string | null;
+          duration_sec: number | null;
         };
         Insert: {
           id?: string;
           user_id: string;
           title: string;
-          evidence_path: string;
+          evidence_path?: string | null;
           reflection_text?: string | null;
           target_type?: Database["public"]["Enums"]["pitch_target_type"];
           target_id?: string | null;
@@ -1587,6 +1603,9 @@ export type Database = {
           tenant_id?: string | null;
           scenario_id?: string | null;
           queue_slot_id?: string | null;
+          response_mode?: string;
+          transcript?: string | null;
+          duration_sec?: number | null;
         };
         Update: Partial<Database["public"]["Tables"]["pitch_submissions"]["Insert"]>;
         Relationships: [];
@@ -1608,6 +1627,11 @@ export type Database = {
           sort_order: number;
           active: boolean;
           passing_grade: number;
+          reference_text: string | null;
+          source_playbook_id: string | null;
+          source_version: number | null;
+          response_modes: string[];
+          auto_queue: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -1627,6 +1651,11 @@ export type Database = {
           sort_order?: number;
           active?: boolean;
           passing_grade?: number;
+          reference_text?: string | null;
+          source_playbook_id?: string | null;
+          source_version?: number | null;
+          response_modes?: string[];
+          auto_queue?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -1669,6 +1698,9 @@ export type Database = {
           reflection_text: string | null;
           evidence_path: string | null;
           ai_scores: Json | null;
+          response_mode: string;
+          transcript: string | null;
+          duration_sec: number | null;
           created_at: string;
         };
         Insert: {
@@ -1680,6 +1712,9 @@ export type Database = {
           reflection_text?: string | null;
           evidence_path?: string | null;
           ai_scores?: Json | null;
+          response_mode?: string;
+          transcript?: string | null;
+          duration_sec?: number | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["pitch_practice_sessions"]["Insert"]>;
@@ -2032,6 +2067,7 @@ export type Database = {
         | "shadow_meeting_log"
         | "mentor_review"
         | "deal_prep"
+        | "knowledge_check"
         | "custom";
       assignment_status:
         | "not_started"

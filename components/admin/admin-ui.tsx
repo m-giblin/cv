@@ -238,20 +238,20 @@ export function KpiStrip({
       )}
     >
       {items.map((item) => (
-        <div className="flex flex-col gap-1 border-divider px-5 py-[18px] [&+&]:border-l" key={item.label}>
+        <div className="relative flex flex-col gap-1 border-divider px-5 py-[18px] hover:bg-bg [&+&]:border-l" key={item.label}>
           <dt className="th whitespace-nowrap">{item.label}</dt>
           <dd className="num text-4xl leading-none font-extrabold tracking-[-0.03em] text-blue">
-            {item.href ? (
-              <a className="no-underline hover:underline" href={item.href}>
-                {item.value}
-              </a>
-            ) : (
-              item.value
-            )}
+            {item.value}
             {item.suffix !== undefined ? (
               <span className="text-base font-extrabold tracking-normal text-faint">{item.suffix}</span>
             ) : null}
           </dd>
+          {item.href ? (
+            // The whole tile opens the list behind the number.
+            <a className="text-[12px] font-semibold text-blue no-underline after:absolute after:inset-0 hover:underline" href={item.href}>
+              View list
+            </a>
+          ) : null}
         </div>
       ))}
     </dl>

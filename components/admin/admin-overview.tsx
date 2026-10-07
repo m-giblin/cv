@@ -232,7 +232,7 @@ export function AdminOverview({
           <KpiStrip
             items={[
               { label: "Active SEs", value: activeSes, suffix: `/${ses.length}`, href: "/admin/people" },
-              { label: "Plan progress", value: avgProgress, suffix: "%", href: "/admin/programs/assign" },
+              { label: "Plan progress", value: avgProgress, suffix: "%", href: "/admin/programs" },
               { label: "Open reviews", value: pendingReviews, href: "/admin/content/reviews" },
               { label: "Sims run", value: activityCounts[0]?.value ?? 0, href: "/admin/insights" },
             ]}

@@ -1,6 +1,9 @@
 import { PlanStep } from "@/lib/types";
 
 export function planStepHref(step: PlanStep) {
+  if (step.type === "knowledge_check") {
+    return step.questionSource ? `/learn/knowledge-checks?source=${encodeURIComponent(step.questionSource)}` : "/learn/knowledge-checks";
+  }
   if (step.assignmentStepId) {
     switch (step.type) {
       case "challenge":
@@ -50,6 +53,8 @@ export function planStepActionLabel(step: PlanStep) {
       return "Request mentor review";
     case "deal_prep":
       return "Open deal prep";
+    case "knowledge_check":
+      return step.passScore ? `Take the check (pass at ${step.passScore}%)` : "Take the check";
     default:
       return "Continue";
   }

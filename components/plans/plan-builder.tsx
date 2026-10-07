@@ -80,6 +80,8 @@ export function PlanBuilder({
   embedded = false,
   onPublished,
   onDeleted,
+  focusStepId,
+  addStep: startWithNewStep = false,
 }: {
   /** Open one program (or null for a new one) and hide the plan picker; used inside the program workbench. */
   lockedPlanId?: string | null;
@@ -87,6 +89,10 @@ export function PlanBuilder({
   embedded?: boolean;
   onPublished?: (id: string) => void;
   onDeleted?: () => void;
+  /** Open with this saved step selected (from the timeline's Edit). */
+  focusStepId?: string | null;
+  /** Open with a new blank step added at the end (from the timeline's Add step). */
+  addStep?: boolean;
 } = {}) {
   const data = usePlanBuilderData();
   const [planId, setPlanId] = useState<string | null>(null);
@@ -125,13 +131,22 @@ export function PlanBuilder({
 
   useEffect(() => {
     if (initialised || data.loading) return;
-    openPlan(
+    const next =
       lockedPlanId !== undefined
         ? (data.templates.find((entry) => entry.id === lockedPlanId) ?? null)
-        : (data.templates[0] ?? null),
-    );
+        : (data.templates[0] ?? null);
+    openPlan(next);
+    if (next && focusStepId && next.steps.some((step) => step.id === focusStepId)) setSelectedKey(focusStepId);
+    if (next && startWithNewStep) {
+      // A new step due a day after the stage's last one, in the same segment.
+      const existing = templateToBuilderSteps(next);
+      const lastDue = existing.reduce((max, step) => Math.max(max, step.dueOffsetDays), 0);
+      const step = emptyBuilderStep({ dueOffsetDays: lastDue + 1 || 5, segmentIndex: existing.at(-1)?.segmentIndex ?? null });
+      setSteps([...existing, step]);
+      setSelectedKey(step.key);
+    }
     setInitialised(true);
-  }, [data.loading, data.templates, initialised, lockedPlanId, openPlan]);
+  }, [data.loading, data.templates, focusStepId, initialised, lockedPlanId, openPlan, startWithNewStep]);
 
   // "Add to a ramp plan" from the practice wizard lands here with ?addPractice=sim:<id>&title=<name>.
   useEffect(() => {
@@ -596,6 +611,59 @@ export function PlanBuilder({
   );
 }
 
+/** Picks the question bank a knowledge check draws from, and the pass mark. */
+function KnowledgeCheckField({
+  id,
+  questionSource,
+  passScore,
+  onChange,
+}: {
+  id: string;
+  questionSource: string;
+  passScore: number;
+  onChange: (patch: Partial<BuilderStep>) => void;
+}) {
+  const [banks, setBanks] = useState<{ key: string; title: string; solution: string; questions: number }[] | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/question-bank/quiz")
+      .then((response) => (response.ok ? response.json() : { checks: [] }))
+      .then((body: { checks?: { key: string; title: string; solution: string; questions: number }[] }) => {
+        if (!cancelled) setBanks(body.checks ?? []);
+      })
+      .catch(() => !cancelled && setBanks([]));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return (
+    <>
+      <Field htmlFor={id} label="Question bank">
+        <SelectInput className="text-sm" id={id} onChange={(event) => onChange({ questionSource: event.target.value })} value={questionSource}>
+          <option value="">{banks === null ? "Loading banks" : banks.length ? "Pick a bank" : "No banks with 3+ approved questions"}</option>
+          {(banks ?? []).map((bank) => (
+            <option key={bank.key} value={bank.key}>
+              {bank.title} ({bank.solution}, {bank.questions} questions)
+            </option>
+          ))}
+        </SelectInput>
+      </Field>
+      <Field htmlFor={`${id}-pass`} label="Pass mark (%)">
+        <TextInput
+          className="text-sm"
+          id={`${id}-pass`}
+          max={100}
+          min={1}
+          onChange={(event) => onChange({ passScore: Math.min(100, Math.max(1, Number(event.target.value) || 80)) })}
+          type="number"
+          value={passScore}
+        />
+      </Field>
+    </>
+  );
+}
+
 function CheckDot({ done, blocking }: { done: boolean; blocking: boolean }) {
   return (
     <span
@@ -837,6 +905,13 @@ function StepEditor({
               ))}
             </SelectInput>
           </Field>
+        ) : step.stepType === "knowledge_check" ? (
+          <KnowledgeCheckField
+            id={id("resource")}
+            onChange={onChange}
+            passScore={step.passScore}
+            questionSource={step.questionSource}
+          />
         ) : step.stepType === "simulation" ? (
           <Field htmlFor={id("resource")} label="Persona">
             <SelectInput

@@ -32,6 +32,7 @@ const FEATURE_LABELS: Record<string, string> = {
   market_pulse: "Market Pulse quizzes",
   assistant: "Bosun questions",
   pitch_coach: "Pitch reviews",
+  pitch_transcribe: "Pitch transcription",
 };
 
 function envFallback(): PlatformAiSettings {

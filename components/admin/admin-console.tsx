@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { QuestionBankAdmin } from "@/components/question-bank/question-bank-admin";
 import dynamic from "next/dynamic";
 import { usePathname, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
@@ -25,9 +27,6 @@ const AdminOverview = dynamic(
 const UserManagement = dynamic(
   () => import("@/components/admin/user-management").then((mod) => mod.UserManagement),
   { loading },
-);
-const BulkUserImport = dynamic(() =>
-  import("@/components/admin/bulk-user-import").then((mod) => mod.BulkUserImport),
 );
 const ProgramsWorkspace = dynamic(
   () => import("@/components/programs/programs-workspace").then((mod) => mod.ProgramsWorkspace),
@@ -156,6 +155,12 @@ const HEADERS: Partial<Record<AdminTabId, { eyebrow: string; title: string; subt
 };
 
 /** Tenant admin console. The path picks the view; each view brings its own header and body. */
+const PROGRAM_VIEWS = [
+  { id: "onboarding", label: "Onboarding programs" },
+  { id: "release", label: "Release training" },
+  { id: "questions", label: "Question bank" },
+] as const;
+
 export function AdminConsole({
   assignees,
   mentors,
@@ -192,14 +197,37 @@ export function AdminConsole({
 
   // Full-bleed views with their own headers.
   if (tab === "plans" || tab === "assign") {
+    // One job per tab instead of three tools stacked on one long page.
+    const view = PROGRAM_VIEWS.some((item) => item.id === searchParams.get("view")) ? searchParams.get("view") : "onboarding";
     return (
       <>
-        <ProgramsWorkspace mentors={mentors} mode="admin" people={assignees} plans={plans} />
-        <section className="flex flex-col gap-6 px-[var(--page-pad-x)] pt-4 pb-10 max-sm:px-4">
-          <h2 className="label-caps">Release courses</h2>
-          <ReleaseCoursesPanel assignees={assignees} />
-          <ReleaseLaunchAnalytics />
-        </section>
+        <nav aria-label="Programs" className="flex gap-1.5 border-b border-line px-[var(--page-pad-x)] pt-6 max-sm:px-4">
+          {PROGRAM_VIEWS.map((item) => (
+            <Link
+              aria-current={view === item.id ? "page" : undefined}
+              className={`-mb-px border-b-2 px-3 pb-2.5 text-[15px] ${
+                view === item.id ? "border-blue font-bold text-blue" : "border-transparent text-muted hover:text-ink"
+              }`}
+              href={item.id === "onboarding" ? pathname : `${pathname}?view=${item.id}`}
+              key={item.id}
+              scroll={false}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+        {view === "release" ? (
+          <section className="flex flex-col gap-6 px-[var(--page-pad-x)] pt-6 pb-10 max-sm:px-4">
+            <ReleaseCoursesPanel assignees={assignees} />
+            <ReleaseLaunchAnalytics />
+          </section>
+        ) : view === "questions" ? (
+          <section className="px-[var(--page-pad-x)] pt-6 pb-10 max-sm:px-4">
+            <QuestionBankAdmin />
+          </section>
+        ) : (
+          <ProgramsWorkspace mentors={mentors} mode="admin" people={assignees} plans={plans} />
+        )}
       </>
     );
   }
@@ -242,7 +270,6 @@ export function AdminConsole({
       body = (
         <>
           <UserManagement initialUsers={initialUsers} />
-          <BulkUserImport />
         </>
       );
       break;

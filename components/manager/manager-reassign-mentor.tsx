@@ -42,7 +42,7 @@ export function ManagerReassignMentor({
   }
 
   return (
-    <section className="rounded-[14px] border border-line bg-white p-4">
+    <section className="rounded-[14px] border border-line bg-white p-4 shadow-[var(--shadow-card)]">
       <h3 className="text-[15px] font-bold text-ink">Assigned mentor</h3>
       <p className="mt-1 text-sm text-muted">
         Mentors endorse check-ins. You keep the final sign-off on ramp steps.

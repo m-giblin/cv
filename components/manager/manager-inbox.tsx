@@ -45,6 +45,10 @@ type PitchItem = {
   title: string;
   personName: string;
   reflectionText: string | null;
+  /** How the SE answered: video, voice or typed. */
+  responseMode?: string;
+  /** What they said (transcribed) or typed. */
+  transcript?: string | null;
   createdAt: string;
 };
 
@@ -796,9 +800,16 @@ export function ManagerInbox({
                   </div>
                 ) : null}
 
-                {activeItem.inboxType === "pitch" ? (
+                {activeItem.inboxType === "pitch" && activeItem.transcript ? (
+                  <div className="flex flex-col gap-1.5 rounded-[12px] border border-line bg-white px-4 py-3">
+                    <p className="label-caps">{activeItem.responseMode === "text" ? "Typed pitch" : "What they said"}</p>
+                    <p className="whitespace-pre-line text-ink">{activeItem.transcript}</p>
+                  </div>
+                ) : null}
+
+                {activeItem.inboxType === "pitch" && activeItem.responseMode !== "text" ? (
                   <Link className="link self-start text-sm" href={`/pitch?review=${activeItem.id}`} target="_blank">
-                    Watch video pitch
+                    {activeItem.responseMode === "voice" ? "Listen to voice pitch" : "Watch video pitch"}
                   </Link>
                 ) : null}
               </section>

@@ -1,7 +1,7 @@
 import { createOpenAI } from "@ai-sdk/openai";
 import { DEFAULT_AI_MODELS, resolveModelName } from "@/lib/ai/models";
 import { createXai } from "@ai-sdk/xai";
-import type { LanguageModel, ToolSet } from "ai";
+import type { LanguageModel, ToolSet, TranscriptionModel } from "ai";
 import { SAILPOINT_DOC_DOMAINS } from "@/lib/help/sailpoint-docs";
 import { loadPlatformAiSettings } from "@/lib/ai/settings";
 
@@ -14,7 +14,13 @@ function buildFromCredentials(
   provider: AiProviderName,
   modelName: string,
   apiKey: string,
-): { provider: AiProviderName; model: LanguageModel; modelName: string; docsSearch: DocsSearch } {
+): {
+  provider: AiProviderName;
+  model: LanguageModel;
+  modelName: string;
+  docsSearch: DocsSearch;
+  transcription: TranscriptionModel;
+} {
   // Saved settings may still name a retired model; run it on the current default.
   modelName = resolveModelName(provider, modelName);
   if (provider === "openai") {
@@ -23,7 +29,7 @@ function buildFromCredentials(
       model: client.responses(modelName),
       tools: { web_search: client.tools.webSearch({ filters: { allowedDomains: [...SAILPOINT_DOC_DOMAINS] } }) },
     };
-    return { provider, model: client(modelName), modelName, docsSearch };
+    return { provider, model: client(modelName), modelName, docsSearch, transcription: client.transcription("gpt-4o-mini-transcribe") };
   }
 
   const client = createXai({ apiKey });
@@ -31,7 +37,7 @@ function buildFromCredentials(
     model: client.responses(modelName),
     tools: { web_search: client.tools.webSearch({ allowedDomains: [...SAILPOINT_DOC_DOMAINS] }) },
   };
-  return { provider, model: client(modelName), modelName, docsSearch };
+  return { provider, model: client(modelName), modelName, docsSearch, transcription: client.transcription() };
 }
 
 /** @deprecated use resolveAiProvider */
@@ -64,6 +70,8 @@ export async function resolveAiProvider(tenantId?: string): Promise<{
   model: LanguageModel | null;
   modelName: string;
   docsSearch?: DocsSearch;
+  /** Speech-to-text for spoken pitches; same provider and key as the language model. */
+  transcription?: TranscriptionModel;
 }> {
   const settings = await loadPlatformAiSettings(tenantId);
 

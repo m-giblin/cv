@@ -2,9 +2,12 @@
 
 import { format } from "date-fns";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { MyTrainingCard } from "@/components/manager/my-training-card";
 import { HeaderStat, TeamActionLink, TeamStatusTag, initialsOf } from "@/components/manager/team-member-bits";
 import { DefinitionCard, Note } from "@/components/ui/editorial";
+import { Drawer } from "@/components/ui/drawer";
 import { MainWithRail, PageBody, PageHeader } from "@/components/ui/page-header";
 import { StatStrip } from "@/components/ui/stat";
 import { PersonCell, TableCard, rowHighlight, tdCls, thCls } from "@/components/ui/table";
@@ -60,6 +63,8 @@ export function ManagerToday({
   onOpenProfile: (profileId: string) => void;
 }) {
   // Date and greeting depend on the viewer's clock, so they render after mount (no hydration mismatch).
+  const router = useRouter();
+  const [list, setList] = useState<"at_risk" | "readiness" | null>(null);
   const [now, setNow] = useState<Date | null>(null);
   useEffect(() => setNow(new Date()), []);
 
@@ -95,15 +100,62 @@ export function ManagerToday({
           <HeaderStat
             label="Reviews waiting"
             note={reviewsOverSla > 0 ? `${reviewsOverSla} older than 3 days` : undefined}
+            onClick={() => router.push(managerSectionHref("inbox"))}
             value={reviewCount}
           />
-          <HeaderStat label="At risk" tone={atRisk > 0 ? "danger" : "blue"} value={atRisk} />
-          <HeaderStat label="Avg readiness" value={avgReadiness ?? "—"} />
+          <HeaderStat label="At risk" onClick={() => setList("at_risk")} tone={atRisk > 0 ? "danger" : "blue"} value={atRisk} />
+          <HeaderStat label="Avg readiness" onClick={() => setList("readiness")} value={avgReadiness ?? "—"} />
         </StatStrip>
+
+        {list ? (
+          <Drawer
+            onClose={() => setList(null)}
+            open
+            size="form"
+            subtitle={list === "at_risk" ? "Who's at risk and why, most urgent first." : `Everyone's readiness, lowest first. Target is ${READINESS_TARGET}.`}
+            title={list === "at_risk" ? "At risk" : "Readiness"}
+          >
+            {(() => {
+              const rows =
+                list === "at_risk"
+                  ? members.filter((member) => member.status === "at_risk")
+                  : [...members].sort((a, b) => (a.readiness ?? -1) - (b.readiness ?? -1));
+              if (!rows.length) return <p className="text-sm text-muted">{list === "at_risk" ? "Nobody is at risk." : "No team members yet."}</p>;
+              return (
+                <ul className="overflow-hidden rounded-[14px] border border-line bg-white">
+                  {rows.map((member) => (
+                    <li className="border-b border-divider last:border-b-0" key={member.profileId}>
+                      <button
+                        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-bg"
+                        onClick={() => {
+                          setList(null);
+                          onOpenProfile(member.profileId);
+                        }}
+                        type="button"
+                      >
+                        <span className="min-w-0">
+                          <span className="block font-bold text-ink">{member.fullName}</span>
+                          <span className="block truncate text-[13px] text-muted">{member.reason ?? member.subline}</span>
+                        </span>
+                        <span className="flex shrink-0 items-center gap-3">
+                          <span className={cn("num text-sm font-bold", member.readiness !== null && member.readiness < AT_RISK_READINESS ? "text-danger" : "text-ink")}>
+                            {member.readiness ?? "—"}
+                          </span>
+                          <TeamStatusTag status={member.status} />
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              );
+            })()}
+          </Drawer>
+        ) : null}
 
         <MainWithRail
           rail={
             <>
+              <MyTrainingCard />
               <DefinitionCard
                 inner={
                   teamSize > 0 ? (

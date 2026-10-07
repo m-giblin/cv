@@ -7,6 +7,7 @@ const STEP_TYPE_LABELS: Record<PlanStepType, string> = {
   shadow_meeting_log: "Shadow",
   mentor_review: "Review",
   deal_prep: "Deal prep",
+  knowledge_check: "Knowledge check",
   custom: "Task",
 };
 

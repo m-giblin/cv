@@ -64,9 +64,10 @@ describe("practice routes", () => {
     expect(ADMIN_ROUTES.some((route) => route.path === "/admin/content/ai")).toBe(false);
   });
 
-  it("lists Content children as Library, Practice, Corpus, Reviews", () => {
+  it("lists Content children as Library, Practice, Playbooks, Question bank, Corpus, Reviews", () => {
     const content = NAV.tenant_admin.find((item) => item.id === "content");
-    expect(content?.children?.map((child) => child.label)).toEqual(["Library", "Practice", "Corpus", "Reviews"]);
+    expect(content?.children?.map((child) => child.label)).toEqual(["Library", "Practice", "Playbooks", "Question bank", "Corpus", "Reviews"]);
+    expect(content?.children?.find((child) => child.id === "playbooks")?.href).toBe("/admin/content/playbooks");
     expect(content?.children?.find((child) => child.id === "practice")?.href).toBe("/admin/content/practice");
   });
 });

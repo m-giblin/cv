@@ -8,6 +8,7 @@ const TYPE_LABEL: Record<PlanStepType, string> = {
   shadow_meeting_log: "Lab",
   mentor_review: "1:1",
   deal_prep: "Deal Prep",
+  knowledge_check: "Check",
   custom: "Task",
 };
 
@@ -18,6 +19,7 @@ const TYPE_ICON: Record<PlanStepType, string> = {
   shadow_meeting_log: "🔬",
   mentor_review: "🗓️",
   deal_prep: "📋",
+  knowledge_check: "✅",
   custom: "📌",
 };
 

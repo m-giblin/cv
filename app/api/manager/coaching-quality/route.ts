@@ -16,7 +16,15 @@ export async function GET(request: Request) {
   );
 
   let managerIds: string[] = [];
-  if (params.get("managerId")) {
+  if (params.get("self") === "1") {
+    // Coaching › Cadence: only the signed-in manager's own coaching.
+    managerIds = [session.user.id];
+  } else if (params.get("managerId")) {
+    // Another manager's numbers are for directors and admins only; managers can see their own.
+    const canSeeOthers = session.role === "director" || session.role === "admin" || session.role === "super_admin";
+    if (!canSeeOthers && params.get("managerId") !== session.user.id) {
+      return NextResponse.json({ error: "Not allowed." }, { status: 403 });
+    }
     managerIds = [params.get("managerId")!];
   } else if (session.role === "director" || session.role === "admin" || session.role === "super_admin") {
     const { data: managers } = await session.supabase

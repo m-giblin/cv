@@ -1,4 +1,5 @@
 import { AccountProfilePanel } from "@/components/account/account-profile-panel";
+import { HomeWorkspaceCard } from "@/components/account/home-workspace-card";
 import { PageBody, PageHeader } from "@/components/ui/page-header";
 import { computeAccountBadges } from "@/lib/account/achievements";
 import { requireAppAccess } from "@/lib/auth/require-access";
@@ -32,6 +33,7 @@ export default async function AccountPage() {
           profile={data.currentUser}
           trophies={trophies}
         />
+        {data.currentUser.role === "super_admin" ? <HomeWorkspaceCard /> : null}
       </PageBody>
     </>
   );

@@ -109,6 +109,7 @@ export async function fetchPlansForUsers(
         contentAssetId: step.content_asset_id ?? undefined,
         challengeId: step.challenge_id ?? undefined,
         simulationTemplateId: step.simulation_template_id ?? undefined,
+        ...knowledgeCheckMeta(step.metadata),
         segmentIndex: segmentMeta.segmentIndex,
         isSegmentGate: segmentMeta.isSegmentGate,
         locked: isStepLockedForSegment(segmentMeta.segmentIndex, unlockedSegmentMax),
@@ -131,4 +132,13 @@ export async function fetchPlansForUsers(
       steps: [...steps, ...adHocSteps],
     };
   });
+}
+
+/** Knowledge check settings stored in a step's metadata. */
+function knowledgeCheckMeta(metadata: unknown): { questionSource?: string; passScore?: number } {
+  const raw = metadata && typeof metadata === "object" ? (metadata as Record<string, unknown>) : {};
+  return {
+    questionSource: typeof raw.questionSource === "string" ? raw.questionSource : undefined,
+    passScore: typeof raw.passScore === "number" ? raw.passScore : undefined,
+  };
 }

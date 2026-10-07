@@ -1,5 +1,6 @@
 import { ADMIN_ARTICLES } from "@/lib/help/articles/admin";
 import { BOSUN_ARTICLES } from "@/lib/help/articles/bosun";
+import { PLAYBOOK_ARTICLES } from "@/lib/help/articles/playbooks";
 import { MANAGER_ARTICLES } from "@/lib/help/articles/manager";
 import { SE_ARTICLES } from "@/lib/help/articles/se";
 import type { HelpArticle, HelpAudience } from "@/lib/help/types";
@@ -10,6 +11,7 @@ export const ALL_HELP_ARTICLES: HelpArticle[] = [
   ...SE_ARTICLES,
   ...MANAGER_ARTICLES,
   ...ADMIN_ARTICLES,
+  ...PLAYBOOK_ARTICLES,
 ];
 
 /**

@@ -89,6 +89,8 @@ export function ProgramWorkbench({
   mentors,
   initialTab = "progress",
   startEditing = false,
+  focusStepId = null,
+  addStep = false,
   onClose,
   onChanged,
   onCreated,
@@ -103,6 +105,9 @@ export function ProgramWorkbench({
   initialTab?: ProgramTab;
   /** Open straight into the outline editor (e.g. adding a practice item from the library). */
   startEditing?: boolean;
+  /** From the timeline: open the editor on this step, or with a new step added. */
+  focusStepId?: string | null;
+  addStep?: boolean;
   onClose: () => void;
   onChanged: () => void;
   onCreated?: (id: string) => void;
@@ -161,7 +166,9 @@ export function ProgramWorkbench({
           editing && canEdit ? (
             <div className="-mx-5 overflow-hidden rounded-[14px] border border-line bg-white sm:-mx-8">
               <PlanBuilder
+                addStep={addStep}
                 embedded
+                focusStepId={focusStepId}
                 lockedPlanId={isNew ? null : (template?.id ?? null)}
                 onDeleted={() => {
                   onChanged();

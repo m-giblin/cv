@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createNotification } from "@/lib/notifications/create-notification";
-import { resolveProfileTenantId } from "@/lib/tenant/resolve-profile-tenant";
+import { resolveEffectiveTenantId } from "@/lib/tenant/resolve-profile-tenant";
 import { createClient } from "@/lib/supabase/server";
 
 const postSchema = z.object({
  title: z.string().min(3),
- evidencePath: z.string().min(3),
+ evidencePath: z.string().min(3).optional(),
  reflectionText: z.string().optional(),
+ responseMode: z.enum(["video", "voice", "text"]).default("video"),
+ transcript: z.string().max(8000).optional(),
+ durationSec: z.number().int().min(0).max(600).optional(),
  targetType: z.enum(["challenge", "certification", "practice"]).default("certification"),
  targetId: z.string().optional(),
  scenarioId: z.string().uuid().optional(),
@@ -81,14 +84,20 @@ export async function POST(request: Request) {
  );
  }
 
- if (!parsed.data.evidencePath.startsWith(`${user.id}/`)) {
+ // Video and voice pitches attach a recording; typed pitches carry the text instead.
+ if (parsed.data.responseMode === "text") {
+ if (!parsed.data.transcript || parsed.data.transcript.trim().split(/\s+/).length < 8) {
+ return NextResponse.json({ error: "Type your pitch before submitting." }, { status: 400 });
+ }
+ } else if (!parsed.data.evidencePath) {
+ return NextResponse.json({ error: "Record your pitch before submitting." }, { status: 400 });
+ }
+
+ if (parsed.data.evidencePath && !parsed.data.evidencePath.startsWith(`${user.id}/`)) {
  return NextResponse.json({ error: "Invalid evidence path." }, { status: 403 });
  }
 
- const { data: fileList } = await supabase.storage.from("evidence").list(user.id, { search: parsed.data.evidencePath.split("/").pop() });
- void fileList;
-
- const tenantId = await resolveProfileTenantId(supabase, user.id);
+ const tenantId = await resolveEffectiveTenantId(supabase, user.id);
 
  if (parsed.data.queueSlotId) {
  const { data: slot } = await supabase
@@ -111,8 +120,11 @@ export async function POST(request: Request) {
  .insert({
  user_id: user.id,
  title: parsed.data.title,
- evidence_path: parsed.data.evidencePath,
+ evidence_path: parsed.data.evidencePath ?? null,
  reflection_text: parsed.data.reflectionText ?? null,
+ response_mode: parsed.data.responseMode,
+ transcript: parsed.data.transcript ?? null,
+ duration_sec: parsed.data.durationSec ?? null,
  target_type: parsed.data.targetType,
  target_id: parsed.data.targetId ?? null,
  scenario_id: parsed.data.scenarioId ?? null,
@@ -132,7 +144,7 @@ export async function POST(request: Request) {
  if (profile?.manager_id) {
  await createNotification(supabase, {
  userId: profile.manager_id,
- title: "Video pitch submitted",
+ title: parsed.data.responseMode === "text" ? "Typed pitch submitted" : parsed.data.responseMode === "voice" ? "Voice pitch submitted" : "Video pitch submitted",
  body: `Review ${parsed.data.title} from your SE.`,
  actionUrl: "/manager/inbox",
  });

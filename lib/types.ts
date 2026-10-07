@@ -17,6 +17,7 @@ export type PlanStepType =
   | "shadow_meeting_log"
   | "mentor_review"
   | "deal_prep"
+  | "knowledge_check"
   | "custom";
 
 export type AssignmentStatus =
@@ -61,6 +62,9 @@ export type PlanStep = {
   contentAssetId?: string;
   challengeId?: string;
   simulationTemplateId?: string;
+  /** Knowledge check steps: the question-bank source and the pass mark. */
+  questionSource?: string;
+  passScore?: number;
   segmentIndex?: number | null;
   isSegmentGate?: boolean;
   locked?: boolean;

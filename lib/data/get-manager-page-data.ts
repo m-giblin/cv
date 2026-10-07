@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { loadActiveTenantProfiles } from "@/lib/data/active-profiles";
 import { getAuthenticatedUser } from "@/lib/data/get-authenticated-user";
 import { cookies } from "next/headers";
 import { getDemoDashboardData, getSubtree } from "@/lib/demo-data";
@@ -65,10 +66,7 @@ async function fetchSupabaseManagerPageDataForTenant(
       .select("id, email, full_name, role, level, manager_id, avatar_url, created_at, tenant_id")
       .eq("id", userId)
       .maybeSingle(),
-    admin
-      .from("profiles")
-      .select("id, email, full_name, role, level, manager_id, avatar_url, created_at, tenant_id")
-      .eq("tenant_id", tenantId),
+    loadActiveTenantProfiles<Database["public"]["Tables"]["profiles"]["Row"]>(admin, tenantId),
     supabase
       .from("notifications")
       .select("id, user_id, title, body, action_url, read_at, created_at")

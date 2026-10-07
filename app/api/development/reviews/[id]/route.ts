@@ -70,7 +70,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
  if (!isSe && !isManager) {
  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
- const isAdmin = profile?.role === "admin" || profile?.role === "director";
+ const isAdmin = profile?.role === "admin" || profile?.role === "director" || profile?.role === "super_admin";
 
  if (!isAdmin) {
  return NextResponse.json({ error: "Forbidden" }, { status: 403 });
