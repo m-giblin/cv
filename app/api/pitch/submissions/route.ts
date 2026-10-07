@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createNotification } from "@/lib/notifications/create-notification";
-import { resolveProfileTenantId } from "@/lib/tenant/resolve-profile-tenant";
+import { resolveEffectiveTenantId } from "@/lib/tenant/resolve-profile-tenant";
 import { createClient } from "@/lib/supabase/server";
 
 const postSchema = z.object({
@@ -97,7 +97,7 @@ export async function POST(request: Request) {
  return NextResponse.json({ error: "Invalid evidence path." }, { status: 403 });
  }
 
- const tenantId = await resolveProfileTenantId(supabase, user.id);
+ const tenantId = await resolveEffectiveTenantId(supabase, user.id);
 
  if (parsed.data.queueSlotId) {
  const { data: slot } = await supabase

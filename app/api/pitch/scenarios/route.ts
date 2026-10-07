@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { listPitchScenarios } from "@/lib/pitch/pitch-queue";
-import { resolveProfileTenantId } from "@/lib/tenant/resolve-profile-tenant";
+import { resolveEffectiveTenantId } from "@/lib/tenant/resolve-profile-tenant";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
@@ -16,7 +16,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const tenantId = await resolveProfileTenantId(supabase, user.id);
+  const tenantId = await resolveEffectiveTenantId(supabase, user.id);
   if (!tenantId) {
     return NextResponse.json({ scenarios: [] });
   }

@@ -516,6 +516,7 @@ export function VideoPitchCapture({
 
   const statusLabel = recording ? `Recording ${formatClock(elapsed)}` : blobUrl ? "Ready to review" : "Standby";
   const showCamera = responseMode === "video" && (recording || blobUrl);
+  const reviewingVideo = responseMode === "video" && Boolean(blobUrl) && !recording;
   const selectedSlotPending = Boolean(queue.find((s) => s.id === selectedQueueSlotId)?.submissionId);
   const typedWords = wordCount(typedPitch);
   const typedSeconds = Math.round(typedWords / 2.5);
@@ -628,6 +629,7 @@ export function VideoPitchCapture({
                 controls={Boolean(blobUrl && !recording)}
                 muted={!blobUrl || recording}
                 playsInline
+                preload="auto"
                 ref={videoRef}
                 src={blobUrl && !recording ? blobUrl : undefined}
               />
@@ -653,6 +655,10 @@ export function VideoPitchCapture({
               </>
             )}
 
+            {/* While reviewing a video take, this row would sit on top of the player's own
+                controls and swallow clicks on play and the timeline, so it steps aside.
+                Discard (top right) clears the take and brings it back. */}
+            {reviewingVideo ? null : (
             <div className="relative z-10 mt-auto flex w-full flex-wrap items-center justify-center gap-3 px-3 pb-4 sm:gap-4">
               {!recording ? (
                 <button
@@ -678,6 +684,7 @@ export function VideoPitchCapture({
                 {formatMaxDuration(scenario.maxDurationSec)}
               </span>
             </div>
+            )}
 
             {blobUrl && !recording ? (
               <button
@@ -687,7 +694,7 @@ export function VideoPitchCapture({
                 type="button"
               >
                 <Trash2 aria-hidden="true" className="h-4 w-4" />
-                Discard
+                Discard and re-record
               </button>
             ) : null}
           </div>
