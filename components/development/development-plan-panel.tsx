@@ -404,7 +404,7 @@ export function DevelopmentPlanPanel({
   );
 }
 
-function ReviewEditor({
+export function ReviewEditor({
   review,
   isManager,
   isSaving,
@@ -421,7 +421,8 @@ function ReviewEditor({
   const [seEvidence, setSeEvidence] = useState(review.seEvidence ?? "");
   const [seEvidenceUrl, setSeEvidenceUrl] = useState(review.seEvidenceUrl ?? "");
   const [managerComments, setManagerComments] = useState(review.managerComments ?? "");
-  const [status, setStatus] = useState(review.status);
+  // A check-in that hasn't started yet opens on "On track", the most common answer.
+  const [status, setStatus] = useState(review.status === "not_started" ? "on_track" : review.status);
 
   return (
     <div className="flex flex-col gap-3">

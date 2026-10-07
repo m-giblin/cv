@@ -8,6 +8,7 @@ export type AuditAction =
   | "user.activated"
   | "user.deactivated"
   | "user.invited"
+  | "user.password_reset"
   | "tenant.created"
   | "tenant.updated"
   | "tenant.feature_flags.updated"

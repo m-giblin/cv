@@ -54,7 +54,8 @@ export function ManagerCoachingCadencePanel({
         subtitle={`A 14-day coaching rhythm across ${cadenceRows.length} SE${cadenceRows.length === 1 ? "" : "s"}, most urgent first.`}
         title="Cadence."
       />
-      <PageBody className="flex flex-col gap-8 pb-7">
+      <PageBody className="flex flex-col gap-5 pb-7">
+        <ManagerCoachingQualityPanel orgIds={uniqueProfiles(org).map((profile) => profile.id)} />
         <div className="flex flex-col gap-3">
           <TableCard>
             <caption className="sr-only">Coaching cadence, most urgent first</caption>
@@ -141,13 +142,6 @@ export function ManagerCoachingCadencePanel({
           </p>
         </div>
 
-        <section className="flex flex-col gap-4 rounded-[14px] border border-line bg-white p-5">
-          <div className="flex flex-col gap-1">
-            <h2 className="text-xl font-extrabold text-ink">Coaching quality, last 30 days</h2>
-            <p className="text-sm text-ink-2">Structured sign-off patterns. Flags fast rubber-stamping and cadence gaps.</p>
-          </div>
-          <ManagerCoachingQualityPanel orgIds={uniqueProfiles(org).map((profile) => profile.id)} />
-        </section>
       </PageBody>
     </>
   );

@@ -25,7 +25,7 @@ import { PersonCell, rowHighlight } from "@/components/ui/table";
 import { Tag } from "@/components/ui/tag";
 import { allowedEmailDomainsLabel } from "@/lib/auth/email-domain";
 import { ProfileRole, SeLevel } from "@/lib/types";
-import { initials } from "@/lib/utils";
+import { cn, initials } from "@/lib/utils";
 
 type AdminUser = {
  id: string;
@@ -233,6 +233,19 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  }
  setSelected(new Set());
  await loadUsers();
+ }
+
+ async function sendPasswordReset(id: string) {
+ const person = users.find((user) => user.id === id);
+ if (!person || !window.confirm(`Email ${person.email} a link to set a new password?`)) return;
+ const response = await fetch("/api/admin/users/status", {
+ method: "POST",
+ headers: { "Content-Type": "application/json" },
+ body: JSON.stringify({ ids: [id], action: "reset" }),
+ });
+ const body = (await response.json().catch(() => null)) as { error?: string } | null;
+ if (!response.ok) toast.error(body?.error ?? "Couldn't send the reset email.");
+ else toast.success(`Password reset sent to ${person.email}`);
  }
 
  function startEdit(user: AdminUser) {
@@ -516,7 +529,15 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  rows.map((user) => {
  const badge = roleBadge(user.role);
  return (
- <tr className={editingId === user.id || selected.has(user.id) ? rowHighlight.selected : "hover:bg-bg"} key={user.id}>
+ <tr
+ className={cn("cursor-pointer", editingId === user.id || selected.has(user.id) ? rowHighlight.selected : "hover:bg-bg")}
+ key={user.id}
+ onClick={(event) => {
+ // The whole row opens the person; the checkbox and action buttons keep their own clicks.
+ if ((event.target as HTMLElement).closest("button, a, input, label")) return;
+ startEdit(user);
+ }}
+ >
  <Td>
  <Checkbox
  checked={selected.has(user.id)}
@@ -532,7 +553,14 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  />
  </Td>
  <Td>
- <PersonCell initials={initials(user.full_name)} name={user.full_name} subline={sentenceCase(user.role.replaceAll("_", " "))} />
+ <PersonCell
+ initials={initials(user.full_name)}
+ name={
+ <button className="text-left font-bold text-ink hover:underline" onClick={() => startEdit(user)} type="button">
+ {user.full_name}
+ </button>
+ }
+ subline={sentenceCase(user.role.replaceAll("_", " "))} />
  </Td>
  <Td className="text-sm text-ink-2">{user.email}</Td>
  <Td>
@@ -595,7 +623,12 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  <button className="btn-primary" disabled={isSaving} form="admin-user-form" type="submit">
  {isSaving ? "Saving…" : editingId ? "Save changes" : "Create user"}
  </button>
- <SecondaryButton onClick={closeForm}>Cancel</SecondaryButton>
+<SecondaryButton onClick={closeForm}>Cancel</SecondaryButton>
+ {editingId ? (
+ <button className="link ml-auto text-sm" disabled={isSaving} onClick={() => void sendPasswordReset(editingId)} type="button">
+ Send password reset
+ </button>
+ ) : null}
  </>
  }
  onClose={closeForm}

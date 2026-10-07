@@ -7,7 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 const schema = z.object({
   ids: z.array(z.string().uuid()).min(1).max(500),
   /** activate / deactivate change status; invite sends the set-your-password email to active people. */
-  action: z.enum(["activate", "deactivate", "invite"]),
+  action: z.enum(["activate", "deactivate", "invite", "reset"]),
 });
 
 /** Bulk actions on the People list: activate, deactivate, or send invites. */
@@ -25,6 +25,26 @@ export async function POST(request: Request) {
   const people = ((data ?? []) as { id: string; email: string; status: string }[]).filter((person) => person.id !== session.user.id);
   if (!people.length) return NextResponse.json({ error: "None of those people are in this workspace." }, { status: 404 });
   const now = new Date().toISOString();
+
+  if (action === "reset") {
+    // Forgotten password: the same set-your-password email, without counting as an invite.
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+    const active = people.filter((person) => person.status !== "inactive");
+    if (!active.length) return NextResponse.json({ error: "Activate this person first; inactive accounts can't sign in." }, { status: 400 });
+    const failed: string[] = [];
+    for (const person of active) {
+      const { error } = await admin.auth.resetPasswordForEmail(person.email, { redirectTo: `${siteUrl}/auth/reset-password` });
+      if (error) failed.push(person.email);
+    }
+    await logAuditEvent(session.user.id, {
+      action: "user.password_reset",
+      targetType: "profile",
+      tenantId: session.tenantId,
+      details: { count: active.length - failed.length },
+    });
+    if (failed.length) return NextResponse.json({ error: `Couldn't send to ${failed.join(", ")}.` }, { status: 502 });
+    return NextResponse.json({ sent: active.length });
+  }
 
   if (action !== "invite") {
     const { error } = await admin
