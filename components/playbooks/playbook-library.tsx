@@ -1,10 +1,14 @@
 "use client";
 
-import { ChevronRight, Mic, Search, Swords } from "lucide-react";
+import { Check, ChevronRight, Mic, Search, Swords } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
+import { AssignWorkbench, MyAssignments, TeamAssignments } from "@/components/playbooks/playbook-assignments";
 import { PlaybookView } from "@/components/playbooks/playbook-view";
+import { SegmentedToggle } from "@/components/ui/segmented-toggle";
+import type { AssignablePerson } from "@/lib/playbooks/assignment-access";
+import { dueLabel, type PlaybookAssignment } from "@/lib/playbooks/assignment-model";
 import { Drawer } from "@/components/ui/drawer";
 import type { CapabilityPlaybook, PlaybookGuide } from "@/lib/playbooks/types";
 import { cn } from "@/lib/utils";
@@ -31,10 +35,20 @@ export function PlaybookLibrary({
   guides,
   playbooks,
   pitchDrills = {},
+  myAssignments = [],
+  readIds = [],
+  canAssign = false,
+  people = [],
+  teamAssignments = [],
 }: {
   guides: PlaybookGuide[];
   playbooks: CapabilityPlaybook[];
   pitchDrills?: Record<string, { id: string; label: string }[]>;
+  myAssignments?: PlaybookAssignment[];
+  readIds?: string[];
+  canAssign?: boolean;
+  people?: AssignablePerson[];
+  teamAssignments?: PlaybookAssignment[];
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -42,13 +56,32 @@ export function PlaybookLibrary({
   const [guideId, setGuideId] = useState(guides[0]?.id ?? "");
   const [query, setQuery] = useState("");
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [view, setView] = useState<"library" | "team">("library");
+  const [assigning, setAssigning] = useState<string[] | null>(null);
+  const [read, setRead] = useState(() => new Set(readIds));
+  const [marking, setMarking] = useState(false);
 
   const guide = guides.find((item) => item.id === guideId) ?? guides[0];
   const chapters = useMemo(() => playbooks.filter((playbook) => playbook.guideId === guide?.id), [guide?.id, playbooks]);
   const visible = useMemo(() => chapters.filter((playbook) => matches(playbook, query)), [chapters, query]);
 
   const openSlug = searchParams.get("playbook");
-  const open = chapters.find((playbook) => playbook.slug === openSlug) ?? null;
+  // Assigned playbooks may belong to another guide, so fall back to the whole library.
+  const open =
+    chapters.find((playbook) => playbook.slug === openSlug) ?? playbooks.find((playbook) => playbook.slug === openSlug) ?? null;
+  const openAssignment = open
+    ? myAssignments.find((item) => item.playbookId === open.id && item.status === "active") ?? null
+    : null;
+
+  async function markRead(playbookId: string) {
+    setMarking(true);
+    const response = await fetch(`/api/playbooks/${playbookId}/read`, { method: "POST" }).catch(() => null);
+    setMarking(false);
+    if (response?.ok) {
+      setRead((set) => new Set(set).add(playbookId));
+      router.refresh();
+    }
+  }
   const setOpen = (slug: string | null) => {
     const params = new URLSearchParams(searchParams.toString());
     if (slug) params.set("playbook", slug);
@@ -69,8 +102,24 @@ export function PlaybookLibrary({
   const routable = guide.body.routing.filter((row) => chapters.some((playbook) => playbook.chapter === row.chapter));
   const slugFor = (chapter: number) => chapters.find((playbook) => playbook.chapter === chapter)?.slug;
 
+  const assignWorkbench = assigning ? (
+    <AssignWorkbench initialPlaybookIds={assigning} onClose={() => setAssigning(null)} people={people} playbooks={playbooks} />
+  ) : null;
+
+  if (canAssign && view === "team") {
+    return (
+      <div className="flex flex-col gap-6">
+        <ViewSwitch onChange={setView} value={view} />
+        <TeamAssignments assignments={teamAssignments} onAssign={() => setAssigning([])} />
+        {assignWorkbench}
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-8">
+      {canAssign ? <ViewSwitch onChange={setView} value={view} /> : null}
+      <MyAssignments assignments={myAssignments} onOpen={(slug) => setOpen(slug)} />
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-col gap-1">
           {guides.length > 1 ? (
@@ -180,6 +229,29 @@ export function PlaybookLibrary({
       {open ? (
         <Drawer
           eyebrow={`Playbook ${open.chapter} · ${guide.title}`}
+          footer={
+            <>
+              {read.has(open.id) ? (
+                <span className="inline-flex items-center gap-1.5 px-2 text-[14px] font-bold text-success">
+                  <Check aria-hidden className="h-4 w-4" /> Read
+                </span>
+              ) : (
+                <button className="btn-primary" disabled={marking} onClick={() => void markRead(open.id)} type="button">
+                  {marking ? "Saving…" : "Mark as read"}
+                </button>
+              )}
+              {canAssign ? (
+                <button className="btn-secondary" onClick={() => setAssigning([open.id])} type="button">
+                  Assign
+                </button>
+              ) : null}
+            </>
+          }
+          footerNote={
+            openAssignment
+              ? `Assigned to you · ${dueLabel(openAssignment.progress, openAssignment.dueDate)}`
+              : "Mark it read when you've worked through it."
+          }
           key={open.id}
           onClose={() => setOpen(null)}
           open
@@ -192,6 +264,8 @@ export function PlaybookLibrary({
           </div>
         </Drawer>
       ) : null}
+
+      {assignWorkbench}
 
       {aboutOpen ? (
         <Drawer eyebrow={guide.title} onClose={() => setAboutOpen(false)} open title="How to use this guide">
@@ -273,5 +347,20 @@ function PracticeStrip({
         </p>
       ) : null}
     </section>
+  );
+}
+
+function ViewSwitch({ value, onChange }: { value: "library" | "team"; onChange: (value: "library" | "team") => void }) {
+  return (
+    <SegmentedToggle
+      className="self-start"
+      label="Playbooks view"
+      onChange={(id) => onChange(id as "library" | "team")}
+      options={[
+        { id: "library", label: "Library" },
+        { id: "team", label: "Team assignments" },
+      ]}
+      value={value}
+    />
   );
 }

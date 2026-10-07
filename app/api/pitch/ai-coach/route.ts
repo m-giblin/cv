@@ -5,7 +5,9 @@ import { enforceAiRateLimit } from "@/lib/ai/enforce-rate-limit";
 import { logAiUsage } from "@/lib/ai/log-usage";
 import { resolveAiProviderForUser } from "@/lib/ai/resolve-provider-for-user";
 import { requireAuthenticatedSession } from "@/lib/auth/require-authenticated";
+import { recordDrillResult } from "@/lib/playbooks/assignments";
 import { wordCount } from "@/lib/playbooks/drills";
+import { resolveEffectiveTenantId } from "@/lib/tenant/resolve-profile-tenant";
 import {
   fallbackPitchTips,
   pitchDrillPrompt,
@@ -44,15 +46,17 @@ export async function POST(request: Request) {
   const input = parsed.data;
 
   // A playbook drill carries the reference pitch the answer is compared with.
-  let drill: { reference: string; maxDurationSec: number } | null = null;
+  let drill: { reference: string; maxDurationSec: number; playbookId: string | null } | null = null;
   if (input.scenarioId) {
     const { data } = await session.supabase
       .from("pitch_scenario_templates")
-      .select("reference_text, max_duration_sec")
+      .select("reference_text, max_duration_sec, source_playbook_id")
       .eq("id", input.scenarioId)
       .maybeSingle();
-    const row = data as { reference_text: string | null; max_duration_sec: number } | null;
-    if (row?.reference_text) drill = { reference: row.reference_text, maxDurationSec: row.max_duration_sec };
+    const row = data as { reference_text: string | null; max_duration_sec: number; source_playbook_id: string | null } | null;
+    if (row?.reference_text) {
+      drill = { reference: row.reference_text, maxDurationSec: row.max_duration_sec, playbookId: row.source_playbook_id };
+    }
   }
 
   const delivered = input.pitchText?.trim() ?? "";
@@ -95,9 +99,24 @@ export async function POST(request: Request) {
         temperature: 0.2,
       });
       await logAiUsage(session.supabase, { feature: "pitch_coach", provider, model: modelName, userId: session.user.id, usage: result.usage });
+      // Every scored attempt counts toward playbook assignments, practice included.
+      const { problem, substance, delivery } = result.object.scores;
+      const average = Math.round((problem + substance + delivery) / 3);
+      const tenantId = drill.playbookId ? await resolveEffectiveTenantId(session.supabase, session.user.id) : null;
+      if (drill.playbookId && tenantId) {
+        await recordDrillResult({
+          tenantId,
+          playbookId: drill.playbookId,
+          userId: session.user.id,
+          kind: "pitch",
+          score: average,
+          scenarioId: input.scenarioId,
+        });
+      }
       return NextResponse.json({
         source: "ai",
         kind: "drill",
+        average,
         tips: result.object.tips,
         missed: result.object.missed,
         scores: pitchDrillScoreRows(result.object.scores),

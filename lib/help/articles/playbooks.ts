@@ -32,6 +32,11 @@ export const PLAYBOOK_ARTICLES: HelpArticle[] = [
         body: "Scroll down for the full chapter: what the problem costs a State & Local or Higher Education customer, the selling motion, stories you can retell, and every objection with a model response.",
       },
       {
+        title: "If a playbook is assigned to you",
+        body: "Assigned playbooks appear under \"Assigned to you\" at the top of Playbooks and under \"Playbooks due\" on Today, with the due date and a tick for each part: read it, pass the pitch drill, complete the objection drill. Select one to open it.",
+        tip: "Select Mark as read at the bottom of a playbook once you've worked through it. Practice you'd already done counts.",
+      },
+      {
         title: "Practise the pitch",
         body: "Under \"Practise this\" at the top of a playbook, select a pitch drill. Pitch Studio opens in Free practice with that drill. Choose Video, Voice or Typed, deliver the pitch within the time limit, then select Score my pitch.",
         tip: "The AI compares what you said with the guide's pitch: does it lead with the problem, hit the key points, and stay concise? Select \"Show the guide's pitch\" afterwards to compare.",
@@ -48,7 +53,7 @@ export const PLAYBOOK_ARTICLES: HelpArticle[] = [
       },
     ],
     links: [{ label: "Open Playbooks", href: "/learn/playbooks" }],
-    related: ["playbooks-import"],
+    related: ["playbooks-import", "playbooks-assign"],
   },
   {
     id: "playbooks-import",
@@ -91,6 +96,45 @@ export const PLAYBOOK_ARTICLES: HelpArticle[] = [
       },
     ],
     links: [{ label: "Open Content > Playbooks", href: "/admin/content/playbooks" }],
+    related: ["playbooks-use"],
+  },
+  {
+    id: "playbooks-assign",
+    title: "Assign playbooks with a due date",
+    summary:
+      "Ask people on your team to work through playbooks by a date, choose what counts as done, and track their progress.",
+    audience: ["manager", "admin"],
+    category: "Learn",
+    keywords: ["assign", "playbook", "due date", "deadline", "training", "overdue", "reminder", "progress", "team"],
+    overview: [
+      "An assignment is done when the person has completed the parts you chose: read the playbook, passed its pitch drill (an average score of 70 or your own pass mark), and completed its objection drill. Practice they did before you assigned it counts.",
+      "Managers can assign to anyone in their reporting line; admins can assign to anyone in the organization. Only published playbooks can be assigned.",
+    ],
+    steps: [
+      {
+        title: "Open Playbooks",
+        body: "Go to Coaching > Playbooks (managers) or Learn > Playbooks.",
+      },
+      {
+        title: "Start an assignment",
+        body: "Select Assign at the bottom of any playbook, or switch to Team assignments and select Assign playbooks.",
+      },
+      {
+        title: "Pick playbooks, people and a date",
+        body: "Tick the playbooks and people, pick a due date (or In 7, 14 or 30 days), choose what counts as done, and add a note if it helps, such as the call it's for. Then select Assign.",
+        tip: "Assigning the same playbook to someone again updates their due date and requirements instead of creating a duplicate.",
+      },
+      {
+        title: "Track progress",
+        body: "Team assignments lists everyone's assignments with a tick per part and a state: Not started, In progress, Done or Overdue. Use the filters to see who is overdue.",
+      },
+      {
+        title: "Adjust or cancel",
+        body: "Select Move due date or Cancel on any open assignment. Cancelling keeps the person's practice history.",
+        tip: "People get a notification when assigned, a reminder two days before the due date, and one if it goes overdue. You're told when someone you assigned goes overdue.",
+      },
+    ],
+    links: [{ label: "Open Playbooks", href: "/learn/playbooks" }],
     related: ["playbooks-use"],
   },
 ];

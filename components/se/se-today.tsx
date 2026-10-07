@@ -4,6 +4,7 @@ import { Greeting } from "@/components/se/greeting";
 import { RampDefinitionCard } from "@/components/se/ramp-definition-card";
 import { FlightStrip } from "@/components/ui/flight-strip";
 import { PageBody, PageHeader } from "@/components/ui/page-header";
+import { ASSIGNMENT_STATE_LABELS, dueLabel, type PlaybookAssignment } from "@/lib/playbooks/assignment-model";
 import { Schedule } from "@/components/ui/schedule";
 import { StatusPill } from "@/components/ui/status-pill";
 import { planStepTypeLabel } from "@/lib/plans/step-labels";
@@ -68,10 +69,13 @@ export function SeToday({
   data,
   gateRows,
   calendarEnabled = false,
+  playbookAssignments = [],
 }: {
   data: DashboardData;
   gateRows: GateRow[];
   calendarEnabled?: boolean;
+  /** Playbooks a manager assigned, with due dates and live progress. */
+  playbookAssignments?: PlaybookAssignment[];
 }) {
   const user = data.currentUser;
   const firstName = user.fullName.split(" ")[0] ?? "there";
@@ -205,6 +209,8 @@ export function SeToday({
               </FlightStrip>
             )}
 
+            <PlaybooksDue assignments={playbookAssignments} />
+
             {scheduleRows.length > 0 ? (
               <section aria-labelledby="coming-up" className="flex flex-col">
                 <div className="flex items-baseline justify-between gap-4 pb-3">
@@ -227,5 +233,51 @@ export function SeToday({
         </div>
       </PageBody>
     </div>
+  );
+}
+
+/** Open playbook assignments, soonest first, each linking straight to the playbook. */
+function PlaybooksDue({ assignments }: { assignments: PlaybookAssignment[] }) {
+  const open = assignments
+    .filter((item) => item.status === "active" && item.progress.state !== "done")
+    .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+  if (!open.length) return null;
+  const shown = open.slice(0, 4);
+
+  return (
+    <section aria-labelledby="playbooks-due" className="flex flex-col">
+      <div className="flex items-baseline justify-between gap-4 pb-3">
+        <h2 className="text-xl font-extrabold text-ink" id="playbooks-due">
+          Playbooks due
+        </h2>
+        <Link className="link text-sm" href="/learn/playbooks">
+          {open.length > shown.length ? `See all ${open.length}` : "Open playbooks"}
+        </Link>
+      </div>
+      <ul className="divide-y divide-line overflow-hidden rounded-[14px] border border-line bg-white">
+        {shown.map((item) => {
+          const remaining = item.progress.parts.filter((part) => !part.done).length;
+          return (
+            <li key={item.id}>
+              <Link
+                className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 no-underline hover:bg-blue-soft/40"
+                href={`/learn/playbooks?playbook=${item.playbookSlug}`}
+              >
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="text-[15px] font-bold text-ink">{item.playbookTitle}</span>
+                  <span className="text-[13px] text-muted">
+                    {remaining} of {item.progress.parts.length} left{item.assignedByName ? ` · from ${item.assignedByName}` : ""}
+                  </span>
+                </span>
+                <span className={item.progress.state === "overdue" ? "text-[13px] font-bold text-danger" : "text-[13px] font-bold text-ink-2"}>
+                  {dueLabel(item.progress, item.dueDate)}
+                </span>
+                {item.progress.state === "overdue" ? <StatusPill tone="danger">{ASSIGNMENT_STATE_LABELS.overdue}</StatusPill> : null}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
