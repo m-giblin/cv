@@ -109,8 +109,9 @@ const HEALTH_TONE: Record<SeCoachingSummary["health"], StatusTone> = {
 };
 
 function Section({ title, children, action }: { title: string; children: ReactNode; action?: ReactNode }) {
+  // The first section sits right under the column label, so it needs no divider above it.
   return (
-    <section className="flex flex-col gap-3 border-t border-divider pt-5">
+    <section className="flex flex-col gap-3 border-t border-divider pt-5 first-of-type:border-t-0 first-of-type:pt-0">
       <div className="flex items-baseline justify-between gap-3">
         <h3 className="label-caps">{title}</h3>
         {action}
@@ -121,7 +122,7 @@ function Section({ title, children, action }: { title: string; children: ReactNo
 }
 
 function LineList({ children }: { children: ReactNode }) {
-  return <ul className="overflow-hidden rounded-[14px] border border-line bg-white">{children}</ul>;
+  return <ul className="overflow-hidden rounded-[14px] border border-line bg-white shadow-[var(--shadow-card)]">{children}</ul>;
 }
 
 function LineRow({ children }: { children: ReactNode }) {
@@ -315,12 +316,14 @@ export function ManagerSeDetailPanel({
           </Section>
 
           <Section title="Assign a simulation">
-            <SimulationAssignForm
-              assignees={[profile]}
-              defaultAssigneeId={profile.id}
-              submitVariant="secondary"
-              teamAssignees={teamAssignees ?? profiles}
-            />
+            <div className="rounded-[14px] border border-line bg-white p-4 shadow-[var(--shadow-card)]">
+              <SimulationAssignForm
+                assignees={[profile]}
+                defaultAssigneeId={profile.id}
+                submitVariant="secondary"
+                teamAssignees={teamAssignees ?? profiles}
+              />
+            </div>
           </Section>
 
           <Section title="Field activity">

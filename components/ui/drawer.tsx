@@ -135,7 +135,7 @@ export function Drawer({
             </section>
             <section
               aria-label={sideLabel}
-              className="flex min-w-0 flex-col gap-5 border-t border-line bg-white *:shrink-0 px-5 py-6 text-[15px] leading-normal text-ink-2 sm:px-7 lg:overflow-y-auto lg:border-t-0 lg:border-l"
+              className="flex min-w-0 flex-col gap-5 border-t border-line bg-bg *:shrink-0 px-5 py-6 text-[15px] leading-normal text-ink-2 sm:px-7 lg:overflow-y-auto lg:border-t-0 lg:border-l lg:shadow-[inset_1px_0_0_rgb(18_26_46/0.04)]"
             >
               {sideLabel ? <p className="label-caps">{sideLabel}</p> : null}
               {side}
