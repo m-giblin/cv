@@ -621,7 +621,9 @@ export function VideoPitchCapture({
             </span>
           </div>
         ) : (
-          <div className="relative flex min-h-[280px] flex-1 flex-col items-center justify-center overflow-hidden bg-ink sm:min-h-[320px]">
+          // A 4:3 frame centred in the dark stage: closer to square, so the speaker fills it.
+          <div className="flex justify-center bg-ink px-3 py-3 sm:px-5 sm:py-4">
+          <div className="relative flex aspect-[4/3] h-[min(64vh,600px)] max-w-full min-h-[300px] flex-col items-center justify-center overflow-hidden rounded-[12px] bg-ink">
             <div
               className="absolute left-3 top-3 z-10 inline-flex items-center gap-[7px] rounded-full border border-blue-line bg-ink px-3 py-1 text-[13px] font-semibold text-white sm:left-3.5 sm:top-3.5"
               role="status"
@@ -704,6 +706,7 @@ export function VideoPitchCapture({
                 Discard and re-record
               </button>
             ) : null}
+          </div>
           </div>
         )}
 
