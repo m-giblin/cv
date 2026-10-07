@@ -65,6 +65,7 @@ export const NAV: Record<WorkspaceHat, NavItem[]> = {
       children: [
         { id: "library", label: "Library", href: "/learn" },
         { id: "playbooks", label: "Playbooks", href: "/learn/playbooks" },
+        { id: "knowledge-checks", label: "Knowledge checks", href: "/learn/knowledge-checks" },
         { id: "lab", label: "ISC Lab", href: "/learn/lab" },
       ],
     },
@@ -136,6 +137,7 @@ export const NAV: Record<WorkspaceHat, NavItem[]> = {
         { id: "library", label: "Library", href: "/admin/content" },
         { id: "practice", label: "Practice", href: "/admin/content/practice" },
         { id: "playbooks", label: "Playbooks", href: "/admin/content/playbooks" },
+        { id: "question-bank", label: "Question bank", href: "/admin/content/question-bank" },
         { id: "corpus", label: "Corpus", href: "/admin/content/corpus" },
         { id: "reviews", label: "Reviews", href: "/admin/content/reviews" },
       ],

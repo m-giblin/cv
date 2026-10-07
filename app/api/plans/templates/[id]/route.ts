@@ -17,6 +17,7 @@ const stepSchema = z.object({
  "deal_prep",
  "shadow_meeting_log",
  "mentor_review",
+ "knowledge_check",
  "custom",
  ]),
  dueOffsetDays: z.number().int().min(1).optional(),
@@ -32,6 +33,8 @@ const stepSchema = z.object({
  reviewer: z.string().max(40).nullable().optional(),
  competency: z.string().max(200).nullable().optional(),
  estimatedMinutes: z.number().int().min(0).max(10000).nullable().optional(),
+ questionSource: z.string().max(200).nullable().optional(),
+ passScore: z.number().int().min(1).max(100).nullable().optional(),
 });
 
 const updateTemplateSchema = z.object({

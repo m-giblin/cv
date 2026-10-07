@@ -19,6 +19,8 @@ const assignSchema = z
     requirePitch: z.boolean().default(true),
     requireObjections: z.boolean().default(true),
     pitchPassScore: z.number().int().min(1).max(100).default(70),
+    requireQuiz: z.boolean().default(true),
+    quizPassScore: z.number().int().min(1).max(100).default(80),
     note: z.string().trim().max(500).optional(),
   })
   .refine((value) => value.requireRead || value.requirePitch || value.requireObjections, {
@@ -92,6 +94,8 @@ export async function POST(request: Request) {
     require_pitch: input.requirePitch,
     require_objections: input.requireObjections,
     pitch_pass_score: input.pitchPassScore,
+    require_quiz: input.requireQuiz,
+    quiz_pass_score: input.quizPassScore,
     note: input.note || null,
     assigned_by: session.user.id,
     due_soon_reminded_at: null,
@@ -107,8 +111,14 @@ export async function POST(request: Request) {
       else inserts.push({ ...fields, tenant_id: session.tenantId, playbook_id: playbook.id, assigned_to: assigneeId });
     }
   }
+  // Before the knowledge-check migration is applied, save without those two columns.
+  const { error: probe } = await admin.from("playbook_assignments").select("require_quiz").limit(1);
+  if (probe) {
+    delete (fields as Partial<typeof fields>).require_quiz;
+    delete (fields as Partial<typeof fields>).quiz_pass_score;
+  }
   if (inserts.length) {
-    const { error } = await admin.from("playbook_assignments").insert(inserts);
+    const { error } = await admin.from("playbook_assignments").insert(inserts.map((row) => (probe ? { ...row, require_quiz: undefined, quiz_pass_score: undefined } : row)));
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   }
   if (updates.length) {

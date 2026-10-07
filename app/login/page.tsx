@@ -4,6 +4,7 @@ import { ALLOWED_EMAIL_DOMAIN } from "@/lib/auth/email-domain";
 
 const LOGIN_ERRORS: Record<string, string> = {
   unauthorized_domain: `Only @${ALLOWED_EMAIL_DOMAIN} email addresses can access this platform.`,
+  inactive: "Your account isn't active yet. Contact your admin to turn it on.",
   session_expired: "Your session expired after 15 minutes of inactivity. Please sign in again.",
 };
 

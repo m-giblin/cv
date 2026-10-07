@@ -3,6 +3,8 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { PeopleBreakdown, type BreakdownKind } from "@/components/programs/people-breakdown";
+import { ProgramTimeline, ProgramTrackCards } from "@/components/programs/program-tracks";
 import { ProgramWorkbench, type ProgramTab } from "@/components/programs/program-workbench";
 import { GapBanner } from "@/components/ui/editorial";
 import { PageBody, PageHeader } from "@/components/ui/page-header";
@@ -17,6 +19,7 @@ import {
   summarizePrograms,
   unenrolledPeople,
 } from "@/lib/programs/program-model";
+import type { ProgramTrack } from "@/lib/programs/tracks";
 import type { Profile, UserPlan } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -57,9 +60,18 @@ export function ProgramsWorkspace({
     setTemplates([...list].sort((a, b) => a.name.localeCompare(b.name)));
   }, []);
 
+  const [tracks, setTracks] = useState<ProgramTrack[]>([]);
+  const [breakdown, setBreakdown] = useState<BreakdownKind | null>(null);
+  const loadTracks = useCallback(async () => {
+    const response = await fetch("/api/programs/tracks").catch(() => null);
+    const body = response?.ok ? ((await response.json()) as { tracks?: ProgramTrack[] }) : null;
+    setTracks(body?.tracks ?? []);
+  }, []);
+
   useEffect(() => {
     void loadTemplates();
-  }, [loadTemplates]);
+    void loadTracks();
+  }, [loadTemplates, loadTracks]);
 
   const scopedPlans = useMemo(() => {
     const ids = new Set(people.map((person) => person.id));
@@ -70,11 +82,27 @@ export function ProgramsWorkspace({
     () => (templates ? summarizePrograms(templates, scopedPlans, people) : []),
     [people, scopedPlans, templates],
   );
+  // Plans that are stages of a program show on its timeline, not again in the plan table.
+  const stagePlanIds = useMemo(() => new Set(tracks.flatMap((track) => track.stages.map((stage) => stage.planId))), [tracks]);
+  const otherPlans = useMemo(() => programs.filter((program) => !stagePlanIds.has(program.id)), [programs, stagePlanIds]);
+  const openTrack = tracks.find((track) => track.id === searchParams.get("track")) ?? null;
+  const setTrack = useCallback(
+    (id: string | null) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (id) params.set("track", id);
+      else params.delete("track");
+      const query = params.toString();
+      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    },
+    [pathname, router, searchParams],
+  );
   const unenrolled = useMemo(() => unenrolledPeople(people, scopedPlans), [people, scopedPlans]);
 
   const openId = searchParams.get("program");
   const tabParam = searchParams.get("tab");
   const addingPractice = canEdit && Boolean(searchParams.get("addPractice"));
+  const focusStepId = canEdit ? searchParams.get("step") : null;
+  const addingStep = canEdit && searchParams.get("addStep") === "1";
   const openProgram = programs.find((program) => program.id === openId) ?? null;
   const openTemplate = templates?.find((template) => template.id === openId) ?? null;
 
@@ -83,6 +111,9 @@ export function ProgramsWorkspace({
       const params = new URLSearchParams(searchParams.toString());
       params.delete("addPractice");
       params.delete("title");
+      params.delete("track");
+      params.delete("step");
+      params.delete("addStep");
       if (id) params.set("program", id);
       else params.delete("program");
       if (tab) params.set("tab", tab);
@@ -103,8 +134,9 @@ export function ProgramsWorkspace({
 
   const refresh = useCallback(() => {
     void loadTemplates();
+    void loadTracks();
     router.refresh();
-  }, [loadTemplates, router]);
+  }, [loadTemplates, loadTracks, router]);
 
   const enrolledCount = new Set(scopedPlans.filter((plan) => plan.status !== "completed").map((plan) => plan.userId)).size;
   // People, not enrollments: one SE can be on several programs.
@@ -131,23 +163,38 @@ export function ProgramsWorkspace({
           ) : null
         }
         eyebrow="Programs"
-        subtitle={`Each program runs ${PROGRAM_WEEKS} weeks in ${PROGRAM_PHASES.length} phases: ${PROGRAM_PHASES.map((phase) => phase.name).join(", ")}. Open one to see progress, the outline, people and schedule.`}
+        subtitle="A program is a set of stages, each a plan of steps. Open a program to see its timeline and who's where."
         title="Programs."
       />
       <PageBody className="flex flex-col gap-6">
         <StatStrip>
-          <Stat label="Programs" value={loading ? "—" : programs.length} />
-          <Stat label={mode === "manager" ? "Your SEs enrolled" : "SEs enrolled"} note={`of ${people.length}`} value={enrolledCount} />
-          <Stat label="SEs at risk" note="overdue work" tone={atRisk > 0 ? "danger" : "blue"} value={atRisk} />
-          <Stat label="Avg completion" value={avgProgress === null ? "—" : `${avgProgress}%`} />
+          {/* Programs are the tracks; plans that are their stages aren't counted again. */}
+          <Stat
+            label="Programs"
+            note={tracks.length && otherPlans.length ? `plus ${otherPlans.length} other plan${otherPlans.length === 1 ? "" : "s"}` : undefined}
+            value={loading ? "—" : tracks.length || programs.length}
+          />
+          <Stat
+            label={mode === "manager" ? "Your SEs enrolled" : "SEs enrolled"}
+            note={`of ${people.length}`}
+            onClick={() => setBreakdown("enrolled")}
+            value={enrolledCount}
+          />
+          <Stat label="SEs at risk" note="overdue work" onClick={() => setBreakdown("at_risk")} tone={atRisk > 0 ? "danger" : "blue"} value={atRisk} />
+          <Stat label="Avg completion" onClick={() => setBreakdown("completion")} value={avgProgress === null ? "—" : `${avgProgress}%`} />
         </StatStrip>
 
         {!loading && unenrolled.length > 0 && programs.length > 0 ? (
           <GapBanner
             action={
-              <button className="btn-primary" onClick={() => setOpen(programs[0]!.id, "people")} type="button">
-                Enroll them
-              </button>
+              <span className="flex flex-wrap gap-2">
+                <button className="btn-secondary" onClick={() => setBreakdown("unenrolled")} type="button">
+                  See who
+                </button>
+                <button className="btn-primary" onClick={() => setOpen(programs[0]!.id, "people")} type="button">
+                  Enroll them
+                </button>
+              </span>
             }
             of={people.length}
             title={`${unenrolled.length === 1 ? "SE has" : "SEs have"} no program`}
@@ -161,11 +208,15 @@ export function ProgramsWorkspace({
           </GapBanner>
         ) : null}
 
+        <ProgramTrackCards onOpen={(id) => setTrack(id)} summaries={programs} tracks={tracks} />
+
+        {tracks.length && otherPlans.length ? <h2 className="label-caps pt-2">Other plans</h2> : null}
+
         {loading ? (
           <p className="py-10 text-center text-sm text-muted" role="status">
             Loading programs…
           </p>
-        ) : programs.length === 0 ? (
+        ) : otherPlans.length === 0 && tracks.length ? null : programs.length === 0 ? (
           <div className="flex flex-col items-start gap-3 rounded-[14px] border border-dashed border-line-strong bg-white px-6 py-8">
             <p className="text-[15px] font-bold text-ink">No programs yet.</p>
             <p className="text-sm text-ink-2">
@@ -186,7 +237,7 @@ export function ProgramsWorkspace({
                   Program
                 </th>
                 <th className={thCls} scope="col">
-                  Steps by phase
+                  Steps
                 </th>
                 <th className={cn(thCls, "text-right")} scope="col">
                   People
@@ -200,7 +251,7 @@ export function ProgramsWorkspace({
               </tr>
             </thead>
             <tbody>
-              {programs.map((program) => (
+              {(tracks.length ? otherPlans : programs).map((program) => (
                 <tr
                   className={cn("cursor-pointer hover:bg-[#FBF9F5]", program.atRisk > 0 && "bg-danger-row")}
                   key={program.id}
@@ -266,6 +317,29 @@ export function ProgramsWorkspace({
         )}
       </PageBody>
 
+      {breakdown ? (
+        <PeopleBreakdown kind={breakdown} onClose={() => setBreakdown(null)} programs={programs} tracks={tracks} unenrolled={unenrolled} />
+      ) : null}
+
+      {openTrack ? (
+        <ProgramTimeline
+          canEdit={canEdit}
+          onClose={() => setTrack(null)}
+          onAddStep={(planId) => {
+            setOpen(planId, "outline");
+            const params = new URLSearchParams({ program: planId, tab: "outline", addStep: "1" });
+            router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+          }}
+          onEditStage={(planId) => setOpen(planId, "outline")}
+          onEditStep={(planId, stepId) => {
+            const params = new URLSearchParams({ program: planId, tab: "outline", step: stepId });
+            router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+          }}
+          summaries={programs}
+          track={openTrack}
+        />
+      ) : null}
+
       {openId && !loading && (openId === NEW ? canEdit : openProgram || openTemplate) ? (
         <ProgramWorkbench
           candidates={people}
@@ -278,7 +352,9 @@ export function ProgramsWorkspace({
           onClose={() => setOpen(null)}
           onCreated={(id) => setOpen(id, "people")}
           program={openProgram}
-          startEditing={addingPractice}
+          addStep={addingStep}
+          focusStepId={focusStepId}
+          startEditing={addingPractice || Boolean(focusStepId) || addingStep}
           template={openTemplate}
         />
       ) : null}

@@ -18,7 +18,9 @@ import {
 } from "@/components/admin/admin-ui";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Chip } from "@/components/ui/chip";
+import { BulkUploadWorkbench } from "@/components/admin/bulk-upload-workbench";
 import { Drawer } from "@/components/ui/drawer";
+import { StatusPill } from "@/components/ui/status-pill";
 import { PersonCell, rowHighlight } from "@/components/ui/table";
 import { Tag } from "@/components/ui/tag";
 import { allowedEmailDomainsLabel } from "@/lib/auth/email-domain";
@@ -33,6 +35,9 @@ type AdminUser = {
  level: SeLevel;
  manager_id: string | null;
  created_at: string;
+ /** Missing until the status migration is applied: treat as active. */
+ status?: string;
+ invited_at?: string | null;
 };
 
 const ROLES: ProfileRole[] = [
@@ -124,6 +129,10 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  const [levelFilter, setLevelFilter] = useState("All levels");
  const [managerFilter, setManagerFilter] = useState("All managers");
  const [page, setPage] = useState(1);
+ const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+ const [selected, setSelected] = useState<Set<string>>(new Set());
+ const [bulkOpen, setBulkOpen] = useState(false);
+ const [bulkBusy, setBulkBusy] = useState(false);
 
  const managers = useMemo(
  () => users.filter((user) => ["manager", "mentor", "director", "admin"].includes(user.role)),
@@ -150,9 +159,10 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  const matchesLevel = matchesLevelFilter(user.level, levelFilter);
  const matchesManager =
  managerFilter === "All managers" || managerName === managerFilter;
- return matchesSearch && matchesRole && matchesLevel && matchesManager;
+ const matchesStatus = statusFilter === "all" || (user.status ?? "active") === statusFilter;
+ return matchesSearch && matchesRole && matchesLevel && matchesManager && matchesStatus;
  });
- }, [managerFilter, managerNameById, levelFilter, roleFilter, search, users]);
+ }, [managerFilter, managerNameById, levelFilter, roleFilter, search, statusFilter, users]);
 
  const { rows, page: safePage, pageCount } = paginate(filteredUsers, page, PAGE_SIZE);
 
@@ -162,12 +172,14 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
   ).length;
   const managerCount = users.filter((u) => ["manager", "director", "mentor"].includes(u.role)).length;
   const adminCount = users.filter((u) => u.role === "admin").length;
-  return { total: users.length, seCount, managerCount, adminCount };
+  const inactiveCount = users.filter((u) => u.status === "inactive").length;
+ return { total: users.length, seCount, managerCount, adminCount, inactiveCount };
  }, [users]);
 
  useEffect(() => {
  setPage(1);
- }, [search, roleFilter, levelFilter, managerFilter]);
+ setSelected(new Set());
+ }, [search, roleFilter, levelFilter, managerFilter, statusFilter]);
 
  const loadUsers = useCallback(async () => {
  setIsLoading(true);
@@ -186,11 +198,42 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  }, []);
 
  useEffect(() => {
+ // The server-rendered list has no status or invite date, so always refresh from the API.
  if (initialUsers?.length) {
+ void fetch("/api/admin/users")
+ .then((response) => (response.ok ? response.json() : null))
+ .then((body: { users?: AdminUser[] } | null) => body?.users && setUsers(body.users));
  return;
  }
  void loadUsers();
  }, [initialUsers, loadUsers]);
+
+ async function bulkAction(action: "activate" | "deactivate" | "invite") {
+ const ids = [...selected];
+ if (!ids.length) return;
+ if (action === "deactivate" && !confirm(`Deactivate ${ids.length} ${ids.length === 1 ? "person" : "people"}? They won't be able to sign in.`)) return;
+ setBulkBusy(true);
+ const response = await fetch("/api/admin/users/status", {
+ method: "POST",
+ headers: { "Content-Type": "application/json" },
+ body: JSON.stringify({ ids, action }),
+ });
+ const body = (await response.json().catch(() => ({}))) as { error?: string; updated?: number; sent?: number; skippedInactive?: number; failed?: string[] };
+ setBulkBusy(false);
+ if (!response.ok) {
+ toast.error(body.error ?? "That didn't work.");
+ return;
+ }
+ if (action === "invite") {
+ const extra = body.skippedInactive ? ` ${body.skippedInactive} inactive skipped; activate them first.` : "";
+ const failed = body.failed?.length ? ` ${body.failed.length} failed.` : "";
+ toast.success(`${body.sent ?? 0} invite${body.sent === 1 ? "" : "s"} sent.${extra}${failed}`);
+ } else {
+ toast.success(`${body.updated ?? 0} ${action === "activate" ? "activated" : "deactivated"}.`);
+ }
+ setSelected(new Set());
+ await loadUsers();
+ }
 
  function startEdit(user: AdminUser) {
  setEditingId(user.id);
@@ -329,7 +372,7 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  { label: "Total users", value: userStats.total },
  { label: "Active SEs", value: userStats.seCount },
  { label: "Managers", value: userStats.managerCount },
- { label: "Admins", value: userStats.adminCount },
+ { label: "Inactive", value: userStats.inactiveCount },
  ]}
  />
 
@@ -357,9 +400,14 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  </Chip>
  ))}
  </div>
+ <div className="flex flex-wrap gap-2">
+ <button className="btn-secondary" onClick={() => setBulkOpen(true)} type="button">
+ Bulk upload
+ </button>
  <button className="btn-primary" onClick={startCreate} type="button">
  Invite user
  </button>
+ </div>
  </div>
  <div className="flex flex-wrap items-center gap-3">
  <TextInput
@@ -370,6 +418,16 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  type="search"
  value={search}
  />
+ <SelectInput
+ aria-label="Filter by status"
+ className="w-auto"
+ onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+ value={statusFilter}
+ >
+ <option value="all">All statuses</option>
+ <option value="active">Active</option>
+ <option value="inactive">Inactive ({userStats.inactiveCount})</option>
+ </SelectInput>
  <SelectInput
  aria-label="Filter by level"
  className="w-auto"
@@ -398,14 +456,49 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  </div>
  </div>
 
- <AdminTable caption="Users" minWidth={900}>
+ {selected.size ? (
+ <div className="flex flex-wrap items-center gap-3 rounded-[14px] border border-blue bg-blue-soft px-4 py-3" role="region" aria-label="Bulk actions">
+ <span className="text-sm font-bold text-blue">{selected.size} selected</span>
+ <button className="btn-primary" disabled={bulkBusy} onClick={() => void bulkAction("activate")} type="button">
+ Activate
+ </button>
+ <button className="btn-secondary" disabled={bulkBusy} onClick={() => void bulkAction("invite")} type="button">
+ Send invite
+ </button>
+ <button className="btn-secondary" disabled={bulkBusy} onClick={() => void bulkAction("deactivate")} type="button">
+ Deactivate
+ </button>
+ <button className="link ml-auto text-sm" onClick={() => setSelected(new Set())} type="button">
+ Clear selection
+ </button>
+ </div>
+ ) : null}
+
+ <AdminTable caption="Users" minWidth={980}>
  <thead>
  <tr>
+ <Th className="w-10">
+ <Checkbox
+ checked={rows.length > 0 && rows.every((user) => selected.has(user.id))}
+ label="Select everyone on this page"
+ onChange={(event) =>
+ setSelected((current) => {
+ const next = new Set(current);
+ for (const user of rows) {
+ if (event.target.checked) next.add(user.id);
+ else next.delete(user.id);
+ }
+ return next;
+ })
+ }
+ />
+ </Th>
  <Th>Name</Th>
  <Th>Email</Th>
  <Th>Role</Th>
  <Th>Level</Th>
  <Th>Manager</Th>
+ <Th>Status</Th>
  <Th>Joined</Th>
  <Th className="text-right">
  <span className="sr-only">Actions</span>
@@ -415,7 +508,7 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  <tbody>
  {rows.length === 0 ? (
  <tr>
- <td colSpan={7}>
+ <td colSpan={9}>
  <p className="px-5 py-8 text-center text-sm text-muted">No users match your search.</p>
  </td>
  </tr>
@@ -423,7 +516,21 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  rows.map((user) => {
  const badge = roleBadge(user.role);
  return (
- <tr className={editingId === user.id ? rowHighlight.selected : "hover:bg-bg"} key={user.id}>
+ <tr className={editingId === user.id || selected.has(user.id) ? rowHighlight.selected : "hover:bg-bg"} key={user.id}>
+ <Td>
+ <Checkbox
+ checked={selected.has(user.id)}
+ label={`Select ${user.full_name}`}
+ onChange={(event) =>
+ setSelected((current) => {
+ const next = new Set(current);
+ if (event.target.checked) next.add(user.id);
+ else next.delete(user.id);
+ return next;
+ })
+ }
+ />
+ </Td>
  <Td>
  <PersonCell initials={initials(user.full_name)} name={user.full_name} subline={sentenceCase(user.role.replaceAll("_", " "))} />
  </Td>
@@ -434,6 +541,12 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  <Td className="text-sm">{user.level}</Td>
  <Td className="max-w-[180px] truncate text-sm">
  {user.manager_id ? managerNameById.get(user.manager_id) ?? "—" : "—"}
+ </Td>
+ <Td>
+ <span className="flex flex-col items-start gap-0.5">
+ {user.status === "inactive" ? <StatusPill tone="neutral">Inactive</StatusPill> : <StatusPill tone="success">Active</StatusPill>}
+ <Meta>{user.invited_at ? `Invited ${formatDay(user.invited_at)}` : "Not invited"}</Meta>
+ </span>
  </Td>
  <Td>
  <Meta>{formatDay(user.created_at)}</Meta>
@@ -472,6 +585,8 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  </SecondaryButton>
  </nav>
  ) : null}
+
+ {bulkOpen ? <BulkUploadWorkbench onClose={() => setBulkOpen(false)} onImported={() => void loadUsers()} people={users} /> : null}
 
  <Drawer
    size="form"

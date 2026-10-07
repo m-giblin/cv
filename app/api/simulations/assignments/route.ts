@@ -22,6 +22,10 @@ const assignSchema = z
     vertical: z.string().min(2),
     solutionFocus: z.string().min(2),
     difficulty: z.enum(["foundational", "intermediate", "advanced"]).optional(),
+    dueDate: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .optional(),
   })
   .refine((value) => Boolean(value.assignedTo) || Boolean(value.assignedToIds?.length), {
     message: "assignedTo or assignedToIds is required",
@@ -115,6 +119,7 @@ export async function POST(request: Request) {
     transcript: [],
     session_data: sessionData,
     tenant_id: session.tenantId,
+    due_date: parsed.data.dueDate ?? null,
   }));
 
   const { data, error } = await session.supabase
@@ -132,7 +137,9 @@ export async function POST(request: Request) {
       created.map((row) => ({
         user_id: row.assigned_to,
         title: "New simulation assigned",
-        body: `${solutionFocus} • ${vertical} • ${difficulty.replace("_", " ")}. Open Simulations to start.`,
+        body: `${solutionFocus} • ${vertical} • ${difficulty.replace("_", " ")}.${
+          parsed.data.dueDate ? ` Due ${parsed.data.dueDate}.` : ""
+        } Open Simulations to start.`,
         action_url: "/simulations?focus=simulation",
       })),
     );

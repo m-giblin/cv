@@ -30,6 +30,9 @@ export type PlaybookAssignment = {
   requirePitch: boolean;
   requireObjections: boolean;
   pitchPassScore: number;
+  /** Pass the chapter's knowledge check; only counts when the chapter has one. */
+  requireQuiz: boolean;
+  quizPassScore: number;
   note: string | null;
   status: AssignmentStatus;
   completedAt: string | null;
@@ -43,9 +46,11 @@ export type AssignmentSignals = {
   pitchScores: number[];
   /** Completed objection drills (score out of 100, when the debrief gave one). */
   objectionScores: (number | null)[];
+  /** Knowledge-check sitting scores since the assignment; null when the chapter has no check. */
+  quizScores?: number[] | null;
 };
 
-export type AssignmentPart = { key: "read" | "pitch" | "objections"; label: string; done: boolean; detail: string };
+export type AssignmentPart = { key: "read" | "pitch" | "objections" | "quiz"; label: string; done: boolean; detail: string };
 
 export type AssignmentProgress = {
   parts: AssignmentPart[];
@@ -66,7 +71,8 @@ export function todayIso(now = new Date()) {
 }
 
 export function computeAssignmentProgress(
-  assignment: Pick<PlaybookAssignment, "requireRead" | "requirePitch" | "requireObjections" | "pitchPassScore" | "dueDate" | "status">,
+  assignment: Pick<PlaybookAssignment, "requireRead" | "requirePitch" | "requireObjections" | "pitchPassScore" | "dueDate" | "status"> &
+    Partial<Pick<PlaybookAssignment, "requireQuiz" | "quizPassScore">>,
   signals: AssignmentSignals,
   today = todayIso(),
 ): AssignmentProgress {
@@ -98,9 +104,16 @@ export function computeAssignmentProgress(
     });
   }
 
+  const quizScores = signals.quizScores ?? null;
+  if (assignment.requireQuiz !== false && quizScores) {
+    const pass = assignment.quizPassScore ?? 80;
+    const best = quizScores.length ? Math.max(...quizScores) : null;
+    parts.push({ key: "quiz", label: `Knowledge check, ${pass}%+`, done: best !== null && best >= pass, detail: best === null ? "Not tried" : `Best ${best}%` });
+  }
+
   const daysLeft = daysBetween(today, assignment.dueDate);
   const allDone = parts.every((part) => part.done);
-  const anyProgress = signals.readAt !== null || signals.pitchScores.length > 0 || objectionRuns > 0;
+  const anyProgress = signals.readAt !== null || signals.pitchScores.length > 0 || objectionRuns > 0 || Boolean(quizScores?.length);
   const state: AssignmentState =
     assignment.status === "completed" || allDone
       ? "done"

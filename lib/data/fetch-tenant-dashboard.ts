@@ -1,4 +1,5 @@
 import { getSubtree } from "@/lib/demo-data";
+import { loadActiveTenantProfiles } from "@/lib/data/active-profiles";
 import type { DashboardScope } from "@/lib/auth/tenant-context";
 import { fetchPlansForUsers } from "@/lib/data/fetch-plans-bundle";
 import {
@@ -73,10 +74,7 @@ export async function fetchTenantDashboard(
       .select("id, email, full_name, role, level, manager_id, avatar_url, created_at, tenant_id")
       .eq("id", userId)
       .maybeSingle(),
-    admin
-      .from("profiles")
-      .select("id, email, full_name, role, level, manager_id, avatar_url, created_at, tenant_id")
-      .eq("tenant_id", tenantId),
+    loadActiveTenantProfiles<Database["public"]["Tables"]["profiles"]["Row"]>(admin, tenantId),
     supabase
       .from("notifications")
       .select("id, user_id, title, body, action_url, read_at, created_at")

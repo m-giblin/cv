@@ -1,5 +1,6 @@
 "use client";
 
+import { NeutralDraftsPanel } from "@/components/playbooks/neutral-drafts-panel";
 import { ChevronRight, FileUp } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
@@ -84,6 +85,7 @@ export function PlaybookAdmin({
 
   return (
     <div className="flex flex-col gap-8">
+      {playbooks.length ? <NeutralDraftsPanel /> : null}
       <section className="flex flex-col gap-3 rounded-[14px] border border-line-strong bg-white p-5 shadow-[var(--shadow-card)]">
         <h2 className="m-0 text-[18px] font-extrabold text-ink">Import a field guide</h2>
         <p className="m-0 text-[14px] text-ink-2">

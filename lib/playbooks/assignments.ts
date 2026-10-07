@@ -5,6 +5,7 @@ import {
   type AssignmentStatus,
   type PlaybookAssignment,
 } from "@/lib/playbooks/assignment-model";
+import { quizAttemptScores } from "@/lib/question-bank/model";
 
 export * from "@/lib/playbooks/assignment-model";
 
@@ -20,14 +21,13 @@ type AssignmentRow = {
   require_pitch: boolean;
   require_objections: boolean;
   pitch_pass_score: number;
+  require_quiz?: boolean;
+  quiz_pass_score?: number;
   note: string | null;
   status: AssignmentStatus;
   completed_at: string | null;
   created_at: string;
 };
-
-const ASSIGNMENT_COLUMNS =
-  "id, playbook_id, assigned_to, assigned_by, due_date, require_read, require_pitch, require_objections, pitch_pass_score, note, status, completed_at, created_at";
 
 /**
  * Loads assignments with names and live progress. Scope by assignee (one person's list) or by a
@@ -43,7 +43,7 @@ export async function loadAssignments(
 
   let query = admin
     .from("playbook_assignments")
-    .select(ASSIGNMENT_COLUMNS)
+    .select("*")
     .eq("tenant_id", tenantId)
     .in("assigned_to", filter.assigneeIds)
     .order("due_date");
@@ -66,6 +66,22 @@ export async function loadAssignments(
       .in("playbook_id", playbookIds)
       .in("user_id", assigneeIds),
   ]);
+
+  // Knowledge checks: each chapter's active questions, and the assignees' answers to them.
+  const { data: bankRows } = await admin.from("question_bank" as never).select("id, playbook_id").eq("source_kind", "playbook").eq("status", "active").in("playbook_id", playbookIds);
+  const playbookOfQuestion = new Map(((bankRows ?? []) as { id: string; playbook_id: string }[]).map((row) => [row.id, row.playbook_id]));
+  const questionsPerPlaybook = new Map<string, number>();
+  for (const id of playbookOfQuestion.values()) questionsPerPlaybook.set(id, (questionsPerPlaybook.get(id) ?? 0) + 1);
+  const earliest = rows.reduce((min, row) => (row.created_at < min ? row.created_at : min), rows[0]!.created_at);
+  const { data: attemptRows } = playbookOfQuestion.size
+    ? await admin
+        .from("question_attempts" as never)
+        .select("question_id, user_id, quiz_id, correct, created_at")
+        .in("user_id", assigneeIds)
+        .in("question_id", [...playbookOfQuestion.keys()])
+        .gte("created_at", earliest)
+    : { data: [] };
+  const quizAttempts = (attemptRows ?? []) as { question_id: string; user_id: string; quiz_id: string; correct: boolean; created_at: string }[];
 
   const playbookById = new Map(
     ((playbooks.data ?? []) as { id: string; title: string; slug: string; chapter: number }[]).map((row) => [row.id, row]),
@@ -107,6 +123,8 @@ export async function loadAssignments(
         requirePitch: row.require_pitch,
         requireObjections: row.require_objections,
         pitchPassScore: row.pitch_pass_score,
+        requireQuiz: row.require_quiz ?? true,
+        quizPassScore: row.quiz_pass_score ?? 80,
         note: row.note,
         status: row.status,
         completedAt: row.completed_at,
@@ -118,6 +136,14 @@ export async function loadAssignments(
           readAt: readAt.get(pair) ?? null,
           pitchScores: pitchScores.get(pair) ?? [],
           objectionScores: objectionScores.get(pair) ?? [],
+          quizScores:
+            (questionsPerPlaybook.get(row.playbook_id) ?? 0) >= 3
+              ? quizAttemptScores(
+                  quizAttempts.filter(
+                    (attempt) => attempt.user_id === row.assigned_to && attempt.created_at >= row.created_at && playbookOfQuestion.get(attempt.question_id) === row.playbook_id,
+                  ),
+                ).map((sitting) => sitting.score)
+              : null,
         },
         today,
       );

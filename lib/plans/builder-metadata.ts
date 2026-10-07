@@ -5,6 +5,8 @@ export function builderMetadata(step: {
   reviewer?: string | null;
   competency?: string | null;
   estimatedMinutes?: number | null;
+  questionSource?: string | null;
+  passScore?: number | null;
 }): Record<string, unknown> {
   const meta: Record<string, unknown> = {};
   if (step.criteria !== undefined) meta.criteria = step.criteria.map((item) => item.trim()).filter(Boolean);
@@ -12,5 +14,7 @@ export function builderMetadata(step: {
   if (step.reviewer !== undefined) meta.reviewer = step.reviewer;
   if (step.competency !== undefined) meta.competency = step.competency;
   if (step.estimatedMinutes !== undefined) meta.estimatedMinutes = step.estimatedMinutes;
+  if (step.questionSource !== undefined) meta.questionSource = step.questionSource || null;
+  if (step.passScore !== undefined) meta.passScore = step.passScore;
   return meta;
 }

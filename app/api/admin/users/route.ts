@@ -39,11 +39,20 @@ export async function GET() {
  );
  }
 
- const { data, error } = await admin
+ // Status and invite date come from a newer migration; fall back without them until it's applied.
+ const base = "id, email, full_name, role, level, manager_id, created_at";
+ // Members, plus super admins whose home workspace is this one (they train here).
+ let { data, error } = await admin
  .from("profiles")
- .select("id, email, full_name, role, level, manager_id, created_at")
- .eq("tenant_id", session.tenantId!)
+ .select(`${base}, status, invited_at`)
+ .or(`tenant_id.eq.${session.tenantId},home_tenant_id.eq.${session.tenantId}`)
  .order("full_name");
+ if (error) {
+ ({ data, error } = (await admin.from("profiles").select(base).eq("tenant_id", session.tenantId!).order("full_name")) as unknown as {
+ data: typeof data;
+ error: typeof error;
+ });
+ }
 
  if (error) {
  return NextResponse.json({ error: error.message }, { status: 500 });

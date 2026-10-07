@@ -8,13 +8,25 @@ type StatProps = {
   noteTone?: "danger" | "warning" | "success" | "muted";
   tone?: "blue" | "danger" | "ink";
   className?: string;
+  /** Makes the stat a button that opens the list behind the number. */
+  onClick?: () => void;
 };
 
 const noteTones = { danger: "text-danger", warning: "text-warning", success: "text-success", muted: "text-muted" };
 
-export function Stat({ label, value, note, noteTone = "muted", tone = "blue", className }: StatProps) {
+export function Stat({ label, value, note, noteTone = "muted", tone = "blue", className, onClick }: StatProps) {
+  // Clickable stats open the list behind the number.
+  const Tag = onClick ? "button" : "div";
   return (
-    <div className={cn("flex flex-col gap-1", className)}>
+    <Tag
+      className={cn(
+        "flex flex-col gap-1 text-left",
+        onClick && "-m-2 cursor-pointer rounded-[10px] p-2 hover:bg-bg focus-visible:outline-2 focus-visible:outline-blue",
+        className,
+      )}
+      onClick={onClick}
+      {...(onClick ? { type: "button" as const, "aria-label": `${label}: ${typeof value === "string" || typeof value === "number" ? value : ""}. Show the list.` } : {})}
+    >
       <span className="label-caps whitespace-nowrap">{label}</span>
       <span
         className={cn(
@@ -25,7 +37,8 @@ export function Stat({ label, value, note, noteTone = "muted", tone = "blue", cl
         {value}
       </span>
       {note ? <span className={cn("text-[13px] font-semibold whitespace-nowrap", noteTones[noteTone])}>{note}</span> : null}
-    </div>
+      {onClick ? <span className="text-[12px] font-semibold text-blue">View list</span> : null}
+    </Tag>
   );
 }
 

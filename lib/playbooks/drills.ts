@@ -86,7 +86,7 @@ export function buildPitchDrillRows(playbook: CapabilityPlaybook, guideTitle: st
         short_label: shortLabel(playbook.title, named ? `Pitch ${index + 1}` : undefined),
         label: named ? `${playbook.title}: ${pitch.title}` : `${playbook.title} elevator pitch`,
         prompt_label: "Your elevator pitch",
-        prompt: `In under ${limit} seconds, pitch ${playbook.title} to a State & Local or Higher Education executive. Lead with their problem, not the product.${problem}`,
+        prompt: `In under ${limit} seconds, pitch ${playbook.title} to a busy executive. Lead with their problem, not the product.${problem}`,
         description: source,
         reference_text: pitch.text,
         max_duration_sec: limit,
@@ -117,7 +117,7 @@ export function objectionDrillName(playbook: CapabilityPlaybook) {
 }
 
 /** Persona text; "objection practice" switches the simulation rail to the objection rubric. */
-export const OBJECTION_DRILL_PERSONA = "SLED buyer (objection practice)";
+export const OBJECTION_DRILL_PERSONA = "Buyer (objection practice)";
 
 export function objectionDrillPrompt(playbook: CapabilityPlaybook): string {
   const body = playbook.body;
@@ -130,7 +130,7 @@ export function objectionDrillPrompt(playbook: CapabilityPlaybook): string {
   return `You are running an ${OBJECTION_DRILL_MARKER} for SailPoint ${playbook.title} with a sales rep, using the field guide's objections and model responses below.
 
 ROLE
-Play a realistic buyer at a State & Local agency or a university: a CIO, CISO or IAM director. Busy, skeptical but fair. Speak like a real person, not a script.
+Play a realistic buyer at a mid-to-large organization: a CIO, CISO or IAM director. Busy, skeptical but fair. Speak like a real person, not a script.
 ${context}
 
 HOW THE DRILL RUNS

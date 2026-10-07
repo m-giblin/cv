@@ -1,24 +1,26 @@
 "use client";
 
-import { Check, ChevronRight, Mic, Search, Swords } from "lucide-react";
+import { Check, ChevronRight, ListChecks, Mic, Search, Swords } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AssignWorkbench, MyAssignments, TeamAssignments } from "@/components/playbooks/playbook-assignments";
+import { QuizPlayer, type Check as KnowledgeCheck } from "@/components/question-bank/knowledge-checks";
+import { GuideOverview } from "@/components/playbooks/guide-overview";
 import { PlaybookView } from "@/components/playbooks/playbook-view";
 import { SegmentedToggle } from "@/components/ui/segmented-toggle";
 import type { AssignablePerson } from "@/lib/playbooks/assignment-access";
 import { dueLabel, type PlaybookAssignment } from "@/lib/playbooks/assignment-model";
 import { Drawer } from "@/components/ui/drawer";
 import type { CapabilityPlaybook, PlaybookGuide } from "@/lib/playbooks/types";
-import { cn } from "@/lib/utils";
 
-function matches(playbook: CapabilityPlaybook, query: string) {
+function matches(playbook: CapabilityPlaybook, query: string, leadWhen = "") {
   const words = query.toLowerCase().split(/\s+/).filter(Boolean);
   if (!words.length) return true;
   const body = playbook.body;
   const haystack = [
     playbook.title,
+    leadWhen,
     body.subtitle,
     body.whereFits,
     ...body.pitches.map((pitch) => pitch.text),
@@ -63,7 +65,12 @@ export function PlaybookLibrary({
 
   const guide = guides.find((item) => item.id === guideId) ?? guides[0];
   const chapters = useMemo(() => playbooks.filter((playbook) => playbook.guideId === guide?.id), [guide?.id, playbooks]);
-  const visible = useMemo(() => chapters.filter((playbook) => matches(playbook, query)), [chapters, query]);
+  // "Lead with this when…" from the guide's routing table, shown under each playbook and searchable.
+  const leadWhenByChapter = useMemo(() => new Map(guide.body.routing.map((row) => [row.chapter, row.leadWhen])), [guide.body.routing]);
+  const visible = useMemo(
+    () => chapters.filter((playbook) => matches(playbook, query, leadWhenByChapter.get(playbook.chapter))),
+    [chapters, leadWhenByChapter, query],
+  );
 
   const openSlug = searchParams.get("playbook");
   // Assigned playbooks may belong to another guide, so fall back to the whole library.
@@ -99,8 +106,6 @@ export function PlaybookLibrary({
     );
   }
 
-  const routable = guide.body.routing.filter((row) => chapters.some((playbook) => playbook.chapter === row.chapter));
-  const slugFor = (chapter: number) => chapters.find((playbook) => playbook.chapter === chapter)?.slug;
 
   const assignWorkbench = assigning ? (
     <AssignWorkbench initialPlaybookIds={assigning} onClose={() => setAssigning(null)} people={people} playbooks={playbooks} />
@@ -154,44 +159,19 @@ export function PlaybookLibrary({
         ) : null}
       </div>
 
-      {routable.length ? (
-        <section className="flex flex-col gap-3">
-          <h2 className="text-[18px] font-extrabold text-ink">Which playbook for this deal?</h2>
-          <div className="overflow-hidden rounded-[14px] border border-line-strong bg-white shadow-[var(--shadow-card)]">
-            <table className="w-full border-collapse text-left text-[14px]">
-              <thead className="bg-bg text-[12px] font-bold tracking-wide text-muted uppercase">
-                <tr>
-                  <th className="px-4 py-2.5">Lead with this when…</th>
-                  <th className="px-4 py-2.5">Playbook</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line">
-                {routable.map((row) => (
-                  <tr className="hover:bg-blue-soft/40" key={row.chapter}>
-                    <td className="px-4 py-2.5 text-ink-2">{row.leadWhen}</td>
-                    <td className="px-4 py-2.5">
-                      <button className="link text-left font-bold" onClick={() => setOpen(slugFor(row.chapter) ?? null)} type="button">
-                        {row.capability}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      ) : null}
-
       <section className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-[18px] font-extrabold text-ink">All playbooks</h2>
+          <div className="flex flex-col gap-0.5">
+            <h2 className="text-[18px] font-extrabold text-ink">Which playbook for this deal?</h2>
+            <p className="m-0 text-sm text-muted">Each playbook says when to lead with it. Search what the prospect just told you.</p>
+          </div>
           <label className="relative block w-full max-w-[360px]">
             <span className="sr-only">Search playbooks</span>
             <Search aria-hidden className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted" />
             <input
               className="w-full rounded-[10px] border border-line-strong bg-white py-2 pr-3 pl-9 text-[14px] text-ink focus:border-blue focus:outline-none"
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search pitches and objections"
+              placeholder="Try audit, contractors, AI agents"
               type="search"
               value={query}
             />
@@ -211,8 +191,19 @@ export function PlaybookLibrary({
                   </span>
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <span className="text-[16px] font-bold text-ink group-hover:text-blue">{playbook.title}</span>
-                    <span className="text-[14px] leading-snug text-ink-2">{playbook.body.subtitle}</span>
+                    {leadWhenByChapter.get(playbook.chapter) ? (
+                      <span className="text-[14px] leading-snug text-ink-2">
+                        <span className="font-semibold text-ink">Lead with it when:</span> {leadWhenByChapter.get(playbook.chapter)}
+                      </span>
+                    ) : (
+                      <span className="text-[14px] leading-snug text-ink-2">{playbook.body.subtitle}</span>
+                    )}
                   </span>
+                  {read.has(playbook.id) ? (
+                    <span className="hidden shrink-0 items-center gap-1 text-[13px] font-bold text-success sm:inline-flex">
+                      <Check aria-hidden className="h-3.5 w-3.5" /> Read
+                    </span>
+                  ) : null}
                   <span className="num hidden shrink-0 text-[13px] text-muted sm:inline">
                     {playbook.body.objections.length} objections
                   </span>
@@ -267,23 +258,7 @@ export function PlaybookLibrary({
 
       {assignWorkbench}
 
-      {aboutOpen ? (
-        <Drawer eyebrow={guide.title} onClose={() => setAboutOpen(false)} open title="How to use this guide">
-          <div className="flex flex-col gap-7 text-[15px] leading-relaxed text-ink-2">
-            {guide.body.audience ? <p className="m-0 font-bold text-ink">{guide.body.audience}</p> : null}
-            {guide.body.sections.map((section) => (
-              <section className="flex flex-col gap-2" key={section.title}>
-                <h3 className={cn("text-[18px] font-extrabold text-ink")}>{section.title}</h3>
-                {section.paragraphs.map((paragraph, index) => (
-                  <p className="m-0" key={index}>
-                    {paragraph}
-                  </p>
-                ))}
-              </section>
-            ))}
-          </div>
-        </Drawer>
-      ) : null}
+      {aboutOpen ? <GuideOverview guide={guide} onClose={() => setAboutOpen(false)} /> : null}
     </div>
   );
 }
@@ -299,8 +274,25 @@ function PracticeStrip({
   const router = useRouter();
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [check, setCheck] = useState<KnowledgeCheck | null>(null);
+  const [quizOpen, setQuizOpen] = useState(false);
   const hasObjections = playbook.body.objections.length > 0;
-  if (!pitchDrills.length && !hasObjections) return null;
+
+  // The chapter's knowledge check, if the question bank has approved questions for it.
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/question-bank/quiz")
+      .then((response) => (response.ok ? response.json() : { checks: [] }))
+      .then((body: { checks?: KnowledgeCheck[] }) => {
+        if (!cancelled) setCheck(body.checks?.find((item) => item.key === `playbook:${playbook.id}`) ?? null);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [playbook.id]);
+
+  if (!pitchDrills.length && !hasObjections && !check) return null;
 
   async function startObjectionDrill() {
     setStarting(true);
@@ -320,7 +312,8 @@ function PracticeStrip({
       <div className="flex flex-col gap-0.5">
         <h3 className="m-0 text-[16px] font-extrabold text-ink">Practise this</h3>
         <p className="m-0 text-[13px] text-muted">
-          Private practice: say it on video, by voice or typed, and the AI scores it against this playbook. Your manager isn&apos;t notified.
+          Private practice: say it on video, by voice or typed, and the AI scores it against this playbook. Check what stuck with a quick
+          five-question quiz. Your manager isn&apos;t notified.
         </p>
       </div>
       <div className="flex flex-wrap gap-2">
@@ -334,6 +327,16 @@ function PracticeStrip({
             {pitchDrills.length === 1 ? "Practise the pitch" : drill.label.split(": ").pop() || `Pitch ${index + 1}`}
           </Link>
         ))}
+        {check ? (
+          <button aria-expanded={quizOpen} className="btn-secondary" onClick={() => setQuizOpen((value) => !value)} type="button">
+            <ListChecks aria-hidden className="h-4 w-4" />
+            {quizOpen
+              ? "Hide the knowledge check"
+              : check.lastScore === null
+                ? `Take the knowledge check (${check.questions} questions)`
+                : `Retake the knowledge check (last ${check.lastScore}%)`}
+          </button>
+        ) : null}
         {hasObjections ? (
           <button className="btn-primary" disabled={starting} onClick={() => void startObjectionDrill()} type="button">
             <Swords aria-hidden className="h-4 w-4" />
@@ -341,6 +344,11 @@ function PracticeStrip({
           </button>
         ) : null}
       </div>
+      {check && quizOpen ? (
+        <div className="border-t border-divider pt-4">
+          <QuizPlayer check={check} onDone={() => undefined} />
+        </div>
+      ) : null}
       {error ? (
         <p className="m-0 rounded-[10px] bg-danger-soft px-3 py-2 text-sm text-danger" role="alert">
           {error}

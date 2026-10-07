@@ -45,14 +45,24 @@ export async function PATCH(request: Request, context: RouteContext) {
  return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
  }
 
- const { data: existingProfile } = await admin
- .from("profiles")
- .select("role, level, manager_id, tenant_id")
- .eq("id", id)
- .maybeSingle();
+ const { data: existingRow } = await admin.from("profiles").select("*").eq("id", id).maybeSingle();
+ const existingProfile = existingRow as { role: ProfileRole; level: string; manager_id: string | null; tenant_id: string | null; home_tenant_id?: string | null } | null;
 
- if (!existingProfile || existingProfile.tenant_id !== session.tenantId) {
+ // A super admin whose home workspace is this one shows up here for training. Tenant admins may
+ // set their manager and level, nothing else: never their role, name, email or account.
+ const homeMember = Boolean(existingProfile && existingProfile.role === "super_admin" && existingProfile.home_tenant_id === session.tenantId);
+ if (!existingProfile || (existingProfile.tenant_id !== session.tenantId && !homeMember)) {
  return NextResponse.json({ error: "User not found in your tenant." }, { status: 404 });
+ }
+ if (homeMember) {
+ const update: Database["public"]["Tables"]["profiles"]["Update"] = {};
+ if (parsed.data.level) update.level = parsed.data.level;
+ if (parsed.data.managerId !== undefined) update.manager_id = parsed.data.managerId;
+ if (Object.keys(update).length) {
+ const { error } = await admin.from("profiles").update(update).eq("id", id);
+ if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+ }
+ return NextResponse.json({ ok: true, note: "Only manager and level can be changed for a super admin." });
  }
 
  if (parsed.data.email) {

@@ -11,8 +11,13 @@ export type AssignablePerson = { id: string; name: string; role: ProfileRole };
 export async function loadAssignablePeople(tenantId: string, viewerId: string, viewerRole: ProfileRole): Promise<AssignablePerson[]> {
   const admin = getTenantAdminClient();
   if (!admin) return [];
-  const { data } = await admin.from("profiles").select("id, full_name, role, manager_id").eq("tenant_id", tenantId).order("full_name");
-  const profiles = (data ?? []) as { id: string; full_name: string; role: ProfileRole; manager_id: string | null }[];
+  // "*" so this still works before the status column exists; inactive people can't be assigned work.
+  // Home-workspace super admins count as members here, so they can be assigned training too.
+  let { data, error } = await admin.from("profiles").select("*").or(`tenant_id.eq.${tenantId},home_tenant_id.eq.${tenantId}`).order("full_name");
+  if (error) ({ data, error } = await admin.from("profiles").select("*").eq("tenant_id", tenantId).order("full_name"));
+  const profiles = ((data ?? []) as { id: string; full_name: string; role: ProfileRole; manager_id: string | null; status?: string }[]).filter(
+    (profile) => profile.status !== "inactive",
+  );
   const others = profiles.filter((profile) => profile.id !== viewerId);
 
   const tier = getAccessTier(viewerRole);

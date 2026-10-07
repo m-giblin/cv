@@ -16,13 +16,15 @@ export function HeaderStat({
   value,
   note,
   tone = "blue",
+  onClick,
 }: {
   label: string;
   value: ReactNode;
   note?: ReactNode;
   tone?: "blue" | "danger" | "ink";
+  onClick?: () => void;
 }) {
-  return <Stat label={label} note={note} noteTone="danger" tone={tone} value={value} />;
+  return <Stat label={label} note={note} noteTone="danger" onClick={onClick} tone={tone} value={value} />;
 }
 
 const STATUS_PILL: Record<TeamStatus, { label: string; tone: StatusTone }> = {

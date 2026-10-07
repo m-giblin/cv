@@ -17,6 +17,7 @@ export const BUILDER_STEP_TYPES: { type: PlanStepType; label: string; short: str
   { type: "shadow_meeting_log", label: "Shadow", short: "SHADOW" },
   { type: "mentor_review", label: "Review", short: "REVIEW" },
   { type: "deal_prep", label: "Deal prep", short: "DEAL PREP" },
+  { type: "knowledge_check", label: "Knowledge check", short: "CHECK" },
   { type: "custom", label: "Task", short: "TASK" },
 ];
 
@@ -54,6 +55,9 @@ export type BuilderStep = {
   contentAssetId: string;
   challengeId: string;
   simulationTemplateId: string;
+  /** Knowledge check: question-bank source key and pass mark (%). */
+  questionSource: string;
+  passScore: number;
   segmentIndex: number | null;
   isSegmentGate: boolean;
   criteria: string[];
@@ -109,6 +113,8 @@ export function dbStepToBuilder(step: DbTemplateStep): BuilderStep {
     contentAssetId: step.content_asset_id ?? "",
     challengeId: step.challenge_id ?? "",
     simulationTemplateId: step.simulation_template_id ?? "",
+    questionSource: str(raw.questionSource),
+    passScore: typeof raw.passScore === "number" ? raw.passScore : 80,
     segmentIndex: meta.segmentIndex,
     isSegmentGate: meta.isSegmentGate,
     criteria,
@@ -140,6 +146,8 @@ export function emptyBuilderStep(partial: Partial<BuilderStep> = {}): BuilderSte
     contentAssetId: "",
     challengeId: "",
     simulationTemplateId: "",
+    questionSource: "",
+    passScore: 80,
     segmentIndex: null,
     isSegmentGate: false,
     criteria: [""],
@@ -163,6 +171,8 @@ export function builderStepsToPayload(steps: BuilderStep[]) {
     contentAssetId: step.contentAssetId,
     challengeId: step.challengeId,
     simulationTemplateId: step.simulationTemplateId,
+    questionSource: step.stepType === "knowledge_check" ? step.questionSource || null : undefined,
+    passScore: step.stepType === "knowledge_check" ? step.passScore : undefined,
     segmentIndex: step.segmentIndex,
     isSegmentGate: step.isSegmentGate,
     criteria: cleanCriteria(step.criteria),
@@ -192,6 +202,8 @@ export function stepIssues(step: BuilderStep): StepIssue[] {
   const issues: StepIssue[] = [];
   if (!step.stepType) issues.push("type");
   if (step.title.trim().length < 2) issues.push("title");
+  // A knowledge check grades itself: passing the quiz is the evidence and the sign-off.
+  if (step.stepType === "knowledge_check") return issues;
   if (cleanCriteria(step.criteria).length === 0) issues.push("criteria");
   if (!step.evidence) issues.push("evidence");
   if (!step.reviewer) issues.push("reviewer");
@@ -207,6 +219,7 @@ export function stepWarnings(step: BuilderStep): string[] {
   const warnings: string[] = [];
   if (step.stepType === "simulation" && !step.simulationTemplateId) warnings.push("has no persona");
   if (step.stepType === "challenge" && !step.challengeId) warnings.push("has no challenge linked");
+  if (step.stepType === "knowledge_check" && !step.questionSource) warnings.push("has no question bank linked");
   if (step.stepType === "content_review" && !step.contentAssetId && !step.contentUrl.trim()) {
     warnings.push("has no content linked");
   }

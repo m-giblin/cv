@@ -101,7 +101,7 @@ export function pitchDrillPrompt(input: {
       ? `It took ${Math.round(input.durationSec)} seconds against a ${input.maxDurationSec}-second limit.`
       : `The time limit is ${input.maxDurationSec} seconds (roughly ${Math.round(input.maxDurationSec * 2.5)} spoken words).`;
   return [
-    "You coach SailPoint sales reps on elevator pitches for State & Local and Higher Education buyers.",
+    "You coach SailPoint sales reps on elevator pitches for enterprise buyers.",
     "Compare the rep's pitch with the reference pitch from the field guide. Reward the same ideas in the rep's own words; do not reward reciting it word for word over sounding natural.",
     "Score each row from 0 to 100, where 70 means ready for a real call and 85+ is excellent. Thin, vague or off-topic pitches score low.",
     ...PITCH_DRILL_RUBRIC.map((row) => `- ${row.key} (${row.label}): ${row.guide}`),

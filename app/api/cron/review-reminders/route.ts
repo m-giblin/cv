@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sendRampOverdueAlerts } from "@/lib/manager/ramp-overdue-alerts";
 import { sendPlaybookAssignmentReminders } from "@/lib/playbooks/assignment-reminders";
 import {
   computeReminderEligibility,
@@ -80,5 +81,8 @@ export async function GET(request: Request) {
   // Playbook due-date reminders ride on this daily job (Vercel Hobby allows few cron jobs).
   const playbooks = await sendPlaybookAssignmentReminders().catch(() => ({ dueSoon: 0, overdue: 0 }));
 
-  return NextResponse.json({ sent, skipped, failed, playbooks });
+  // Managers hear when someone on their team falls behind on onboarding.
+  const ramp = await sendRampOverdueAlerts().catch(() => ({ alerted: 0, nudged: 0 }));
+
+  return NextResponse.json({ sent, skipped, failed, playbooks, ramp });
 }

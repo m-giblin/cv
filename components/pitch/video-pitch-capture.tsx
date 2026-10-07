@@ -200,7 +200,9 @@ export function VideoPitchCapture({
     setTypedPitch("");
     setDurationSec(undefined);
     setResponseMode((current) => (scenario.responseModes.includes(current) ? current : scenario.responseModes[0]!));
-  }, [scenario.shortLabel, scenario.id, scenario.responseModes, resetAttempt]);
+    // Keyed on the scenario's id: its object (and responseModes array) is rebuilt every render, which looped.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scenario.id]);
 
   // Live camera preview. The video element mounts when recording starts, so attach the stream then.
   useEffect(() => {
@@ -547,41 +549,58 @@ export function VideoPitchCapture({
           </span>
         </div>
 
-        <div
-          aria-label={studioMode === "assigned" ? "Queue slots" : "Scenarios"}
-          className="flex shrink-0 flex-wrap items-center gap-2 border-b border-divider px-4 py-3 sm:px-5"
-          role="group"
-        >
-          <span className="mr-1 text-sm font-bold text-ink">{studioMode === "assigned" ? "Queue slot" : "Scenario"}</span>
-          {studioMode === "assigned" && loadingQueue ? (
-            <span className="inline-flex items-center gap-1.5 text-[13px] text-muted" role="status">
-              <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
-              Loading queue…
-            </span>
-          ) : null}
-          {studioMode === "assigned"
-            ? queue.map((slot) => (
-                <Chip
-                  active={selectedQueueSlotId === slot.id}
-                  className="disabled:cursor-not-allowed disabled:opacity-60"
-                  disabled={Boolean(slot.submissionId)}
-                  key={slot.id}
-                  onClick={() => selectAssignedSlot(slot)}
-                >
-                  Slot {slot.slot}: {slot.scenario.shortLabel}
-                  {slot.submissionId ? " (pending)" : ""}
-                </Chip>
-              ))
-            : practiceScenarios.map((item) => (
-                <Chip
-                  active={selectedScenarioId === item.id}
-                  key={item.id}
-                  onClick={() => selectPracticeScenario(item.id)}
-                >
-                  {item.shortLabel}
-                </Chip>
-              ))}
-        </div>
+        {studioMode === "assigned" ? (
+          <div aria-label="Queue slots" className="flex shrink-0 flex-wrap items-center gap-2 border-b border-divider px-4 py-3 sm:px-5" role="group">
+            <span className="mr-1 text-sm font-bold text-ink">Queue slot</span>
+            {loadingQueue ? (
+              <span className="inline-flex items-center gap-1.5 text-[13px] text-muted" role="status">
+                <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
+                Loading queue…
+              </span>
+            ) : null}
+            {queue.map((slot) => (
+              <Chip
+                active={selectedQueueSlotId === slot.id}
+                className="disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={Boolean(slot.submissionId)}
+                key={slot.id}
+                onClick={() => selectAssignedSlot(slot)}
+              >
+                Slot {slot.slot}: {slot.scenario.shortLabel}
+                {slot.submissionId ? " (pending)" : ""}
+              </Chip>
+            ))}
+          </div>
+        ) : (
+          // One compact picker instead of a wall of chips; the chosen scenario stays front and centre.
+          <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-divider px-4 py-3 sm:px-5">
+            <label className="text-sm font-bold text-ink" htmlFor={`${typedId}-scenario`}>
+              Scenario
+            </label>
+            <select
+              className="min-w-0 max-w-full flex-1 rounded-[10px] border border-line-strong bg-white px-3 py-2 text-[15px] font-bold text-ink sm:max-w-[460px]"
+              id={`${typedId}-scenario`}
+              onChange={(event) => selectPracticeScenario(event.target.value)}
+              value={selectedScenarioId ?? ""}
+            >
+              {[
+                { label: "From playbooks (scored against the guide's pitch)", items: practiceScenarios.filter((item) => item.referenceText) },
+                { label: "Practice scenarios", items: practiceScenarios.filter((item) => !item.referenceText) },
+              ]
+                .filter((group) => group.items.length)
+                .map((group) => (
+                  <optgroup key={group.label} label={group.label}>
+                    {group.items.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.label || item.shortLabel}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+            </select>
+            <span className="text-[13px] text-muted">{practiceScenarios.length} to choose from</span>
+          </div>
+        )}
 
         <div className="flex shrink-0 flex-wrap items-start gap-3 border-b border-divider bg-white px-4 py-3 sm:px-5">
           <div className="min-w-0 flex-1">

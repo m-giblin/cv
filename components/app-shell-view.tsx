@@ -9,7 +9,6 @@ import { TopBar } from "@/components/nav/top-bar";
 import { useNavFlags } from "@/components/nav/use-nav-flags";
 import { ShadowTenantBanner } from "@/components/platform/shadow-tenant-banner";
 import { TenantBrandingProvider } from "@/components/tenant/tenant-branding-provider";
-import { UatBugTracker } from "@/components/uat/uat-bug-tracker";
 import { WorkspaceSwitcher } from "@/components/workspace-switcher";
 import type { AccessTier } from "@/lib/auth/rbac";
 import { resolveActiveWorkspace, type WorkspaceHat } from "@/lib/auth/workspace";
@@ -99,7 +98,6 @@ export function AppShellView({
   branding,
   people,
   navCounts,
-  forgeEnabled = false,
   assistantEnabled = false,
 }: {
   children: ReactNode;
@@ -117,6 +115,7 @@ export function AppShellView({
   branding: TenantShellBranding;
   people?: SidebarPerson[];
   navCounts?: Record<string, string | number>;
+  /** Was the floating UAT bugs button; the button is gone, the prop stays for callers. */
   forgeEnabled?: boolean;
   assistantEnabled?: boolean;
 }) {
@@ -216,11 +215,6 @@ export function AppShellView({
               {children}
             </main>
             {assistantEnabled ? <AssistantWidget workspace={workspace} /> : null}
-            <UatBugTracker
-              enabled={forgeEnabled}
-              reporterEmail={currentUser.email}
-              reporterName={currentUser.fullName}
-            />
           </div>
         </div>
 

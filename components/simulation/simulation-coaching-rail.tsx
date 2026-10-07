@@ -1,5 +1,6 @@
 "use client";
 
+import { splitCoachMessage } from "@/lib/simulations/coach-message";
 import { Loader2, RotateCcw } from "lucide-react";
 import { useId } from "react";
 import type { CoachingCardOutput } from "@/lib/ai/schemas";
@@ -21,7 +22,7 @@ function lastCoachInsight(messages: TranscriptEntry[]) {
   for (let i = messages.length - 1; i >= 0; i -= 1) {
     const entry = messages[i];
     if (entry?.speaker === "coach") {
-      return entry.message;
+      return splitCoachMessage(entry.message).reply;
     }
   }
   return null;
@@ -57,6 +58,13 @@ export function SimulationCoachingRail({
   const reflectionId = useId();
   const lastSe = [...messages].reverse().find((m) => m.speaker === "se");
   const coachHint = lastCoachInsight(messages);
+  // Scored notes from objection practice, newest first.
+  const notes = messages
+    .filter((m) => m.speaker === "coach")
+    .map((m) => splitCoachMessage(m.message))
+    .filter((parts) => parts.note)
+    .reverse();
+  const [latest, ...earlier] = notes;
 
   if (coachingCard) {
     const score = coachingCard.score;
@@ -164,13 +172,48 @@ export function SimulationCoachingRail({
           </div>
         )}
 
-        <div className="rounded-[14px] bg-signal-soft p-3.5">
-          <p className="text-[13px] font-semibold text-ink">Next move</p>
-          <p className="mt-1 text-sm leading-[1.5] text-ink">
-            {coachHint ??
-              "Probe the approval chain — who signs off on identity governance spend and what audit date is driving urgency?"}
-          </p>
-        </div>
+        {latest ? (
+          <div className="rounded-[14px] bg-signal-soft p-3.5">
+            <div className="flex items-baseline justify-between gap-2">
+              <p className="text-[13px] font-semibold text-ink">Coach&apos;s note</p>
+              {latest.score ? (
+                <span
+                  className={`num text-[20px] font-extrabold ${
+                    latest.score.value / latest.score.outOf >= 0.7 ? "text-success" : latest.score.value / latest.score.outOf >= 0.5 ? "text-warning" : "text-danger"
+                  }`}
+                >
+                  {latest.score.value}
+                  <span className="text-[13px] font-bold text-muted">/{latest.score.outOf}</span>
+                </span>
+              ) : null}
+            </div>
+            <p className="mt-1 text-sm leading-[1.5] text-ink">{latest.note}</p>
+          </div>
+        ) : (
+          <div className="rounded-[14px] bg-signal-soft p-3.5">
+            <p className="text-[13px] font-semibold text-ink">Next move</p>
+            <p className="mt-1 text-sm leading-[1.5] text-ink">
+              {coachHint ??
+                "Probe the approval chain — who signs off on identity governance spend and what audit date is driving urgency?"}
+            </p>
+          </div>
+        )}
+
+        {earlier.length ? (
+          <details className="rounded-[14px] border border-line p-3.5">
+            <summary className="cursor-pointer text-[13px] font-semibold text-ink">
+              Earlier notes ({earlier.map((item) => (item.score ? `${item.score.value}` : "–")).join(", ")})
+            </summary>
+            <ol className="mt-2 flex flex-col gap-2">
+              {earlier.map((item, index) => (
+                <li className="text-[13px] leading-[1.45] text-ink-2" key={index}>
+                  {item.score ? <span className="font-bold text-ink">{item.score.value}/{item.score.outOf}. </span> : null}
+                  {item.note}
+                </li>
+              ))}
+            </ol>
+          </details>
+        ) : null}
 
         <div>
           <h3 className="label-caps mb-2">What the card scores</h3>

@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { loadActiveTenantProfiles } from "@/lib/data/active-profiles";
 import { getAuthenticatedUser } from "@/lib/data/get-authenticated-user";
 import { getDemoDashboardData, getSubtree } from "@/lib/demo-data";
 import { getEffectiveAccess } from "@/lib/auth/effective-access";
@@ -46,10 +47,7 @@ async function fetchSupabaseAdminPageDataForTenant(
 
   // One parallel batch: everything here depends only on the tenant and the signed-in user.
   const [profilesResult, activityResult, notificationsResult, operatorResult] = await Promise.all([
-    admin
-      .from("profiles")
-      .select("id, email, full_name, role, level, manager_id, avatar_url, created_at, tenant_id")
-      .eq("tenant_id", tenantId),
+    loadActiveTenantProfiles<Database["public"]["Tables"]["profiles"]["Row"]>(admin, tenantId),
     admin
       .from("activity_logs")
       .select("id, user_id, event_type, title, metadata, created_at")

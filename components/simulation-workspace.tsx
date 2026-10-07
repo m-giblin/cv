@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Send, Sparkles } from "lucide-react";
+import { Loader2, MessageSquareText, Send, Sparkles } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -15,6 +15,7 @@ import { SimulationSpeechInput } from "@/components/simulation/speech-input";
 import { CARD_CLS, LABEL_CLS, TEXTAREA_CLS } from "@/components/se/form-classes";
 import { StatusPill } from "@/components/ui/status-pill";
 import { SimulationAssignment } from "@/lib/types";
+import { splitCoachMessage } from "@/lib/simulations/coach-message";
 import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
@@ -381,6 +382,31 @@ export function SimulationWorkspace({
       ) : null}
       {messages.map((message, index) => {
         const isSe = message.speaker === "se";
+        // Objection-practice turns carry the buyer's reply, a coaching note and the next objection
+        // in one message. The chat shows only what the buyer says; the note goes to the coaching rail.
+        const parts = message.speaker === "coach" ? splitCoachMessage(message.message) : null;
+        if (parts?.note) {
+          return (
+            <div className="flex flex-col items-start gap-1" key={`${message.speaker}-${index}`}>
+              <span className="text-[13px] font-semibold text-muted">{assignment.persona}</span>
+              {parts.reply ? (
+                <div className="max-w-[85%] rounded-[14px] border border-line bg-white px-3.5 py-2.5 sm:max-w-[78%]">
+                  <p className="whitespace-pre-wrap text-[15px] leading-[1.5] text-ink">{parts.reply}</p>
+                </div>
+              ) : null}
+              <span className="flex items-center gap-1.5 pl-1 text-[12px] text-muted">
+                <MessageSquareText aria-hidden className="h-3.5 w-3.5" />
+                Coach scored your reply {parts.score ? `${parts.score.value}/${parts.score.outOf}` : ""}. The note is in Live coaching.
+              </span>
+              {parts.nextObjection ? (
+                <div className="mt-1 max-w-[85%] rounded-[14px] border border-line bg-white px-3.5 py-2.5 sm:max-w-[78%]">
+                  <p className="label-caps mb-1">Next objection</p>
+                  <p className="whitespace-pre-wrap text-[15px] leading-[1.5] text-ink">{parts.nextObjection}</p>
+                </div>
+              ) : null}
+            </div>
+          );
+        }
         const isCoach = message.speaker === "coach";
         const speakerLabel = isSe ? "You" : isCoach ? "Coach" : assignment.persona;
 
@@ -522,7 +548,8 @@ export function SimulationWorkspace({
       <div
         className={cn(
           CARD_CLS,
-          "grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[280px_minmax(0,1fr)_280px]",
+          // A fixed-height window on large screens: each column scrolls on its own, like a chat app.
+          "grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:h-[calc(100vh-190px)] lg:min-h-[560px] lg:grid-cols-[280px_minmax(0,1fr)_300px]",
         )}
       >
         <SimulationScenarioBrief assignment={assignment} criteria={rubricCriteria} turnCount={messages.length} />

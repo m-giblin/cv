@@ -223,6 +223,8 @@ export function AssignWorkbench({
   const [requireRead, setRequireRead] = useState(true);
   const [requirePitch, setRequirePitch] = useState(true);
   const [requireObjections, setRequireObjections] = useState(true);
+  const [requireQuiz, setRequireQuiz] = useState(true);
+  const [quizPassScore, setQuizPassScore] = useState(80);
   const [passScore, setPassScore] = useState(70);
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
@@ -259,6 +261,8 @@ export function AssignWorkbench({
         requirePitch,
         requireObjections,
         pitchPassScore: passScore,
+        requireQuiz,
+        quizPassScore,
         note: note.trim() || undefined,
       }),
     }).catch(() => null);
@@ -414,6 +418,7 @@ export function AssignWorkbench({
               ["Read the playbook", requireRead, setRequireRead],
               ["Pass the pitch drill", requirePitch, setRequirePitch],
               ["Complete the objection drill", requireObjections, setRequireObjections],
+              ["Pass the knowledge check (when the chapter has one)", requireQuiz, setRequireQuiz],
             ] as const
           ).map(([label, value, set]) => (
             <label className="flex cursor-pointer items-center gap-2.5 text-[14px] text-ink" key={label}>
@@ -434,6 +439,21 @@ export function AssignWorkbench({
                 value={passScore}
               />
               <span className="text-[13px] text-muted">average of the three rubric scores</span>
+            </label>
+          ) : null}
+          {requireQuiz ? (
+            <label className="mt-1 flex flex-wrap items-center gap-2 text-[14px] text-ink-2">
+              <span className="whitespace-nowrap">Knowledge check pass mark</span>
+              <Input
+                aria-label="Knowledge check pass mark"
+                className="!w-20"
+                max={100}
+                min={1}
+                onChange={(event) => setQuizPassScore(Math.max(1, Math.min(100, Number(event.target.value) || 80)))}
+                type="number"
+                value={quizPassScore}
+              />
+              <span className="text-[13px] text-muted">percent correct</span>
             </label>
           ) : null}
         </div>
