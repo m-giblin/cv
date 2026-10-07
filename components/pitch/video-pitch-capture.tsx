@@ -202,6 +202,16 @@ export function VideoPitchCapture({
     setResponseMode((current) => (scenario.responseModes.includes(current) ? current : scenario.responseModes[0]!));
   }, [scenario.shortLabel, scenario.id, scenario.responseModes, resetAttempt]);
 
+  // Live camera preview. The video element mounts when recording starts, so attach the stream then.
+  useEffect(() => {
+    const video = videoRef.current;
+    const stream = streamRef.current;
+    if (!recording || responseMode !== "video" || !video || !stream) return;
+    video.srcObject = stream;
+    video.muted = true;
+    void video.play().catch(() => undefined);
+  }, [recording, responseMode]);
+
   // Recording clock; stops automatically at the scenario's time limit.
   useEffect(() => {
     if (!recording) return;
@@ -346,10 +356,7 @@ export function VideoPitchCapture({
       const wantsVideo = responseMode === "video";
       const stream = await navigator.mediaDevices.getUserMedia({ video: wantsVideo, audio: true });
       streamRef.current = stream;
-      if (wantsVideo && videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
+      // The <video> only mounts once recording starts; the effect below attaches this stream to it.
 
       const recorder = new MediaRecorder(stream);
       chunksRef.current = [];
