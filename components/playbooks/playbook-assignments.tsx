@@ -308,8 +308,10 @@ export function AssignWorkbench({
       title="Assign playbooks"
     >
       <div className="grid gap-5 lg:grid-cols-2">
-        <fieldset className="m-0 flex flex-col gap-2 rounded-[14px] border border-line bg-white p-4">
-          <legend className="px-1 text-[16px] font-extrabold text-ink">Playbooks</legend>
+        <div aria-labelledby="assign-playbooks" className="flex flex-col gap-2 rounded-[14px] border border-line bg-white p-4" role="group">
+          <h3 className="m-0 text-[16px] font-extrabold text-ink" id="assign-playbooks">
+            Playbooks
+          </h3>
           <ul className="m-0 flex max-h-[340px] flex-col gap-1 overflow-y-auto p-0">
             {playbooks.map((playbook) => (
               <li className="list-none" key={playbook.id}>
@@ -327,10 +329,12 @@ export function AssignWorkbench({
               </li>
             ))}
           </ul>
-        </fieldset>
+        </div>
 
-        <fieldset className="m-0 flex flex-col gap-2 rounded-[14px] border border-line bg-white p-4">
-          <legend className="px-1 text-[16px] font-extrabold text-ink">People</legend>
+        <div aria-labelledby="assign-people" className="flex flex-col gap-2 rounded-[14px] border border-line bg-white p-4" role="group">
+          <h3 className="m-0 text-[16px] font-extrabold text-ink" id="assign-people">
+            People
+          </h3>
           <div className="flex items-center gap-2">
             <Input aria-label="Search people" onChange={(event) => setSearch(event.target.value)} placeholder="Search by name" value={search} />
             <button
@@ -373,10 +377,12 @@ export function AssignWorkbench({
           <span className="text-[13px] text-muted">
             <span className="num">{assigneeIds.size}</span> selected
           </span>
-        </fieldset>
+        </div>
 
-        <fieldset className="m-0 flex flex-col gap-3 rounded-[14px] border border-line bg-white p-4">
-          <legend className="px-1 text-[16px] font-extrabold text-ink">Due date</legend>
+        <div aria-labelledby="assign-due-date" className="flex flex-col gap-3 rounded-[14px] border border-line bg-white p-4" role="group">
+          <h3 className="m-0 text-[16px] font-extrabold text-ink" id="assign-due-date">
+            Due date
+          </h3>
           <Input aria-label="Due date" min={todayIso()} onChange={(event) => setDueDate(event.target.value)} type="date" value={dueDate} />
           <div className="flex flex-wrap gap-2">
             {[7, 14, 30].map((days) => (
@@ -397,10 +403,12 @@ export function AssignWorkbench({
               value={note}
             />
           </label>
-        </fieldset>
+        </div>
 
-        <fieldset className="m-0 flex flex-col gap-2 rounded-[14px] border border-line bg-white p-4">
-          <legend className="px-1 text-[16px] font-extrabold text-ink">Counts as done when they</legend>
+        <div aria-labelledby="assign-counts-as-done-when-they" className="flex flex-col gap-2 rounded-[14px] border border-line bg-white p-4" role="group">
+          <h3 className="m-0 text-[16px] font-extrabold text-ink" id="assign-counts-as-done-when-they">
+            Counts as done when they
+          </h3>
           {(
             [
               ["Read the playbook", requireRead, setRequireRead],
@@ -414,8 +422,8 @@ export function AssignWorkbench({
             </label>
           ))}
           {requirePitch ? (
-            <label className="mt-1 flex items-center gap-2 text-[14px] text-ink-2">
-              Pitch pass mark
+            <label className="mt-1 flex flex-wrap items-center gap-2 text-[14px] text-ink-2">
+              <span className="whitespace-nowrap">Pitch pass mark</span>
               <Input
                 aria-label="Pitch pass mark"
                 className="!w-20"
@@ -428,7 +436,7 @@ export function AssignWorkbench({
               <span className="text-[13px] text-muted">average of the three rubric scores</span>
             </label>
           ) : null}
-        </fieldset>
+        </div>
       </div>
     </Drawer>
   );

@@ -9,12 +9,17 @@ import { STORY_SEGMENTS, STORY_SEGMENT_LABELS, type PlaybookBody, type StorySegm
 /** Form for every part of a playbook. Lists are edited one item per line; pairs get their own rows. */
 
 function Group({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
+  const id = useId();
   return (
-    <fieldset className="m-0 flex flex-col gap-3 rounded-[14px] border border-line bg-white p-4 sm:p-5">
-      <legend className="px-1 text-[16px] font-extrabold text-ink">{title}</legend>
-      {hint ? <p className="m-0 -mt-1 text-[13px] text-muted">{hint}</p> : null}
+    <div aria-labelledby={id} className="flex flex-col gap-3 rounded-[14px] border border-line bg-white p-4 sm:p-5" role="group">
+      <div className="flex flex-col gap-0.5">
+        <h3 className="m-0 text-[16px] font-extrabold text-ink" id={id}>
+          {title}
+        </h3>
+        {hint ? <p className="m-0 text-[13px] text-muted">{hint}</p> : null}
+      </div>
       {children}
-    </fieldset>
+    </div>
   );
 }
 
