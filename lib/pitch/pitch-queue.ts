@@ -22,6 +22,12 @@ export type PitchScenarioRow = {
   sortOrder: number;
   active: boolean;
   passingGrade: number;
+  /** Ways the rep may answer: video, voice and/or typed. */
+  responseModes: string[];
+  /** The guide's pitch a playbook drill is scored against; null for ordinary scenarios. */
+  referenceText: string | null;
+  /** False for playbook drills: they never fill queue slots on their own. */
+  autoQueue: boolean;
 };
 
 export type PitchQueueSlot = {
@@ -47,6 +53,9 @@ type DbScenario = {
   sort_order: number;
   active: boolean;
   passing_grade: number;
+  response_modes?: string[] | null;
+  reference_text?: string | null;
+  auto_queue?: boolean | null;
 };
 
 function mapScenario(row: DbScenario): PitchScenarioRow {
@@ -65,6 +74,9 @@ function mapScenario(row: DbScenario): PitchScenarioRow {
     sortOrder: row.sort_order,
     active: row.active,
     passingGrade: row.passing_grade,
+    responseModes: row.response_modes?.length ? row.response_modes : ["video"],
+    referenceText: row.reference_text ?? null,
+    autoQueue: row.auto_queue ?? true,
   };
 }
 
@@ -136,7 +148,7 @@ export async function listPitchScenarios(
   let query = supabase
     .from("pitch_scenario_templates")
     .select(
-      "id, slug, track, short_label, label, prompt_label, prompt, description, competencies, linked_solution, max_duration_sec, sort_order, active, passing_grade",
+      "id, slug, track, short_label, label, prompt_label, prompt, description, competencies, linked_solution, max_duration_sec, sort_order, active, passing_grade, response_modes, reference_text, auto_queue",
     )
     .eq("tenant_id", tenantId)
     .order("sort_order");
@@ -163,7 +175,7 @@ export async function ensurePitchQueueForUser(
   const { data: activeRows } = await supabase
     .from("pitch_se_queue")
     .select(
-      "id, slot, status, submission_id, scenario:pitch_scenario_templates(id, slug, track, short_label, label, prompt_label, prompt, description, competencies, linked_solution, max_duration_sec, sort_order, active, passing_grade)",
+      "id, slot, status, submission_id, scenario:pitch_scenario_templates(id, slug, track, short_label, label, prompt_label, prompt, description, competencies, linked_solution, max_duration_sec, sort_order, active, passing_grade, response_modes, reference_text, auto_queue)",
     )
     .eq("user_id", userId)
     .eq("status", "active")
@@ -193,7 +205,8 @@ export async function ensurePitchQueueForUser(
     ...(await completedScenarioIds(supabase, userId)),
   ]);
 
-  const pool = scenarios.filter((s) => !assignedScenarioIds.has(s.id));
+  // Playbook drills are opt-in practice: they never fill a queue slot automatically.
+  const pool = scenarios.filter((s) => s.autoQueue && !assignedScenarioIds.has(s.id));
   const slotsNeeded = PITCH_QUEUE_SLOT_COUNT - active.length;
   const usedSlots = new Set(active.map((row) => row.slot));
   const nextSlots = freeSlots(usedSlots, slotsNeeded);
@@ -240,7 +253,7 @@ export async function getActivePitchQueue(
   const { data } = await supabase
     .from("pitch_se_queue")
     .select(
-      "id, slot, status, submission_id, scenario:pitch_scenario_templates(id, slug, track, short_label, label, prompt_label, prompt, description, competencies, linked_solution, max_duration_sec, sort_order, active, passing_grade)",
+      "id, slot, status, submission_id, scenario:pitch_scenario_templates(id, slug, track, short_label, label, prompt_label, prompt, description, competencies, linked_solution, max_duration_sec, sort_order, active, passing_grade, response_modes, reference_text, auto_queue)",
     )
     .eq("user_id", userId)
     .eq("status", "active")

@@ -9,6 +9,9 @@ const postSchema = z.object({
   reflectionText: z.string().optional(),
   scenarioId: z.string().uuid().optional(),
   aiScores: z.array(z.object({ label: z.string(), score: z.number() })).optional(),
+  responseMode: z.enum(["video", "voice", "text"]).default("video"),
+  transcript: z.string().max(8000).optional(),
+  durationSec: z.number().int().min(0).max(600).optional(),
 });
 
 export async function POST(request: Request) {
@@ -45,6 +48,9 @@ export async function POST(request: Request) {
       evidence_path: parsed.data.evidencePath ?? null,
       scenario_id: parsed.data.scenarioId ?? null,
       ai_scores: parsed.data.aiScores ?? null,
+      response_mode: parsed.data.responseMode,
+      transcript: parsed.data.transcript ?? null,
+      duration_sec: parsed.data.durationSec ?? null,
     })
     .select("*")
     .single();

@@ -1,13 +1,14 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Check, Clock, FileUp, Loader2, Trash2, Video } from "lucide-react";
+import { Check, Clock, Loader2, Mic, Trash2, Video } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
 import { PitchCoachingRail, type PitchScoreRow } from "@/components/pitch/pitch-coaching-rail";
 import { CARD_CLS, LABEL_CLS, TEXTAREA_CLS } from "@/components/se/form-classes";
 import { Chip } from "@/components/ui/chip";
 import { SegmentedToggle } from "@/components/ui/segmented-toggle";
+import { PITCH_RESPONSE_MODE_LABELS, wordCount, type PitchResponseMode } from "@/lib/playbooks/drills";
 import { PITCH_SCENARIOS } from "@/lib/pitch/pitch-scenarios";
 import type { PitchQueueSlot, PitchScenarioRow } from "@/lib/pitch/pitch-queue";
 import { createClient } from "@/lib/supabase/client";
@@ -26,7 +27,15 @@ type ScenarioView = {
   prompt: string;
   description: string;
   maxDurationSec: number;
+  responseModes: PitchResponseMode[];
+  /** The guide's pitch a playbook drill is scored against. */
+  referenceText: string | null;
 };
+
+function normaliseModes(modes: string[] | undefined): PitchResponseMode[] {
+  const valid = (modes ?? []).filter((mode): mode is PitchResponseMode => mode === "video" || mode === "voice" || mode === "text");
+  return valid.length ? valid : ["video"];
+}
 
 function fallbackScenarios(): ScenarioView[] {
   return PITCH_SCENARIOS.map((item) => ({
@@ -37,6 +46,8 @@ function fallbackScenarios(): ScenarioView[] {
     prompt: item.prompt,
     description: item.description,
     maxDurationSec: 60,
+    responseModes: ["video"],
+    referenceText: null,
   }));
 }
 
@@ -49,6 +60,8 @@ function mapScenarioRow(row: PitchScenarioRow): ScenarioView {
     prompt: row.prompt,
     description: row.description,
     maxDurationSec: row.maxDurationSec,
+    responseModes: normaliseModes(row.responseModes),
+    referenceText: row.referenceText ?? null,
   };
 }
 
@@ -60,6 +73,10 @@ function formatMaxDuration(sec: number) {
   return `0:${String(sec).padStart(2, "0")} max`;
 }
 
+function formatClock(sec: number) {
+  return `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`;
+}
+
 export function VideoPitchCapture({
   initialScenarioId,
   peerLibrary,
@@ -68,25 +85,38 @@ export function VideoPitchCapture({
   peerLibrary?: ReactNode;
 }) {
   const reflectionId = useId();
+  const typedId = useId();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [studioMode, setStudioMode] = useState<StudioMode>("assigned");
+  // A link from a playbook opens that drill in free practice.
+  const [studioMode, setStudioMode] = useState<StudioMode>(initialScenarioId ? "practice" : "assigned");
+  const [responseMode, setResponseMode] = useState<PitchResponseMode>("video");
   const [recording, setRecording] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
   const [blob, setBlob] = useState<Blob | null>(null);
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [durationSec, setDurationSec] = useState<number | undefined>(undefined);
+  const [typedPitch, setTypedPitch] = useState("");
+  const [transcript, setTranscript] = useState("");
+  const [transcribing, setTranscribing] = useState(false);
   const [title, setTitle] = useState("Elevator pitch");
   const [reflection, setReflection] = useState("");
   const [queue, setQueue] = useState<PitchQueueSlot[]>([]);
   const [practiceScenarios, setPracticeScenarios] = useState<ScenarioView[]>(fallbackScenarios());
-  const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(null);
+  const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(initialScenarioId ?? null);
   const [selectedQueueSlotId, setSelectedQueueSlotId] = useState<string | null>(null);
   const [loadingQueue, setLoadingQueue] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [coachTips, setCoachTips] = useState<string[]>([]);
   const [coachScores, setCoachScores] = useState<PitchScoreRow[]>([]);
+  const [missed, setMissed] = useState<string[]>([]);
+  const [overTime, setOverTime] = useState(false);
+  const [showReference, setShowReference] = useState(false);
   const [coaching, setCoaching] = useState(false);
   const [savedPractice, setSavedPractice] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
+  const startedAtRef = useRef(0);
 
   const assignedScenarios = queue.map((slot) => ({
     slot,
@@ -101,6 +131,8 @@ export function VideoPitchCapture({
     activeScenarioList.find((item) => item.id === selectedScenarioId) ??
     activeScenarioList[0] ??
     fallbackScenarios()[0]!;
+  const isDrill = Boolean(scenario.referenceText);
+  const pitchText = responseMode === "text" ? typedPitch.trim() : transcript.trim();
 
   const loadQueue = useCallback(async (opts?: { reselectFirst?: boolean }) => {
     setLoadingQueue(true);
@@ -133,7 +165,7 @@ export function VideoPitchCapture({
       if (response.ok) {
         const body = (await response.json()) as { queue: PitchQueueSlot[] };
         setQueue(body.queue);
-        if (body.queue[0]) {
+        if (body.queue[0] && !initialScenarioId) {
           setSelectedScenarioId(body.queue[0].scenario.id);
           setSelectedQueueSlotId(body.queue[0].id);
         }
@@ -141,7 +173,7 @@ export function VideoPitchCapture({
       setLoadingQueue(false);
       await loadPracticeScenarios();
     })();
-  }, [loadPracticeScenarios]);
+  }, [initialScenarioId, loadPracticeScenarios]);
 
   useEffect(() => {
     return () => {
@@ -149,12 +181,41 @@ export function VideoPitchCapture({
     };
   }, [blobUrl]);
 
-  useEffect(() => {
-    setTitle(scenario.shortLabel);
+  // Release the camera/mic if the page is left mid-recording.
+  useEffect(() => () => streamRef.current?.getTracks().forEach((track) => track.stop()), []);
+
+  const resetAttempt = useCallback(() => {
     setCoachTips([]);
     setCoachScores([]);
+    setMissed([]);
+    setOverTime(false);
+    setShowReference(false);
     setSavedPractice(false);
-  }, [scenario.shortLabel, scenario.id]);
+  }, []);
+
+  useEffect(() => {
+    setTitle(scenario.shortLabel);
+    resetAttempt();
+    setTranscript("");
+    setTypedPitch("");
+    setDurationSec(undefined);
+    setResponseMode((current) => (scenario.responseModes.includes(current) ? current : scenario.responseModes[0]!));
+  }, [scenario.shortLabel, scenario.id, scenario.responseModes, resetAttempt]);
+
+  // Recording clock; stops automatically at the scenario's time limit.
+  useEffect(() => {
+    if (!recording) return;
+    const timer = window.setInterval(() => {
+      const seconds = (Date.now() - startedAtRef.current) / 1000;
+      setElapsed(seconds);
+      if (seconds >= scenario.maxDurationSec) {
+        mediaRecorderRef.current?.stop();
+        setRecording(false);
+        toast.message("Time's up. Your recording stopped at the limit.");
+      }
+    }, 250);
+    return () => window.clearInterval(timer);
+  }, [recording, scenario.maxDurationSec]);
 
   function selectAssignedSlot(slot: PitchQueueSlot) {
     setSelectedScenarioId(slot.scenario.id);
@@ -197,47 +258,95 @@ export function VideoPitchCapture({
     }
   }
 
+  function clearRecording() {
+    if (blobUrl) URL.revokeObjectURL(blobUrl);
+    setBlob(null);
+    setBlobUrl(null);
+    setTranscript("");
+    setDurationSec(undefined);
+    setElapsed(0);
+    resetAttempt();
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+      videoRef.current.removeAttribute("src");
+      videoRef.current.load();
+    }
+  }
+
+  function changeResponseMode(mode: PitchResponseMode) {
+    if (recording) return;
+    clearRecording();
+    setResponseMode(mode);
+  }
+
+  /** Recordings are transcribed once, on demand, so discarded takes cost nothing. */
+  async function ensureTranscript(): Promise<string | null> {
+    if (responseMode === "text") return typedPitch.trim();
+    if (transcript) return transcript;
+    if (!blob) return null;
+    setTranscribing(true);
+    const form = new FormData();
+    form.append("audio", blob, responseMode === "voice" ? "pitch.webm" : "pitch-video.webm");
+    const response = await fetch("/api/pitch/transcribe", { method: "POST", body: form }).catch(() => null);
+    const body = (await response?.json().catch(() => null)) as { transcript?: string; error?: string } | null;
+    setTranscribing(false);
+    if (!response?.ok || !body?.transcript) {
+      toast.error(body?.error ?? "Transcription didn't work just now.");
+      return null;
+    }
+    setTranscript(body.transcript);
+    return body.transcript;
+  }
+
   async function runAiCoach() {
-    if (reflection.trim().length < 10) {
-      toast.error("Add a reflection first — AI coach needs your storyline.");
+    const spoken = responseMode === "text" ? typedPitch.trim() : await ensureTranscript();
+    if (isDrill && (!spoken || wordCount(spoken) < 8)) {
+      toast.error(responseMode === "text" ? "Type your pitch first." : "Record your pitch first.");
+      return;
+    }
+    if (!isDrill && reflection.trim().length < 10 && (!spoken || wordCount(spoken) < 8)) {
+      toast.error("Record or type your pitch, or add a reflection, first.");
       return;
     }
     setCoaching(true);
     const response = await fetch("/api/pitch/ai-coach", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, reflection, scenario: scenario.label }),
-    });
+      body: JSON.stringify({
+        title,
+        reflection,
+        scenario: scenario.label,
+        scenarioId: isUuid(scenario.id) ? scenario.id : undefined,
+        pitchText: spoken || undefined,
+        mode: responseMode,
+        durationSec: responseMode === "text" ? undefined : durationSec,
+      }),
+    }).catch(() => null);
     setCoaching(false);
-    const body = (await response.json().catch(() => null)) as
-      | { tips?: string[]; scores?: PitchScoreRow[]; source?: "ai" | "rules"; error?: string }
+    const body = (await response?.json().catch(() => null)) as
+      | { tips?: string[]; scores?: PitchScoreRow[]; missed?: string[]; overTime?: boolean; source?: "ai" | "rules"; error?: string }
       | null;
-    if (!response.ok || !body?.tips) {
+    if (!response?.ok || !body?.tips) {
       toast.error(body?.error ?? "The AI review couldn't run just now.");
       return;
     }
     setCoachTips(body.tips);
     // Scores only ever come from the AI review; rule-based tips leave the rubric empty.
     setCoachScores(body.scores ?? []);
+    setMissed(body.missed ?? []);
+    setOverTime(Boolean(body.overTime));
     if (body.source === "rules") toast.message("AI isn't configured, so you got tips without scores.");
   }
 
   async function startRecording() {
     try {
-      if (blobUrl) {
-        URL.revokeObjectURL(blobUrl);
-        setBlob(null);
-        setBlobUrl(null);
-        setCoachTips([]);
-        setCoachScores([]);
-      }
-      if (videoRef.current) {
-        videoRef.current.removeAttribute("src");
-        videoRef.current.load();
-      }
-
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      if (videoRef.current) {
+      clearRecording();
+      const wantsVideo = responseMode === "video";
+      const stream = await navigator.mediaDevices.getUserMedia({ video: wantsVideo, audio: true });
+      streamRef.current = stream;
+      if (wantsVideo && videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
       }
@@ -248,21 +357,25 @@ export function VideoPitchCapture({
         if (event.data.size > 0) chunksRef.current.push(event.data);
       };
       recorder.onstop = () => {
-        const nextBlob = new Blob(chunksRef.current, { type: "video/webm" });
+        const nextBlob = new Blob(chunksRef.current, { type: wantsVideo ? "video/webm" : "audio/webm" });
         setBlob(nextBlob);
         setBlobUrl(URL.createObjectURL(nextBlob));
+        setDurationSec(Math.round((Date.now() - startedAtRef.current) / 1000));
         stream.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
         if (videoRef.current) {
           videoRef.current.srcObject = null;
         }
       };
 
       mediaRecorderRef.current = recorder;
+      startedAtRef.current = Date.now();
+      setElapsed(0);
       recorder.start();
       setRecording(true);
-      toast.message(`Recording — ${scenario.description}`);
+      toast.message(`Recording. ${scenario.description}`);
     } catch {
-      toast.error("Camera/mic permission required.");
+      toast.error(responseMode === "video" ? "Camera and microphone permission required." : "Microphone permission required.");
     }
   }
 
@@ -272,19 +385,8 @@ export function VideoPitchCapture({
   }
 
   function discardRecording() {
-    if (blobUrl) URL.revokeObjectURL(blobUrl);
-    setBlob(null);
-    setBlobUrl(null);
-    setCoachTips([]);
-    setCoachScores([]);
-    if (videoRef.current) {
-      const stream = videoRef.current.srcObject as MediaStream | null;
-      stream?.getTracks().forEach((track) => track.stop());
-      videoRef.current.srcObject = null;
-      videoRef.current.removeAttribute("src");
-      videoRef.current.load();
-    }
-    toast.message("Recording discarded — start again when you're ready.");
+    clearRecording();
+    toast.message("Recording discarded. Start again when you're ready.");
   }
 
   async function uploadEvidence(): Promise<{ evidencePath: string } | null> {
@@ -307,9 +409,10 @@ export function VideoPitchCapture({
       return null;
     }
 
-    const evidencePath = `${user.id}/${Date.now()}-pitch.webm`;
+    const kind = responseMode === "voice" ? "voice" : "pitch";
+    const evidencePath = `${user.id}/${Date.now()}-${kind}.webm`;
     const { error: uploadError } = await supabase.storage.from("evidence").upload(evidencePath, blob, {
-      contentType: "video/webm",
+      contentType: responseMode === "voice" ? "audio/webm" : "video/webm",
     });
     if (uploadError) {
       toast.error(uploadError.message);
@@ -319,15 +422,19 @@ export function VideoPitchCapture({
     return { evidencePath };
   }
 
+  function hasAnswer() {
+    return responseMode === "text" ? wordCount(typedPitch) >= 8 : Boolean(blob);
+  }
+
   async function savePractice() {
-    if (!reflection.trim() && !blob) {
-      toast.error("Record or add a reflection before saving.");
+    if (!reflection.trim() && !hasAnswer()) {
+      toast.error(responseMode === "text" ? "Type your pitch before saving." : "Record or add a reflection before saving.");
       return;
     }
 
     setUploading(true);
-    const uploaded = blob ? await uploadEvidence() : null;
-    if (blob && !uploaded) {
+    const uploaded = responseMode !== "text" && blob ? await uploadEvidence() : null;
+    if (responseMode !== "text" && blob && !uploaded) {
       setUploading(false);
       return;
     }
@@ -339,8 +446,11 @@ export function VideoPitchCapture({
         title: `${scenario.label}: ${title}`,
         evidencePath: uploaded?.evidencePath,
         reflectionText: reflection || undefined,
-        scenarioId: scenario.id,
+        scenarioId: isUuid(scenario.id) ? scenario.id : undefined,
         aiScores: coachScores.length > 0 ? coachScores : undefined,
+        responseMode,
+        transcript: pitchText || undefined,
+        durationSec: responseMode === "text" ? undefined : durationSec,
       }),
     });
 
@@ -351,12 +461,12 @@ export function VideoPitchCapture({
     }
 
     setSavedPractice(true);
-    toast.success("Practice saved — your manager was not notified.");
+    toast.success("Practice saved. Your manager was not notified.");
   }
 
   async function submitForReview() {
-    if (!blob) {
-      toast.error("Record a pitch before submitting.");
+    if (!hasAnswer()) {
+      toast.error(responseMode === "text" ? "Type your pitch before submitting." : "Record a pitch before submitting.");
       return;
     }
 
@@ -366,8 +476,10 @@ export function VideoPitchCapture({
     }
 
     setUploading(true);
-    const uploaded = await uploadEvidence();
-    if (!uploaded) {
+    // Give the reviewer the words as well as the recording; a failed transcription doesn't block.
+    const words = responseMode === "text" ? typedPitch.trim() : (transcript || (await ensureTranscript()) || "");
+    const uploaded = responseMode === "text" ? null : await uploadEvidence();
+    if (responseMode !== "text" && !uploaded) {
       setUploading(false);
       return;
     }
@@ -377,34 +489,37 @@ export function VideoPitchCapture({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title: `${scenario.label}: ${title}`,
-        evidencePath: uploaded.evidencePath,
+        evidencePath: uploaded?.evidencePath,
         reflectionText: reflection || undefined,
         targetType: "certification",
-        scenarioId: scenario.id,
+        scenarioId: isUuid(scenario.id) ? scenario.id : undefined,
         queueSlotId: selectedQueueSlotId ?? undefined,
+        responseMode,
+        transcript: words || undefined,
+        durationSec: responseMode === "text" ? undefined : durationSec,
       }),
     });
 
     setUploading(false);
     if (!response.ok) {
-      toast.error("Pitch upload failed.");
+      const body = (await response.json().catch(() => null)) as { error?: string } | null;
+      toast.error(body?.error ?? "Pitch upload failed.");
       return;
     }
 
     toast.success("Pitch submitted for manager review.");
-    setBlob(null);
-    if (blobUrl) URL.revokeObjectURL(blobUrl);
-    setBlobUrl(null);
+    clearRecording();
+    setTypedPitch("");
     setReflection("");
-    setCoachTips([]);
-    setCoachScores([]);
-    setSavedPractice(false);
     await loadQueue({ reselectFirst: true });
   }
 
-  const statusLabel = recording ? "Recording" : blobUrl ? "Ready to review" : "Standby";
-  const showCamera = recording || blobUrl;
+  const statusLabel = recording ? `Recording ${formatClock(elapsed)}` : blobUrl ? "Ready to review" : "Standby";
+  const showCamera = responseMode === "video" && (recording || blobUrl);
   const selectedSlotPending = Boolean(queue.find((s) => s.id === selectedQueueSlotId)?.submissionId);
+  const typedWords = wordCount(typedPitch);
+  const typedSeconds = Math.round(typedWords / 2.5);
+  const busy = coaching || transcribing;
 
   return (
     <div className={cn(CARD_CLS, "flex min-h-0 flex-1 flex-col overflow-hidden lg:grid lg:grid-cols-[minmax(0,1fr)_340px]")}>
@@ -460,87 +575,136 @@ export function VideoPitchCapture({
               ))}
         </div>
 
-        <div className="shrink-0 border-b border-divider bg-white px-4 py-3 sm:px-5">
-          <p className="label-caps label-caps--blue">{scenario.promptLabel}</p>
-          <p className="mt-1 text-[15px] leading-[1.5] text-ink">&ldquo;{scenario.prompt}&rdquo;</p>
-        </div>
-
-        <div className="relative flex min-h-[280px] flex-1 flex-col items-center justify-center overflow-hidden bg-ink sm:min-h-[320px]">
-          <div
-            className="absolute left-3 top-3 z-10 inline-flex items-center gap-[7px] rounded-full border border-blue-line bg-ink px-3 py-1 text-[13px] font-semibold text-white sm:left-3.5 sm:top-3.5"
-            role="status"
-          >
-            <span aria-hidden className={cn("h-[7px] w-[7px] rounded-full", recording ? "bg-danger" : blobUrl ? "bg-signal" : "bg-on-blue-muted")} />
-            {statusLabel}
+        <div className="flex shrink-0 flex-wrap items-start gap-3 border-b border-divider bg-white px-4 py-3 sm:px-5">
+          <div className="min-w-0 flex-1">
+            <p className="label-caps label-caps--blue">{scenario.promptLabel}</p>
+            <p className="mt-1 text-[15px] leading-[1.5] text-ink">&ldquo;{scenario.prompt}&rdquo;</p>
+            {isDrill ? <p className="mt-1 text-[13px] text-muted">{scenario.description}</p> : null}
           </div>
-
-          {showCamera ? (
-            <video
-              className="absolute inset-0 h-full w-full object-cover"
-              controls={Boolean(blobUrl && !recording)}
-              muted={!blobUrl || recording}
-              playsInline
-              ref={videoRef}
-              src={blobUrl && !recording ? blobUrl : undefined}
+          {scenario.responseModes.length > 1 ? (
+            <SegmentedToggle
+              label="Answer by"
+              onChange={(id) => changeResponseMode(id as PitchResponseMode)}
+              options={scenario.responseModes.map((mode) => ({ id: mode, label: PITCH_RESPONSE_MODE_LABELS[mode] }))}
+              value={responseMode}
             />
-          ) : (
-            <>
-              <Video aria-hidden="true" className="mb-3 h-8 w-8 text-on-blue-muted" strokeWidth={1.5} />
-              <p className="mb-1 text-[13px] text-on-blue-muted">Camera ready</p>
-              <p className="mb-6 px-4 text-center text-[13px] text-on-blue">Allow camera access to begin recording</p>
-            </>
-          )}
-
-          <div className="relative z-10 mt-auto flex w-full flex-wrap items-center justify-center gap-3 px-3 pb-4 sm:gap-4">
-            <button
-              className="inline-flex items-center gap-1.5 rounded-full border border-blue-line px-3 py-1.5 text-[13px] text-on-blue-muted disabled:cursor-not-allowed"
-              disabled
-              type="button"
-            >
-              <FileUp aria-hidden="true" className="h-4 w-4" />
-              Upload
-            </button>
-            {!recording ? (
-              <button
-                aria-label="Start recording"
-                className="flex h-14 w-14 items-center justify-center rounded-full border-[3px] border-white bg-danger sm:h-16 sm:w-16"
-                onClick={() => void startRecording()}
-                type="button"
-              >
-                <span aria-hidden="true" className="h-4 w-4 rounded-full bg-white sm:h-5 sm:w-5" />
-              </button>
-            ) : (
-              <button
-                aria-label="Stop recording"
-                className="flex h-14 w-14 items-center justify-center rounded-full border-[3px] border-white bg-danger sm:h-16 sm:w-16"
-                onClick={stopRecording}
-                type="button"
-              >
-                <span aria-hidden="true" className="h-3.5 w-3.5 rounded-[2px] bg-white sm:h-4 sm:w-4" />
-              </button>
-            )}
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-line px-3 py-1.5 text-[13px] text-on-blue-muted">
-              <Clock aria-hidden="true" className="h-4 w-4" />
-              {formatMaxDuration(scenario.maxDurationSec)}
-            </span>
-          </div>
-
-          {blobUrl && !recording ? (
-            <button
-              className="absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full border border-danger bg-danger-soft px-3 py-1 text-[13px] font-bold text-danger disabled:opacity-50 sm:right-3.5 sm:top-3.5"
-              disabled={uploading}
-              onClick={discardRecording}
-              type="button"
-            >
-              <Trash2 aria-hidden="true" className="h-4 w-4" />
-              Discard
-            </button>
           ) : null}
         </div>
 
+        {responseMode === "text" ? (
+          <div className="flex min-h-[280px] flex-1 flex-col gap-2 bg-white px-4 py-4 sm:px-5">
+            <label className={LABEL_CLS} htmlFor={typedId}>
+              Type your pitch as you would say it
+            </label>
+            <textarea
+              className={cn(TEXTAREA_CLS, "min-h-[200px] flex-1 resize-y")}
+              id={typedId}
+              maxLength={4000}
+              onChange={(event) => {
+                setTypedPitch(event.target.value);
+                if (coachScores.length) resetAttempt();
+              }}
+              placeholder="Lead with the buyer's problem, then how SailPoint fixes it, then a point of view or next step."
+              value={typedPitch}
+            />
+            <span className={cn("text-[13px]", typedSeconds > scenario.maxDurationSec ? "text-danger" : "text-muted")}>
+              <span className="num">{typedWords}</span> words · about <span className="num">{typedSeconds}</span> seconds spoken ·{" "}
+              {formatMaxDuration(scenario.maxDurationSec)}
+            </span>
+          </div>
+        ) : (
+          <div className="relative flex min-h-[280px] flex-1 flex-col items-center justify-center overflow-hidden bg-ink sm:min-h-[320px]">
+            <div
+              className="absolute left-3 top-3 z-10 inline-flex items-center gap-[7px] rounded-full border border-blue-line bg-ink px-3 py-1 text-[13px] font-semibold text-white sm:left-3.5 sm:top-3.5"
+              role="status"
+            >
+              <span aria-hidden className={cn("h-[7px] w-[7px] rounded-full", recording ? "bg-danger" : blobUrl ? "bg-signal" : "bg-on-blue-muted")} />
+              <span className="num">{statusLabel}</span>
+            </div>
+
+            {showCamera ? (
+              <video
+                className="absolute inset-0 h-full w-full object-cover"
+                controls={Boolean(blobUrl && !recording)}
+                muted={!blobUrl || recording}
+                playsInline
+                ref={videoRef}
+                src={blobUrl && !recording ? blobUrl : undefined}
+              />
+            ) : responseMode === "voice" ? (
+              <div className="flex w-full max-w-[420px] flex-col items-center gap-3 px-4">
+                <Mic aria-hidden="true" className={cn("h-9 w-9", recording ? "text-danger" : "text-on-blue-muted")} strokeWidth={1.5} />
+                {recording ? (
+                  <p className="num text-[28px] font-extrabold text-white">{formatClock(elapsed)}</p>
+                ) : blobUrl ? (
+                  <audio className="w-full" controls src={blobUrl} />
+                ) : (
+                  <>
+                    <p className="mb-1 text-[13px] text-on-blue-muted">Microphone ready</p>
+                    <p className="mb-6 text-center text-[13px] text-on-blue">Voice only, no camera. Press record and say your pitch.</p>
+                  </>
+                )}
+              </div>
+            ) : (
+              <>
+                <Video aria-hidden="true" className="mb-3 h-8 w-8 text-on-blue-muted" strokeWidth={1.5} />
+                <p className="mb-1 text-[13px] text-on-blue-muted">Camera ready</p>
+                <p className="mb-6 px-4 text-center text-[13px] text-on-blue">Allow camera access to begin recording</p>
+              </>
+            )}
+
+            <div className="relative z-10 mt-auto flex w-full flex-wrap items-center justify-center gap-3 px-3 pb-4 sm:gap-4">
+              {!recording ? (
+                <button
+                  aria-label="Start recording"
+                  className="flex h-14 w-14 items-center justify-center rounded-full border-[3px] border-white bg-danger sm:h-16 sm:w-16"
+                  onClick={() => void startRecording()}
+                  type="button"
+                >
+                  <span aria-hidden="true" className="h-4 w-4 rounded-full bg-white sm:h-5 sm:w-5" />
+                </button>
+              ) : (
+                <button
+                  aria-label="Stop recording"
+                  className="flex h-14 w-14 items-center justify-center rounded-full border-[3px] border-white bg-danger sm:h-16 sm:w-16"
+                  onClick={stopRecording}
+                  type="button"
+                >
+                  <span aria-hidden="true" className="h-3.5 w-3.5 rounded-[2px] bg-white sm:h-4 sm:w-4" />
+                </button>
+              )}
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-line px-3 py-1.5 text-[13px] text-on-blue-muted">
+                <Clock aria-hidden="true" className="h-4 w-4" />
+                {formatMaxDuration(scenario.maxDurationSec)}
+              </span>
+            </div>
+
+            {blobUrl && !recording ? (
+              <button
+                className="absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full border border-danger bg-danger-soft px-3 py-1 text-[13px] font-bold text-danger disabled:opacity-50 sm:right-3.5 sm:top-3.5"
+                disabled={uploading}
+                onClick={discardRecording}
+                type="button"
+              >
+                <Trash2 aria-hidden="true" className="h-4 w-4" />
+                Discard
+              </button>
+            ) : null}
+          </div>
+        )}
+
         <div className="shrink-0 border-t border-divider bg-white px-4 py-4 sm:px-5">
+          {transcript && responseMode !== "text" ? (
+            <div className="mb-3 rounded-[10px] bg-bg px-3 py-2">
+              <p className="label-caps">What we heard</p>
+              <p className="mt-1 text-[14px] leading-relaxed text-ink">{transcript}</p>
+            </div>
+          ) : null}
           <label className={LABEL_CLS} htmlFor={reflectionId}>
-            Reflection <span className="font-normal text-muted">(required for AI scoring)</span>
+            Reflection{" "}
+            <span className="font-normal text-muted">
+              {isDrill || responseMode === "text" ? "(optional)" : "(used for AI scoring if you don't record)"}
+            </span>
           </label>
           <textarea
             className={cn(TEXTAREA_CLS, "mt-1.5 min-h-[64px] resize-none")}
@@ -553,17 +717,17 @@ export function VideoPitchCapture({
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <button
               className={SECONDARY_BTN_CLS}
-              disabled={coaching}
+              disabled={busy || recording}
               onClick={() => void runAiCoach()}
               type="button"
             >
-              {coaching ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : null}
-              Get AI coaching
+              {busy ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : null}
+              {transcribing ? "Transcribing…" : isDrill ? "Score my pitch" : "Get AI coaching"}
             </button>
             {studioMode === "practice" ? (
               <button
                 className="btn-primary ml-auto inline-flex items-center gap-2"
-                disabled={uploading}
+                disabled={uploading || recording}
                 onClick={() => void savePractice()}
                 type="button"
               >
@@ -575,7 +739,7 @@ export function VideoPitchCapture({
             {studioMode === "assigned" ? (
               <button
                 className="btn-primary ml-auto inline-flex items-center gap-2"
-                disabled={uploading || !blob || selectedSlotPending}
+                disabled={uploading || recording || !hasAnswer() || selectedSlotPending}
                 onClick={() => void submitForReview()}
                 type="button"
               >
@@ -593,8 +757,49 @@ export function VideoPitchCapture({
           scores={coachScores}
           topNote={coachTips[0] ?? null}
         />
+        {isDrill && coachScores.length ? (
+          <section className="flex flex-col gap-3 border-t border-divider px-5 py-4">
+            <h3 className="label-caps">Compared with the guide</h3>
+            {overTime ? (
+              <p className="m-0 text-[14px] text-danger">
+                You ran over the {scenario.maxDurationSec}-second limit. Cut to the problem, the outcome and one proof point.
+              </p>
+            ) : null}
+            {missed.length ? (
+              <>
+                <p className="m-0 text-[14px] text-ink-2">Ideas from the guide you left out:</p>
+                <ul className="m-0 flex list-disc flex-col gap-1 pl-5 text-[14px] text-ink">
+                  {missed.map((idea) => (
+                    <li key={idea}>{idea}</li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <p className="m-0 text-[14px] text-ink-2">You covered the guide&apos;s key ideas.</p>
+            )}
+            {coachTips.length > 1 ? (
+              <ul className="m-0 flex list-disc flex-col gap-1 pl-5 text-[14px] text-ink-2">
+                {coachTips.slice(1).map((tip) => (
+                  <li key={tip}>{tip}</li>
+                ))}
+              </ul>
+            ) : null}
+            <button className="link self-start text-[14px]" onClick={() => setShowReference((value) => !value)} type="button">
+              {showReference ? "Hide the guide's pitch" : "Show the guide's pitch"}
+            </button>
+            {showReference ? (
+              <blockquote className="m-0 border-l-4 border-blue pl-3 text-[14px] leading-relaxed whitespace-pre-line text-ink">
+                {scenario.referenceText}
+              </blockquote>
+            ) : null}
+          </section>
+        ) : null}
         {peerLibrary}
       </div>
     </div>
   );
+}
+
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 }

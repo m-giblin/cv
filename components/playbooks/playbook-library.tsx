@@ -1,6 +1,7 @@
 "use client";
 
-import { ChevronRight, Search } from "lucide-react";
+import { ChevronRight, Mic, Search, Swords } from "lucide-react";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { PlaybookView } from "@/components/playbooks/playbook-view";
@@ -26,7 +27,15 @@ function matches(playbook: CapabilityPlaybook, query: string) {
 }
 
 /** Learn › Playbooks: every published capability playbook, opened in a full workbench. */
-export function PlaybookLibrary({ guides, playbooks }: { guides: PlaybookGuide[]; playbooks: CapabilityPlaybook[] }) {
+export function PlaybookLibrary({
+  guides,
+  playbooks,
+  pitchDrills = {},
+}: {
+  guides: PlaybookGuide[];
+  playbooks: CapabilityPlaybook[];
+  pitchDrills?: Record<string, { id: string; label: string }[]>;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -177,7 +186,10 @@ export function PlaybookLibrary({ guides, playbooks }: { guides: PlaybookGuide[]
           subtitle={open.body.subtitle}
           title={open.title}
         >
-          <PlaybookView body={open.body} />
+          <div className="flex flex-col gap-8">
+            <PracticeStrip pitchDrills={pitchDrills[open.id] ?? []} playbook={open} />
+            <PlaybookView body={open.body} />
+          </div>
         </Drawer>
       ) : null}
 
@@ -199,5 +211,67 @@ export function PlaybookLibrary({ guides, playbooks }: { guides: PlaybookGuide[]
         </Drawer>
       ) : null}
     </div>
+  );
+}
+
+/** Start practising straight from the playbook: pitch drills in Pitch Studio, objections as a simulation. */
+function PracticeStrip({
+  playbook,
+  pitchDrills,
+}: {
+  playbook: CapabilityPlaybook;
+  pitchDrills: { id: string; label: string }[];
+}) {
+  const router = useRouter();
+  const [starting, setStarting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const hasObjections = playbook.body.objections.length > 0;
+  if (!pitchDrills.length && !hasObjections) return null;
+
+  async function startObjectionDrill() {
+    setStarting(true);
+    setError(null);
+    const response = await fetch(`/api/playbooks/${playbook.id}/objection-drill`, { method: "POST" }).catch(() => null);
+    const body = (await response?.json().catch(() => null)) as { redirectUrl?: string; error?: string } | null;
+    if (!response?.ok || !body?.redirectUrl) {
+      setStarting(false);
+      setError(body?.error ?? "The drill couldn't start. Try again.");
+      return;
+    }
+    router.push(body.redirectUrl);
+  }
+
+  return (
+    <section className="flex flex-col gap-3 rounded-[14px] border border-line-strong bg-white p-4 sm:p-5">
+      <div className="flex flex-col gap-0.5">
+        <h3 className="m-0 text-[16px] font-extrabold text-ink">Practise this</h3>
+        <p className="m-0 text-[13px] text-muted">
+          Private practice: say it on video, by voice or typed, and the AI scores it against this playbook. Your manager isn&apos;t notified.
+        </p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {pitchDrills.map((drill, index) => (
+          <Link
+            className="btn-secondary no-underline"
+            href={`/practice/pitch?scenario=${drill.id}`}
+            key={drill.id}
+          >
+            <Mic aria-hidden className="h-4 w-4" />
+            {pitchDrills.length === 1 ? "Practise the pitch" : drill.label.split(": ").pop() || `Pitch ${index + 1}`}
+          </Link>
+        ))}
+        {hasObjections ? (
+          <button className="btn-primary" disabled={starting} onClick={() => void startObjectionDrill()} type="button">
+            <Swords aria-hidden className="h-4 w-4" />
+            {starting ? "Starting…" : `Practise these objections (${Math.min(playbook.body.objections.length, 6)})`}
+          </button>
+        ) : null}
+      </div>
+      {error ? (
+        <p className="m-0 rounded-[10px] bg-danger-soft px-3 py-2 text-sm text-danger" role="alert">
+          {error}
+        </p>
+      ) : null}
+    </section>
   );
 }

@@ -53,7 +53,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
 
  const { data: submission } = await supabase
  .from("pitch_submissions")
- .select("id, user_id, evidence_path, title, status, manager_grade, reflection_text")
+ .select("id, user_id, evidence_path, title, status, manager_grade, reflection_text, response_mode, transcript")
  .eq("id", id)
  .maybeSingle();
 
@@ -66,16 +66,21 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
  return NextResponse.json({ error: "Forbidden" }, { status: 403 });
  }
 
- const { data, error } = await supabase.storage
- .from("evidence")
- .createSignedUrl(submission.evidence_path, 3600);
-
+ const extra = submission as unknown as { response_mode?: string | null; transcript?: string | null };
+ let signedUrl: string | null = null;
+ // Typed pitches have no recording; everything else is played from storage.
+ if (submission.evidence_path) {
+ const { data, error } = await supabase.storage.from("evidence").createSignedUrl(submission.evidence_path, 3600);
  if (error) {
  return NextResponse.json({ error: error.message }, { status: 500 });
  }
+ signedUrl = data.signedUrl;
+ }
 
  return NextResponse.json({
- signedUrl: data.signedUrl,
+ signedUrl,
+ responseMode: extra.response_mode ?? "video",
+ transcript: extra.transcript ?? null,
  title: submission.title,
  status: submission.status,
  managerGrade: submission.manager_grade,

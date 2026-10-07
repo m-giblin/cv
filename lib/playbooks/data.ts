@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getTenantAdminClient } from "@/lib/data/tenant-scoped-query";
+import type { DrillStatus } from "@/lib/playbooks/drills";
 import {
   emptyPlaybookBody,
   guideBodySchema,
@@ -69,7 +70,60 @@ export function mapPlaybook(row: PlaybookRow): CapabilityPlaybook {
   };
 }
 
-export type PlaybookLibrary = { guides: PlaybookGuide[]; playbooks: CapabilityPlaybook[] };
+/** Practice drills a reader can start from a playbook: its active Pitch Studio scenarios. */
+export type ReaderDrills = Record<string, { id: string; label: string }[]>;
+
+export type PlaybookLibrary = {
+  guides: PlaybookGuide[];
+  playbooks: CapabilityPlaybook[];
+  /** Admin view only: drill status per playbook id. */
+  drills?: Record<string, DrillStatus>;
+  /** Reader view only: pitch drills per playbook id. */
+  pitchDrills?: ReaderDrills;
+};
+
+/** Which drills exist for each playbook, and which playbook version they were built from. */
+export async function loadDrillStatus(tenantId: string, playbookIds: string[]): Promise<Record<string, DrillStatus>> {
+  const status: Record<string, DrillStatus> = Object.fromEntries(
+    playbookIds.map((id) => [id, { pitchDrills: [], objectionDrill: null }]),
+  );
+  const admin = getTenantAdminClient();
+  if (!admin || !playbookIds.length) return status;
+  const [pitches, sims] = await Promise.all([
+    admin
+      .from("pitch_scenario_templates")
+      .select("id, slug, label, source_playbook_id, source_version, active")
+      .eq("tenant_id", tenantId)
+      .in("source_playbook_id", playbookIds)
+      .order("sort_order"),
+    admin
+      .from("simulation_templates")
+      .select("id, source_playbook_id, source_version")
+      .eq("tenant_id", tenantId)
+      .in("source_playbook_id", playbookIds),
+  ]);
+  for (const row of (pitches.data ?? []) as {
+    id: string;
+    slug: string;
+    label: string;
+    source_playbook_id: string;
+    source_version: number | null;
+    active: boolean;
+  }[]) {
+    status[row.source_playbook_id]?.pitchDrills.push({
+      id: row.id,
+      slug: row.slug,
+      label: row.label,
+      sourceVersion: row.source_version,
+      active: row.active,
+    });
+  }
+  for (const row of (sims.data ?? []) as { id: string; source_playbook_id: string; source_version: number | null }[]) {
+    const entry = status[row.source_playbook_id];
+    if (entry) entry.objectionDrill = { id: row.id, sourceVersion: row.source_version };
+  }
+  return status;
+}
 
 /** Admin view: every guide and every chapter (drafts included) for one tenant. */
 export async function loadAdminPlaybooks(tenantId: string): Promise<PlaybookLibrary | null> {
@@ -80,9 +134,11 @@ export async function loadAdminPlaybooks(tenantId: string): Promise<PlaybookLibr
     admin.from("capability_playbooks").select(PLAYBOOK_COLUMNS).eq("tenant_id", tenantId).order("chapter"),
   ]);
   if (guides.error || playbooks.error) return null;
+  const mapped = ((playbooks.data ?? []) as PlaybookRow[]).map(mapPlaybook);
   return {
     guides: ((guides.data ?? []) as GuideRow[]).map(mapGuide),
-    playbooks: ((playbooks.data ?? []) as PlaybookRow[]).map(mapPlaybook),
+    playbooks: mapped,
+    drills: await loadDrillStatus(tenantId, mapped.map((playbook) => playbook.id)),
   };
 }
 
@@ -94,9 +150,26 @@ export async function loadPublishedPlaybooks(supabase: SupabaseClient): Promise<
   ]);
   const published = ((playbooks.data ?? []) as PlaybookRow[]).map(mapPlaybook);
   const withContent = new Set(published.map((playbook) => playbook.guideId));
+
+  const pitchDrills: ReaderDrills = {};
+  if (published.length) {
+    const { data } = await supabase
+      .from("pitch_scenario_templates")
+      .select("id, label, source_playbook_id")
+      .eq("active", true)
+      .in(
+        "source_playbook_id",
+        published.map((playbook) => playbook.id),
+      )
+      .order("sort_order");
+    for (const row of (data ?? []) as { id: string; label: string; source_playbook_id: string }[]) {
+      (pitchDrills[row.source_playbook_id] ??= []).push({ id: row.id, label: row.label });
+    }
+  }
   return {
     guides: ((guides.data ?? []) as GuideRow[]).map(mapGuide).filter((guide) => withContent.has(guide.id)),
     playbooks: published,
+    pitchDrills,
   };
 }
 

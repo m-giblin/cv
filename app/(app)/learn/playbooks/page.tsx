@@ -12,7 +12,7 @@ export default async function PlaybooksPage() {
   const supabase = await createClient();
   const library = supabase
     ? await loadPublishedPlaybooks(supabase as unknown as SupabaseClient)
-    : { guides: [], playbooks: [] };
+    : { guides: [], playbooks: [], pitchDrills: {} };
 
   return (
     <>
@@ -23,7 +23,7 @@ export default async function PlaybooksPage() {
         title="Playbooks."
       />
       <PageBody className="pb-7">
-        <PlaybookLibrary guides={library.guides} playbooks={library.playbooks} />
+        <PlaybookLibrary guides={library.guides} pitchDrills={library.pitchDrills} playbooks={library.playbooks} />
       </PageBody>
     </>
   );

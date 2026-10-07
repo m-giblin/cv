@@ -23,7 +23,7 @@ export default async function AdminPlaybooksPage() {
       />
       <PageBody className="pb-8">
         {library ? (
-          <PlaybookAdmin guides={library.guides} playbooks={library.playbooks} />
+          <PlaybookAdmin drills={library.drills} guides={library.guides} playbooks={library.playbooks} />
         ) : (
           <p className="rounded-[10px] bg-danger-soft px-4 py-3 text-sm text-danger" role="alert">
             Playbooks couldn&apos;t load. If this is a new install, the playbooks database migration may not be applied yet.

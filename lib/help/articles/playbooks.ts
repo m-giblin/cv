@@ -9,7 +9,7 @@ export const PLAYBOOK_ARTICLES: HelpArticle[] = [
       "One playbook per SailPoint capability: the elevator pitch, discovery questions, buying triggers, stories and objection handling, with a 60-second Fast Track card on top.",
     audience: ["se", "manager"],
     category: "Learn",
-    keywords: ["playbook", "field guide", "elevator pitch", "objection", "objection handling", "discovery questions", "fast track", "battlecard", "sled", "pitch"],
+    keywords: ["playbook", "field guide", "elevator pitch", "objection", "objection handling", "discovery questions", "fast track", "battlecard", "sled", "pitch", "drill", "practice", "voice", "typed"],
     overview: [
       "Playbooks come from your organization's sales field guide. Each one covers a single capability, such as Identity Graph or Entro, in the same order: the problem, the solution, the selling motion, the pitch, discovery questions, buying triggers, stories, objections, common mistakes and a self-test.",
       "The guide's rule applies here too: lead with the problem, not the product, and pick two capabilities for a deal, not ten.",
@@ -30,6 +30,16 @@ export const PLAYBOOK_ARTICLES: HelpArticle[] = [
       {
         title: "Prepare properly",
         body: "Scroll down for the full chapter: what the problem costs a State & Local or Higher Education customer, the selling motion, stories you can retell, and every objection with a model response.",
+      },
+      {
+        title: "Practise the pitch",
+        body: "Under \"Practise this\" at the top of a playbook, select a pitch drill. Pitch Studio opens in Free practice with that drill. Choose Video, Voice or Typed, deliver the pitch within the time limit, then select Score my pitch.",
+        tip: "The AI compares what you said with the guide's pitch: does it lead with the problem, hit the key points, and stay concise? Select \"Show the guide's pitch\" afterwards to compare.",
+      },
+      {
+        title: "Practise the objections",
+        body: "Select \"Practise these objections\". An AI buyer raises the chapter's objections one at a time. Answer each in your own words; after each answer you get a score out of 10 against the guide's response and one line to try instead, and a total at the end.",
+        tip: "Type HINT: at any point for a coaching tip on the current objection.",
       },
       {
         title: "Test yourself",
@@ -71,8 +81,13 @@ export const PLAYBOOK_ARTICLES: HelpArticle[] = [
         body: "Select Publish in a chapter's workbench, or Publish all on the guide to release every draft at once. Published playbooks appear in Learn > Playbooks straight away.",
       },
       {
+        title: "Create practice drills",
+        body: "In a published playbook's workbench, under Practice drills, select Create pitch drills and Create objection drill. Pitch drills appear in Pitch Studio's Free practice and on the playbook in Learn; the objection drill can be assigned from Content > Practice like any simulation.",
+        tip: "Pitch drills never fill people's assigned pitch queue on their own. Assign them when you want them reviewed by a manager.",
+      },
+      {
         title: "Update or retire",
-        body: "Edits to a published playbook go live when you select Save changes, and its version number goes up. Unpublish hides a chapter again; Delete guide removes the guide and all its playbooks.",
+        body: "Edits to a published playbook go live when you select Save changes, and its version number goes up. Drills built from an older version show \"Out of date\"; select Update to rebuild them. Unpublish hides a chapter again; Delete guide removes the guide and all its playbooks.",
       },
     ],
     links: [{ label: "Open Content > Playbooks", href: "/admin/content/playbooks" }],

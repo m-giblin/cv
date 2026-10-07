@@ -8,12 +8,23 @@ import { PlaybookView } from "@/components/playbooks/playbook-view";
 import { Drawer } from "@/components/ui/drawer";
 import { SegmentedToggle } from "@/components/ui/segmented-toggle";
 import { StatusPill } from "@/components/ui/status-pill";
+import { drillsOutOfDate, type DrillStatus } from "@/lib/playbooks/drills";
 import type { CapabilityPlaybook, PlaybookBody, PlaybookGuide } from "@/lib/playbooks/types";
 
 type ImportResult = { chapters: number; warnings: string[] } | { error: string };
 
 /** Content › Playbooks: import a field guide, review each chapter, publish to Learn. */
-export function PlaybookAdmin({ guides, playbooks: initial }: { guides: PlaybookGuide[]; playbooks: CapabilityPlaybook[] }) {
+const NO_DRILLS: DrillStatus = { pitchDrills: [], objectionDrill: null };
+
+export function PlaybookAdmin({
+  guides,
+  playbooks: initial,
+  drills: initialDrills = {},
+}: {
+  guides: PlaybookGuide[];
+  playbooks: CapabilityPlaybook[];
+  drills?: Record<string, DrillStatus>;
+}) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [playbooks, setPlaybooks] = useState(initial);
@@ -23,10 +34,12 @@ export function PlaybookAdmin({ guides, playbooks: initial }: { guides: Playbook
   const [openId, setOpenId] = useState<string | null>(null);
 
   // Server refreshes hand down new props; keep local edits in sync with them.
+  const [drills, setDrills] = useState(initialDrills);
   const [seen, setSeen] = useState(initial);
   if (seen !== initial) {
     setSeen(initial);
     setPlaybooks(initial);
+    setDrills(initialDrills);
   }
 
   const open = playbooks.find((playbook) => playbook.id === openId) ?? null;
@@ -204,6 +217,8 @@ export function PlaybookAdmin({ guides, playbooks: initial }: { guides: Playbook
           guideTitle={guides.find((guide) => guide.id === open.guideId)?.title ?? ""}
           key={open.id}
           onClose={() => setOpenId(null)}
+          drills={drills[open.id] ?? NO_DRILLS}
+          onDrillsChange={(next) => setDrills((current) => ({ ...current, [open.id]: next }))}
           onSaved={(saved) => setPlaybooks((current) => current.map((item) => (item.id === saved.id ? saved : item)))}
           playbook={open}
         />
@@ -215,11 +230,15 @@ export function PlaybookAdmin({ guides, playbooks: initial }: { guides: Playbook
 function PlaybookWorkbench({
   playbook,
   guideTitle,
+  drills,
+  onDrillsChange,
   onClose,
   onSaved,
 }: {
   playbook: CapabilityPlaybook;
   guideTitle: string;
+  drills: DrillStatus;
+  onDrillsChange: (drills: DrillStatus) => void;
   onClose: () => void;
   onSaved: (playbook: CapabilityPlaybook) => void;
 }) {
@@ -305,6 +324,7 @@ function PlaybookWorkbench({
           ]}
           value={mode}
         />
+        <DrillsPanel drills={drills} dirty={dirty} onChange={onDrillsChange} playbook={playbook} />
         {mode === "preview" ? (
           <PlaybookView body={body} />
         ) : (
@@ -323,5 +343,102 @@ function PlaybookWorkbench({
         )}
       </div>
     </Drawer>
+  );
+}
+
+/** Pitch drills (Pitch Studio) and the objection drill (Simulations) made from this playbook. */
+function DrillsPanel({
+  playbook,
+  drills,
+  dirty,
+  onChange,
+}: {
+  playbook: CapabilityPlaybook;
+  drills: DrillStatus;
+  dirty: boolean;
+  onChange: (drills: DrillStatus) => void;
+}) {
+  const [busy, setBusy] = useState<"pitch" | "objections" | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const published = playbook.status === "published";
+  const activePitches = drills.pitchDrills.filter((drill) => drill.active);
+  const { pitchStale, objectionStale } = drillsOutOfDate(drills, playbook.version);
+  const pitchCount = playbook.body.pitches.length + (playbook.body.hook.length ? 1 : 0);
+
+  async function build(kind: "pitch" | "objections") {
+    setBusy(kind);
+    setError(null);
+    const response = await fetch(`/api/admin/playbooks/${playbook.id}/drills`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind }),
+    }).catch(() => null);
+    const body = (await response?.json().catch(() => null)) as { drills?: DrillStatus; error?: string } | null;
+    setBusy(null);
+    if (!response?.ok || !body?.drills) {
+      setError(body?.error ?? "That didn't work. Try again.");
+      return;
+    }
+    onChange(body.drills);
+  }
+
+  const disabled = !published || dirty || busy !== null;
+  const hint = !published
+    ? "Publish this playbook first, so learners can read what they practise."
+    : dirty
+      ? "Save your changes first; drills are built from the saved version."
+      : null;
+
+  return (
+    <section className="flex flex-col gap-3 rounded-[14px] border border-line-strong bg-white p-4 sm:p-5">
+      <div className="flex flex-col gap-0.5">
+        <h3 className="m-0 text-[16px] font-extrabold text-ink">Practice drills</h3>
+        <p className="m-0 text-[13px] text-muted">
+          Learners start these from the playbook in Learn. You can also assign them from Content › Practice.
+        </p>
+      </div>
+      <div className="grid gap-3 md:grid-cols-2">
+        <div className="flex flex-col gap-2 rounded-[12px] bg-bg p-3">
+          <span className="text-[14px] font-bold text-ink">Pitch drills · Pitch Studio</span>
+          <span className="text-[13px] text-ink-2">
+            {activePitches.length
+              ? `${activePitches.length} drill${activePitches.length === 1 ? "" : "s"}, answered on video, by voice or typed.`
+              : `${pitchCount} pitch${pitchCount === 1 ? "" : "es"} to turn into drills, scored against the guide's wording.`}
+          </span>
+          {pitchStale ? <StatusPill tone="warning">Out of date with version {playbook.version}</StatusPill> : null}
+          <button
+            className={activePitches.length && !pitchStale ? "btn-secondary self-start" : "btn-primary self-start"}
+            disabled={disabled || pitchCount === 0}
+            onClick={() => void build("pitch")}
+            type="button"
+          >
+            {busy === "pitch" ? "Working…" : activePitches.length ? "Update pitch drills" : "Create pitch drills"}
+          </button>
+        </div>
+        <div className="flex flex-col gap-2 rounded-[12px] bg-bg p-3">
+          <span className="text-[14px] font-bold text-ink">Objection drill · Simulations</span>
+          <span className="text-[13px] text-ink-2">
+            {drills.objectionDrill
+              ? "An AI buyer raises each objection; answers are scored against the guide's responses."
+              : `${Math.min(playbook.body.objections.length, 6)} objections for an AI buyer to raise, one at a time.`}
+          </span>
+          {objectionStale ? <StatusPill tone="warning">Out of date with version {playbook.version}</StatusPill> : null}
+          <button
+            className={drills.objectionDrill && !objectionStale ? "btn-secondary self-start" : "btn-primary self-start"}
+            disabled={disabled || playbook.body.objections.length === 0}
+            onClick={() => void build("objections")}
+            type="button"
+          >
+            {busy === "objections" ? "Working…" : drills.objectionDrill ? "Update objection drill" : "Create objection drill"}
+          </button>
+        </div>
+      </div>
+      {hint ? <p className="m-0 text-[13px] text-muted">{hint}</p> : null}
+      {error ? (
+        <p className="m-0 rounded-[10px] bg-danger-soft px-3 py-2 text-sm text-danger" role="alert">
+          {error}
+        </p>
+      ) : null}
+    </section>
   );
 }

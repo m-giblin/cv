@@ -1,3 +1,5 @@
+import { OBJECTION_DRILL_MARKER, OBJECTION_DRILL_START_MESSAGE } from "@/lib/playbooks/drills";
+
 export type SimulationDifficulty = "foundational" | "intermediate" | "advanced";
 
 export type SimulationPromptVars = {
@@ -143,6 +145,11 @@ Introduce yourself as Marcus in 2–3 sentences. Include your current priority a
 much time you have right now. End with: "What do you have for me?"`;
 
 export function resolveSimulationStartMessage(templateName: string, promptBody: string): string {
+  // Playbook objection drills mention "elevator pitch"-style wording too, so check them first.
+  if (promptBody.includes(OBJECTION_DRILL_MARKER)) {
+    return OBJECTION_DRILL_START_MESSAGE;
+  }
+
   const normalized = `${templateName} ${promptBody}`.toLowerCase();
 
   if (normalized.includes("elevator pitch") || promptBody.includes("PART 1 — IN CHARACTER")) {
