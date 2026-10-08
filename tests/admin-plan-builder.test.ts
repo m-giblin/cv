@@ -1,9 +1,16 @@
 import { describe, expect, it } from "vitest";
+import { createTemplateSchema, templateStepSchema } from "@/lib/plans/template-step-schema";
 import { adminPathFor, adminRouteFromPath, canonicalAdminHref } from "@/lib/admin/admin-routes";
 import { changedFeatureIds, planLockedFeatureIds, toggleFeature } from "@/lib/admin/feature-settings";
 import {
   builderStepsToPayload,
   canPublish,
+  catalogStepReady,
+  challengeStepPatch,
+  knowledgeCheckStepPatch,
+  persistedStepType,
+  playbookStepPatch,
+  simulationStepPatch,
   dayOf,
   dbStepToBuilder,
   emptyBuilderStep,
@@ -41,6 +48,72 @@ describe("plan builder publish rule", () => {
     expect(stepIssues(emptyBuilderStep())).toEqual(["type", "title", "criteria", "evidence", "reviewer"]);
     expect(stepIssues(complete())).toEqual([]);
     expect(stepIssues(complete({ criteria: ["  ", ""] }))).toEqual(["criteria"]);
+  });
+
+  it("fills a simulation step from the live scenario", () => {
+    const patch = simulationStepPatch({
+      id: "sim-1",
+      name: "Foundation: Joiner, mover, and leaver",
+      persona: "Jordan Hale, IT Director",
+      goals: ["Explain joining in plain language", "Ask what tells IT about a transfer"],
+      passMark: 70,
+      competency: "Identity foundations",
+    });
+    const step = emptyBuilderStep({ ...patch, segmentIndex: 1 });
+    expect(step.title).toBe("Foundation: Joiner, mover, and leaver");
+    expect(step.criteria).toEqual(["Explain joining in plain language", "Ask what tells IT about a transfer"]);
+    expect(step.evidence).toBe("score");
+    expect(step.reviewer).toBe("auto");
+    expect(step.competency).toBe("Identity foundations");
+    expect(catalogStepReady(emptyBuilderStep({ stepType: "simulation" }))).toBe(false);
+    expect(catalogStepReady(step)).toBe(true);
+    expect(stepIssues(step)).toEqual([]);
+  });
+
+  it("fills a playbook step from a published chapter", () => {
+    const step = emptyBuilderStep(
+      playbookStepPatch({ id: "11111111-1111-4111-8111-111111111111", title: "Identity lifecycle", chapter: 2, slug: "identity-lifecycle" }),
+    );
+    expect(step.stepType).toBe("playbook");
+    expect(step.title).toBe("Chapter 2: Identity lifecycle");
+    expect(step.playbookSlug).toBe("identity-lifecycle");
+    expect(persistedStepType("playbook")).toBe("content_review");
+    expect(stepIssues(step)).toEqual([]);
+    expect(catalogStepReady(emptyBuilderStep({ stepType: "playbook" }))).toBe(false);
+  });
+
+  it("accepts null playbook ids on steps the builder publishes", () => {
+    const step = builderStepsToPayload([
+      emptyBuilderStep({
+        stepType: "simulation",
+        title: "Foundation: Joiner, mover, and leaver",
+        simulationTemplateId: "811178bf-24a8-46c3-8437-d9eff3541a56",
+      }),
+    ])[0];
+    expect(step?.playbookId).toBeNull();
+    expect(step?.playbookSlug).toBeNull();
+    expect(templateStepSchema.safeParse(step).success).toBe(true);
+    const created = createTemplateSchema.safeParse({
+      name: "New Hirer - Foundation",
+      steps: [step],
+    });
+    expect(created.success).toBe(true);
+  });
+
+  it("fills a knowledge check from the question bank", () => {
+    const step = emptyBuilderStep(knowledgeCheckStepPatch({ key: "atlas", title: "Atlas foundations" }, 80));
+    expect(step.title).toBe("Atlas foundations");
+    expect(step.questionSource).toBe("atlas");
+    expect(step.passScore).toBe(80);
+    expect(stepIssues(step)).toEqual([]);
+  });
+
+  it("fills a challenge step from the challenge title", () => {
+    const step = emptyBuilderStep(challengeStepPatch({ id: "c1", title: "Connect Entra ID", estimated_minutes: 25 }));
+    expect(step.title).toBe("Connect Entra ID");
+    expect(step.challengeId).toBe("c1");
+    expect(step.estimatedMinutes).toBe(25);
+    expect(stepIssues(step)).toEqual([]);
   });
 
   it("blocks publish while any step is incomplete", () => {

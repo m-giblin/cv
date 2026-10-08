@@ -23,7 +23,14 @@ export type CompetencyOption = { id: string; name: string };
 
 type ContentAsset = { id: string; title: string; url: string };
 type Challenge = { id: string; title: string; estimated_minutes?: number | null };
-type SimTemplate = { id: string; name: string; persona?: string | null };
+type SimTemplate = {
+  id: string;
+  name: string;
+  persona?: string | null;
+  goals?: string[];
+  passMark?: number | null;
+  competency?: string | null;
+};
 
 /** Loads plan templates and the pickers the builder links to. Every list comes from the existing APIs. */
 export function usePlanBuilderData() {

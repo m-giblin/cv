@@ -466,6 +466,7 @@ export async function ManagerSectionPage({ section }: { section: ManagerSection 
  seSnapshots={seSnapshots}
  competencies={data.competencies}
  managerFirstName={data.currentUser.fullName.split(" ")[0]}
+ viewer={data.currentUser}
  readinessAvailable={isManagerSectionAllowed("readiness", settings.featureFlags)}
  featureFlags={settings.featureFlags}
  mentees={mentees}

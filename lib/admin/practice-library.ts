@@ -93,6 +93,17 @@ export const DYNAMIC_PERSONA = "Dynamic (AI-generated buyer)";
 
 const SCORING_MARKER = "\n\nSCORING\n";
 
+/** First line of a simulation prompt that is saved for review and must not be assignable yet. */
+export const SIM_DRAFT_MARKER = "STATUS: draft\n";
+
+export function isDraftSimulationPrompt(promptBody: string): boolean {
+  return promptBody.startsWith(SIM_DRAFT_MARKER);
+}
+
+export function withoutDraftMarker(promptBody: string): string {
+  return isDraftSimulationPrompt(promptBody) ? promptBody.slice(SIM_DRAFT_MARKER.length) : promptBody;
+}
+
 export type SimScoring = { goals: string[]; passMark: number | null; rounds: number | null; competency: string | null };
 
 /** The scoring block the wizard appends to every simulation prompt it writes. */
@@ -115,9 +126,10 @@ export function joinSimPrompt(scenario: string, scoring: string): string {
 
 /** Splits a simulation prompt into its scenario text and the scoring the wizard stored in it (if any). */
 export function parseSimPrompt(promptBody: string): { scenario: string } & SimScoring {
-  const at = promptBody.indexOf(SCORING_MARKER);
-  const scenario = at >= 0 ? promptBody.slice(0, at) : promptBody;
-  const scoring = at >= 0 ? promptBody.slice(at + SCORING_MARKER.length) : "";
+  const body = withoutDraftMarker(promptBody);
+  const at = body.indexOf(SCORING_MARKER);
+  const scenario = at >= 0 ? body.slice(0, at) : body;
+  const scoring = at >= 0 ? body.slice(at + SCORING_MARKER.length) : "";
   const goals = [...scoring.matchAll(/^\s+\d+\.\s+(.+)$/gm)].map((match) => match[1]!.trim());
   const pass = scoring.match(/^Pass mark:\s*(\d+)/m);
   const rounds = scoring.match(/^Practice rounds before submitting:\s*(\d+)/m);
@@ -186,7 +198,7 @@ export function simToItem(row: SimTemplateRow, usage?: PracticeUsage | null): Pr
     usedIn: plans ? plural(plans, "plan") : "None yet",
     usedCount: plans,
     runs30d: usage?.simRuns30d[row.id] ?? 0,
-    status: "live",
+    status: isDraftSimulationPrompt(row.promptBody) ? "draft" : "live",
     vertical,
     competencies: parsed.competency ? [parsed.competency] : [],
     summary: parseSituation(parsed.scenario) ?? `${row.persona}. ${row.solutionFocus}.`,

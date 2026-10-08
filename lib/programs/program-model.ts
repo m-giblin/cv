@@ -214,6 +214,15 @@ function toSummary(
   };
 }
 
+/**
+ * Enrollment candidates. The roster is SEs; the signed-in admin or manager is added so they can
+ * put themselves on a program.
+ */
+export function enrollRoster(people: Profile[], viewer: Profile | null | undefined): Profile[] {
+  if (!viewer || people.some((person) => person.id === viewer.id)) return people;
+  return [viewer, ...people];
+}
+
 /** SEs with no active program, for the "not enrolled" prompt. */
 export function unenrolledPeople(people: Profile[], plans: UserPlan[]): Profile[] {
   const enrolled = new Set(plans.filter((plan) => plan.status !== "completed").map((plan) => plan.userId));

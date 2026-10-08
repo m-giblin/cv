@@ -7,6 +7,8 @@ export function builderMetadata(step: {
   estimatedMinutes?: number | null;
   questionSource?: string | null;
   passScore?: number | null;
+  playbookId?: string | null;
+  playbookSlug?: string | null;
 }): Record<string, unknown> {
   const meta: Record<string, unknown> = {};
   if (step.criteria !== undefined) meta.criteria = step.criteria.map((item) => item.trim()).filter(Boolean);
@@ -16,5 +18,7 @@ export function builderMetadata(step: {
   if (step.estimatedMinutes !== undefined) meta.estimatedMinutes = step.estimatedMinutes;
   if (step.questionSource !== undefined) meta.questionSource = step.questionSource || null;
   if (step.passScore !== undefined) meta.passScore = step.passScore;
+  if (step.playbookId !== undefined) meta.playbookId = step.playbookId || null;
+  if (step.playbookSlug !== undefined) meta.playbookSlug = step.playbookSlug || null;
   return meta;
 }

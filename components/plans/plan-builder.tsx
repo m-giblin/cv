@@ -24,6 +24,12 @@ import {
   SEGMENT_NAMES,
   builderStepsToPayload,
   canPublish,
+  catalogStepReady,
+  challengeStepPatch,
+  contentStepPatch,
+  knowledgeCheckStepPatch,
+  playbookStepPatch,
+  simulationStepPatch,
   dayOf,
   dueLabel,
   emptyBuilderStep,
@@ -247,16 +253,20 @@ export function PlanBuilder({
 
   function addFromLibrary(item: LibraryItem, week: number) {
     const stepType = LIBRARY_TYPE[item.kind];
+    const sim = item.kind === "sim" ? data.simTemplates.find((entry) => entry.id === item.id) : null;
+    const challenge = item.kind === "challenge" ? data.challenges.find((entry) => entry.id === item.id) : null;
+    const asset = item.kind === "module" ? data.assets.find((entry) => entry.id === item.id) : null;
+    const filled = sim
+      ? simulationStepPatch(sim)
+      : challenge
+        ? challengeStepPatch(challenge)
+        : asset
+          ? contentStepPatch(asset)
+          : { title: item.title, stepType, estimatedMinutes: item.minutes };
     const step = emptyBuilderStep({
-      title: item.title,
-      stepType,
+      ...filled,
       dueOffsetDays: offsetFor(week, 5),
       segmentIndex: segmentForWeek(steps, week),
-      challengeId: item.kind === "challenge" ? item.id : "",
-      simulationTemplateId: item.kind === "sim" ? item.id : "",
-      contentAssetId: item.kind === "module" ? item.id : "",
-      contentUrl: item.kind === "module" ? (item.url ?? "") : "",
-      estimatedMinutes: item.minutes,
     });
     setSteps((current) => sortByDue([...current, step]));
     setSelectedKey(step.key);
@@ -611,6 +621,59 @@ export function PlanBuilder({
   );
 }
 
+type PlaybookOption = { id: string; title: string; chapter: number; slug: string };
+
+/** Picks a published playbook chapter and fills the step from it. */
+function PlaybookField({
+  id,
+  playbookId,
+  title,
+  onChange,
+}: {
+  id: string;
+  playbookId: string;
+  title: string;
+  onChange: (patch: Partial<BuilderStep>) => void;
+}) {
+  const [playbooks, setPlaybooks] = useState<PlaybookOption[] | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/manager/assign")
+      .then((response) => (response.ok ? response.json() : { playbooks: [] }))
+      .then((body: { playbooks?: PlaybookOption[] }) => {
+        if (!cancelled) setPlaybooks(body.playbooks ?? []);
+      })
+      .catch(() => !cancelled && setPlaybooks([]));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return (
+    <Field htmlFor={id} label="Playbook">
+      <SelectInput
+        className="text-sm"
+        id={id}
+        onChange={(event) => {
+          const playbook = (playbooks ?? []).find((entry) => entry.id === event.target.value);
+          onChange(playbook ? playbookStepPatch(playbook) : { playbookId: "", playbookSlug: "" });
+        }}
+        value={playbookId}
+      >
+        <option value="">{playbooks === null ? "Loading playbooks" : playbooks.length ? "Choose a playbook" : "No published playbooks"}</option>
+        {playbookId && !(playbooks ?? []).some((entry) => entry.id === playbookId) ? (
+          <option value={playbookId}>{title || "Linked playbook"}</option>
+        ) : null}
+        {(playbooks ?? []).map((playbook) => (
+          <option key={playbook.id} value={playbook.id}>
+            {playbook.chapter ? `Chapter ${playbook.chapter}: ${playbook.title}` : playbook.title}
+          </option>
+        ))}
+      </SelectInput>
+    </Field>
+  );
+}
+
 /** Picks the question bank a knowledge check draws from, and the pass mark. */
 function KnowledgeCheckField({
   id,
@@ -640,8 +703,20 @@ function KnowledgeCheckField({
   return (
     <>
       <Field htmlFor={id} label="Question bank">
-        <SelectInput className="text-sm" id={id} onChange={(event) => onChange({ questionSource: event.target.value })} value={questionSource}>
-          <option value="">{banks === null ? "Loading banks" : banks.length ? "Pick a bank" : "No banks with 3+ approved questions"}</option>
+        <SelectInput
+          className="text-sm"
+          id={id}
+          onChange={(event) => {
+            const bank = (banks ?? []).find((entry) => entry.key === event.target.value);
+            if (!bank) {
+              onChange({ questionSource: "" });
+              return;
+            }
+            onChange(knowledgeCheckStepPatch(bank, passScore));
+          }}
+          value={questionSource}
+        >
+          <option value="">{banks === null ? "Loading checks" : banks.length ? "Choose a knowledge check" : "No checks with 3+ approved questions"}</option>
           {(banks ?? []).map((bank) => (
             <option key={bank.key} value={bank.key}>
               {bank.title} ({bank.solution}, {bank.questions} questions)
@@ -655,7 +730,11 @@ function KnowledgeCheckField({
           id={`${id}-pass`}
           max={100}
           min={1}
-          onChange={(event) => onChange({ passScore: Math.min(100, Math.max(1, Number(event.target.value) || 80)) })}
+          onChange={(event) => {
+            const next = Math.min(100, Math.max(1, Number(event.target.value) || 80));
+            const bank = (banks ?? []).find((entry) => entry.key === questionSource);
+            onChange(bank ? knowledgeCheckStepPatch(bank, next) : { passScore: next });
+          }}
           type="number"
           value={passScore}
         />
@@ -741,14 +820,34 @@ function StepEditor({
   onChange: (patch: Partial<BuilderStep>) => void;
   onRemove: () => void;
   assets: { id: string; title: string; url: string }[];
-  challenges: { id: string; title: string }[];
-  simTemplates: { id: string; name: string; persona?: string | null }[];
+  challenges: { id: string; title: string; estimated_minutes?: number | null }[];
+  simTemplates: {
+    id: string;
+    name: string;
+    persona?: string | null;
+    goals?: string[];
+    passMark?: number | null;
+    competency?: string | null;
+  }[];
   competencies: { id: string; name: string }[] | null;
 }) {
   const id = (field: string) => `step-${step.key}-${field}`;
   const week = weekOf(step.dueOffsetDays);
   const dueOptions = Array.from({ length: PLAN_WEEKS * 7 }, (_, i) => i + 1);
   const criteria = step.criteria.length ? step.criteria : [""];
+  const ready = catalogStepReady(step);
+  const catalogPrompt =
+    step.stepType === "simulation"
+      ? "Choose a simulation. The title, the task, and the pass criteria fill in from it."
+      : step.stepType === "knowledge_check"
+        ? "Choose a knowledge check. The title and pass mark fill in from it."
+        : step.stepType === "challenge"
+          ? "Choose a challenge. The title and the task fill in from it."
+          : step.stepType === "content_review"
+            ? "Choose an item from the content library. The title and the task fill in from it."
+            : step.stepType === "playbook"
+              ? "Choose a playbook chapter. The title fills in from it. Add a knowledge check step next if you want a quiz on that chapter."
+              : null;
 
   return (
     <>
@@ -763,6 +862,92 @@ function StepEditor({
         </div>
       </fieldset>
 
+      {step.stepType === "simulation" ? (
+        <Field htmlFor={id("resource")} label="Simulation">
+          <SelectInput
+            className="text-sm"
+            id={id("resource")}
+            onChange={(event) => {
+              const sim = simTemplates.find((entry) => entry.id === event.target.value);
+              onChange(sim ? simulationStepPatch(sim) : { simulationTemplateId: "" });
+            }}
+            value={step.simulationTemplateId}
+          >
+            <option value="">{simTemplates.length ? "Choose a simulation" : "No live simulations"}</option>
+            {step.simulationTemplateId && !simTemplates.some((entry) => entry.id === step.simulationTemplateId) ? (
+              <option value={step.simulationTemplateId}>{step.title || "Linked simulation"}</option>
+            ) : null}
+            {simTemplates.map((sim) => (
+              <option key={sim.id} value={sim.id}>
+                {sim.name}
+                {sim.persona ? ` — ${sim.persona}` : ""}
+              </option>
+            ))}
+          </SelectInput>
+        </Field>
+      ) : null}
+
+      {step.stepType === "playbook" ? (
+        <PlaybookField id={id("resource")} onChange={onChange} playbookId={step.playbookId} title={step.title} />
+      ) : null}
+
+      {step.stepType === "knowledge_check" ? (
+        <div className="grid gap-3.5 sm:grid-cols-2">
+          <KnowledgeCheckField
+            id={id("resource")}
+            onChange={onChange}
+            passScore={step.passScore}
+            questionSource={step.questionSource}
+          />
+        </div>
+      ) : null}
+
+      {step.stepType === "challenge" ? (
+        <Field htmlFor={id("resource")} label="Challenge">
+          <SelectInput
+            className="text-sm"
+            id={id("resource")}
+            onChange={(event) => {
+              const challenge = challenges.find((entry) => entry.id === event.target.value);
+              onChange(challenge ? challengeStepPatch(challenge) : { challengeId: "" });
+            }}
+            value={step.challengeId}
+          >
+            <option value="">{challenges.length ? "Choose a challenge" : "No challenges"}</option>
+            {challenges.map((challenge) => (
+              <option key={challenge.id} value={challenge.id}>
+                {challenge.title}
+              </option>
+            ))}
+          </SelectInput>
+        </Field>
+      ) : null}
+
+      {step.stepType === "content_review" ? (
+        <Field htmlFor={id("resource")} label="Content">
+          <SelectInput
+            className="text-sm"
+            id={id("resource")}
+            onChange={(event) => {
+              const asset = assets.find((entry) => entry.id === event.target.value);
+              onChange(asset ? contentStepPatch(asset) : { contentAssetId: "", contentUrl: "" });
+            }}
+            value={step.contentAssetId}
+          >
+            <option value="">{assets.length ? "Choose content" : "Nothing in the library"}</option>
+            {assets.map((asset) => (
+              <option key={asset.id} value={asset.id}>
+                {asset.title}
+              </option>
+            ))}
+          </SelectInput>
+        </Field>
+      ) : null}
+
+      {catalogPrompt && !ready ? <p className="text-sm text-muted">{catalogPrompt}</p> : null}
+
+      {ready ? (
+      <>
       <Field htmlFor={id("title")} label="Title">
         <TextInput id={id("title")} onChange={(event) => onChange({ title: event.target.value })} value={step.title} />
       </Field>
@@ -812,7 +997,7 @@ function StepEditor({
         </div>
       </fieldset>
 
-      <div className="grid gap-3.5 sm:grid-cols-3">
+      <div className="grid gap-3.5 sm:grid-cols-2">
         <Field htmlFor={id("evidence")} label="Evidence">
           <SelectInput
             className="text-sm"
@@ -841,22 +1026,6 @@ function StepEditor({
                 {option.label}
               </option>
             ))}
-          </SelectInput>
-        </Field>
-        <Field htmlFor={id("due")} label="Due">
-          <SelectInput
-            className="text-sm"
-            id={id("due")}
-            onChange={(event) => onChange({ dueOffsetDays: Number(event.target.value) })}
-            value={step.dueOffsetDays}
-          >
-            {(dueOptions.includes(step.dueOffsetDays) ? dueOptions : [...dueOptions, step.dueOffsetDays]).map(
-              (offset) => (
-                <option key={offset} value={offset}>
-                  {dueLabel(offset)}
-                </option>
-              ),
-            )}
           </SelectInput>
         </Field>
       </div>
@@ -889,47 +1058,10 @@ function StepEditor({
             />
           )}
         </Field>
-        {step.stepType === "challenge" ? (
-          <Field htmlFor={id("resource")} label="Challenge">
-            <SelectInput
-              className="text-sm"
-              id={id("resource")}
-              onChange={(event) => onChange({ challengeId: event.target.value })}
-              value={step.challengeId}
-            >
-              <option value="">Not linked</option>
-              {challenges.map((challenge) => (
-                <option key={challenge.id} value={challenge.id}>
-                  {challenge.title}
-                </option>
-              ))}
-            </SelectInput>
-          </Field>
-        ) : step.stepType === "knowledge_check" ? (
-          <KnowledgeCheckField
-            id={id("resource")}
-            onChange={onChange}
-            passScore={step.passScore}
-            questionSource={step.questionSource}
-          />
-        ) : step.stepType === "simulation" ? (
-          <Field htmlFor={id("resource")} label="Persona">
-            <SelectInput
-              className="text-sm"
-              id={id("resource")}
-              onChange={(event) => onChange({ simulationTemplateId: event.target.value })}
-              value={step.simulationTemplateId}
-            >
-              <option value="">No persona</option>
-              {simTemplates.map((sim) => (
-                <option key={sim.id} value={sim.id}>
-                  {sim.name}
-                  {sim.persona ? `, ${sim.persona}` : ""}
-                </option>
-              ))}
-            </SelectInput>
-          </Field>
-        ) : (
+        {step.stepType === "shadow_meeting_log" ||
+        step.stepType === "mentor_review" ||
+        step.stepType === "deal_prep" ||
+        step.stepType === "custom" ? (
           <Field htmlFor={id("resource")} label="Resources">
             <SelectInput
               className="text-sm"
@@ -948,10 +1080,28 @@ function StepEditor({
               ))}
             </SelectInput>
           </Field>
-        )}
+        ) : null}
       </div>
+      </>
+      ) : null}
 
       <div className="grid gap-3.5 sm:grid-cols-2">
+        <Field htmlFor={id("due")} label="Due">
+          <SelectInput
+            className="text-sm"
+            id={id("due")}
+            onChange={(event) => onChange({ dueOffsetDays: Number(event.target.value) })}
+            value={step.dueOffsetDays}
+          >
+            {(dueOptions.includes(step.dueOffsetDays) ? dueOptions : [...dueOptions, step.dueOffsetDays]).map(
+              (offset) => (
+                <option key={offset} value={offset}>
+                  {dueLabel(offset)}
+                </option>
+              ),
+            )}
+          </SelectInput>
+        </Field>
         <Field htmlFor={id("segment")} label="Segment">
           <SelectInput
             className="text-sm"

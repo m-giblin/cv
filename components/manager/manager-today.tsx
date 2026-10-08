@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { MyTrainingCard } from "@/components/manager/my-training-card";
 import { HeaderStat, TeamActionLink, TeamStatusTag, initialsOf } from "@/components/manager/team-member-bits";
-import { DefinitionCard, Note } from "@/components/ui/editorial";
+import { DefinitionCard } from "@/components/ui/editorial";
 import { Drawer } from "@/components/ui/drawer";
 import { MainWithRail, PageBody, PageHeader } from "@/components/ui/page-header";
 import { StatStrip } from "@/components/ui/stat";
@@ -42,7 +42,7 @@ function readinessTone(value: number | null) {
   return "text-ink";
 }
 
-/** Manager › Today (7b): stat strip, the team by urgency, the coaching definition card and "Since Friday". */
+/** Manager › Today (7b): stat strip with the "Since Friday" message, then the team by urgency and the coaching definition card. */
 export function ManagerToday({
   managerFirstName,
   members,
@@ -95,6 +95,18 @@ export function ManagerToday({
             <Link className="btn-primary inline-flex whitespace-nowrap no-underline" href={managerSectionHref("inbox")}>
               Open inbox
             </Link>
+          }
+          message={
+            <div className="flex flex-col justify-center gap-1.5 border-l-[3px] border-blue py-1 pl-4">
+              <h2 className="label-caps label-caps--blue">Since Friday</h2>
+              <p className="max-w-[520px] text-[15px] font-medium leading-snug text-ink">
+                {now
+                  ? since.length > 0
+                    ? since.join(" ")
+                    : "A quiet few days. No new practice or ramp activity from your team."
+                  : "\u00a0"}
+              </p>
+            </div>
           }
         >
           <HeaderStat
@@ -182,9 +194,6 @@ export function ManagerToday({
                   ? `In the last seven days you have coached ${coached} of ${teamSize} ${plural(teamSize, "person", "people")}.`
                   : "Coaching shows up here once people report to you."}
               </DefinitionCard>
-              <Note title="Since Friday">
-                {since.length > 0 ? since.join(" ") : "A quiet few days. No new practice or ramp activity from your team."}
-              </Note>
             </>
           }
         >

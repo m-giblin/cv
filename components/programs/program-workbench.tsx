@@ -87,6 +87,7 @@ export function ProgramWorkbench({
   isNew = false,
   candidates,
   mentors,
+  viewerId,
   initialTab = "progress",
   startEditing = false,
   focusStepId = null,
@@ -99,9 +100,10 @@ export function ProgramWorkbench({
   template: DbTemplate | null;
   canEdit: boolean;
   isNew?: boolean;
-  /** SEs this viewer may enroll. */
+  /** SEs this viewer may enroll, plus the viewer when they are not an SE. */
   candidates: Profile[];
   mentors: Profile[];
+  viewerId?: string;
   initialTab?: ProgramTab;
   /** Open straight into the outline editor (e.g. adding a practice item from the library). */
   startEditing?: boolean;
@@ -191,6 +193,7 @@ export function ProgramWorkbench({
             candidates={candidates}
             enrollments={enrollments}
             mentors={mentors}
+            viewerId={viewerId}
             onChanged={onChanged}
             onOpen={(id) => {
               setTab("progress");
@@ -459,6 +462,7 @@ function People({
   candidates,
   mentors,
   template,
+  viewerId,
   onChanged,
   onOpen,
 }: {
@@ -466,15 +470,20 @@ function People({
   candidates: Profile[];
   mentors: Profile[];
   template: DbTemplate | null;
+  viewerId?: string;
   onChanged: () => void;
   onOpen: (userId: string) => void;
 }) {
   const enrolledIds = new Set(enrollments.map((item) => item.plan.userId));
-  const available = candidates.filter((person) => !enrolledIds.has(person.id));
+  const available = [
+    ...candidates.filter((person) => person.id === viewerId && !enrolledIds.has(person.id)),
+    ...candidates.filter((person) => person.id !== viewerId && !enrolledIds.has(person.id)),
+  ];
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [startDate, setStartDate] = useState(todayIso());
   const [mentorId, setMentorId] = useState("");
   const [saving, setSaving] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
   const mentorName = (id: string | null) => mentors.find((mentor) => mentor.id === id)?.fullName ?? "None";
 
   async function enroll() {
@@ -502,6 +511,21 @@ function People({
     onChanged();
   }
 
+  async function removePerson(item: EnrollmentSummary) {
+    const name = item.person?.fullName ?? "this person";
+    if (!window.confirm(`Remove ${name} from this program?`)) return;
+    setRemovingId(item.plan.id);
+    const response = await fetch(`/api/plans/assignments/${item.plan.id}`, { method: "DELETE" }).catch(() => null);
+    setRemovingId(null);
+    if (!response?.ok) {
+      const body = (await response?.json().catch(() => null)) as { error?: unknown } | null;
+      toast.error(typeof body?.error === "string" ? body.error : "Could not remove this person.");
+      return;
+    }
+    toast.success(`${name} removed.`);
+    onChanged();
+  }
+
   return (
     <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
       <section className="flex min-w-0 flex-col gap-3">
@@ -524,6 +548,9 @@ function People({
                 <th className={cn(thCls, "text-right")} scope="col">
                   Progress
                 </th>
+                <th className="sr-only" scope="col">
+                  Remove
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -539,6 +566,19 @@ function People({
                   <td className={cn(tdCls, "text-sm text-ink-2")}>{mentorName(item.plan.mentorId)}</td>
                   <td className={cn(tdCls, "text-sm text-ink-2")}>{shortDate(item.plan.startDate)}</td>
                   <td className={cn(tdCls, "num text-right font-bold text-ink")}>{item.progress}%</td>
+                  <td className={cn(tdCls, "text-right")}>
+                    <button
+                      className="link text-sm text-danger decoration-danger hover:text-ink disabled:opacity-50"
+                      disabled={removingId === item.plan.id}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void removePerson(item);
+                      }}
+                      type="button"
+                    >
+                      {removingId === item.plan.id ? "Removing…" : "Remove"}
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -573,7 +613,7 @@ function People({
                     />
                     <span className="flex flex-col">
                       <span className="text-sm font-bold text-ink">{person.fullName}</span>
-                      <span className="text-[12px] text-muted">{person.level}</span>
+                      <span className="text-[12px] text-muted">{person.id === viewerId ? "You" : person.level}</span>
                     </span>
                   </label>
                 </li>

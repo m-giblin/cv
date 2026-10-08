@@ -91,6 +91,7 @@ export function ManagerPageShell({
   challenges,
   mentors,
   managerFirstName,
+  viewer = null,
   mentees = [],
   readinessAvailable = true,
   featureFlags,
@@ -119,6 +120,8 @@ export function ManagerPageShell({
   coachingByUser: Record<string, SeCoachingSummary>;
   challenges: Challenge[];
   mentors: Profile[];
+  /** Signed-in manager, so they can enroll themselves. */
+  viewer?: Profile | null;
   approvedCertCountByUser: Record<string, number>;
   managerFirstName?: string;
   mentees?: MenteeAssignment[];
@@ -239,6 +242,7 @@ export function ManagerPageShell({
           mode="manager"
           people={assignees.filter((person) => getAccessTier(person.role) === "se")}
           plans={plans}
+          viewer={viewer}
         />
       );
       break;

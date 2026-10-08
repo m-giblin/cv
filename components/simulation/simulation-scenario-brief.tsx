@@ -32,10 +32,14 @@ export function SimulationScenarioBrief({
   assignment,
   criteria,
   turnCount,
+  context,
+  objective,
 }: {
   assignment: SimulationAssignment;
   criteria: RubricCriterion[];
   turnCount: number;
+  context?: string;
+  objective?: string;
 }) {
   const personaInitials = initialsFromName(assignment.persona) || "AI";
 
@@ -74,12 +78,12 @@ export function SimulationScenarioBrief({
       <div className="space-y-4 p-4">
         <div>
           <p className="label-caps">Scenario</p>
-          <p className="mt-2 text-sm leading-[1.5] text-ink-2">{scenarioContext(assignment)}</p>
+          <p className="mt-2 text-sm leading-[1.5] text-ink-2">{context ?? scenarioContext(assignment)}</p>
         </div>
 
         <div className="rounded-[10px] border-l-[3px] border-signal bg-signal-soft p-3">
           <p className="text-[13px] font-semibold text-ink">Your objective</p>
-          <p className="mt-1.5 text-sm leading-[1.5] text-ink">{scenarioObjective(assignment)}</p>
+          <p className="mt-1.5 text-sm leading-[1.5] text-ink">{objective ?? scenarioObjective(assignment)}</p>
         </div>
 
         <div>
@@ -91,7 +95,7 @@ export function SimulationScenarioBrief({
             {criteria.map((item, index) => (
               <li className={`px-3.5 py-2.5 ${index > 0 ? "border-t border-divider" : ""}`} key={item.label}>
                 <p className="text-sm font-bold text-ink">{item.label}</p>
-                <p className="mt-0.5 text-[13px] leading-[1.45] text-ink-2">{item.description}</p>
+                {item.description ? <p className="mt-0.5 text-[13px] leading-[1.45] text-ink-2">{item.description}</p> : null}
               </li>
             ))}
           </ul>

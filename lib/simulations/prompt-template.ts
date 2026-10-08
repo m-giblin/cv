@@ -120,6 +120,10 @@ export function defaultSledPromptSnapshot(input: {
 export const SIMULATION_START_MESSAGE =
   "Begin the simulation now. Execute STEP 1 — PERSONA CARD (print the full card), apply STEP 2 — DIFFICULTY BEHAVIOR internally, then STEP 3 — print --- ROLEPLAY BEGINS --- and your persona Opening Move. Do not wait for my input between steps.";
 
+/** Opening instruction for a written scenario that is not the parameterized SLED card. */
+export const SCENARIO_START_MESSAGE =
+  "Begin in character. Introduce yourself and the situation in 2–3 sentences. Do not teach the lesson or name a product until the prompt says you may.";
+
 export const ELEVATOR_PITCH_START_MESSAGE =
   "Begin the elevator pitch practice. Introduce yourself as Marcus Reid in 2–3 sentences: your role, current priority, how much time you have, and end with: What do you have for me?";
 
@@ -156,7 +160,11 @@ export function resolveSimulationStartMessage(templateName: string, promptBody: 
     return ELEVATOR_PITCH_START_MESSAGE;
   }
 
-  return SIMULATION_START_MESSAGE;
+  if (isParameterizedTemplate(promptBody) || promptBody.includes("STEP 1 — PERSONA CARD")) {
+    return SIMULATION_START_MESSAGE;
+  }
+
+  return SCENARIO_START_MESSAGE;
 }
 
 export function isElevatorPitchTemplate(promptBody: string): boolean {

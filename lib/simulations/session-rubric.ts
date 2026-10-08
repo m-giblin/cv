@@ -1,7 +1,25 @@
+import { parseSimPrompt } from "@/lib/admin/practice-library";
+
 export type RubricCriterion = {
   label: string;
   description: string;
 };
+
+/** Uses the scenario's own scoring goals when the prompt stores them. */
+export function scenarioFromScoring(
+  promptBody: string,
+  persona: string,
+): { context: string; objective: string; criteria: RubricCriterion[] } | null {
+  const parsed = parseSimPrompt(promptBody);
+  if (!parsed.goals.length) return null;
+  const situation = parsed.scenario.match(/^Situation:\s*(.+)$/m)?.[1]?.trim();
+  const pass = parsed.passMark ? ` Pass at ${parsed.passMark}.` : "";
+  return {
+    context: situation ?? `Roleplay with ${persona}.`,
+    objective: `Meet each goal below.${pass}`,
+    criteria: parsed.goals.map((goal) => ({ label: goal, description: "" })),
+  };
+}
 
 export function simulationRubricCriteria(options: {
   isElevatorPitch?: boolean;

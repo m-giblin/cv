@@ -40,6 +40,7 @@ const STEP_TYPE_PILL: Record<string, { label: string; bg: string; color: string 
   shadow_meeting_log: { label: "Shadow", bg: "var(--color-divider)", color: "var(--color-ink-2)" },
   mentor_review: { label: "Review", bg: "var(--color-success-soft)", color: "var(--color-success)" },
   knowledge_check: { label: "Check", bg: "var(--color-blue-soft)", color: "var(--color-blue)" },
+  playbook: { label: "Playbook", bg: "var(--color-blue-soft)", color: "var(--color-blue)" },
   custom: { label: "Custom", bg: "var(--color-divider)", color: "var(--color-muted)" },
 };
 
@@ -64,6 +65,7 @@ export function stepTypeIcon(type: string): { icon: string; iconBg: string } {
     mentor_review: { icon: "✓", iconBg: "var(--color-success-soft)" },
     shadow_meeting_log: { icon: "○", iconBg: "var(--color-divider)" },
     knowledge_check: { icon: "?", iconBg: "var(--color-blue-soft)" },
+    playbook: { icon: "≡", iconBg: "var(--color-blue-soft)" },
     custom: { icon: "•", iconBg: "var(--color-bg)" },
   };
   return map[type] ?? map.custom;

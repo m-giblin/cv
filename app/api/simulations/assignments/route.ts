@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auditMutation } from "@/lib/audit/audit-mutation";
+import { isDraftSimulationPrompt, parseSimPrompt } from "@/lib/admin/practice-library";
 import { requireAuthenticatedSession } from "@/lib/auth/require-authenticated";
 import { requireManagerSession } from "@/lib/auth/require-manager";
 import {
@@ -73,6 +74,10 @@ export async function POST(request: Request) {
       .select("*")
       .eq("id", parsed.data.templateId)
       .maybeSingle();
+
+    if (template && isDraftSimulationPrompt(template.prompt_body)) {
+      return NextResponse.json({ error: "That simulation is still a draft." }, { status: 400 });
+    }
 
     if (template) {
       templateName = template.name;
@@ -176,16 +181,22 @@ export async function GET() {
     .select("id, name, persona, vertical, solution_focus, difficulty, prompt_body")
     .order("name");
 
-  const mapped = (templates ?? []).map((template) => ({
-    id: template.id,
-    name: template.name,
-    persona: template.persona,
-    vertical: template.vertical,
-    solution_focus: template.solution_focus,
-    difficulty: template.difficulty,
-    parameterized: isParameterizedTemplate(template.prompt_body),
-    hasSolutionPlaceholder: template.prompt_body.includes("{{solution}}"),
-  }));
+  const mapped = (templates ?? []).filter((template) => !isDraftSimulationPrompt(template.prompt_body)).map((template) => {
+    const scoring = parseSimPrompt(template.prompt_body);
+    return {
+      id: template.id,
+      name: template.name,
+      persona: template.persona,
+      vertical: template.vertical,
+      solution_focus: template.solution_focus,
+      difficulty: template.difficulty,
+      parameterized: isParameterizedTemplate(template.prompt_body),
+      hasSolutionPlaceholder: template.prompt_body.includes("{{solution}}"),
+      goals: scoring.goals,
+      passMark: scoring.passMark,
+      competency: scoring.competency,
+    };
+  });
 
   return NextResponse.json({ templates: mapped });
 }

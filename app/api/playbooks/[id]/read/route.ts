@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { requireAuthenticatedSession } from "@/lib/auth/require-authenticated";
 import { getTenantAdminClient } from "@/lib/data/tenant-scoped-query";
+import { completePlaybookSteps } from "@/lib/playbooks/plan-completion";
 import { resolveEffectiveTenantId } from "@/lib/tenant/resolve-profile-tenant";
 
 /** Marks a published playbook as read by the signed-in person. */
@@ -31,5 +32,6 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
       { onConflict: "playbook_id,user_id" },
     );
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  await completePlaybookSteps({ tenantId, userId: session.user.id, playbookId: id }).catch(() => []);
   return NextResponse.json({ readAt });
 }

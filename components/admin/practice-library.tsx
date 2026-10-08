@@ -29,6 +29,7 @@ import {
   practiceStatusCounts,
   simToItem,
   sortPractice,
+  withoutDraftMarker,
   trackLabel,
   type PitchScenarioRow,
   type PracticeFilters,
@@ -239,6 +240,30 @@ export function PracticeLibrary({
     await load();
   }
 
+  async function publishSimDraft(item: PracticeItem) {
+    const row = item.sim;
+    if (!row) return;
+    const response = await fetch(`/api/admin/simulation-templates/${row.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: row.name,
+        persona: row.persona,
+        vertical: row.vertical,
+        solutionFocus: row.solutionFocus,
+        promptBody: withoutDraftMarker(row.promptBody),
+        difficulty: row.difficulty,
+        practiceRoundsBeforeSubmit: row.practiceRoundsBeforeSubmit,
+      }),
+    });
+    if (!response.ok) {
+      toast.error("Could not publish the simulation.");
+      return;
+    }
+    toast.success(`${row.name} is live. Managers can assign it.`);
+    await load();
+  }
+
   async function deleteSim(item: PracticeItem) {
     if (!item.sim) return;
     if (!window.confirm(`Delete "${item.name}"? Managers will no longer be able to assign it.`)) return;
@@ -318,7 +343,9 @@ export function PracticeLibrary({
         >
           Duplicate
         </LinkButton>
-        {selected.sim ? <LinkButton onClick={() => setAssigning(selected)}>Assign to SEs</LinkButton> : null}
+        {selected.sim && selected.status === "live" ? (
+          <LinkButton onClick={() => setAssigning(selected)}>Assign to SEs</LinkButton>
+        ) : null}
       </div>
       <div className="flex flex-wrap gap-x-3.5 gap-y-2">
         {selected.pitch ? (
@@ -329,6 +356,13 @@ export function PracticeLibrary({
           ) : (
             <LinkButton onClick={() => void setPitchActive(selected, true)}>Make it live</LinkButton>
           )
+        ) : selected.sim && selected.status === "draft" ? (
+          <>
+            <LinkButton onClick={() => void publishSimDraft(selected)}>Make it live</LinkButton>
+            <LinkButton onClick={() => void deleteSim(selected)} tone="danger">
+              Delete
+            </LinkButton>
+          </>
         ) : (
           <LinkButton onClick={() => void deleteSim(selected)} tone="danger">
             Delete

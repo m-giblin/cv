@@ -164,6 +164,7 @@ const PROGRAM_VIEWS = [
 export function AdminConsole({
   assignees,
   mentors,
+  viewer = null,
   profiles = [],
   plans = [],
   activity = [],
@@ -175,6 +176,7 @@ export function AdminConsole({
 }: {
   assignees: Profile[];
   mentors: Profile[];
+  viewer?: Profile | null;
   profiles?: Profile[];
   plans?: UserPlan[];
   activity?: ActivityLog[];
@@ -226,7 +228,7 @@ export function AdminConsole({
             <QuestionBankAdmin />
           </section>
         ) : (
-          <ProgramsWorkspace mentors={mentors} mode="admin" people={assignees} plans={plans} />
+          <ProgramsWorkspace mentors={mentors} mode="admin" people={assignees} plans={plans} viewer={viewer} />
         )}
       </>
     );
