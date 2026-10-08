@@ -9,6 +9,7 @@ const TYPE_LABEL: Record<PlanStepType, string> = {
   mentor_review: "1:1",
   deal_prep: "Deal Prep",
   knowledge_check: "Check",
+  playbook: "Playbook",
   custom: "Task",
 };
 
@@ -20,6 +21,7 @@ const TYPE_ICON: Record<PlanStepType, string> = {
   mentor_review: "🗓️",
   deal_prep: "📋",
   knowledge_check: "✅",
+  playbook: "📖",
   custom: "📌",
 };
 

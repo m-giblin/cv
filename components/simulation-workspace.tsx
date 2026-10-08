@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { coachingCardSchema, type CoachingCardOutput } from "@/lib/ai/schemas";
 import { difficultyToPromptLabel, isElevatorPitchTemplate } from "@/lib/simulations/prompt-template";
-import { simulationRubricCriteria } from "@/lib/simulations/session-rubric";
+import { scenarioFromScoring, simulationRubricCriteria } from "@/lib/simulations/session-rubric";
 import { SimulationCoachingRail } from "@/components/simulation/simulation-coaching-rail";
 import { SimulationScenarioBrief } from "@/components/simulation/simulation-scenario-brief";
 import { SimulationSpeechInput } from "@/components/simulation/speech-input";
@@ -119,11 +119,14 @@ export function SimulationWorkspace({
   }, [currentStep, onStepChange]);
 
   const isObjectionPractice = assignment.persona.toLowerCase().includes("objection practice");
-  const rubricCriteria = simulationRubricCriteria({
-    isElevatorPitch,
-    isObjectionPractice,
-    persona: assignment.persona,
-  });
+  const scoredScenario = promptSnapshot ? scenarioFromScoring(promptSnapshot, assignment.persona) : null;
+  const rubricCriteria =
+    scoredScenario?.criteria ??
+    simulationRubricCriteria({
+      isElevatorPitch,
+      isObjectionPractice,
+      persona: assignment.persona,
+    });
 
   const transcript = useMemo(
     () =>
@@ -552,7 +555,13 @@ export function SimulationWorkspace({
           "grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:h-[calc(100vh-190px)] lg:min-h-[560px] lg:grid-cols-[280px_minmax(0,1fr)_300px]",
         )}
       >
-        <SimulationScenarioBrief assignment={assignment} criteria={rubricCriteria} turnCount={messages.length} />
+        <SimulationScenarioBrief
+          assignment={assignment}
+          context={scoredScenario?.context}
+          criteria={rubricCriteria}
+          objective={scoredScenario?.objective}
+          turnCount={messages.length}
+        />
 
         <section
           aria-label="Roleplay conversation"

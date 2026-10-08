@@ -98,7 +98,7 @@ export async function fetchPlansForUsers(
         assignmentStepId: progress?.id,
         title: step.title,
         description: step.description ?? "",
-        type: step.step_type,
+        type: playbookMeta(step.metadata).playbookId ? "playbook" : step.step_type,
         order: step.sort_order,
         status: progress?.status ?? "not_started",
         dueDate: progress?.due_date ?? undefined,
@@ -110,6 +110,7 @@ export async function fetchPlansForUsers(
         challengeId: step.challenge_id ?? undefined,
         simulationTemplateId: step.simulation_template_id ?? undefined,
         ...knowledgeCheckMeta(step.metadata),
+        ...playbookMeta(step.metadata),
         segmentIndex: segmentMeta.segmentIndex,
         isSegmentGate: segmentMeta.isSegmentGate,
         locked: isStepLockedForSegment(segmentMeta.segmentIndex, unlockedSegmentMax),
@@ -135,6 +136,14 @@ export async function fetchPlansForUsers(
 }
 
 /** Knowledge check settings stored in a step's metadata. */
+function playbookMeta(metadata: unknown): { playbookId?: string; playbookSlug?: string } {
+  const raw = metadata && typeof metadata === "object" ? (metadata as Record<string, unknown>) : {};
+  return {
+    playbookId: typeof raw.playbookId === "string" && raw.playbookId ? raw.playbookId : undefined,
+    playbookSlug: typeof raw.playbookSlug === "string" && raw.playbookSlug ? raw.playbookSlug : undefined,
+  };
+}
+
 function knowledgeCheckMeta(metadata: unknown): { questionSource?: string; passScore?: number } {
   const raw = metadata && typeof metadata === "object" ? (metadata as Record<string, unknown>) : {};
   return {

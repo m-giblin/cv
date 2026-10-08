@@ -7,6 +7,7 @@ import type { Database } from "@/lib/database.types";
 import { createNotification } from "@/lib/notifications/create-notification";
 import { loadAssignablePeople } from "@/lib/playbooks/assignment-access";
 import { todayIso } from "@/lib/playbooks/assignments";
+import { isDraftSimulationPrompt } from "@/lib/admin/practice-library";
 import { loadBank } from "@/lib/question-bank/data";
 
 /**
@@ -28,7 +29,10 @@ export async function GET() {
       .eq("tenant_id", session.tenantId)
       .eq("status", "published")
       .order("chapter"),
-    session.supabase.from("simulation_templates").select("id, name, persona, vertical, solution_focus, difficulty").order("name"),
+    session.supabase
+      .from("simulation_templates")
+      .select("id, name, persona, vertical, solution_focus, difficulty, prompt_body")
+      .order("name"),
     admin
       .from("pitch_scenario_templates")
       .select("id, label, track, max_duration_sec")
@@ -48,7 +52,11 @@ export async function GET() {
   return NextResponse.json({
     people: people.map((person) => ({ ...person, hasRampPlan: withPlan.has(person.id) })),
     playbooks: playbooks.data ?? [],
-    simulations: simulations.data ?? [],
+    simulations: ((simulations.data ?? []) as { prompt_body?: string }[]).flatMap((row) => {
+      if (isDraftSimulationPrompt(row.prompt_body ?? "")) return [];
+      const { prompt_body: _promptBody, ...rest } = row;
+      return [rest];
+    }),
     pitches: pitches.data ?? [],
     checks,
   });

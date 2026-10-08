@@ -14,6 +14,10 @@ export function planStepHref(step: PlanStep) {
         return step.simulationTemplateId
           ? `/practice/simulations?focus=simulation&step=${step.id}&template=${step.simulationTemplateId}`
           : `/practice/simulations?focus=simulation&step=${step.id}`;
+      case "playbook":
+        return step.playbookSlug
+          ? `/learn/playbooks?playbook=${encodeURIComponent(step.playbookSlug)}`
+          : "/learn/playbooks";
       case "content_review":
       case "shadow_meeting_log":
       case "mentor_review":
@@ -30,6 +34,10 @@ export function planStepHref(step: PlanStep) {
       return `/practice/challenges?focus=challenge&step=${step.id}`;
     case "simulation":
       return `/practice/simulations?focus=simulation&step=${step.id}`;
+    case "playbook":
+      return step.playbookSlug
+        ? `/learn/playbooks?playbook=${encodeURIComponent(step.playbookSlug)}`
+        : "/learn/playbooks";
     case "deal_prep":
       return "/practice/deal-prep";
     case "content_review":
@@ -55,6 +63,8 @@ export function planStepActionLabel(step: PlanStep) {
       return "Open deal prep";
     case "knowledge_check":
       return step.passScore ? `Take the check (pass at ${step.passScore}%)` : "Take the check";
+    case "playbook":
+      return "Read playbook";
     default:
       return "Continue";
   }

@@ -42,11 +42,28 @@ export function Stat({ label, value, note, noteTone = "muted", tone = "blue", cl
   );
 }
 
-/** White card of stats, 48px apart, with an optional primary action on the right. */
-export function StatStrip({ children, action, className }: { children: React.ReactNode; action?: React.ReactNode; className?: string }) {
+/** White card of stats, 48px apart, with an optional message in the gap and a primary action on the right. */
+export function StatStrip({
+  children,
+  action,
+  message,
+  className,
+}: {
+  children: React.ReactNode;
+  action?: React.ReactNode;
+  /** Fills the open space between the stats and the action. */
+  message?: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <div className={cn("flex flex-wrap items-start gap-x-12 gap-y-4 rounded-[14px] border border-line bg-white px-[22px] py-4", className)}>
-      {children}
+    <div
+      className={cn(
+        "flex flex-wrap items-center gap-x-12 gap-y-4 rounded-[14px] border border-line bg-white px-[22px] py-4",
+        className,
+      )}
+    >
+      <div className="flex flex-wrap items-start gap-x-12 gap-y-4">{children}</div>
+      {message ? <div className="min-w-[240px] flex-1">{message}</div> : null}
       {action ? <div className="ml-auto self-center">{action}</div> : null}
     </div>
   );

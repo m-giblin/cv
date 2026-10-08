@@ -76,6 +76,7 @@ export async function AdminSectionPage({ practice = false }: { practice?: boolea
  aiUsage={aiUsage}
  assignees={assignees}
  initialUsers={initialUsers}
+ viewer={data.currentUser}
  mentors={mentors}
  pendingReviews={pendingReviews}
  pendingReviewBreakdown={pendingReviewBreakdown}

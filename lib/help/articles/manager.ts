@@ -10,10 +10,10 @@ export const MANAGER_ARTICLES: HelpArticle[] = [
     category: "Getting started",
     keywords: ["home", "dashboard", "today", "most urgent first", "at risk", "avg readiness", "reviews waiting", "since friday"],
     overview: [
-      "Today is the first page in the Manager portal. The strip at the top shows three numbers: \"Reviews waiting\" (with a note such as \"2 older than 3 days\" when items pass the 3-day review target), \"At risk\" and \"Avg readiness\".",
+      "Today is the first page in the Manager portal. The strip at the top shows three numbers: \"Reviews waiting\" (with a note such as \"2 older than 3 days\" when items pass the 3-day review target), \"At risk\" and \"Avg readiness\". Between Avg readiness and Open inbox, a \"Since Friday\" message summarises recent practice, ramp activity, and who has gone quiet.",
       "The team list is titled \"Your team, most urgent first\". People are ordered by status: at risk first (lowest readiness first), then people with work waiting on you, then people who are on track. Among on-track people, anyone with a suggested action comes first.",
       "Someone is at risk when their readiness is under 60, or their coaching health is at risk or stalled. Readiness target is 70. Each row gives a short reason (for example \"No ramp plan assigned\" or \"2 steps overdue\") and one suggested action such as \"Assign a plan\", \"Assign practice\" or \"Schedule a 1:1\". Rows with nothing to do show \"Nothing needed\".",
-      "The side rail shows how many people you coached in the last seven days, with a \"Book the rest\" or \"See your cadence\" link, and a \"Since Friday\" note summarising recent practice and ramp activity.",
+      "The side rail shows how many people you coached in the last seven days, with a \"Book the rest\" or \"See your cadence\" link.",
     ],
     steps: [
       { title: "Check the numbers", body: "Read \"Reviews waiting\", \"At risk\" and \"Avg readiness\" at the top of the page. A red At risk number means at least one person needs attention." },
@@ -301,6 +301,7 @@ export const MANAGER_ARTICLES: HelpArticle[] = [
       { title: "Set the start date", body: "Choose a \"Start date\". It defaults to today." },
       { title: "Choose a mentor", body: "Pick from \"Mentor (optional)\", or leave it as \"No mentor\"." },
       { title: "Enroll", body: "Click \"Enroll N\". You see how many people were enrolled; any failures are listed by name." },
+      { title: "Remove someone", body: "In the Enrolled list, click Remove on their row and confirm. People with no progress come off the program." },
     ],
     links: [{ label: "Open Programs", href: "/manager/programs" }],
     related: ["mgr-programs", "mgr-program-journey", "mgr-se-workbench"],

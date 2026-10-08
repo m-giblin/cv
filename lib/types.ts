@@ -18,6 +18,7 @@ export type PlanStepType =
   | "mentor_review"
   | "deal_prep"
   | "knowledge_check"
+  | "playbook"
   | "custom";
 
 export type AssignmentStatus =
@@ -65,6 +66,9 @@ export type PlanStep = {
   /** Knowledge check steps: the question-bank source and the pass mark. */
   questionSource?: string;
   passScore?: number;
+  /** Playbook steps: the published chapter to read. */
+  playbookId?: string;
+  playbookSlug?: string;
   segmentIndex?: number | null;
   isSegmentGate?: boolean;
   locked?: boolean;

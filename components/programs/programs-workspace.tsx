@@ -16,6 +16,7 @@ import type { DbTemplate } from "@/lib/admin/plan-builder";
 import {
   PROGRAM_PHASES,
   PROGRAM_WEEKS,
+  enrollRoster,
   summarizePrograms,
   unenrolledPeople,
 } from "@/lib/programs/program-model";
@@ -35,12 +36,15 @@ export function ProgramsWorkspace({
   plans,
   people,
   mentors,
+  viewer = null,
 }: {
   mode: "admin" | "manager";
   plans: UserPlan[];
   /** SEs in scope: the whole tenant for admins, the manager's org for managers. */
   people: Profile[];
   mentors: Profile[];
+  /** Signed-in person, included in Enroll people even when they are not an SE. */
+  viewer?: Profile | null;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -73,14 +77,16 @@ export function ProgramsWorkspace({
     void loadTracks();
   }, [loadTemplates, loadTracks]);
 
+  const roster = useMemo(() => enrollRoster(people, viewer), [people, viewer]);
+
   const scopedPlans = useMemo(() => {
-    const ids = new Set(people.map((person) => person.id));
+    const ids = new Set(roster.map((person) => person.id));
     return plans.filter((plan) => ids.has(plan.userId));
-  }, [people, plans]);
+  }, [plans, roster]);
 
   const programs = useMemo(
-    () => (templates ? summarizePrograms(templates, scopedPlans, people) : []),
-    [people, scopedPlans, templates],
+    () => (templates ? summarizePrograms(templates, scopedPlans, roster) : []),
+    [roster, scopedPlans, templates],
   );
   // Plans that are stages of a program show on its timeline, not again in the plan table.
   const stagePlanIds = useMemo(() => new Set(tracks.flatMap((track) => track.stages.map((stage) => stage.planId))), [tracks]);
@@ -138,7 +144,10 @@ export function ProgramsWorkspace({
     router.refresh();
   }, [loadTemplates, loadTracks, router]);
 
-  const enrolledCount = new Set(scopedPlans.filter((plan) => plan.status !== "completed").map((plan) => plan.userId)).size;
+  const seIds = new Set(people.map((person) => person.id));
+  const enrolledCount = new Set(
+    scopedPlans.filter((plan) => plan.status !== "completed" && seIds.has(plan.userId)).map((plan) => plan.userId),
+  ).size;
   // People, not enrollments: one SE can be on several programs.
   const atRisk = new Set(
     programs.flatMap((program) =>
@@ -342,7 +351,8 @@ export function ProgramsWorkspace({
 
       {openId && !loading && (openId === NEW ? canEdit : openProgram || openTemplate) ? (
         <ProgramWorkbench
-          candidates={people}
+          candidates={roster}
+          viewerId={viewer?.id}
           canEdit={canEdit}
           initialTab={TABS.includes(tabParam as ProgramTab) ? (tabParam as ProgramTab) : "progress"}
           isNew={openId === NEW}

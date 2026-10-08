@@ -4,6 +4,7 @@ import {
   stepWeek,
   summarizeEnrollment,
   summarizePrograms,
+  enrollRoster,
   unenrolledPeople,
 } from "@/lib/programs/program-model";
 import type { DbTemplate } from "@/lib/admin/plan-builder";
@@ -125,6 +126,15 @@ describe("summarizePrograms", () => {
 });
 
 describe("helpers", () => {
+  it("adds the signed-in admin to the enroll list", () => {
+    const ses = [person("a"), person("b")];
+    const admin = person("me");
+    admin.role = "admin";
+    expect(enrollRoster(ses, admin).map((item) => item.id)).toEqual(["me", "a", "b"]);
+    expect(enrollRoster(ses, person("a")).map((item) => item.id)).toEqual(["a", "b"]);
+    expect(enrollRoster(ses, null)).toBe(ses);
+  });
+
   it("lists people with no active program", () => {
     const people = [person("a"), person("b"), person("c")];
     const plans = [plan("a", []), plan("b", [], { status: "completed" })];

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { isDraftSimulationPrompt } from "@/lib/admin/practice-library";
 import { requireManagerSession } from "@/lib/auth/require-manager";
 import { getDashboardData } from "@/lib/data/get-dashboard-data";
 import {
@@ -50,6 +51,10 @@ export async function POST(request: Request) {
       .select("*")
       .eq("id", parsed.data.templateId)
       .maybeSingle();
+
+    if (template && isDraftSimulationPrompt(template.prompt_body)) {
+      return NextResponse.json({ error: "That simulation is still a draft." }, { status: 400 });
+    }
 
     if (template) {
       templateName = template.name;

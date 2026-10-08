@@ -17,6 +17,7 @@ export const BUILDER_STEP_TYPES: { type: PlanStepType; label: string; short: str
   { type: "shadow_meeting_log", label: "Shadow", short: "SHADOW" },
   { type: "mentor_review", label: "Review", short: "REVIEW" },
   { type: "deal_prep", label: "Deal prep", short: "DEAL PREP" },
+  { type: "playbook", label: "Playbook", short: "PLAYBOOK" },
   { type: "knowledge_check", label: "Knowledge check", short: "CHECK" },
   { type: "custom", label: "Task", short: "TASK" },
 ];
@@ -58,6 +59,9 @@ export type BuilderStep = {
   /** Knowledge check: question-bank source key and pass mark (%). */
   questionSource: string;
   passScore: number;
+  /** Playbook chapter. Stored in metadata; the database step type stays content_review. */
+  playbookId: string;
+  playbookSlug: string;
   segmentIndex: number | null;
   isSegmentGate: boolean;
   criteria: string[];
@@ -107,7 +111,7 @@ export function dbStepToBuilder(step: DbTemplateStep): BuilderStep {
     id: step.id,
     title: step.title,
     description: step.description ?? "",
-    stepType: step.step_type,
+    stepType: str(raw.playbookId) ? "playbook" : step.step_type,
     dueOffsetDays: Math.max(1, meta.dueOffsetDays ?? step.sort_order * 7),
     contentUrl: step.content_url ?? "",
     contentAssetId: step.content_asset_id ?? "",
@@ -115,6 +119,8 @@ export function dbStepToBuilder(step: DbTemplateStep): BuilderStep {
     simulationTemplateId: step.simulation_template_id ?? "",
     questionSource: str(raw.questionSource),
     passScore: typeof raw.passScore === "number" ? raw.passScore : 80,
+    playbookId: str(raw.playbookId),
+    playbookSlug: str(raw.playbookSlug),
     segmentIndex: meta.segmentIndex,
     isSegmentGate: meta.isSegmentGate,
     criteria,
@@ -135,6 +141,129 @@ export function newStepKey(): string {
   return `new-${Date.now().toString(36)}-${keySeed}`;
 }
 
+export type CatalogSimulation = {
+  id: string;
+  name: string;
+  persona?: string | null;
+  goals?: string[];
+  passMark?: number | null;
+  competency?: string | null;
+};
+
+/** Fills a program step from a live simulation so the outline does not retype the scenario. */
+export function simulationStepPatch(sim: CatalogSimulation): Partial<BuilderStep> {
+  const pass = sim.passMark ?? 70;
+  const persona = sim.persona?.trim();
+  const goals = (sim.goals ?? []).map((goal) => goal.trim()).filter(Boolean);
+  return {
+    stepType: "simulation",
+    simulationTemplateId: sim.id,
+    title: sim.name,
+    description: persona
+      ? `Run the roleplay with ${persona} and submit a score of at least ${pass}.`
+      : `Run this simulation and submit a score of at least ${pass}.`,
+    criteria: goals.length ? goals : [`Score at least ${pass}`],
+    evidence: "score",
+    reviewer: "auto",
+    competency: sim.competency?.trim() ?? "",
+    estimatedMinutes: 15,
+  };
+}
+
+/** Fills a program step from a published playbook chapter. */
+export function playbookStepPatch(playbook: { id: string; title: string; chapter: number; slug: string }): Partial<BuilderStep> {
+  const title = playbook.chapter ? `Chapter ${playbook.chapter}: ${playbook.title}` : playbook.title;
+  return {
+    stepType: "playbook",
+    playbookId: playbook.id,
+    playbookSlug: playbook.slug,
+    title,
+    description: `Read ${title}.`,
+    criteria: [`Finish ${title}`],
+    evidence: "observation",
+    reviewer: "auto",
+    estimatedMinutes: 25,
+  };
+}
+
+/** The database enum has no playbook value, so a playbook step is stored as content with the chapter in metadata. */
+export function persistedStepType(type: PlanStepType): Exclude<PlanStepType, "playbook"> {
+  return type === "playbook" ? "content_review" : type;
+}
+
+/** Fills a program step from a question bank. */
+export function knowledgeCheckStepPatch(bank: { key: string; title: string }, passScore: number): Partial<BuilderStep> {
+  const pass = Math.min(100, Math.max(1, passScore || 80));
+  return {
+    stepType: "knowledge_check",
+    questionSource: bank.key,
+    passScore: pass,
+    title: bank.title,
+    description: `Pass the ${bank.title} knowledge check with a score of at least ${pass}%.`,
+    criteria: [`Score at least ${pass}%`],
+    evidence: "score",
+    reviewer: "auto",
+  };
+}
+
+/** Fills a program step from a challenge. */
+export function challengeStepPatch(challenge: {
+  id: string;
+  title: string;
+  estimated_minutes?: number | null;
+}): Partial<BuilderStep> {
+  return {
+    stepType: "challenge",
+    challengeId: challenge.id,
+    title: challenge.title,
+    description: `Complete ${challenge.title}.`,
+    criteria: [`Submit ${challenge.title}`],
+    evidence: "document",
+    reviewer: "manager",
+    estimatedMinutes: typeof challenge.estimated_minutes === "number" ? challenge.estimated_minutes : null,
+  };
+}
+
+/** Fills a program step from a content-library asset. */
+export function contentStepPatch(asset: { id: string; title: string; url: string }): Partial<BuilderStep> {
+  return {
+    stepType: "content_review",
+    contentAssetId: asset.id,
+    contentUrl: asset.url,
+    title: asset.title,
+    description: `Review ${asset.title}.`,
+    criteria: [`Finish reviewing ${asset.title}`],
+    evidence: "observation",
+    reviewer: "manager",
+  };
+}
+
+/** Catalog-backed steps stay blank until an item is chosen. Freeform steps are typed. */
+export function catalogStepReady(step: BuilderStep): boolean {
+  switch (step.stepType) {
+    case "simulation":
+      return Boolean(step.simulationTemplateId);
+    case "knowledge_check":
+      return Boolean(step.questionSource);
+    case "playbook":
+      return Boolean(step.playbookId);
+    case "challenge":
+      return Boolean(step.challengeId);
+    case "content_review":
+      return Boolean(step.contentAssetId || step.contentUrl.trim() || step.title.trim());
+    case "shadow_meeting_log":
+    case "mentor_review":
+    case "deal_prep":
+    case "custom":
+    case null:
+      return true;
+    default: {
+      const unreachable: never = step.stepType;
+      return unreachable;
+    }
+  }
+}
+
 export function emptyBuilderStep(partial: Partial<BuilderStep> = {}): BuilderStep {
   return {
     key: newStepKey(),
@@ -148,6 +277,8 @@ export function emptyBuilderStep(partial: Partial<BuilderStep> = {}): BuilderSte
     simulationTemplateId: "",
     questionSource: "",
     passScore: 80,
+    playbookId: "",
+    playbookSlug: "",
     segmentIndex: null,
     isSegmentGate: false,
     criteria: [""],
@@ -173,6 +304,8 @@ export function builderStepsToPayload(steps: BuilderStep[]) {
     simulationTemplateId: step.simulationTemplateId,
     questionSource: step.stepType === "knowledge_check" ? step.questionSource || null : undefined,
     passScore: step.stepType === "knowledge_check" ? step.passScore : undefined,
+    playbookId: step.stepType === "playbook" ? step.playbookId || null : null,
+    playbookSlug: step.stepType === "playbook" ? step.playbookSlug || null : null,
     segmentIndex: step.segmentIndex,
     isSegmentGate: step.isSegmentGate,
     criteria: cleanCriteria(step.criteria),
@@ -202,8 +335,8 @@ export function stepIssues(step: BuilderStep): StepIssue[] {
   const issues: StepIssue[] = [];
   if (!step.stepType) issues.push("type");
   if (step.title.trim().length < 2) issues.push("title");
-  // A knowledge check grades itself: passing the quiz is the evidence and the sign-off.
-  if (step.stepType === "knowledge_check") return issues;
+  // A knowledge check grades itself, and finishing a playbook is the sign-off.
+  if (step.stepType === "knowledge_check" || step.stepType === "playbook") return issues;
   if (cleanCriteria(step.criteria).length === 0) issues.push("criteria");
   if (!step.evidence) issues.push("evidence");
   if (!step.reviewer) issues.push("reviewer");
@@ -220,6 +353,7 @@ export function stepWarnings(step: BuilderStep): string[] {
   if (step.stepType === "simulation" && !step.simulationTemplateId) warnings.push("has no persona");
   if (step.stepType === "challenge" && !step.challengeId) warnings.push("has no challenge linked");
   if (step.stepType === "knowledge_check" && !step.questionSource) warnings.push("has no question bank linked");
+  if (step.stepType === "playbook" && !step.playbookId) warnings.push("has no playbook linked");
   if (step.stepType === "content_review" && !step.contentAssetId && !step.contentUrl.trim()) {
     warnings.push("has no content linked");
   }

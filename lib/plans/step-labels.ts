@@ -8,6 +8,7 @@ const STEP_TYPE_LABELS: Record<PlanStepType, string> = {
   mentor_review: "Review",
   deal_prep: "Deal prep",
   knowledge_check: "Knowledge check",
+  playbook: "Playbook",
   custom: "Task",
 };
 

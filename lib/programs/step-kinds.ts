@@ -7,6 +7,7 @@ export const STEP_KIND: Record<string, string> = {
   mentor_review: "Check in with their mentor",
   deal_prep: "Prepare for a deal",
   knowledge_check: "Pass a knowledge check",
+  playbook: "Read a playbook chapter",
   custom: "Task",
 };
 

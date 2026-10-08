@@ -183,7 +183,7 @@ export const ADMIN_ARTICLES: HelpArticle[] = [
     overview: [
       "Every program runs 13 weeks in four phases: Foundations, Field skills, Advisory readiness and Certification.",
       "The Programs page lists each program with its steps by phase, people enrolled and status, plus SEs at risk and average completion.",
-      "Opening a program shows four tabs: Progress (each enrolled person's progress by phase), Outline (the steps), People (enroll and see who is enrolled) and Schedule (steps due each week).",
+      "Opening a program shows four tabs: Progress (each enrolled person's progress by phase), Outline (the steps), People (enroll, see who is enrolled, and remove someone) and Schedule (steps due each week).",
     ],
     steps: [
       {
@@ -218,7 +218,7 @@ export const ADMIN_ARTICLES: HelpArticle[] = [
     category: "Programs",
     keywords: ["builder", "outline", "step", "step type", "criteria", "done when", "evidence", "reviewer", "gate", "segment", "phase", "due week", "weeks view"],
     overview: [
-      "Step types are Content, Challenge, Simulation, Shadow, Review, Deal prep and Task.",
+      "Step types are Content, Challenge, Simulation, Shadow, Review, Deal prep, Playbook, Knowledge check and Task. A playbook step opens that chapter. Add a knowledge check step after it for a quiz on the same material.",
       "Evidence options: Recording, Document, Link, Screenshot, Score (automatic) and Reviewer observation. Reviewer options: SE's manager, Assigned mentor, Enablement admin and Automatic (score).",
       "Due is a week and day within the 13 weeks, for example \"Week 3, day 2\". Segment places a step in Foundations, Field skills, Advisory readiness or Certification. Ticking \"This step is a gate\" means clearing it unlocks the next segment.",
       "The builder has two views: Outline (step list and editor) and Weeks (a 13-week grid where you can drag content from the library onto a week).",
@@ -234,7 +234,7 @@ export const ADMIN_ARTICLES: HelpArticle[] = [
       },
       {
         title: "Describe the step",
-        body: "Choose a Step type, enter a Title and fill in What the SE does. Depending on type you can also link a Challenge, a simulation Persona, or Resources from the library.",
+        body: "Choose a Step type. For a playbook, simulation, knowledge check, challenge, or content step, pick the item from the list and the title fills in from it. Shadow, review, deal prep, and task steps are written in the form.",
       },
       {
         title: "Set done-when criteria",
@@ -302,7 +302,7 @@ export const ADMIN_ARTICLES: HelpArticle[] = [
       },
       {
         title: "Pick people",
-        body: "Under Enroll people, tick each SE you want to add.",
+        body: "Under Enroll people, tick each SE you want to add. Your own name is at the top, marked You, so you can enroll yourself.",
       },
       {
         title: "Set start date and mentor",
@@ -311,6 +311,10 @@ export const ADMIN_ARTICLES: HelpArticle[] = [
       {
         title: "Enroll",
         body: "Click Enroll. A message confirms how many people were enrolled, and they appear in the Enrolled list. Any failures are listed by name.",
+      },
+      {
+        title: "Remove someone",
+        body: "In the Enrolled list, click Remove on their row and confirm. People with no progress come off the program. If removal is blocked, the message says why.",
       },
     ],
     links: [

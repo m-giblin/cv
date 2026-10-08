@@ -242,6 +242,12 @@ describe("practice library", () => {
   const usage = { simPlans: { s1: 2 }, simRuns30d: { s1: 66 }, pitchSlots: {}, pitchRuns30d: {} };
   const items = [simToItem(sim, usage), pitchToItem(pitch, usage)];
 
+  it("keeps a review draft out of the live simulation list", () => {
+    const draft = simToItem({ ...sim, promptBody: `STATUS: draft\n${sim.promptBody}` });
+    expect(draft.status).toBe("draft");
+    expect(draft.competencies).toEqual(["Discovery"]);
+  });
+
   it("merges both APIs into one list", () => {
     expect(items[0]).toMatchObject({ subline: "Dynamic buyer, SLED, intermediate", usedIn: "2 plans", runs30d: 66, status: "live" });
     expect(items[0]!.competencies).toEqual(["Discovery"]);

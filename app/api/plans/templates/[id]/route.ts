@@ -1,60 +1,24 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
-import { builderMetadata } from "@/lib/plans/builder-metadata";
+import { persistedStepType } from "@/lib/admin/plan-builder";
 import { logAuditEvent } from "@/lib/audit/log-admin-action";
 import { requireManagerSession } from "@/lib/auth/require-manager";
 import { assertTenantOwnedRow, getTenantAdminClient } from "@/lib/data/tenant-scoped-query";
+import { builderMetadata } from "@/lib/plans/builder-metadata";
+import { templateRequestError, updateTemplateSchema, type TemplateStepInput } from "@/lib/plans/template-step-schema";
 import { canEditTemplateStructure, isLockedTemplate } from "@/lib/plans/template-lock";
-
-const stepSchema = z.object({
- id: z.string().uuid().optional(),
- title: z.string().min(2),
- description: z.string().optional(),
- stepType: z.enum([
- "content_review",
- "challenge",
- "simulation",
- "deal_prep",
- "shadow_meeting_log",
- "mentor_review",
- "knowledge_check",
- "custom",
- ]),
- dueOffsetDays: z.number().int().min(1).optional(),
- contentUrl: z.string().url().optional().or(z.literal("")),
- contentAssetId: z.string().uuid().optional().or(z.literal("")),
- challengeId: z.string().uuid().optional().or(z.literal("")),
- simulationTemplateId: z.string().uuid().optional().or(z.literal("")),
- segmentIndex: z.number().int().min(1).max(4).nullable().optional(),
- isSegmentGate: z.boolean().optional(),
- // Plan builder fields, stored in plan_steps.metadata.
- criteria: z.array(z.string().max(500)).max(20).optional(),
- evidence: z.string().max(40).nullable().optional(),
- reviewer: z.string().max(40).nullable().optional(),
- competency: z.string().max(200).nullable().optional(),
- estimatedMinutes: z.number().int().min(0).max(10000).nullable().optional(),
- questionSource: z.string().max(200).nullable().optional(),
- passScore: z.number().int().min(1).max(100).nullable().optional(),
-});
-
-const updateTemplateSchema = z.object({
- name: z.string().min(3),
- description: z.string().optional(),
- steps: z.array(stepSchema).min(1),
-});
 
 type RouteContext = { params: Promise<{ id: string }> };
 
 function stepRow(
  planId: string,
- step: z.infer<typeof stepSchema>,
+ step: TemplateStepInput,
  sortOrder: number,
 ) {
  return {
  plan_id: planId,
  title: step.title,
  description: step.description ?? null,
- step_type: step.stepType,
+ step_type: persistedStepType(step.stepType),
  sort_order: sortOrder,
  content_url: step.contentUrl || null,
  content_asset_id: step.contentAssetId || null,
@@ -79,7 +43,7 @@ export async function PATCH(request: Request, context: RouteContext) {
  const parsed = updateTemplateSchema.safeParse(await request.json());
 
  if (!parsed.success) {
- return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+ return NextResponse.json({ error: templateRequestError(parsed.error) }, { status: 400 });
  }
 
  const owned = await assertTenantOwnedRow(session.tenantId, "onboarding_plans", id);
