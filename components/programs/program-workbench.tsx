@@ -54,6 +54,16 @@ const HEALTH: Record<EnrollmentSummary["health"], { tone: StatusTone; label: str
   not_started: { tone: "neutral", label: "Not started" },
 };
 
+const MENTOR_ROLE_LABEL: Record<string, string> = {
+  basic_se: "SE",
+  senior_se: "Senior SE",
+  advisory_solutions_consultant: "Advisory",
+  mentor: "Mentor",
+  manager: "Manager",
+  director: "Director",
+  admin: "Admin",
+};
+
 function typeLabel(type: string | null) {
   return BUILDER_STEP_TYPES.find((entry) => entry.type === type)?.label ?? "Task";
 }
@@ -120,6 +130,29 @@ export function ProgramWorkbench({
   const enrollments = program?.enrollments ?? [];
   const person = enrollments.find((item) => item.plan.userId === personId) ?? null;
   const name = program?.name ?? template?.name ?? "New program";
+  const [deleting, setDeleting] = useState(false);
+
+  async function deleteProgram() {
+    if (!template) return;
+    const enrolled = enrollments.length;
+    if (enrolled > 0) {
+      toast.error(`Remove the ${enrolled} enrolled ${enrolled === 1 ? "person" : "people"} on the People tab first.`);
+      setTab("people");
+      return;
+    }
+    if (!window.confirm(`Delete "${template.name}"? This cannot be undone.`)) return;
+    setDeleting(true);
+    const response = await fetch(`/api/plans/templates/${template.id}`, { method: "DELETE" }).catch(() => null);
+    setDeleting(false);
+    if (!response?.ok) {
+      const body = (await response?.json().catch(() => null)) as { error?: unknown } | null;
+      toast.error(typeof body?.error === "string" ? body.error : "Could not delete this program.");
+      return;
+    }
+    toast.success("Program deleted.");
+    onChanged();
+    onClose();
+  }
 
   const subtitle = isNew
     ? "Outline the phases and steps, then publish to start enrolling people."
@@ -131,6 +164,18 @@ export function ProgramWorkbench({
     <Drawer
       bodyWidth="full"
       eyebrow="Program"
+      footer={
+        canEdit && !isNew && template ? (
+          <button
+            className="rounded-full border border-danger px-4 py-2 text-sm font-bold text-danger hover:bg-danger-row disabled:opacity-50"
+            disabled={deleting}
+            onClick={() => void deleteProgram()}
+            type="button"
+          >
+            {deleting ? "Deleting…" : "Delete program"}
+          </button>
+        ) : null
+      }
       footerNote={editing ? "Publish saves the outline; people already enrolled keep their dates." : "Esc closes."}
       onClose={onClose}
       open
@@ -568,7 +613,7 @@ function People({
                   <td className={cn(tdCls, "num text-right font-bold text-ink")}>{item.progress}%</td>
                   <td className={cn(tdCls, "text-right")}>
                     <button
-                      className="link text-sm text-danger decoration-danger hover:text-ink disabled:opacity-50"
+                      className="rounded-full border border-danger px-3 py-1 text-sm font-bold text-danger hover:bg-danger-row disabled:opacity-50"
                       disabled={removingId === item.plan.id}
                       onClick={(event) => {
                         event.stopPropagation();
@@ -636,11 +681,13 @@ function People({
                 value={mentorId}
               >
                 <option value="">No mentor</option>
-                {mentors.map((mentor) => (
-                  <option key={mentor.id} value={mentor.id}>
-                    {mentor.fullName}
-                  </option>
-                ))}
+                {mentors
+                  .filter((mentor) => !selected.has(mentor.id))
+                  .map((mentor) => (
+                    <option key={mentor.id} value={mentor.id}>
+                      {mentor.fullName} · {MENTOR_ROLE_LABEL[mentor.role] ?? mentor.role}
+                    </option>
+                  ))}
               </select>
             </label>
             <button

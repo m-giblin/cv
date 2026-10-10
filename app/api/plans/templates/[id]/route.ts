@@ -11,11 +11,13 @@ type RouteContext = { params: Promise<{ id: string }> };
 
 function stepRow(
  planId: string,
+ tenantId: string,
  step: TemplateStepInput,
  sortOrder: number,
 ) {
  return {
  plan_id: planId,
+ tenant_id: tenantId,
  title: step.title,
  description: step.description ?? null,
  step_type: persistedStepType(step.stepType),
@@ -71,19 +73,20 @@ export async function PATCH(request: Request, context: RouteContext) {
  const locked = isLockedTemplate(plan);
  const canEditStructure = canEditTemplateStructure(session.role, locked);
 
- const { error: updateError } = await session.supabase
+ const { error: updateError } = await admin
  .from("onboarding_plans")
  .update({
  name: parsed.data.name,
  description: parsed.data.description ?? null,
  })
- .eq("id", id);
+ .eq("id", id)
+ .eq("tenant_id", session.tenantId);
 
  if (updateError) {
  return NextResponse.json({ error: updateError.message }, { status: 500 });
  }
 
- const { data: existingSteps, error: stepsFetchError } = await session.supabase
+ const { data: existingSteps, error: stepsFetchError } = await admin
  .from("plan_steps")
  .select("id")
  .eq("plan_id", id);
@@ -114,7 +117,7 @@ export async function PATCH(request: Request, context: RouteContext) {
  }
 
  if (toRemove.length > 0) {
- const { data: referenced } = await session.supabase
+ const { data: referenced } = await admin
  .from("plan_assignment_steps")
  .select("plan_step_id")
  .in("plan_step_id", toRemove);
@@ -131,7 +134,7 @@ export async function PATCH(request: Request, context: RouteContext) {
  );
  }
 
- const { error: deleteError } = await session.supabase.from("plan_steps").delete().in("id", toRemove);
+ const { error: deleteError } = await admin.from("plan_steps").delete().in("id", toRemove).eq("tenant_id", session.tenantId);
 
  if (deleteError) {
  return NextResponse.json({ error: deleteError.message }, { status: 500 });
@@ -140,10 +143,10 @@ export async function PATCH(request: Request, context: RouteContext) {
 
  for (const [index, step] of parsed.data.steps.entries()) {
  const sortOrder = index + 1;
- const row = stepRow(id, step, sortOrder);
+ const row = stepRow(id, session.tenantId, step, sortOrder);
 
  if (step.id && existingIds.has(step.id)) {
- const { error } = await session.supabase.from("plan_steps").update(row).eq("id", step.id);
+ const { error } = await admin.from("plan_steps").update(row).eq("id", step.id).eq("tenant_id", session.tenantId);
 
  if (error) {
  return NextResponse.json({ error: error.message }, { status: 500 });
@@ -155,7 +158,7 @@ export async function PATCH(request: Request, context: RouteContext) {
  { status: 403 },
  );
  }
- const { error } = await session.supabase.from("plan_steps").insert(row);
+ const { error } = await admin.from("plan_steps").insert(row);
 
  if (error) {
  return NextResponse.json({ error: error.message }, { status: 500 });

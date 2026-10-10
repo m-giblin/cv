@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import type { ManagerSection } from "@/components/manager/manager-page-shell";
 import { MANAGER_SECTION_PATHS } from "@/lib/manager/manager-routes";
 import { buildCoachingCadence } from "@/lib/manager/coaching-cadence";
-import { eligibleMentorsForOrg } from "@/lib/manager/eligible-mentors";
+import { eligibleMentorsForEnrollment } from "@/lib/manager/eligible-mentors";
 import { buildReviewHistory } from "@/components/manager/manager-review-history";
 import type { SeManagerSnapshot } from "@/components/manager/manager-se-detail-panel";
 import { buildSeCoachingSummary } from "@/lib/manager/se-coaching-summary";
@@ -425,7 +425,7 @@ export async function ManagerSectionPage({ section }: { section: ManagerSection 
  seSnapshots.map((snapshot) => [snapshot.profile.id, snapshot.coaching]),
  );
 
- const mentors = eligibleMentorsForOrg(data.profiles, orgIds);
+ const mentors = eligibleMentorsForEnrollment(data.profiles, orgIds);
 
  return (
  <>

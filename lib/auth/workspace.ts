@@ -162,6 +162,7 @@ export function workspaceFromPathname(pathname: string): WorkspaceHat | null {
   if (
     pathname === "/dashboard" ||
     pathname.startsWith("/my-plan") ||
+    pathname.startsWith("/mentoring") ||
     pathname.startsWith("/growth-plan")
   ) {
     return "se";
@@ -246,6 +247,7 @@ export function workspaceCanAccessPath(hat: WorkspaceHat, pathname: string): boo
       return (
         pathname.startsWith("/dashboard") ||
         pathname.startsWith("/my-plan") ||
+        pathname.startsWith("/mentoring") ||
         pathname.startsWith("/growth-plan") ||
         pathname.startsWith("/my-practice") ||
         pathname.startsWith("/growth") ||

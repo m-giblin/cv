@@ -55,7 +55,8 @@ export function SidebarContent({
   const pathname = usePathname();
   const params = useSearchParams();
   const { itemId, childId } = resolveActive(workspace, pathname, params);
-  const items = visibleNav(workspace, flags);
+  // Mentoring only appears for people who currently mentor someone (the shell passes the count).
+  const items = visibleNav(workspace, flags).filter((item) => item.id !== "mentoring" || Boolean(counts?.mentoring));
 
   return (
     <div className="flex flex-col gap-[26px] py-6">

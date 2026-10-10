@@ -8,6 +8,7 @@ import { getAuthenticatedUser } from "@/lib/data/get-authenticated-user";
 import { isForgeConfigured } from "@/lib/forge/config";
 import { isFeatureEnabled } from "@/lib/platform/feature-flags";
 import { loadPlatformSettings } from "@/lib/platform/settings";
+import { getTenantAdminClient } from "@/lib/data/tenant-scoped-query";
 import { createClient } from "@/lib/supabase/server";
 import { getTenantShellBranding, type TenantShellBranding } from "@/lib/tenant/shell-branding";
 import type { Notification, Profile, ProfileRole, SeLevel } from "@/lib/types";
@@ -21,6 +22,8 @@ export type ShellData = {
   shadowMode: "admin" | "manager" | "se" | null;
   shadowTenantName: string | null;
   people: SidebarPerson[];
+  /** Active mentees this person mentors; the Mentoring nav item only shows when this is above zero. */
+  menteeCount: number;
   forgeEnabled: boolean;
   /** AI assistant switched on for this tenant (operator flag plus the AI master switch). */
   assistantEnabled: boolean;
@@ -38,6 +41,22 @@ type ProfileRow = {
   workspace_hats: string[] | null;
   created_at: string;
 };
+
+/** How many people this user is currently mentoring. Best effort: 0 on any failure. */
+async function countMentees(userId: string) {
+  try {
+    const admin = getTenantAdminClient();
+    if (!admin) return 0;
+    const { count } = await admin
+      .from("plan_assignments")
+      .select("id", { count: "exact", head: true })
+      .eq("mentor_id", userId)
+      .neq("status", "completed");
+    return count ?? 0;
+  } catch {
+    return 0;
+  }
+}
 
 /** Manager and mentor for the SE sidebar "Team" group. Best effort: failures just hide the group. */
 async function loadSeTeam(supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>, user: Profile) {
@@ -119,9 +138,10 @@ export const loadShellData = cache(async (): Promise<ShellData | null> => {
   });
   const brandingTenantId = access.isShadowing ? access.tenantId : (currentUser.tenantId ?? access.tenantId);
 
-  const [branding, people, settings] = await Promise.all([
+  const [branding, people, menteeCount, settings] = await Promise.all([
     getTenantShellBranding(brandingTenantId),
     workspaceHats.includes("se") ? loadSeTeam(supabase, currentUser) : Promise.resolve([]),
+    workspaceHats.includes("se") ? countMentees(currentUser.id) : Promise.resolve(0),
     loadPlatformSettings(brandingTenantId ?? undefined).catch(() => null),
   ]);
   const assistantEnabled = Boolean(
@@ -149,6 +169,7 @@ export const loadShellData = cache(async (): Promise<ShellData | null> => {
     shadowMode: enterMode,
     shadowTenantName: access.isShadowing ? (access.shadowTenantName ?? branding.productName) : null,
     people,
+    menteeCount,
     forgeEnabled: isForgeConfigured(),
     assistantEnabled,
   };

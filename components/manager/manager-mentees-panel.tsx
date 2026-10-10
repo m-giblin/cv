@@ -9,11 +9,24 @@ import { StatusPill } from "@/components/ui/status-pill";
 import { PersonCell } from "@/components/ui/table";
 import { Tag } from "@/components/ui/tag";
 import type { MenteeAssignment } from "@/lib/data/fetch-mentor-mentees";
+import { isStepOverdue, summarizeEnrollment, type EnrollmentHealth } from "@/lib/programs/program-model";
 import { initials } from "@/lib/utils";
 
 function statusLabel(status: string) {
   const text = status.replaceAll("_", " ");
   return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+const HEALTH_PILL: Record<EnrollmentHealth, { tone: "success" | "danger" | "neutral"; label: string }> = {
+  complete: { tone: "success", label: "Complete" },
+  on_track: { tone: "success", label: "On track" },
+  at_risk: { tone: "danger", label: "Behind" },
+  not_started: { tone: "neutral", label: "Not started" },
+};
+
+function shortDate(iso: string | undefined | null) {
+  if (!iso) return "—";
+  return new Date(`${iso.slice(0, 10)}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 function formatPercent(value: number) {
@@ -26,14 +39,17 @@ export function ManagerMenteesPanel({
   mentees: MenteeAssignment[];
 }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const summaries = mentees.map((item) => summarizeEnrollment(item.plan, item.profile));
+  const behind = summaries.filter((item) => item.health === "at_risk").length;
+  const overdueSteps = summaries.reduce((sum, item) => sum + item.overdue, 0);
+  const today = new Date().toISOString().slice(0, 10);
 
   return (
     <>
       {mentees.length === 0 ? (
         <div className="rounded-[14px] border border-line bg-white p-6">
           <p className="text-sm text-muted">
-            No active mentee assignments yet. Your manager will assign you when onboarding plans are
-            created.
+            No active mentee assignments yet. A manager assigns you as mentor when they enroll someone in a program.
           </p>
         </div>
       ) : (
@@ -44,6 +60,8 @@ export function ManagerMenteesPanel({
               label="Check-ins pending"
               value={mentees.reduce((sum, item) => sum + item.pendingMentorReviews, 0)}
             />
+            <Stat label="Behind schedule" tone={behind > 0 ? "danger" : "blue"} value={behind} />
+            <Stat label="Overdue steps" tone={overdueSteps > 0 ? "danger" : "blue"} value={overdueSteps} />
             <Stat
               label="Awaiting manager sign-off"
               value={mentees.reduce((sum, item) => sum + item.awaitingManagerSignoff, 0)}
@@ -55,7 +73,9 @@ export function ManagerMenteesPanel({
           <section className="space-y-3">
             <h3 className="text-xl font-extrabold text-ink">Your mentees</h3>
             <ul className="overflow-hidden rounded-[14px] border border-line bg-white">
-              {mentees.map(({ plan, profile, pendingMentorReviews, awaitingManagerSignoff }) => {
+              {mentees.map(({ plan, profile, pendingMentorReviews, awaitingManagerSignoff }, index) => {
+                const summary = summaries[index]!;
+                const health = HEALTH_PILL[summary.health];
                 const isOpen = expandedId === profile.id;
                 const nextStep = plan.steps
                   .filter((step) => step.status !== "reviewed")
@@ -69,9 +89,11 @@ export function ManagerMenteesPanel({
                         <PersonCell
                           initials={initials(profile.fullName)}
                           name={profile.fullName}
-                          subline={`${plan.name}, ${formatPercent(plan.progress)} complete`}
+                          subline={`${plan.name} · week ${summary.week} of 13 · ${summary.done}/${summary.total} steps · ${formatPercent(plan.progress)}`}
                         />
                       </span>
+                      <StatusPill tone={health.tone}>{health.label}</StatusPill>
+                      {summary.overdue > 0 ? <Tag tone="warning">{summary.overdue} overdue</Tag> : null}
                       {pendingMentorReviews > 0 ? (
                         <Tag tone="warning">
                           {pendingMentorReviews} check-in{pendingMentorReviews === 1 ? "" : "s"}
@@ -93,6 +115,11 @@ export function ManagerMenteesPanel({
 
                     {isOpen ? (
                       <div className="space-y-4 border-t border-divider bg-bg px-5 py-4" id={panelId}>
+                        <p className="text-sm text-muted">
+                          Started <span className="font-bold text-ink">{shortDate(plan.startDate)}</span>
+                          {" · "}target finish <span className="font-bold text-ink">{shortDate(plan.targetCompletion)}</span>
+                          {" · "}reports to their manager on pace, progress and blockers
+                        </p>
                         {nextStep ? (
                           <p className="text-sm text-muted">
                             Next step: <span className="font-bold text-ink">{nextStep.title}</span>
@@ -100,13 +127,16 @@ export function ManagerMenteesPanel({
                           </p>
                         ) : null}
                         <ul className="overflow-hidden rounded-[14px] border border-line bg-white">
-                          {plan.steps.slice(0, 8).map((step) => (
+                          {[...plan.steps].sort((a, b) => a.order - b.order).map((step) => (
                             <li
                               className="flex items-start justify-between gap-3 border-b border-divider px-4 py-2.5 text-[15px] last:border-b-0"
                               key={step.id}
                             >
                               <span className="min-w-0 font-bold text-ink-2">{step.title}</span>
-                              <span className="shrink-0 text-[13px] text-muted">{statusLabel(step.status)}</span>
+                              <span className={`shrink-0 text-[13px] ${isStepOverdue(step, today) ? "font-bold text-danger" : "text-muted"}`}>
+                                {step.dueDate ? `Due ${shortDate(step.dueDate)} · ` : ""}
+                                {isStepOverdue(step, today) ? "Overdue" : statusLabel(step.status)}
+                              </span>
                             </li>
                           ))}
                         </ul>

@@ -312,6 +312,7 @@ export function canAccessRoute(
       pathname === "/" ||
       pathname.startsWith("/plan-steps") ||
       pathname.startsWith("/my-plan") ||
+      pathname.startsWith("/mentoring") ||
       pathname === "/practice" ||
       pathname.startsWith("/practice/") ||
       pathname === "/readiness" ||

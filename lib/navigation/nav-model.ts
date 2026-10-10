@@ -69,6 +69,7 @@ export const NAV: Record<WorkspaceHat, NavItem[]> = {
         { id: "lab", label: "ISC Lab", href: "/learn/lab" },
       ],
     },
+    { id: "mentoring", label: "Mentoring", href: "/mentoring" },
     { id: "help-center", label: "Help", href: "/help" },
   ],
   manager: [

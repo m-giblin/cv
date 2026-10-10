@@ -18,6 +18,7 @@ export default async function SignedInLayout({ children }: { children: ReactNode
       branding={shell.branding}
       currentUser={shell.currentUser}
       forgeEnabled={shell.forgeEnabled}
+      navCounts={shell.menteeCount > 0 ? { mentoring: shell.menteeCount } : undefined}
       notifications={shell.notifications}
       people={shell.people}
       shadowMode={shell.shadowMode}
