@@ -54,6 +54,22 @@ export async function PATCH(request: Request, context: RouteContext) {
  if (!existingProfile || (existingProfile.tenant_id !== session.tenantId && !homeMember)) {
  return NextResponse.json({ error: "User not found in your tenant." }, { status: 404 });
  }
+
+ // Refuse a manager who reports (directly or further down) to this person: the chain would loop.
+ if (parsed.data.managerId) {
+ if (parsed.data.managerId === id) {
+ return NextResponse.json({ error: "Someone can't be their own manager." }, { status: 400 });
+ }
+ const { data: chainRows } = await admin.from("profiles").select("id, manager_id");
+ const managerOf = new Map(((chainRows ?? []) as { id: string; manager_id: string | null }[]).map((row) => [row.id, row.manager_id]));
+ const seen = new Set<string>();
+ for (let current: string | null | undefined = parsed.data.managerId; current && !seen.has(current); current = managerOf.get(current)) {
+ if (current === id) {
+ return NextResponse.json({ error: "That manager already reports to this person, so the reporting line would loop." }, { status: 400 });
+ }
+ seen.add(current);
+ }
+ }
  if (homeMember) {
  const update: Database["public"]["Tables"]["profiles"]["Update"] = {};
  if (parsed.data.level) update.level = parsed.data.level;

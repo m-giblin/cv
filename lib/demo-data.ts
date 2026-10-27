@@ -563,17 +563,20 @@ export const notifications: Notification[] = [
 
 export function getSubtree(profileId: string, allProfiles = profiles) {
   const descendants: Profile[] = [];
+  // Manager links can form a loop (A manages B, B manages A); visit each person once.
+  const seen = new Set<string>([profileId]);
   const queue = allProfiles.filter((profile) => profile.managerId === profileId);
 
   while (queue.length > 0) {
     const next = queue.shift();
 
-    if (!next) {
+    if (!next || seen.has(next.id)) {
       continue;
     }
 
+    seen.add(next.id);
     descendants.push(next);
-    queue.push(...allProfiles.filter((profile) => profile.managerId === next.id));
+    queue.push(...allProfiles.filter((profile) => profile.managerId === next.id && !seen.has(profile.id)));
   }
 
   return descendants;

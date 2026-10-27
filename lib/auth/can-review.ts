@@ -17,8 +17,11 @@ function isInManagerOrg(
   targetUserId: string,
 ) {
   let current = profiles.find((profile) => profile.id === targetUserId)?.manager_id ?? null;
+  const seen = new Set<string>([targetUserId]);
 
-  while (current) {
+  // A loop in the manager chain would otherwise never end.
+  while (current && !seen.has(current)) {
+    seen.add(current);
     if (current === managerId) {
       return true;
     }
