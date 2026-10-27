@@ -48,7 +48,8 @@ function heroCopy(model: RampModel | null, reviewerFirst: string | null): { acce
   const next = model.nextStep;
   if (!next) return { accent: "Field ready.", subtitle: "Every ramp step is validated. Keep your certification gates moving." };
   const word = capitalize(numberWord(model.nextStepNumber));
-  const after = model.upcoming[0];
+  // The next thing they can actually work on: skip steps already sitting with a reviewer.
+  const after = model.upcoming.find((step) => !isStepWithReviewer(step.status));
   if (isStepWithReviewer(next.status)) {
     return {
       accent: `Step ${numberWord(model.nextStepNumber)} is with ${reviewerFirst ?? "your manager"}.`,
@@ -110,7 +111,9 @@ export function SeToday({
     <>
       {/* The plan is one stage of the program, so name it: "week 1 of 4" alone reads like a four-week program. */}
       {plan?.name}&nbsp;/&nbsp;Week {model.currentWeek} of {model.totalWeeks}
-      {currentSegment && currentSegment.index !== 0 ? <>&nbsp;/&nbsp;{currentSegment.label}</> : null}
+      {currentSegment && currentSegment.index !== 0 && !plan?.name.includes(currentSegment.label.replace(/s$/, ""))
+        ? <>&nbsp;/&nbsp;{currentSegment.label}</>
+        : null}
     </>
   ) : (
     `${user.level} SE`
