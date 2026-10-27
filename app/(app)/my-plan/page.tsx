@@ -11,6 +11,7 @@ import { buildRampModel } from "@/lib/se/ramp-model";
 import { MyMentorCard } from "@/components/se/my-mentor-card";
 import { getTenantAdminClient } from "@/lib/data/tenant-scoped-query";
 import { loadMyMentor } from "@/lib/mentoring/my-mentor";
+import { stepReviewer } from "@/lib/plans/step-reviewer";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 
@@ -52,7 +53,7 @@ export default async function MyPlanPage({ searchParams }: MyPlanPageProps) {
   const view = params.view === "calendar" && calendarEnabled && plan ? "calendar" : "list";
   const calendar = view === "calendar" ? await fetchSePlanCalendarForUser(data.currentUser.id) : null;
   const next = model?.nextStep;
-  const reviewer = next?.type === "mentor_review" && mentor ? mentor : manager;
+  const reviewer = stepReviewer(next, mentor, manager);
 
   return (
     <>

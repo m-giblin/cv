@@ -12,6 +12,7 @@ import type { GateRow } from "@/lib/se/gate-matrix";
 import type { TodayMentee } from "@/lib/mentoring/today-mentees";
 import type { MyMentor } from "@/lib/mentoring/my-mentor";
 import { MyMentorCard } from "@/components/se/my-mentor-card";
+import { stepReviewer } from "@/lib/plans/step-reviewer";
 import {
   buildRampModel,
   dayAndMonth,
@@ -123,7 +124,7 @@ export function SeToday({
   const mentor = myMentor?.profile ?? (plan?.mentorId ? data.profiles.find((profile) => profile.id === plan.mentorId) : undefined);
   const model = plan ? buildRampModel(plan) : null;
   const next = model?.nextStep ?? null;
-  const reviewerProfile = next?.type === "mentor_review" && mentor ? mentor : manager;
+  const reviewerProfile = stepReviewer(next, mentor, manager);
   const reviewerFirst = reviewerProfile?.fullName.split(" ")[0] ?? null;
   const minutesFor = (step: PlanStep) =>
     step.challengeId ? (data.challenges.find((item) => item.id === step.challengeId)?.estimatedMinutes ?? null) : null;
