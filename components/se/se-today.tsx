@@ -10,6 +10,8 @@ import { StatusPill } from "@/components/ui/status-pill";
 import { planStepTypeLabel } from "@/lib/plans/step-labels";
 import type { GateRow } from "@/lib/se/gate-matrix";
 import type { TodayMentee } from "@/lib/mentoring/today-mentees";
+import type { MyMentor } from "@/lib/mentoring/my-mentor";
+import { MyMentorCard } from "@/components/se/my-mentor-card";
 import {
   buildRampModel,
   dayAndMonth,
@@ -102,6 +104,7 @@ export function SeToday({
   calendarEnabled = false,
   playbookAssignments = [],
   mentees = [],
+  myMentor = null,
 }: {
   data: DashboardData;
   gateRows: GateRow[];
@@ -110,12 +113,14 @@ export function SeToday({
   playbookAssignments?: PlaybookAssignment[];
   /** People this SE mentors, so a new mentee is the first thing they see. */
   mentees?: TodayMentee[];
+  /** The new hire's mentor; often outside the profiles an SE can see, so loaded separately. */
+  myMentor?: MyMentor | null;
 }) {
   const user = data.currentUser;
   const firstName = user.fullName.split(" ")[0] ?? "there";
   const plan = data.plans.find((item) => item.userId === user.id);
   const manager = data.profiles.find((profile) => profile.id === user.managerId);
-  const mentor = plan?.mentorId ? data.profiles.find((profile) => profile.id === plan.mentorId) : undefined;
+  const mentor = myMentor?.profile ?? (plan?.mentorId ? data.profiles.find((profile) => profile.id === plan.mentorId) : undefined);
   const model = plan ? buildRampModel(plan) : null;
   const next = model?.nextStep ?? null;
   const reviewerProfile = next?.type === "mentor_review" && mentor ? mentor : manager;
@@ -265,6 +270,7 @@ export function SeToday({
           </div>
 
           <aside aria-label="Ramp and gates" className="flex min-w-0 flex-col gap-6">
+            {myMentor ? <MyMentorCard mentor={myMentor} /> : null}
             <RampDefinitionCard model={model} />
             {gateRows.length > 0 ? <GateStampsCard level={user.level} rows={gateRows} /> : null}
           </aside>

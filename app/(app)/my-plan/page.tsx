@@ -8,6 +8,11 @@ import { isFeatureEnabled } from "@/lib/platform/feature-flags";
 import { loadPlatformSettings } from "@/lib/platform/settings";
 import { fetchSePlanCalendarForUser } from "@/lib/se/fetch-se-plan-calendar";
 import { buildRampModel } from "@/lib/se/ramp-model";
+import { MyMentorCard } from "@/components/se/my-mentor-card";
+import { getTenantAdminClient } from "@/lib/data/tenant-scoped-query";
+import { loadMyMentor } from "@/lib/mentoring/my-mentor";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/database.types";
 
 type MyPlanPageProps = {
   searchParams: Promise<{ view?: string; step?: string }>;
@@ -20,7 +25,11 @@ export default async function MyPlanPage({ searchParams }: MyPlanPageProps) {
   const calendarEnabled = isFeatureEnabled(settings.featureFlags, "plan-calendar");
 
   const plan = data.plans.find((item) => item.userId === data.currentUser.id);
-  const mentor = plan?.mentorId ? data.profiles.find((profile) => profile.id === plan.mentorId) : undefined;
+  // The mentor is often outside the SE's visible profiles, so load them directly.
+  const admin = getTenantAdminClient() as unknown as SupabaseClient<Database> | null;
+  const myMentor =
+    plan?.mentorId && admin ? await loadMyMentor(admin, data.currentUser.id, plan.mentorId).catch(() => null) : null;
+  const mentor = myMentor?.profile ?? (plan?.mentorId ? data.profiles.find((profile) => profile.id === plan.mentorId) : undefined);
   const manager = data.profiles.find((profile) => profile.id === data.currentUser.managerId);
   const model = plan ? buildRampModel(plan) : null;
 
@@ -72,7 +81,12 @@ export default async function MyPlanPage({ searchParams }: MyPlanPageProps) {
           <SePlanCalendarView initial={calendar ?? undefined} />
         </PageBody>
       ) : (
-        <MyRampList model={model} plan={plan} reviewer={reviewer} />
+        <MyRampList
+          mentorCard={myMentor ? <MyMentorCard mentor={myMentor} /> : null}
+          model={model}
+          plan={plan}
+          reviewer={reviewer}
+        />
       )}
     </>
   );

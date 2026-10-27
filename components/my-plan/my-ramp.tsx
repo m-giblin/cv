@@ -9,7 +9,7 @@ import { ProgressBlocks } from "@/components/ui/ramp-card";
 import { Runway } from "@/components/ui/runway";
 import { SegmentedToggle } from "@/components/ui/segmented-toggle";
 import { StatusPill } from "@/components/ui/status-pill";
-import { TableCard, TwoLineCell, rowHighlight, tdCls, thCls } from "@/components/ui/table";
+import { TableCard, rowHighlight, tdCls, thCls } from "@/components/ui/table";
 import { planStepTypeLabel } from "@/lib/plans/step-labels";
 import {
   formatDay,
@@ -176,10 +176,10 @@ function StepTable({
                 <span className="sr-only">{step.isSegmentGate ? `Gate, step ${number}` : `Step ${number}`}</span>
               </td>
               <th className={cn(tdCls, "font-normal", index === 0 && "border-t-0")} scope="row">
-                <TwoLineCell
-                  subline={stepSubline(step, plan)}
-                  title={
-                    step.locked ? (
+                {/* Descriptions wrap here: truncating cells stretch an auto-width table past its card. */}
+                <span className="flex min-w-0 flex-col">
+                  <span className="text-[15px] font-bold text-ink">
+                    {step.locked ? (
                       step.title
                     ) : (
                       <Link
@@ -188,9 +188,10 @@ function StepTable({
                       >
                         {step.title}
                       </Link>
-                    )
-                  }
-                />
+                    )}
+                  </span>
+                  <span className="text-[13px] leading-[1.45] text-muted">{stepSubline(step, plan)}</span>
+                </span>
               </th>
               <td className={cn(tdCls, "text-sm text-ink-2", index === 0 && "border-t-0")}>
                 {step.isSegmentGate ? "Gate" : planStepTypeLabel(step.type)}
@@ -333,13 +334,15 @@ export function MyRampList({
   plan,
   model,
   reviewer,
+  mentorCard,
 }: {
   plan: UserPlan;
   model: RampModel;
   reviewer: Profile | undefined;
+  mentorCard?: ReactNode;
 }) {
   return (
-    <RampFrame model={model}>
+    <RampFrame mentorCard={mentorCard} model={model}>
       {model.segments.map((segment) =>
         segment.state === "done" ? (
           <DoneSegment key={segment.index} model={model} plan={plan} segment={segment} />
@@ -365,12 +368,13 @@ function paceSentence(model: RampModel): string {
 }
 
 /** Main column + 340px rail (Validated card and "How gates work"). */
-export function RampFrame({ model, children }: { model: RampModel; children: ReactNode }) {
+export function RampFrame({ model, children, mentorCard }: { model: RampModel; children: ReactNode; mentorCard?: ReactNode }) {
   return (
     <PageBody className="pb-7">
       <div className="grid items-start gap-[var(--rail-gap)] xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="flex min-w-0 flex-col gap-4">{children}</div>
         <aside aria-label="Ramp progress" className="flex min-w-0 flex-col gap-5">
+          {mentorCard}
           <section className="flex flex-col gap-3 rounded-[14px] border border-line bg-white px-[22px] py-5">
             <h2 className="label-caps">Validated</h2>
             <p className="num text-[44px] leading-none font-extrabold tracking-[-0.03em] text-blue">

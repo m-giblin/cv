@@ -65,19 +65,33 @@ export async function POST(request: Request) {
  metadata: { planId: parsed.data.planId, assignmentId },
  });
 
+ const mentorId = parsed.data.mentorId ?? null;
+ const [{ data: plan }, { data: people }] = await Promise.all([
+ session.supabase.from("onboarding_plans").select("name").eq("id", parsed.data.planId).maybeSingle(),
+ session.supabase
+ .from("profiles")
+ .select("id, full_name")
+ .in("id", mentorId ? [session.user.id, mentorId] : [session.user.id]),
+ ]);
+ const firstNameOf = (id: string) => (people ?? []).find((row) => row.id === id)?.full_name.split(" ")[0] ?? null;
+ const assignerFirst = firstNameOf(session.user.id) ?? "Your manager";
+ const mentorFirst = mentorId && mentorId !== session.user.id ? firstNameOf(mentorId) : null;
+
+ // Name the plan and the mentor, so the new hire knows who to expect and that dates come from that first meeting.
  await createNotification(session.supabase, {
  userId: parsed.data.userId,
- title: "New onboarding plan assigned",
- body: "Your manager assigned an onboarding plan. Open your workspace to see what's next.",
+ title: `${assignerFirst} assigned you ${plan?.name ?? "an onboarding plan"}`,
+ body: mentorFirst
+ ? `${mentorFirst} is your mentor and will set up your first 1:1, where you agree your due dates together. Your first step is on your Today page.`
+ : "Your first step is on your Today page.",
  actionUrl: "/dashboard",
  });
 
  // The mentor agrees the schedule with the new hire, so they need to know they've been chosen.
- if (parsed.data.mentorId && parsed.data.mentorId !== session.user.id) {
- const { data: plan } = await session.supabase.from("onboarding_plans").select("name").eq("id", parsed.data.planId).maybeSingle();
+ if (mentorId && mentorId !== session.user.id) {
  const name = assignee?.full_name ?? "A new team member";
  await createNotification(session.supabase, {
- userId: parsed.data.mentorId,
+ userId: mentorId,
  title: `You're mentoring ${name}`,
  body: `${plan?.name ?? "An onboarding plan"} starts ${new Date(`${parsed.data.startDate}T12:00:00`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}. Read the hiring brief, meet ${name.split(" ")[0]}, then set the schedule together.`,
  actionUrl: "/mentoring",

@@ -11,6 +11,7 @@ import { resolveTenantContext } from "@/lib/auth/tenant-context";
 import { loadAssignments } from "@/lib/playbooks/assignments";
 import { getTenantAdminClient } from "@/lib/data/tenant-scoped-query";
 import { loadTodayMentees } from "@/lib/mentoring/today-mentees";
+import { loadMyMentor } from "@/lib/mentoring/my-mentor";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 
@@ -29,11 +30,13 @@ export default async function DashboardPage() {
     const context = await resolveTenantContext();
     const tenantId = context?.tenantId ?? data.currentUser.tenantId ?? null;
     const admin = getTenantAdminClient() as unknown as SupabaseClient<Database> | null;
-    const [userCerts, settings, playbookAssignments, mentees] = await Promise.all([
+    const myPlan = data.plans.find((item) => item.userId === data.currentUser.id);
+    const [userCerts, settings, playbookAssignments, mentees, myMentor] = await Promise.all([
       fetchCertificationsForUsers([data.currentUser.id]),
       loadPlatformSettings(data.currentUser.tenantId ?? undefined),
       tenantId ? loadAssignments(tenantId, { assigneeIds: [data.currentUser.id] }) : Promise.resolve([]),
       admin ? loadTodayMentees(admin, data.currentUser.id).catch(() => []) : Promise.resolve([]),
+      admin && myPlan?.mentorId ? loadMyMentor(admin, data.currentUser.id, myPlan.mentorId).catch(() => null) : Promise.resolve(null),
     ]);
     const manager = data.profiles.find((profile) => profile.id === data.currentUser.managerId);
     const gateRows = buildGateRows({
@@ -53,6 +56,7 @@ export default async function DashboardPage() {
           data={data}
           gateRows={gateRows}
           mentees={mentees}
+          myMentor={myMentor}
           playbookAssignments={playbookAssignments}
         />
       </>
