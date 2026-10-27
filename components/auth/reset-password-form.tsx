@@ -17,6 +17,11 @@ export function ResetPasswordForm() {
  const [confirmPassword, setConfirmPassword] = useState("");
  const [isReady, setIsReady] = useState(false);
  const [isSubmitting, setIsSubmitting] = useState(false);
+ // Links that carry a token hash are only redeemed when the person clicks Continue, so a mail
+ // scanner that opens the link first can't use it up.
+ const [tokenHash, setTokenHash] = useState<string | null>(null);
+ const [linkError, setLinkError] = useState<string | null>(null);
+ const [isVerifying, setIsVerifying] = useState(false);
 
  useEffect(() => {
  const supabase = createClient();
@@ -33,6 +38,13 @@ export function ResetPasswordForm() {
  }
  });
 
+ const query = new URLSearchParams(window.location.search);
+ if (query.get("token_hash") && query.get("type") === "recovery") setTokenHash(query.get("token_hash"));
+ const hash = new URLSearchParams(window.location.hash.slice(1));
+ if (hash.get("error_code") === "otp_expired" || hash.get("error")) {
+ setLinkError("This reset link has expired or was already used. Email security scanners sometimes open links before you do. Request a new link below.");
+ }
+
  void supabase.auth.getSession().then(({ data: { session } }) => {
  if (session) {
  setIsReady(true);
@@ -41,6 +53,21 @@ export function ResetPasswordForm() {
 
  return () => subscription.unsubscribe();
  }, []);
+
+ async function redeemLink() {
+ const supabase = createClient();
+ if (!supabase || !tokenHash) return;
+ setIsVerifying(true);
+ const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: "recovery" });
+ setIsVerifying(false);
+ if (error) {
+ setLinkError("This reset link has expired or was already used. Request a new link below.");
+ setTokenHash(null);
+ return;
+ }
+ window.history.replaceState(null, "", window.location.pathname);
+ setIsReady(true);
+ }
 
  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
  event.preventDefault();
@@ -78,13 +105,32 @@ export function ResetPasswordForm() {
  router.refresh();
  }
 
+ if (!isReady && tokenHash && !linkError) {
+ return (
+ <div className="space-y-4 text-[15px] leading-normal text-ink-2">
+ <p>Continue to choose a new password.</p>
+ <button className="btn-primary inline-flex w-full items-center justify-center gap-2" disabled={isVerifying} onClick={() => void redeemLink()} type="button">
+ {isVerifying ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
+ Continue
+ </button>
+ </div>
+ );
+ }
+
  if (!isReady) {
  return (
  <div className="space-y-4 text-[15px] leading-normal text-ink-2">
- <p>Open the reset link from your email to set a new password.</p>
+ <p>{linkError ?? "Open the reset link from your email to set a new password."}</p>
+ <div className="flex flex-wrap gap-3">
+ {linkError ? (
+ <Link className="btn-primary inline-block no-underline" href={AUTH_ROUTES.forgotPassword}>
+ Send a new link
+ </Link>
+ ) : null}
  <Link className="btn-secondary inline-block no-underline" href={AUTH_ROUTES.login}>
  Back to sign in
  </Link>
+ </div>
  </div>
  );
  }

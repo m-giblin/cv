@@ -1,5 +1,6 @@
 export const AUTH_ROUTES = {
   login: "/login",
+  forgotPassword: "/login/forgot-password",
   mfaEnroll: "/auth/mfa/enroll",
   mfaVerify: "/auth/mfa/verify",
   signOut: "/auth/signout",
