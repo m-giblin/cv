@@ -9,6 +9,8 @@ import {
   recordMentorEvent,
   requireMentoredStep,
   type MentorAssignment,
+  type ViewerProfile,
+  viewerTenantId,
 } from "@/lib/mentoring/mentor-records";
 import { MENTOR_EVENT, type DateProposal } from "@/lib/mentoring/mentor-records-model";
 import { createNotification } from "@/lib/notifications/create-notification";
@@ -33,12 +35,14 @@ export async function GET() {
   const session = await mentorSession();
   if (session instanceof NextResponse) return session;
   const { admin, userId } = session;
-  const { data: viewer } = await admin.from("profiles").select("role, tenant_id").eq("id", userId).maybeSingle();
+  const { data: viewerRow } = await admin.from("profiles").select("*").eq("id", userId).maybeSingle();
+  const viewer = viewerRow as ViewerProfile | null;
+  const viewerTenant = viewerTenantId(viewer);
   const isAdmin = ADMIN_ROLES.includes(viewer?.role ?? "");
 
   const [{ data: reports }, { data: assigned }] = await Promise.all([
-    isAdmin && viewer?.tenant_id
-      ? admin.from("profiles").select("id").eq("tenant_id", viewer.tenant_id)
+    isAdmin && viewerTenant
+      ? admin.from("profiles").select("id").eq("tenant_id", viewerTenant)
       : admin.from("profiles").select("id").eq("manager_id", userId),
     admin.from("plan_assignments").select("user_id").eq("assigned_by", userId),
   ]);

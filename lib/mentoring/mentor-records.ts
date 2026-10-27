@@ -17,23 +17,33 @@ const ADMIN_ROLES = ["director", "admin", "super_admin"];
 
 export type MenteeRelationship = "admin" | "manager" | "mentor";
 
+/** home_tenant_id isn't in the generated types yet, so profile rows are read with select("*"). */
+export type ViewerProfile = { role: string | null; tenant_id: string | null; home_tenant_id?: string | null };
+
+/** Super admins have no tenant_id; their home tenant is where they also manage and mentor. */
+export function viewerTenantId(viewer: ViewerProfile | null): string | null {
+  return viewer?.tenant_id ?? viewer?.home_tenant_id ?? null;
+}
+
 /**
  * How the signed-in person relates to a mentee. Managers and the person who assigned the program
  * can write the hiring brief. Mentors can read it. Admins can do both, inside the same tenant.
  */
 export async function menteeRelationship(admin: Db, viewerId: string, menteeId: string): Promise<MenteeRelationship | null> {
-  const [{ data: viewer }, { data: mentee }] = await Promise.all([
-    admin.from("profiles").select("role, tenant_id").eq("id", viewerId).maybeSingle(),
+  const [{ data: viewerRow }, { data: mentee }] = await Promise.all([
+    admin.from("profiles").select("*").eq("id", viewerId).maybeSingle(),
     admin.from("profiles").select("manager_id, tenant_id").eq("id", menteeId).maybeSingle(),
   ]);
-  if (!viewer?.tenant_id || !mentee || viewer.tenant_id !== mentee.tenant_id) return null;
+  const viewer = viewerRow as ViewerProfile | null;
+  const viewerTenant = viewerTenantId(viewer);
+  if (!viewer || !viewerTenant || !mentee || viewerTenant !== mentee.tenant_id) return null;
   if (ADMIN_ROLES.includes(viewer.role ?? "")) return "admin";
   if (mentee.manager_id === viewerId) return "manager";
   const { data: assignments } = await admin
     .from("plan_assignments")
     .select("mentor_id, assigned_by")
     .eq("user_id", menteeId)
-    .eq("tenant_id", viewer.tenant_id);
+    .eq("tenant_id", viewerTenant);
   if (assignments?.some((row) => row.assigned_by === viewerId)) return "manager";
   if (assignments?.some((row) => row.mentor_id === viewerId)) return "mentor";
   return null;
