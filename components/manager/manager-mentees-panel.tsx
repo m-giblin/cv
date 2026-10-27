@@ -137,6 +137,16 @@ export function ManagerMenteesPanel({
                       {awaitingManagerSignoff > 0 ? (
                         <StatusPill tone="blue">Manager sign-off pending</StatusPill>
                       ) : null}
+                      {records.hiringBrief && !isOpen ? (
+                        <button
+                          aria-controls={panelId}
+                          className="btn-secondary"
+                          onClick={() => setExpandedId(plan.id)}
+                          type="button"
+                        >
+                          Read the brief
+                        </button>
+                      ) : null}
                       <button className="btn-secondary" onClick={() => setScheduleFor(plan.id)} type="button">
                         Set the schedule
                       </button>
