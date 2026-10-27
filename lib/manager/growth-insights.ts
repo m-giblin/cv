@@ -259,7 +259,9 @@ export function buildCertSummary(profile: Profile, certs: ReadinessCertRow[]): C
   let nextGateStatus: string | null = null;
 
   if (nextStage) {
-    const missing = nextStage.certifications.find((cert) => !approvedTypes.includes(cert));
+    // Earliest gate not yet cleared, so a new hire's next gate is Solo discovery, not one two levels on.
+    const path = CAREER_STAGES.slice(0, stageIndex + 2).flatMap((stage) => stage.certifications);
+    const missing = path.find((cert) => !approvedTypes.includes(cert));
     if (missing) {
       nextGateLabel = CERT_LABELS[missing] ?? missing;
       nextGateStatus = items.find((item) => item.type === missing)?.status ?? "not_started";

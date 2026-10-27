@@ -133,7 +133,7 @@ async function fetchSupabaseManagerPageDataForTenant(
     scopedUserIds.length > 0
       ? admin
           .from("activity_logs")
-          .select("id, user_id, event_type, title, metadata, created_at")
+          .select("id, user_id, actor_id, event_type, title, metadata, created_at")
           .in("user_id", scopedUserIds)
           .or(`tenant_id.eq.${tenantId},tenant_id.is.null`)
           .order("created_at", { ascending: false })
@@ -183,6 +183,7 @@ async function fetchSupabaseManagerPageDataForTenant(
   const activity: ActivityLog[] = ((activityResult.data ?? []) as DbActivityLog[]).map((row) => ({
     id: row.id,
     userId: row.user_id,
+    actorId: row.actor_id,
     eventType: row.event_type as ActivityLog["eventType"],
     title: row.title,
     metadata: (row.metadata as Record<string, string | number | boolean | null>) ?? {},
@@ -312,7 +313,7 @@ async function fetchSupabaseManagerPageData(): Promise<DashboardData | null> {
     orgIds.length > 0
       ? supabase
           .from("activity_logs")
-          .select("id, user_id, event_type, title, metadata, created_at")
+          .select("id, user_id, actor_id, event_type, title, metadata, created_at")
           .in("user_id", orgIds)
           .order("created_at", { ascending: false })
           .limit(120)
@@ -386,6 +387,7 @@ async function fetchSupabaseManagerPageData(): Promise<DashboardData | null> {
   const activity: ActivityLog[] = ((activityResult.data ?? []) as DbActivityLog[]).map((row) => ({
     id: row.id,
     userId: row.user_id,
+    actorId: row.actor_id,
     eventType: row.event_type as ActivityLog["eventType"],
     title: row.title,
     metadata: (row.metadata as Record<string, string | number | boolean | null>) ?? {},

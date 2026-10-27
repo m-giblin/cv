@@ -170,7 +170,10 @@ export type CoachingCard = {
 
 export type ActivityLog = {
   id: string;
+  /** Whose record it's on. A mentor's actions sit on the mentee's record. */
   userId: string;
+  /** Who did it, when that's someone else (e.g. the mentor approving the mentee's step). */
+  actorId?: string | null;
   eventType:
     | "plan_step_completed"
     | "challenge_submitted"

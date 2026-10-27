@@ -30,7 +30,7 @@ export async function POST(request: Request) {
       actorId: session.userId,
       tenantId: assignment.tenant_id,
       type: MENTOR_EVENT.checkin,
-      title: `Mentor 1:1 on ${parsed.data.metOn}`,
+      title: `Mentor 1:1 on ${new Date(`${parsed.data.metOn}T12:00:00Z`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" })}`,
       metadata: {
         assignment_id: assignment.id,
         met_on: parsed.data.metOn,

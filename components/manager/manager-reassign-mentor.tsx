@@ -45,7 +45,7 @@ export function ManagerReassignMentor({
     <section className="rounded-[14px] border border-line bg-white p-4 shadow-[var(--shadow-card)]">
       <h3 className="text-[15px] font-bold text-ink">Assigned mentor</h3>
       <p className="mt-1 text-sm text-muted">
-        Mentors endorse check-ins. You keep the final sign-off on ramp steps.
+        The mentor reviews everyday steps and runs check-ins. You sign off each stage gate.
       </p>
       <div className="mt-3 space-y-3">
         <label className="block space-y-1.5 text-sm font-semibold text-ink">

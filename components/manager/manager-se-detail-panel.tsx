@@ -396,7 +396,7 @@ export function ManagerSeDetailPanel({
                           <span className="flex min-w-0 flex-1 flex-col gap-1">
                             <span className="block text-sm font-bold text-ink">{step.title}</span>
                             <span className="text-[13px] text-muted">
-                              {stepKindLabel(step.type)}
+                              {step.isSegmentGate ? "Stage gate, you sign off" : stepKindLabel(step.type)}
                               {step.isSegmentGate ? ", unlocks the next stage" : ""}
                               {step.dueDate ? (
                                 <span className={late ? "font-bold text-danger" : ""}>

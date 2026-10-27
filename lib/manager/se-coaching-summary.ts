@@ -6,6 +6,7 @@ import type {
   SimTrend,
 } from "@/lib/manager/growth-insights";
 import { computeCareerProgress, practiceCadenceMessage } from "@/lib/growth/career-readiness";
+import { rampWeekFor } from "@/lib/manager/team-status";
 import { profileLevelLabel } from "@/lib/utils/level-label";
 import type {
   ActivityLog,
@@ -167,7 +168,9 @@ export function buildSeCoachingSummary(params: {
     approvedCerts.length > 0 ||
     (simTrend?.average ?? null) !== null ||
     (plan?.steps ?? []).some((step) => ["submitted", "under_review", "reviewed", "completed"].includes(step.status));
-  const gaps = hasEvidence ? analyzeCompetencyGaps(miniDashboard as DashboardData, profile.id) : [];
+  // A gap needs scored work (a sim, coaching card or submission); one finished reading step isn't one.
+  const hasScoredWork = submissions.length > 0 || coachingCards.length > 0 || (simTrend?.average ?? null) !== null;
+  const gaps = hasScoredWork ? analyzeCompetencyGaps(miniDashboard as DashboardData, profile.id) : [];
   const topGaps = gaps.slice(0, 3).map((gap) => gap.competencyName);
 
   const career = computeCareerProgress({
@@ -246,7 +249,13 @@ export function buildSeCoachingSummary(params: {
         : "Getting started: walk through the plan and confirm the schedule the mentor agreed.",
     );
   }
-  if (hasEvidence && certSummary?.nextGateLabel && certSummary.nextGateStatus !== "approved") {
+  // Cert gates matter once the first ramp stage is behind them; in week one the ramp is the next thing.
+  const rampWeek = rampWeekFor(plan ?? undefined, Date.now());
+  const stillOnboarding = rampWeek !== null && rampWeek <= 4;
+  if (stillOnboarding && currentStep) {
+    talkingPoints.push(`Ramp: next up is ${currentStep.title}. Check the mentor's schedule is holding.`);
+  }
+  if (!stillOnboarding && hasEvidence && certSummary?.nextGateLabel && certSummary.nextGateStatus !== "approved") {
     talkingPoints.push(
       `Next cert gate: ${certSummary.nextGateLabel} (${certSummary.nextGateStatus?.replaceAll("_", " ") ?? "not started"}).`,
     );
@@ -265,7 +274,7 @@ export function buildSeCoachingSummary(params: {
   if (practiceCadenceMessage(lastActivity?.createdAt ?? null).includes("Overdue")) {
     talkingPoints.push("Practice cadence is slipping — assign or encourage a simulation.");
   }
-  if (hasEvidence && career.nextStage && career.readinessPercent < 60) {
+  if (!stillOnboarding && hasEvidence && career.nextStage && career.readinessPercent < 60) {
     talkingPoints.push(
       `Career path: ${career.readinessPercent}% ready for ${career.nextStage.title} — review cert and plan milestones.`,
     );

@@ -137,7 +137,7 @@ export function buildAccountabilityMetrics(
   const stuckPlanSteps: AccountabilityItem[] = [];
 
   for (const profile of orgProfiles) {
-    const userActivity = data.activity.filter((a) => a.userId === profile.id);
+    const userActivity = data.activity.filter((a) => a.userId === profile.id || a.actorId === profile.id);
     const lastActivity = userActivity[0]?.createdAt;
 
     if (!lastActivity || new Date(lastActivity).getTime() < fourteenDaysAgo) {

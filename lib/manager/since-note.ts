@@ -54,7 +54,10 @@ export function buildSinceFridayNote(
   const lastSeen = new Map<string, number>();
   for (const item of activity) {
     const time = new Date(item.createdAt).getTime();
-    if (time > (lastSeen.get(item.userId) ?? 0)) lastSeen.set(item.userId, time);
+    // A mentor reviewing or scheduling for a mentee is the mentor being active, not only the mentee.
+    for (const id of [item.userId, item.actorId]) {
+      if (id && time > (lastSeen.get(id) ?? 0)) lastSeen.set(id, time);
+    }
   }
   const weekAgo = now.getTime() - 7 * 86_400_000;
   const quiet = team

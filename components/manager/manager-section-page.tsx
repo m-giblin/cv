@@ -69,7 +69,9 @@ export async function ManagerSectionPage({ section }: { section: ManagerSection 
  }
  const orgIds = new Set(data.myOrg.map((profile) => profile.id));
  const orgPlans = data.plans.filter((plan) => orgIds.has(plan.userId));
- const orgActivity = data.activity.filter((item) => orgIds.has(item.userId));
+ const orgActivity = data.activity.filter(
+ (item) => orgIds.has(item.userId) || (item.actorId ? orgIds.has(item.actorId) : false),
+ );
  const openReviews = data.submissions.filter(
  (submission) => orgIds.has(submission.userId) && submission.status === "submitted",
  );
@@ -293,8 +295,9 @@ export async function ManagerSectionPage({ section }: { section: ManagerSection 
  : undefined;
  const submissions = orgSubmissions.filter((item) => item.userId === profile.id);
  const coachingCards = orgCoachingCards.filter((item) => item.userId === profile.id);
+ // A mentor's work (schedules, 1:1s, reviews) sits on the mentee's record but counts as the mentor being active.
  const activity = orgActivity
- .filter((item) => item.userId === profile.id)
+ .filter((item) => item.userId === profile.id || item.actorId === profile.id)
  .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
  const profileCerts = certRows.filter((row) => row.userId === profile.id);

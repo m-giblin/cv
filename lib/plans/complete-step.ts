@@ -350,11 +350,15 @@ export async function approveAssignmentStep(
   await maybeUnlockNextSegment(supabase, step.assignment_id, step.plan_step_id);
   await enrollNextProgramStage(supabase, step.assignment_id, step.plan_step_id);
 
+  const [{ data: reviewer }, { data: planStep }] = await Promise.all([
+    supabase.from("profiles").select("full_name").eq("id", params.reviewerId).maybeSingle(),
+    supabase.from("plan_steps").select("title").eq("id", step.plan_step_id).maybeSingle(),
+  ]);
   await supabase.from("activity_logs").insert({
     user_id: assignment.user_id,
     actor_id: params.reviewerId,
     event_type: "manager_feedback_received",
-    title: "Plan step validated by reviewer",
+    title: `${reviewer?.full_name ?? "Reviewer"} approved ${planStep?.title ?? "a ramp step"}`,
     metadata: {
       assignment_step_id: params.assignmentStepId,
       plan_step_id: step.plan_step_id,
