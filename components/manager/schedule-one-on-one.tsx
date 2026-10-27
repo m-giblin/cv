@@ -11,17 +11,22 @@ function pad(value: number) {
   return String(value).padStart(2, "0");
 }
 
-/** Pick when the 1:1 is and who joins, then download an invite to open in the calendar. */
+/**
+ * Pick when the 1:1 is and who joins. Saving records it (the person sees it on Today and is told,
+ * so is the mentor if invited) and downloads an invite to send from the calendar.
+ */
 export function ScheduleOneOnOne({
   profile,
   mentor,
   talkingPoints,
   onClose,
+  onScheduled,
 }: {
   profile: Profile;
   mentor?: Profile;
   talkingPoints: string[];
   onClose: () => void;
+  onScheduled?: () => void;
 }) {
   const ids = { date: useId(), time: useId(), length: useId(), mentor: useId() };
   const initial = defaultOneOnOneStart();
@@ -29,12 +34,33 @@ export function ScheduleOneOnOne({
   const [time, setTime] = useState("10:00");
   const [minutes, setMinutes] = useState(30);
   const [inviteMentor, setInviteMentor] = useState(Boolean(mentor));
+  const [saving, setSaving] = useState(false);
   const firstName = profile.fullName.split(" ")[0] ?? profile.fullName;
 
-  function download() {
+  async function schedule() {
     const start = new Date(`${date}T${time}:00`);
     if (Number.isNaN(start.getTime())) {
       toast.error("Pick a date and time.");
+      return;
+    }
+    const label = start.toLocaleString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      timeZoneName: "short",
+    });
+    setSaving(true);
+    const response = await fetch("/api/manager/one-on-ones", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: profile.id, start: start.toISOString(), minutes, label, inviteMentor: inviteMentor && Boolean(mentor) }),
+    }).catch(() => null);
+    setSaving(false);
+    if (!response?.ok) {
+      const body = (await response?.json().catch(() => null)) as { error?: string } | null;
+      toast.error(body?.error ?? "Couldn't schedule the 1:1. Try again.");
       return;
     }
     downloadOneOnOneIcs({
@@ -46,7 +72,8 @@ export function ScheduleOneOnOne({
       durationMinutes: minutes,
       otherAttendees: inviteMentor && mentor ? [mentor.email] : [],
     });
-    toast.success(`Invite downloaded. Open it to add the 1:1 with ${firstName} to your calendar.`);
+    toast.success(`1:1 saved. ${firstName} can see it on Today. Open the downloaded invite to send it from your calendar.`);
+    onScheduled?.();
     onClose();
   }
 
@@ -55,8 +82,8 @@ export function ScheduleOneOnOne({
       eyebrow="1:1"
       footer={
         <>
-          <button className="btn-primary" onClick={download} type="button">
-            Download invite
+          <button className="btn-primary" disabled={saving} onClick={() => void schedule()} type="button">
+            {saving ? "Scheduling…" : "Schedule and download invite"}
           </button>
           <button className="btn-secondary" onClick={onClose} type="button">
             Cancel
@@ -69,7 +96,7 @@ export function ScheduleOneOnOne({
       title={`Schedule a 1:1 with ${firstName}`}
     >
       <div className="flex flex-col gap-4">
-        <p className="text-sm text-ink-2">The invite opens in your calendar app, where you can send it. The talking points go in the description.</p>
+        <p className="text-sm text-ink-2">{firstName} sees the 1:1 on their Today page and gets a notification{mentor ? ", and so does the mentor if invited" : ""}. The invite downloads for your calendar app, where you send it; the talking points go in its description.</p>
         <div className="grid gap-4 sm:grid-cols-3">
           <label className="flex flex-col gap-1.5 text-sm font-semibold text-ink" htmlFor={ids.date}>
             Date

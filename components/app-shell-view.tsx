@@ -127,7 +127,11 @@ export function AppShellView({
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const flags = useNavFlags(workspace);
-  const entries = useMemo(() => paletteEntries(workspace, flags), [workspace, flags]);
+  const hasMentees = Boolean(navCounts?.mentoring);
+  const entries = useMemo(
+    () => paletteEntries(workspace, flags).filter((entry) => hasMentees || !entry.href.startsWith("/mentoring")),
+    [workspace, flags, hasMentees],
+  );
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);
   const myNotifications = notifications.filter((item) => item.userId === currentUser.id);
   const shellStyle = { "--tenant-primary": branding.primaryColor } as CSSProperties;

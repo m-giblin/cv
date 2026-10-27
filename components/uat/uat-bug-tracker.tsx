@@ -4,6 +4,7 @@ import { ArrowUpRight, Loader2, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { Drawer } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { SegmentedToggle } from "@/components/ui/segmented-toggle";
 import { StatusPill } from "@/components/ui/status-pill";
@@ -332,6 +333,7 @@ export function UatBugTrackerPanel({
  const selectClass =
  "h-10 w-full rounded-[10px] border border-line-strong bg-white px-3 text-[15px] text-ink focus:border-blue";
  const labelClass = "mb-1.5 block text-sm font-semibold text-ink";
+ const selectedIssue = issues.find((item) => item.id === selectedId) ?? null;
 
  return (
  <div className="flex min-h-screen flex-col bg-bg">
@@ -555,9 +557,9 @@ export function UatBugTrackerPanel({
  return (
  <li className={cn("border-b border-divider last:border-b-0", open && "bg-blue-soft shadow-[inset_3px_0_0_var(--color-blue)]")} key={issue.id}>
  <button
- aria-expanded={open}
- className="w-full px-4 py-3 text-left"
- onClick={() => setSelectedId(open ? null : issue.id)}
+ aria-haspopup="dialog"
+ className="w-full px-4 py-3 text-left hover:bg-blue-soft"
+ onClick={() => setSelectedId(issue.id)}
  type="button"
  >
  <span className="flex items-start justify-between gap-2">
@@ -570,24 +572,41 @@ export function UatBugTrackerPanel({
  </span>
  <span className="mt-1 block text-[15px] font-bold text-ink">{issue.title}</span>
  </button>
+ </li>
+ );
+ })}
+ </ul>
+ )}
+ </div>
+ )}
+ </main>
 
- {open ? (
- <div className="space-y-3 px-4 pb-4">
- {issue.description ? (
- <pre className="max-h-32 overflow-auto rounded-[10px] border border-line bg-white p-3 text-[13px] whitespace-pre-wrap text-ink-2">
- {issue.description}
+ <Drawer
+ eyebrow={selectedIssue ? `${projectKey}-${selectedIssue.number}` : "Backlog bug"}
+ onClose={() => setSelectedId(null)}
+ open={Boolean(selectedIssue)}
+ size="form"
+ title={selectedIssue?.title ?? "Backlog bug"}
+ >
+ {selectedIssue ? (
+ <div className="space-y-4">
+ {selectedIssue.description ? (
+ <pre className="max-h-[50vh] overflow-auto rounded-[10px] border border-line bg-white p-3 text-[13px] whitespace-pre-wrap text-ink-2">
+ {selectedIssue.description}
  </pre>
- ) : null}
+ ) : (
+ <p className="text-[15px] text-muted">No description.</p>
+ )}
  <div className="grid grid-cols-2 gap-3">
  <div>
- <label className={labelClass} htmlFor={`uat-status-${issue.id}`}>
+ <label className={labelClass} htmlFor={`uat-status-${selectedIssue.id}`}>
  Status
  </label>
  <select
  className={selectClass}
- id={`uat-status-${issue.id}`}
- onChange={(event) => void updateIssue(issue.id, { status: event.target.value })}
- value={issue.status}
+ id={`uat-status-${selectedIssue.id}`}
+ onChange={(event) => void updateIssue(selectedIssue.id, { status: event.target.value })}
+ value={selectedIssue.status}
  >
  {statuses.map((status) => (
  <option key={status} value={status}>
@@ -597,14 +616,14 @@ export function UatBugTrackerPanel({
  </select>
  </div>
  <div>
- <label className={labelClass} htmlFor={`uat-priority-${issue.id}`}>
+ <label className={labelClass} htmlFor={`uat-priority-${selectedIssue.id}`}>
  Severity
  </label>
  <select
  className={selectClass}
- id={`uat-priority-${issue.id}`}
- onChange={(event) => void updateIssue(issue.id, { priority: event.target.value })}
- value={issue.priority}
+ id={`uat-priority-${selectedIssue.id}`}
+ onChange={(event) => void updateIssue(selectedIssue.id, { priority: event.target.value })}
+ value={selectedIssue.priority}
  >
  {priorities.map((item) => (
  <option key={item} value={item}>
@@ -616,14 +635,7 @@ export function UatBugTrackerPanel({
  </div>
  </div>
  ) : null}
- </li>
- );
- })}
- </ul>
- )}
- </div>
- )}
- </main>
+ </Drawer>
  </div>
  );
 }

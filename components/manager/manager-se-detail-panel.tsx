@@ -12,6 +12,7 @@ import { ManagerCoachingNotes } from "@/components/manager/manager-coaching-note
 import { ManagerPlanAssignPanel } from "@/components/manager/manager-plan-assign-panel";
 import { ManagerReassignMentor } from "@/components/manager/manager-reassign-mentor";
 import { ScheduleOneOnOne } from "@/components/manager/schedule-one-on-one";
+import type { UpcomingOneOnOne } from "@/lib/manager/one-on-ones";
 import { MentorNotesForManager } from "@/components/manager/mentor-notes-for-manager";
 import { SimTrendChart } from "@/components/manager/sim-trend-chart";
 import { Drawer } from "@/components/ui/drawer";
@@ -272,6 +273,17 @@ export function ManagerSeDetailPanel({
   useEffect(() => {
     reloadWork();
   }, [reloadWork]);
+  const [oneOnOnes, setOneOnOnes] = useState<UpcomingOneOnOne[]>([]);
+  const reloadOneOnOnes = useCallback(() => {
+    void fetch(`/api/manager/one-on-ones?userId=${profile.id}`)
+      .then((response) => (response.ok ? response.json() : { upcoming: [] }))
+      .then((body: { upcoming?: UpcomingOneOnOne[] }) => setOneOnOnes(body.upcoming ?? []))
+      .catch(() => setOneOnOnes([]));
+  }, [profile.id]);
+  useEffect(() => {
+    reloadOneOnOnes();
+  }, [reloadOneOnOnes]);
+  const nextOneOnOne = oneOnOnes[0];
 
   const weekAhead = format(new Date(now + 7 * 86_400_000), "yyyy-MM-dd");
   const open = (work ?? []).filter((item) => item.state !== "done");
@@ -577,6 +589,11 @@ export function ManagerSeDetailPanel({
           )}
           {member?.reason ? <span className="text-[13px] text-ink-2">{member.reason}</span> : null}
           <span className="text-[13px] text-muted">{coaching.lastActiveLabel}</span>
+          {nextOneOnOne ? (
+            <span className="text-[13px] font-semibold text-blue">
+              Next 1:1 {nextOneOnOne.label} · {nextOneOnOne.minutes} min{nextOneOnOne.mentorInvited ? " · mentor invited" : ""}
+            </span>
+          ) : null}
           <a className="link min-w-0 truncate text-[13px]" href={`mailto:${profile.email}`}>
             {profile.email}
           </a>
@@ -619,6 +636,7 @@ export function ManagerSeDetailPanel({
           <ScheduleOneOnOne
             mentor={mentor}
             onClose={() => setSchedulingOneOnOne(false)}
+            onScheduled={reloadOneOnOnes}
             profile={profile}
             talkingPoints={coaching.talkingPoints}
           />

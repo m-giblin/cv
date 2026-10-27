@@ -12,6 +12,7 @@ import type { GateRow } from "@/lib/se/gate-matrix";
 import type { TodayMentee } from "@/lib/mentoring/today-mentees";
 import type { MyMentor } from "@/lib/mentoring/my-mentor";
 import { MyMentorCard } from "@/components/se/my-mentor-card";
+import type { UpcomingOneOnOne } from "@/lib/manager/one-on-ones";
 import { stepReviewer } from "@/lib/plans/step-reviewer";
 import {
   buildRampModel,
@@ -111,6 +112,7 @@ export function SeToday({
   playbookAssignments = [],
   mentees = [],
   myMentor = null,
+  oneOnOnes = [],
 }: {
   data: DashboardData;
   gateRows: GateRow[];
@@ -121,6 +123,8 @@ export function SeToday({
   mentees?: TodayMentee[];
   /** The new hire's mentor; often outside the profiles an SE can see, so loaded separately. */
   myMentor?: MyMentor | null;
+  /** 1:1s their manager has scheduled that haven't happened yet. */
+  oneOnOnes?: UpcomingOneOnOne[];
 }) {
   const user = data.currentUser;
   const firstName = user.fullName.split(" ")[0] ?? "there";
@@ -276,6 +280,7 @@ export function SeToday({
           </div>
 
           <aside aria-label="Ramp and gates" className="flex min-w-0 flex-col gap-6">
+            {oneOnOnes.length ? <UpcomingOneOnOnesCard meetings={oneOnOnes} /> : null}
             {myMentor ? <MyMentorCard mentor={myMentor} /> : null}
             <RampDefinitionCard model={model} />
             {gateRows.length > 0 ? <GateStampsCard level={user.level} rows={gateRows} /> : null}
@@ -283,6 +288,25 @@ export function SeToday({
         </div>
       </PageBody>
     </div>
+  );
+}
+
+/** Meetings the manager put in the calendar, so a new hire knows what's coming and with whom. */
+function UpcomingOneOnOnesCard({ meetings }: { meetings: UpcomingOneOnOne[] }) {
+  return (
+    <section className="flex flex-col gap-2 rounded-[14px] border border-line bg-white px-[22px] py-5">
+      <h2 className="label-caps">Coming up</h2>
+      <ul className="m-0 flex list-none flex-col gap-3 p-0">
+        {meetings.slice(0, 3).map((meeting) => (
+          <li className="flex flex-col gap-0.5" key={meeting.id}>
+            <span className="text-[15px] font-extrabold text-ink">1:1 with {meeting.scheduledByName}</span>
+            <span className="text-sm text-ink-2">
+              {meeting.label} · {meeting.minutes} min{meeting.mentorInvited ? " · your mentor joins" : ""}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

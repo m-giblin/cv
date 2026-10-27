@@ -1,7 +1,7 @@
 "use client";
 
-import { ChevronDown, ChevronRight, Loader2 } from "lucide-react";
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { ChevronRight, Loader2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   EmptyLine,
@@ -17,6 +17,7 @@ import {
   formatDateTime,
 } from "@/components/platform/platform-ui";
 import { Chip } from "@/components/ui/chip";
+import { Drawer } from "@/components/ui/drawer";
 import { rowHighlight } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import type { PlatformAuditEntry } from "@/lib/tenant/types";
@@ -52,7 +53,7 @@ export function PlatformGlobalAuditPanel({ tenantId }: { tenantId?: string | nul
   const [loading, setLoading] = useState(true);
   const [probing, setProbing] = useState(false);
   const [platformOpsOnly, setPlatformOpsOnly] = useState(true);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
   const [writeHealth, setWriteHealth] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -99,6 +100,7 @@ export function PlatformGlobalAuditPanel({ tenantId }: { tenantId?: string | nul
   }
 
   const newest = useMemo(() => (logs[0] ? formatDateTime(logs[0].createdAt) : null), [logs]);
+  const openEntry = logs.find((entry) => entry.id === openId) ?? null;
 
   return (
     <div className="space-y-4">
@@ -156,49 +158,29 @@ export function PlatformGlobalAuditPanel({ tenantId }: { tenantId?: string | nul
                 </thead>
                 <tbody>
                   {logs.map((entry) => {
-                    const open = expandedId === entry.id;
+                    const open = openId === entry.id;
                     const summary = summarizeDetails(entry);
                     return (
-                      <Fragment key={entry.id}>
-                        <tr className={cn(TR, open && rowHighlight.selected)}>
-                          <td className="py-[13px] pl-5">
-                            <button
-                              aria-expanded={open}
-                              aria-label={`${open ? "Hide" : "Show"} details for ${entry.action}`}
-                              className="grid h-7 w-7 place-items-center rounded-full text-muted hover:bg-divider hover:text-ink"
-                              onClick={() => setExpandedId(open ? null : entry.id)}
-                              type="button"
-                            >
-                              {open ? <ChevronDown aria-hidden className="h-4 w-4" /> : <ChevronRight aria-hidden className="h-4 w-4" />}
-                            </button>
-                          </td>
-                          <td className={TD_META}>{formatDateTime(entry.createdAt)}</td>
-                          <td className={TD_MUTED}>
-                            {entry.tenantName ?? (entry.tenantId ? entry.tenantId.slice(0, 8) : "—")}
-                          </td>
-                          <td className={TD_MUTED}>{entry.actorName ?? "—"}</td>
-                          <td className={cn(TD, "text-[13px] font-semibold")}>{entry.action}</td>
-                          <td className={TD_MUTED}>{summary ?? entry.targetType}</td>
-                        </tr>
-                        {open ? (
-                          <tr className={cn(TR, "bg-bg")}>
-                            <td className="px-5 py-3" colSpan={6}>
-                              <pre className="overflow-x-auto text-[13px] leading-relaxed text-ink-2">
-                                {JSON.stringify(
-                                  {
-                                    targetType: entry.targetType,
-                                    targetId: entry.targetId,
-                                    tenantId: entry.tenantId,
-                                    details: entry.details,
-                                  },
-                                  null,
-                                  2,
-                                )}
-                              </pre>
-                            </td>
-                          </tr>
-                        ) : null}
-                      </Fragment>
+                      <tr className={cn(TR, open && rowHighlight.selected)} key={entry.id}>
+                        <td className="py-[13px] pl-5">
+                          <button
+                            aria-haspopup="dialog"
+                            aria-label={`Show details for ${entry.action}`}
+                            className="grid h-7 w-7 place-items-center rounded-full text-muted hover:bg-divider hover:text-ink"
+                            onClick={() => setOpenId(entry.id)}
+                            type="button"
+                          >
+                            <ChevronRight aria-hidden className="h-4 w-4" />
+                          </button>
+                        </td>
+                        <td className={TD_META}>{formatDateTime(entry.createdAt)}</td>
+                        <td className={TD_MUTED}>
+                          {entry.tenantName ?? (entry.tenantId ? entry.tenantId.slice(0, 8) : "—")}
+                        </td>
+                        <td className={TD_MUTED}>{entry.actorName ?? "—"}</td>
+                        <td className={cn(TD, "text-[13px] font-semibold")}>{entry.action}</td>
+                        <td className={TD_MUTED}>{summary ?? entry.targetType}</td>
+                      </tr>
                     );
                   })}
                 </tbody>
@@ -207,6 +189,36 @@ export function PlatformGlobalAuditPanel({ tenantId }: { tenantId?: string | nul
           )}
         </div>
       )}
+
+      <Drawer
+        eyebrow="Audit event"
+        onClose={() => setOpenId(null)}
+        open={Boolean(openEntry)}
+        size="form"
+        subtitle={
+          openEntry
+            ? `${formatDateTime(openEntry.createdAt)} · ${openEntry.actorName ?? "—"} · ${
+                openEntry.tenantName ?? (openEntry.tenantId ? openEntry.tenantId.slice(0, 8) : "—")
+              }`
+            : null
+        }
+        title={openEntry?.action ?? "Audit event"}
+      >
+        {openEntry ? (
+          <pre className="overflow-x-auto rounded-[14px] border border-line bg-white p-4 text-[13px] leading-relaxed text-ink-2">
+            {JSON.stringify(
+              {
+                targetType: openEntry.targetType,
+                targetId: openEntry.targetId,
+                tenantId: openEntry.tenantId,
+                details: openEntry.details,
+              },
+              null,
+              2,
+            )}
+          </pre>
+        ) : null}
+      </Drawer>
     </div>
   );
 }

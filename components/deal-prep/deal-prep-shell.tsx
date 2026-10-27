@@ -25,13 +25,8 @@ export function DealPrepShell({
   return (
     <PracticeToolPage
       actions={
-        <button
-          aria-expanded={historyOpen}
-          className="btn-secondary"
-          onClick={() => setHistoryOpen((open) => !open)}
-          type="button"
-        >
-          {historyOpen ? "Hide past briefs" : "View past briefs"}
+        <button aria-haspopup="dialog" className="btn-secondary" onClick={() => setHistoryOpen(true)} type="button">
+          View past briefs
         </button>
       }
       subtitle="A brief for your next customer call: discovery questions and likely objections."

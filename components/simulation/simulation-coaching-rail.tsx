@@ -2,10 +2,11 @@
 
 import { splitCoachMessage } from "@/lib/simulations/coach-message";
 import { Loader2, RotateCcw } from "lucide-react";
-import { useId } from "react";
+import { useId, useState } from "react";
 import type { CoachingCardOutput } from "@/lib/ai/schemas";
 import type { RubricCriterion } from "@/lib/simulations/session-rubric";
 import { LABEL_CLS, TEXTAREA_CLS } from "@/components/se/form-classes";
+import { Drawer } from "@/components/ui/drawer";
 import { StatusPill } from "@/components/ui/status-pill";
 import type { SimulationAssignment } from "@/lib/types";
 
@@ -56,6 +57,7 @@ export function SimulationCoachingRail({
   onSubmit: () => void;
 }) {
   const reflectionId = useId();
+  const [showEarlier, setShowEarlier] = useState(false);
   const lastSe = [...messages].reverse().find((m) => m.speaker === "se");
   const coachHint = lastCoachInsight(messages);
   // Scored notes from objection practice, newest first.
@@ -200,19 +202,33 @@ export function SimulationCoachingRail({
         )}
 
         {earlier.length ? (
-          <details className="rounded-[14px] border border-line p-3.5">
-            <summary className="cursor-pointer text-[13px] font-semibold text-ink">
+          <>
+            <button
+              aria-haspopup="dialog"
+              className="w-full rounded-[14px] border border-line p-3.5 text-left text-[13px] font-semibold text-ink hover:border-line-strong"
+              onClick={() => setShowEarlier(true)}
+              type="button"
+            >
               Earlier notes ({earlier.map((item) => (item.score ? `${item.score.value}` : "–")).join(", ")})
-            </summary>
-            <ol className="mt-2 flex flex-col gap-2">
-              {earlier.map((item, index) => (
-                <li className="text-[13px] leading-[1.45] text-ink-2" key={index}>
-                  {item.score ? <span className="font-bold text-ink">{item.score.value}/{item.score.outOf}. </span> : null}
-                  {item.note}
-                </li>
-              ))}
-            </ol>
-          </details>
+            </button>
+            <Drawer
+              eyebrow="Live coaching"
+              onClose={() => setShowEarlier(false)}
+              open={showEarlier}
+              size="form"
+              subtitle="Scored notes from this practice, newest first."
+              title="Earlier notes"
+            >
+              <ol className="flex flex-col gap-3">
+                {earlier.map((item, index) => (
+                  <li className="rounded-[12px] border border-line bg-white px-4 py-3 text-sm leading-[1.5] text-ink-2" key={index}>
+                    {item.score ? <span className="font-bold text-ink">{item.score.value}/{item.score.outOf}. </span> : null}
+                    {item.note}
+                  </li>
+                ))}
+              </ol>
+            </Drawer>
+          </>
         ) : null}
 
         <div>

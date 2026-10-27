@@ -4,7 +4,7 @@ import { X } from "lucide-react";
 import { useEffect, useId, useRef, type ReactNode } from "react";
 
 /** Open workbenches, innermost last: a popup opened from another popup must be the only one Esc and Tab act on. */
-const openStack: symbol[] = [];
+export const openStack: symbol[] = [];
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';

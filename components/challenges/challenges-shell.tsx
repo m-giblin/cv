@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { ChallengesPortal } from "@/components/challenges/challenges-portal";
 import { ChallengesWorkspaceBar } from "@/components/challenges/challenges-workspace-bar";
 import { PracticeToolPage } from "@/components/practice/practice-tool-page";
@@ -28,7 +28,6 @@ export function ChallengesShell({
   gapRecommendations: GapChallengeRecommendation[];
 }) {
   const backHref = "/practice";
-  const [showHelp, setShowHelp] = useState(false);
 
   const stats = useMemo(() => {
     const earned = new Set(
@@ -47,19 +46,11 @@ export function ChallengesShell({
     <PracticeToolPage subtitle="Hands-on work, reviewed by your manager." testMode={testMode} title="Challenges">
       <ChallengesWorkspaceBar
         backHref={backHref}
-        onToggleHelp={() => setShowHelp((open) => !open)}
         showGenerator={showGenerator}
-        showHelp={showHelp}
         stats={stats}
         testMode={testMode}
         tier={tier}
       />
-      {showHelp ? (
-        <p className="rounded-[10px] bg-blue-soft px-4 py-3 text-sm leading-[1.5] text-ink-2" id="challenges-help">
-          Browse curated field scenarios, upload evidence, and submit for manager review. Challenges
-          matching your competency gaps are sorted first.
-        </p>
-      ) : null}
       <ChallengesPortal
         challenges={challenges}
         gapRecommendations={gapRecommendations}

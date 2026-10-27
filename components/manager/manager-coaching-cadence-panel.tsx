@@ -1,13 +1,13 @@
 "use client";
 
-import { toast } from "sonner";
+import { useState } from "react";
+import { ScheduleOneOnOne } from "@/components/manager/schedule-one-on-one";
 import { ManagerCoachingQualityPanel } from "@/components/manager/manager-coaching-quality-panel";
 import { HeaderStat } from "@/components/manager/team-member-bits";
 import { PageBody, PageHeader } from "@/components/ui/page-header";
 import { StatusPill, type StatusTone } from "@/components/ui/status-pill";
 import { PersonCell, TableCard, rowHighlight, tdCls, thCls } from "@/components/ui/table";
 import type { CoachingCadenceRow } from "@/lib/manager/coaching-cadence";
-import { downloadOneOnOneIcs } from "@/lib/manager/one-on-one-ics";
 import type { SeCoachingSummary } from "@/lib/manager/se-coaching-summary";
 import type { Profile } from "@/lib/types";
 import { cn, initials, uniqueProfiles } from "@/lib/utils";
@@ -39,6 +39,7 @@ export function ManagerCoachingCadencePanel({
   const urgent = cadenceRows.filter((row) => row.priority === "urgent").length;
   const attention = cadenceRows.filter((row) => row.priority === "attention").length;
   const profileById = new Map(org.map((profile) => [profile.id, profile]));
+  const [scheduling, setScheduling] = useState<Profile | null>(null);
 
   return (
     <>
@@ -116,15 +117,8 @@ export function ManagerCoachingCadencePanel({
                       <td className={cn(tdCls, "text-right")}>
                         <button
                           className="link text-sm"
-                          onClick={() => {
-                            downloadOneOnOneIcs({
-                              name: row.fullName,
-                              email: profile?.email ?? "",
-                              level: profile?.level,
-                              talkingPoints: coaching?.talkingPoints.slice(0, 4),
-                            });
-                            toast.success(`1:1 invite for ${row.fullName.split(" ")[0]} downloaded`);
-                          }}
+                          disabled={!profile}
+                          onClick={() => setScheduling(profile ?? null)}
                           type="button"
                         >
                           Schedule 1:1
@@ -141,7 +135,13 @@ export function ManagerCoachingCadencePanel({
             open review is urgent.
           </p>
         </div>
-
+        {scheduling ? (
+          <ScheduleOneOnOne
+            onClose={() => setScheduling(null)}
+            profile={scheduling}
+            talkingPoints={coachingByUser[scheduling.id]?.talkingPoints ?? []}
+          />
+        ) : null}
       </PageBody>
     </>
   );

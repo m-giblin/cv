@@ -1,7 +1,7 @@
 "use client";
 
 import { Flag, Plus, Users } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Drawer } from "@/components/ui/drawer";
 import { StatusPill } from "@/components/ui/status-pill";
@@ -125,39 +125,18 @@ function TrackStats({ track, summaries }: { track: ProgramTrack; summaries: Prog
   );
 }
 
-/** "Who's where": one chip that opens a small popup listing each person, their stage and progress. */
+/** "Who's where": one chip that opens a workbench listing each person, their stage and progress. */
 function WhosWhere({ track, summaries }: { track: ProgramTrack; summaries: ProgramSummary[] }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
   const rows = track.stages.flatMap((stage) => stagePeople(stage, summaries).map((item) => ({ stage, item })));
   const behind = rows.filter((row) => row.item.health === "at_risk").length;
 
-  useEffect(() => {
-    if (!open) return;
-    const onPointer = (event: PointerEvent) => {
-      if (!ref.current?.contains(event.target as Node)) setOpen(false);
-    };
-    // Capture so Esc closes only the popup, not the workbench behind it.
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      event.stopImmediatePropagation();
-      setOpen(false);
-    };
-    document.addEventListener("pointerdown", onPointer);
-    document.addEventListener("keydown", onKey, true);
-    return () => {
-      document.removeEventListener("pointerdown", onPointer);
-      document.removeEventListener("keydown", onKey, true);
-    };
-  }, [open]);
-
   return (
-    <div className="relative" ref={ref}>
+    <>
       <button
-        aria-expanded={open}
         aria-haspopup="dialog"
         className="inline-flex items-center gap-2 rounded-full border border-line-strong bg-white px-4 py-2 text-sm font-bold text-ink hover:border-blue hover:text-blue"
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => setOpen(true)}
         type="button"
       >
         <Users aria-hidden size={15} />
@@ -167,38 +146,39 @@ function WhosWhere({ track, summaries }: { track: ProgramTrack; summaries: Progr
           {behind ? ` · ${behind} behind` : ""}
         </span>
       </button>
-      {open ? (
-        <div
-          aria-label="Who's where"
-          className="absolute top-full right-0 z-10 mt-2 w-[340px] max-w-[85vw] overflow-hidden rounded-[14px] border border-line bg-white shadow-[var(--shadow-modal)]"
-          role="dialog"
-        >
-          {rows.length === 0 ? (
-            <p className="px-4 py-4 text-sm text-muted">Nobody is on this program yet.</p>
-          ) : (
-            <ul className="max-h-[320px] overflow-y-auto">
-              {rows.map(({ stage, item }) => (
-                <li className="flex items-center justify-between gap-3 border-b border-divider px-4 py-2.5 last:border-b-0" key={item.plan.id}>
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm font-bold text-ink">{item.person?.fullName ?? "Team member"}</span>
-                    <span className="block text-[13px] text-muted">
-                      Stage {stage.index} · {item.progress}% done
-                    </span>
+      <Drawer
+        eyebrow={track.name}
+        onClose={() => setOpen(false)}
+        open={open}
+        size="form"
+        subtitle={`${rows.length} ${rows.length === 1 ? "person" : "people"}${behind ? ` · ${behind} behind` : ""}`}
+        title="Who's where"
+      >
+        {rows.length === 0 ? (
+          <p className="text-sm text-muted">Nobody is on this program yet.</p>
+        ) : (
+          <ul className="overflow-hidden rounded-[14px] border border-line bg-white">
+            {rows.map(({ stage, item }) => (
+              <li className="flex items-center justify-between gap-3 border-b border-divider px-4 py-2.5 last:border-b-0" key={item.plan.id}>
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-bold text-ink">{item.person?.fullName ?? "Team member"}</span>
+                  <span className="block text-[13px] text-muted">
+                    Stage {stage.index} · {item.progress}% done
                   </span>
-                  {item.health === "at_risk" ? (
-                    <StatusPill tone="danger">{item.overdue} overdue</StatusPill>
-                  ) : item.health === "complete" ? (
-                    <StatusPill tone="success">Done</StatusPill>
-                  ) : (
-                    <StatusPill tone="blue">On track</StatusPill>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      ) : null}
-    </div>
+                </span>
+                {item.health === "at_risk" ? (
+                  <StatusPill tone="danger">{item.overdue} overdue</StatusPill>
+                ) : item.health === "complete" ? (
+                  <StatusPill tone="success">Done</StatusPill>
+                ) : (
+                  <StatusPill tone="blue">On track</StatusPill>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </Drawer>
+    </>
   );
 }
 
@@ -286,40 +266,13 @@ export function ProgramTimeline({
             const behind = people.filter((item) => item.health === "at_risk").length;
             const steps = [...stage.steps].sort((a, b) => (a.dueOffsetDays ?? 0) - (b.dueOffsetDays ?? 0) || a.order - b.order);
             const gates = steps.filter((step) => step.isGate).length;
-            const isRenaming = renaming?.planId === stage.planId;
             return (
               <li className="flex w-[320px] shrink-0 snap-start flex-col overflow-hidden rounded-[14px] border border-line bg-white shadow-[var(--shadow-card)]" key={stage.planId}>
                 <div className="flex flex-col gap-1 border-b border-divider bg-bg px-4 py-3">
                   <span className="label-caps">
                     Stage {stage.index} · days {range.start}–{range.end}
                   </span>
-                  {isRenaming ? (
-                    <form
-                      className="flex items-center gap-2"
-                      onSubmit={(event) => {
-                        event.preventDefault();
-                        void run(() => send(`${base}/stages/${stage.planId}`, "PATCH", { name: renaming.name }), "Stage renamed.").then(
-                          (ok) => ok && setRenaming(null),
-                        );
-                      }}
-                    >
-                      <input
-                        aria-label="Stage name"
-                        autoFocus
-                        className="min-w-0 flex-1 rounded-[8px] border border-line-strong bg-white px-2.5 py-1.5 text-sm font-bold text-ink"
-                        onChange={(event) => setRenaming({ planId: stage.planId, name: event.target.value })}
-                        value={renaming.name}
-                      />
-                      <button className="link text-[13px] font-bold" disabled={busy} type="submit">
-                        Save
-                      </button>
-                      <button className="link text-[13px]" onClick={() => setRenaming(null)} type="button">
-                        Cancel
-                      </button>
-                    </form>
-                  ) : (
-                    <span className="font-bold text-ink">{stage.name}</span>
-                  )}
+                  <span className="font-bold text-ink">{stage.name}</span>
                   <span className="text-[13px] text-muted">
                     {stage.steps.length} steps{gates ? ` · ${gates} ${gates === 1 ? "gate" : "gates"}` : ""} · {people.length}{" "}
                     {people.length === 1 ? "person" : "people"} here
@@ -403,7 +356,7 @@ export function ProgramTimeline({
                       Edit this stage
                     </button>
                     <span className="flex items-center gap-3">
-                      <button className="link" onClick={() => setRenaming({ planId: stage.planId, name: stage.name })} type="button">
+                      <button aria-haspopup="dialog" className="link" onClick={() => setRenaming({ planId: stage.planId, name: stage.name })} type="button">
                         Rename
                       </button>
                       <button
@@ -426,43 +379,96 @@ export function ProgramTimeline({
           })}
           {canEdit && track.stages.length < 6 ? (
             <li className="flex w-[260px] shrink-0 snap-start flex-col gap-3 rounded-[14px] border border-dashed border-line-strong bg-white px-4 py-4">
-              {newStage === null ? (
-                <button className="link inline-flex items-center gap-1.5 self-start font-bold" onClick={() => setNewStage("")} type="button">
-                  <Plus aria-hidden size={15} /> Add stage
-                </button>
-              ) : (
-                <form
-                  className="flex flex-col gap-2"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    void run(() => send(`${base}/stages`, "POST", { name: newStage }), "Stage added.").then((ok) => ok && setNewStage(null));
-                  }}
-                >
-                  <label className="text-sm font-bold text-ink" htmlFor="new-stage-name">
-                    New stage name
-                  </label>
-                  <input
-                    autoFocus
-                    className="rounded-[8px] border border-line-strong bg-white px-2.5 py-2 text-sm text-ink"
-                    id="new-stage-name"
-                    onChange={(event) => setNewStage(event.target.value)}
-                    placeholder="Days 121–150 — Mastery"
-                    value={newStage}
-                  />
-                  <span className="flex items-center gap-3">
-                    <button className="btn-primary" disabled={busy || newStage.trim().length < 3} type="submit">
-                      Add stage
-                    </button>
-                    <button className="link text-sm" onClick={() => setNewStage(null)} type="button">
-                      Cancel
-                    </button>
-                  </span>
-                </form>
-              )}
+              <button aria-haspopup="dialog" className="link inline-flex items-center gap-1.5 self-start font-bold" onClick={() => setNewStage("")} type="button">
+                <Plus aria-hidden size={15} /> Add stage
+              </button>
             </li>
           ) : null}
         </ol>
       </div>
+
+      <Drawer
+        eyebrow={track.name}
+        footer={
+          <>
+            <button className="btn-primary" disabled={busy} form="rename-stage-form" type="submit">
+              Save
+            </button>
+            <button className="btn-secondary" onClick={() => setRenaming(null)} type="button">
+              Cancel
+            </button>
+          </>
+        }
+        onClose={() => setRenaming(null)}
+        open={Boolean(renaming)}
+        size="form"
+        title="Rename stage"
+      >
+        {renaming ? (
+          <form
+            className="flex flex-col gap-2"
+            id="rename-stage-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void run(() => send(`${base}/stages/${renaming.planId}`, "PATCH", { name: renaming.name }), "Stage renamed.").then(
+                (ok) => ok && setRenaming(null),
+              );
+            }}
+          >
+            <label className="text-sm font-bold text-ink" htmlFor="rename-stage-name">
+              Stage name
+            </label>
+            <input
+              autoFocus
+              className="rounded-[8px] border border-line-strong bg-white px-2.5 py-2 text-sm font-bold text-ink"
+              id="rename-stage-name"
+              onChange={(event) => setRenaming({ planId: renaming.planId, name: event.target.value })}
+              value={renaming.name}
+            />
+          </form>
+        ) : null}
+      </Drawer>
+
+      <Drawer
+        eyebrow={track.name}
+        footer={
+          <>
+            <button className="btn-primary" disabled={busy || (newStage ?? "").trim().length < 3} form="new-stage-form" type="submit">
+              Add stage
+            </button>
+            <button className="btn-secondary" onClick={() => setNewStage(null)} type="button">
+              Cancel
+            </button>
+          </>
+        }
+        onClose={() => setNewStage(null)}
+        open={newStage !== null}
+        size="form"
+        title="Add stage"
+      >
+        {newStage !== null ? (
+          <form
+            className="flex flex-col gap-2"
+            id="new-stage-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void run(() => send(`${base}/stages`, "POST", { name: newStage }), "Stage added.").then((ok) => ok && setNewStage(null));
+            }}
+          >
+            <label className="text-sm font-bold text-ink" htmlFor="new-stage-name">
+              New stage name
+            </label>
+            <input
+              autoFocus
+              className="rounded-[8px] border border-line-strong bg-white px-2.5 py-2 text-sm text-ink"
+              id="new-stage-name"
+              onChange={(event) => setNewStage(event.target.value)}
+              placeholder="Days 121–150 — Mastery"
+              value={newStage}
+            />
+          </form>
+        ) : null}
+      </Drawer>
     </Drawer>
   );
 }

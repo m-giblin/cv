@@ -20,6 +20,7 @@ import {
   TextInput,
   Th,
 } from "@/components/admin/admin-ui";
+import { Drawer } from "@/components/ui/drawer";
 import { StatusPill, type StatusTone } from "@/components/ui/status-pill";
 import { Tag } from "@/components/ui/tag";
 
@@ -137,9 +138,9 @@ export function CorpusRoutingAdmin() {
     <div className="flex flex-col gap-6">
       <SectionHeading
         actions={
-          <SecondaryButton aria-expanded={showAddForm} onClick={() => setShowAddForm((open) => !open)}>
-            {showAddForm ? null : <Plus aria-hidden className="h-4 w-4" />}
-            {showAddForm ? "Close" : "Add rule"}
+          <SecondaryButton aria-haspopup="dialog" onClick={() => setShowAddForm(true)}>
+            <Plus aria-hidden className="h-4 w-4" />
+            Add rule
           </SecondaryButton>
         }
         meta="Questions route by tag and should be answered within 48 hours"
@@ -154,49 +155,6 @@ export function CorpusRoutingAdmin() {
           { label: "SMEs assigned", value: loading ? "—" : stats.smeCount },
         ]}
       />
-
-      {showAddForm ? (
-        <LineCard title="New routing rule">
-          <form className="grid gap-4 md:grid-cols-2" onSubmit={addRule}>
-            <Field htmlFor="routing-rule-tag" label="Tag match">
-              <TextInput
-                id="routing-rule-tag"
-                onChange={(e) => setTag(e.target.value)}
-                placeholder="e.g. Agentic AI"
-                required
-                value={tag}
-              />
-            </Field>
-            <Field htmlFor="routing-rule-type" label="Destination type">
-              <SelectInput
-                id="routing-rule-type"
-                onChange={(e) => setDestType(e.target.value as "slack" | "email")}
-                value={destType}
-              >
-                <option value="slack">Slack channel</option>
-                <option value="email">Email</option>
-              </SelectInput>
-            </Field>
-            <Field htmlFor="routing-rule-address" label={destType === "slack" ? "Channel" : "Email address"}>
-              <TextInput
-                id="routing-rule-address"
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder={destType === "slack" ? "#channel or ID" : "sme@company.com"}
-                required
-                type={destType === "email" ? "email" : "text"}
-                value={address}
-              />
-            </Field>
-            <Field htmlFor="routing-rule-label" label="SME label (optional)">
-              <TextInput id="routing-rule-label" onChange={(e) => setLabel(e.target.value)} value={label} />
-            </Field>
-            <div className="flex items-center gap-4 md:col-span-2">
-              <SecondaryButton type="submit">Save rule</SecondaryButton>
-              <LinkButton onClick={() => setShowAddForm(false)}>Cancel</LinkButton>
-            </div>
-          </form>
-        </LineCard>
-      ) : null}
 
       <div className="flex flex-col gap-3">
         <SectionHeading as="h3" meta="Each tag sends questions to one destination" title="Routing rules" />
@@ -287,6 +245,57 @@ export function CorpusRoutingAdmin() {
           ))
         )}
       </LineCard>
+
+      <Drawer
+        footer={
+          <>
+            <button className="btn-primary" form="routing-rule-form" type="submit">
+              Save rule
+            </button>
+            <SecondaryButton onClick={() => setShowAddForm(false)}>Cancel</SecondaryButton>
+          </>
+        }
+        onClose={() => setShowAddForm(false)}
+        open={showAddForm}
+        size="form"
+        subtitle="Questions route by tag and should be answered within 48 hours"
+        title="New routing rule"
+      >
+        <form className="grid gap-4 md:grid-cols-2" id="routing-rule-form" onSubmit={addRule}>
+          <Field htmlFor="routing-rule-tag" label="Tag match">
+            <TextInput
+              id="routing-rule-tag"
+              onChange={(e) => setTag(e.target.value)}
+              placeholder="e.g. Agentic AI"
+              required
+              value={tag}
+            />
+          </Field>
+          <Field htmlFor="routing-rule-type" label="Destination type">
+            <SelectInput
+              id="routing-rule-type"
+              onChange={(e) => setDestType(e.target.value as "slack" | "email")}
+              value={destType}
+            >
+              <option value="slack">Slack channel</option>
+              <option value="email">Email</option>
+            </SelectInput>
+          </Field>
+          <Field htmlFor="routing-rule-address" label={destType === "slack" ? "Channel" : "Email address"}>
+            <TextInput
+              id="routing-rule-address"
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder={destType === "slack" ? "#channel or ID" : "sme@company.com"}
+              required
+              type={destType === "email" ? "email" : "text"}
+              value={address}
+            />
+          </Field>
+          <Field htmlFor="routing-rule-label" label="SME label (optional)">
+            <TextInput id="routing-rule-label" onChange={(e) => setLabel(e.target.value)} value={label} />
+          </Field>
+        </form>
+      </Drawer>
     </div>
   );
 }

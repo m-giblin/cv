@@ -55,15 +55,14 @@ export function SidebarContent({
   const pathname = usePathname();
   const params = useSearchParams();
   const { itemId, childId } = resolveActive(workspace, pathname, params);
-  const visibleItems = visibleNav(workspace, flags);
-  const mentoring = NAV.se.find((item) => item.id === "mentoring");
   const hasMentees = Boolean(counts?.mentoring);
-  // Mentoring stays visible in the SE workspace; its page has a useful guide and empty state for
-  // people without mentees. Active mentors also get a shortcut from their other workspaces.
-  const items = [
-    ...visibleItems,
-    ...(hasMentees && mentoring && !visibleItems.some((item) => item.id === "mentoring") ? [mentoring] : []),
-  ];
+  // Mentoring only shows for people chosen as someone's mentor, in whichever workspace they're in.
+  const items = visibleNav(workspace, flags).filter((item) => item.id !== "mentoring" || hasMentees);
+  const mentoring = NAV.se.find((item) => item.id === "mentoring");
+  if (hasMentees && mentoring && !items.some((item) => item.id === "mentoring")) {
+    const help = items.findIndex((item) => item.id === "help-center");
+    items.splice(help === -1 ? items.length : help, 0, mentoring);
+  }
 
   return (
     <div className="flex flex-col gap-[26px] py-6">

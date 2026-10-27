@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
+import { Drawer } from "@/components/ui/drawer";
 import { SegmentedToggle } from "@/components/ui/segmented-toggle";
 import { StatusPill } from "@/components/ui/status-pill";
 import type { AccessTier } from "@/lib/auth/rbac";
@@ -12,8 +13,6 @@ export function ChallengesWorkspaceBar({
   testMode,
   stats,
   showGenerator,
-  showHelp,
-  onToggleHelp,
 }: {
   tier: AccessTier;
   /** Kept for API compatibility; the shell nav now handles "back". */
@@ -21,9 +20,8 @@ export function ChallengesWorkspaceBar({
   testMode?: boolean;
   stats: { total: number; earned: number; inFlight: number; submittedCount: number };
   showGenerator: boolean;
-  showHelp: boolean;
-  onToggleHelp: () => void;
 }) {
+  const [helpOpen, setHelpOpen] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const viewParam = searchParams.get("view");
@@ -75,15 +73,17 @@ export function ChallengesWorkspaceBar({
             {view === "generate" ? "Close generator" : "Generate a challenge"}
           </button>
         ) : null}
-        <button
-          aria-expanded={showHelp}
-          className="link text-sm"
-          onClick={onToggleHelp}
-          type="button"
-        >
-          {showHelp ? "Hide tips" : "How it works"}
+        <button aria-haspopup="dialog" className="link text-sm" onClick={() => setHelpOpen(true)} type="button">
+          How it works
         </button>
       </div>
+
+      <Drawer eyebrow="Challenges" onClose={() => setHelpOpen(false)} open={helpOpen} size="form" title="How it works">
+        <p className="text-[15px] leading-[1.5] text-ink-2">
+          Browse curated field scenarios, upload evidence, and submit for manager review. Challenges
+          matching your competency gaps are sorted first.
+        </p>
+      </Drawer>
     </div>
   );
 }

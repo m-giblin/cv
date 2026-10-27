@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { LinkButton, SelectInput, TextArea, TextInput } from "@/components/admin/admin-ui";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Chip } from "@/components/ui/chip";
+import { Drawer } from "@/components/ui/drawer";
 import { FlightStrip } from "@/components/ui/flight-strip";
 import { Modal } from "@/components/ui/modal";
 import { Stamp } from "@/components/ui/stamp";
@@ -336,6 +337,7 @@ export function PracticeWizard({ open, onClose, onPublish, onNext, library, comp
   ];
 
   return (
+    <>
     <Modal labelledBy={titleId} onClose={onClose} open={open}>
       {/* Header */}
       <div className="flex flex-col gap-3.5 border-b border-line bg-white px-6 pt-4 pb-3.5">
@@ -692,32 +694,9 @@ export function PracticeWizard({ open, onClose, onPublish, onNext, library, comp
                   ) : null}
                 </fieldset>
               ) : null}
-              <div className="flex flex-col gap-2">
-                <LinkButton aria-expanded={showRaw} className="self-start" onClick={() => setShowRaw((value) => !value)}>
-                  {showRaw ? "Hide raw prompt" : "Edit raw prompt"}
-                </LinkButton>
-                {showRaw ? (
-                  <>
-                    <TextArea
-                      aria-label="Raw prompt"
-                      className="min-h-[180px] text-[13px] leading-[1.6]"
-                      onChange={(event) => patch({ rawScenario: event.target.value })}
-                      value={scenarioText(state)}
-                    />
-                    <p className="text-[13px] text-muted">
-                      {sim
-                        ? "Scoring (goals, pass mark, rounds and competency) is added below this when you publish."
-                        : "Pitch scenarios store the situation and goals; this shows how they read together."}
-                      {state.rawScenario !== null ? " " : null}
-                      {state.rawScenario !== null ? (
-                        <LinkButton className="text-[13px]" onClick={() => patch({ rawScenario: null })}>
-                          Use the generated text
-                        </LinkButton>
-                      ) : null}
-                    </p>
-                  </>
-                ) : null}
-              </div>
+              <LinkButton aria-haspopup="dialog" className="self-start" onClick={() => setShowRaw(true)}>
+                Edit raw prompt
+              </LinkButton>
             </>
           ) : null}
 
@@ -827,5 +806,38 @@ export function PracticeWizard({ open, onClose, onPublish, onNext, library, comp
         </div>
       </div>
     </Modal>
+
+    <Drawer
+      eyebrow={eyebrow}
+      footer={
+        <button className="btn-primary" onClick={() => setShowRaw(false)} type="button">
+          Done
+        </button>
+      }
+      footerNote={
+        state.rawScenario !== null ? (
+          <LinkButton className="text-[13px]" onClick={() => patch({ rawScenario: null })}>
+            Use the generated text
+          </LinkButton>
+        ) : null
+      }
+      onClose={() => setShowRaw(false)}
+      open={open && showRaw}
+      size="form"
+      subtitle={
+        sim
+          ? "Scoring (goals, pass mark, rounds and competency) is added below this when you publish."
+          : "Pitch scenarios store the situation and goals; this shows how they read together."
+      }
+      title="Raw prompt"
+    >
+      <TextArea
+        aria-label="Raw prompt"
+        className="min-h-[360px] text-[13px] leading-[1.6]"
+        onChange={(event) => patch({ rawScenario: event.target.value })}
+        value={scenarioText(state)}
+      />
+    </Drawer>
+    </>
   );
 }

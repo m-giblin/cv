@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ReviewEditor } from "@/components/development/development-plan-panel";
+import { ReviewWorkbench } from "@/components/development/development-plan-panel";
 import { HeaderStat } from "@/components/manager/team-member-bits";
 import { Drawer } from "@/components/ui/drawer";
 import { PageBody, PageHeader } from "@/components/ui/page-header";
@@ -100,6 +100,7 @@ export function ManagerDevelopmentPlansPanel({
   const shownWithPlan =
     focus === "overdue" ? withPlan.filter((item) => item.overdue) : focus === "due" ? withPlan.filter((item) => item.checkIns.length) : focus === "noPlan" ? [] : withPlan;
   const open = withPlan.find((item) => item.profile.id === openId) ?? null;
+  const checkIn = open?.checkIns.find((item) => item.review.id === editingReview) ?? null;
   const toggle = (value: Focus) => setFocus((current) => (current === value ? null : value));
 
   return (
@@ -236,8 +237,7 @@ export function ManagerDevelopmentPlansPanel({
                   {open.checkIns
                     .sort((a, b) => a.review.dueDate.localeCompare(b.review.dueDate))
                     .map(({ goal, review, overdue }) => (
-                      <li className="border-b border-divider last:border-b-0" key={review.id}>
-                        <div className="flex items-center justify-between gap-3 px-4 py-2.5">
+                      <li className="flex items-center justify-between gap-3 border-b border-divider px-4 py-2.5 last:border-b-0" key={review.id}>
                         <span className="min-w-0">
                           <span className="block text-sm font-bold text-ink">{goal.title}</span>
                           <span className="block text-[13px] text-muted">
@@ -247,26 +247,14 @@ export function ManagerDevelopmentPlansPanel({
                         <span className="flex shrink-0 items-center gap-3">
                           <StatusPill tone={overdue ? "danger" : "warning"}>{overdue ? "Overdue" : "Due soon"}</StatusPill>
                           <button
-                            aria-expanded={editingReview === review.id}
+                            aria-haspopup="dialog"
                             className="link text-sm font-bold"
-                            onClick={() => setEditingReview(editingReview === review.id ? null : review.id)}
+                            onClick={() => setEditingReview(review.id)}
                             type="button"
                           >
-                            {editingReview === review.id ? "Close" : "Check in"}
+                            Check in
                           </button>
                         </span>
-                        </div>
-                        {editingReview === review.id ? (
-                          <div className="border-t border-divider bg-bg px-4 py-4">
-                            <ReviewEditor
-                              isManager
-                              isSaving={saving}
-                              onClose={() => setEditingReview(null)}
-                              onSave={(payload) => void saveCheckIn(review.id, payload)}
-                              review={review}
-                            />
-                          </div>
-                        ) : null}
                       </li>
                     ))}
                 </ul>
@@ -296,6 +284,19 @@ export function ManagerDevelopmentPlansPanel({
             </section>
           </div>
         </Drawer>
+      ) : null}
+
+      {/* The check-in stacks over the plan workbench, so closing it returns to the plan. */}
+      {open && checkIn ? (
+        <ReviewWorkbench
+          goalTitle={`${open.profile.fullName}, ${checkIn.goal.title}`}
+          isManager
+          isSaving={saving}
+          key={checkIn.review.id}
+          onClose={() => setEditingReview(null)}
+          onSave={(payload) => void saveCheckIn(checkIn.review.id, payload)}
+          review={checkIn.review}
+        />
       ) : null}
     </>
   );

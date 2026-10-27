@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Drawer } from "@/components/ui/drawer";
 import { StatusPill, type StatusTone } from "@/components/ui/status-pill";
 import type { AssignedWorkItem, AssignedWorkKind } from "@/lib/manager/assigned-work";
 import type { AssignmentState } from "@/lib/playbooks/assignment-model";
@@ -73,7 +74,7 @@ function QuizAnswers({ id, chapter }: { id: string; chapter?: boolean }) {
 
 const INPUT_CLASS = "rounded-[10px] border border-line-strong bg-white px-3 py-1.5 text-[15px] text-ink";
 
-/** One row per assignment, with a small inline editor for the due date and cancelling. */
+/** One row per assignment; a click opens it in a workbench to see the answers, move the due date or cancel. */
 export function AssignedWorkList({
   items,
   onChanged,
@@ -87,6 +88,8 @@ export function AssignedWorkList({
   const [saving, setSaving] = useState(false);
 
   if (items === null) return <p className="text-sm text-muted">Loading assigned work</p>;
+
+  const active = editing ? items.find((item) => `${item.kind}:${item.id}` === editing) ?? null : null;
 
   const counts = { open: items.filter((item) => item.state !== "done").length, done: items.filter((item) => item.state === "done").length };
   const shown = items.filter((item) => (filter === "all" ? true : filter === "done" ? item.state === "done" : item.state !== "done"));
@@ -146,14 +149,13 @@ export function AssignedWorkList({
         <ul className="overflow-hidden rounded-[14px] border border-line bg-white shadow-[var(--shadow-card)]">
           {shown.map((item) => {
             const pill = STATE_PILL[item.state];
-            const isEditing = editing === `${item.kind}:${item.id}`;
             return (
               <li className="border-b border-divider last:border-b-0" key={`${item.kind}:${item.id}`}>
                 <button
-                  aria-expanded={isEditing}
+                  aria-haspopup="dialog"
                   className="grid w-full grid-cols-[96px_minmax(0,1fr)_auto] items-start gap-3 px-4 py-3 text-left hover:bg-bg"
                   onClick={() => {
-                    setEditing(isEditing ? null : `${item.kind}:${item.id}`);
+                    setEditing(`${item.kind}:${item.id}`);
                     setDueDate(item.dueDate ?? "");
                   }}
                   type="button"
@@ -168,45 +170,69 @@ export function AssignedWorkList({
                     <span className="text-[13px] whitespace-nowrap text-muted">{item.dueText}</span>
                   </span>
                 </button>
-                {isEditing && (item.kind === "quiz" || item.hasQuiz) ? (
-                  <div className="border-t border-divider bg-bg px-4 py-3">
-                    <p className="label-caps mb-2">Their answers</p>
-                    <QuizAnswers chapter={item.kind === "playbook"} id={item.id} />
-                  </div>
-                ) : null}
-                {isEditing && item.state !== "done" ? (
-                  <div className="flex flex-wrap items-end gap-3 border-t border-divider bg-bg px-4 py-3">
-                    <label className="flex flex-col gap-1 text-[13px] font-semibold text-ink">
-                      Due date
-                      <input className={INPUT_CLASS} onChange={(event) => setDueDate(event.target.value)} type="date" value={dueDate} />
-                    </label>
-                    <button
-                      className="btn-secondary"
-                      disabled={saving || !dueDate || dueDate === item.dueDate}
-                      onClick={() => void save(item, { dueDate })}
-                      type="button"
-                    >
-                      Save date
-                    </button>
-                    {item.cancellable ? (
-                      <button
-                        className="link ml-auto text-sm text-danger"
-                        disabled={saving}
-                        onClick={() => {
-                          if (window.confirm(`Cancel "${item.title}" for ${item.assigneeName}?`)) void save(item, { cancel: true });
-                        }}
-                        type="button"
-                      >
-                        Cancel assignment
-                      </button>
-                    ) : null}
-                  </div>
-                ) : null}
               </li>
             );
           })}
         </ul>
       )}
+
+      {active ? (
+        <Drawer
+          eyebrow={`${KIND_LABEL[active.kind]} · ${active.assigneeName}`}
+          footer={
+            active.state !== "done" ? (
+              <>
+                <button
+                  className="btn-primary"
+                  disabled={saving || !dueDate || dueDate === active.dueDate}
+                  onClick={() => void save(active, { dueDate })}
+                  type="button"
+                >
+                  Save date
+                </button>
+                {active.cancellable ? (
+                  <button
+                    className="link text-sm text-danger"
+                    disabled={saving}
+                    onClick={() => {
+                      if (window.confirm(`Cancel "${active.title}" for ${active.assigneeName}?`)) void save(active, { cancel: true });
+                    }}
+                    type="button"
+                  >
+                    Cancel assignment
+                  </button>
+                ) : null}
+              </>
+            ) : null
+          }
+          onClose={() => setEditing(null)}
+          open
+          size="form"
+          subtitle={
+            <span className="inline-flex flex-wrap items-center gap-2">
+              <StatusPill tone={STATE_PILL[active.state].tone}>{STATE_PILL[active.state].label}</StatusPill>
+              {active.dueText}
+            </span>
+          }
+          title={active.title}
+        >
+          <div className="flex flex-col gap-5">
+            {active.detail ? <p className="m-0 text-sm text-ink-2">{active.detail}</p> : null}
+            {active.kind === "quiz" || active.hasQuiz ? (
+              <div>
+                <p className="label-caps mb-2">Their answers</p>
+                <QuizAnswers chapter={active.kind === "playbook"} id={active.id} />
+              </div>
+            ) : null}
+            {active.state !== "done" ? (
+              <label className="flex flex-col gap-1 self-start text-[13px] font-semibold text-ink">
+                Due date
+                <input className={INPUT_CLASS} onChange={(event) => setDueDate(event.target.value)} type="date" value={dueDate} />
+              </label>
+            ) : null}
+          </div>
+        </Drawer>
+      ) : null}
     </div>
   );
 }

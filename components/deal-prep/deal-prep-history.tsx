@@ -1,8 +1,9 @@
 "use client";
 
-import { ChevronDown, ChevronRight, History, Loader2, Search, Trash2, X } from "lucide-react";
+import { ChevronRight, History, Loader2, Search, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { FIELD_CLS, LINE_CARD_CLS } from "@/components/se/form-classes";
+import { Drawer } from "@/components/ui/drawer";
 import { StatusPill } from "@/components/ui/status-pill";
 import { cn } from "@/lib/utils";
 import { PREP_SEARCH_THRESHOLD } from "@/lib/deal-prep/constants";
@@ -53,7 +54,7 @@ export function DealPrepHistory({
  const [historySearch, setHistorySearch] = useState("");
  const [historyLoading, setHistoryLoading] = useState(false);
  const [deletingId, setDeletingId] = useState<string | null>(null);
- const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set());
+ const [versionsAccountKey, setVersionsAccountKey] = useState<string | null>(null);
 
  const loadHistory = useCallback(async (scope: "recent" | "all", q: string) => {
  setHistoryLoading(true);
@@ -109,6 +110,7 @@ export function DealPrepHistory({
  const showSearch = (historyMeta?.total ?? 0) >= PREP_SEARCH_THRESHOLD;
  const inBrowseAll = historyScope === "all" || historySearch.trim().length > 0;
  const hasHistory = groups.length > 0 || (historyMeta?.total ?? 0) > 0;
+ const versionsGroup = groups.find((group) => group.accountKey === versionsAccountKey && group.versionCount > 1);
 
   return (
     <div className="flex flex-col gap-4">
@@ -200,37 +202,20 @@ export function DealPrepHistory({
         ) : (
           <ul className={cn(LINE_CARD_CLS, "divide-y divide-divider overflow-hidden")}>
             {groups.map((group) => {
-              const expanded = expandedAccounts.has(group.accountKey);
               const isActive = activeSessionId === group.latestSessionId;
-              const versionsId = `deal-prep-versions-${group.accountKey.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
 
               return (
                 <li className={isActive ? "bg-blue-soft" : undefined} key={group.accountKey}>
                   <div className="flex items-stretch">
                     {group.versionCount > 1 ? (
                       <button
-                        aria-controls={versionsId}
-                        aria-expanded={expanded}
-                        aria-label={`${expanded ? "Collapse" : "Expand"} versions for ${group.accountName}`}
+                        aria-haspopup="dialog"
+                        aria-label={`View ${group.versionCount} versions for ${group.accountName}`}
                         className="flex shrink-0 items-center pl-3 pr-1 text-muted hover:text-ink"
-                        onClick={() => {
-                          setExpandedAccounts((current) => {
-                            const next = new Set(current);
-                            if (next.has(group.accountKey)) {
-                              next.delete(group.accountKey);
-                            } else {
-                              next.add(group.accountKey);
-                            }
-                            return next;
-                          });
-                        }}
+                        onClick={() => setVersionsAccountKey(group.accountKey)}
                         type="button"
                       >
-                        {expanded ? (
-                          <ChevronDown aria-hidden className="h-4 w-4" />
-                        ) : (
-                          <ChevronRight aria-hidden className="h-4 w-4" />
-                        )}
+                        <ChevronRight aria-hidden className="h-4 w-4" />
                       </button>
                     ) : null}
                     <button
@@ -265,36 +250,49 @@ export function DealPrepHistory({
                     </button>
                   </div>
 
-                  {expanded && group.versionCount > 1 ? (
-                    <ul className="border-t border-divider py-1 pl-9 pr-3" id={versionsId}>
-                      {group.versions.map((version) => (
-                        <li key={version.id}>
-                          <button
-                            aria-current={activeSessionId === version.id ? "true" : undefined}
-                            className={cn(
-                              "flex w-full items-center justify-between gap-3 rounded-[10px] px-2 py-2 text-left text-sm hover:bg-blue-soft",
-                              activeSessionId === version.id ? "font-semibold text-ink" : "text-ink-2",
-                            )}
-                            onClick={() => onLoadSession(version.id)}
-                            type="button"
-                          >
-                            <span>
-                              Version {version.version_number ?? 1}, {meetingTypeLabel(version.meeting_type)}
-                            </span>
-                            <span className="text-[13px] text-muted">
-                              {new Date(version.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                            </span>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
                 </li>
               );
             })}
           </ul>
         )
       ) : null}
+
+      <Drawer
+        eyebrow="Version history"
+        onClose={() => setVersionsAccountKey(null)}
+        open={Boolean(versionsGroup)}
+        size="form"
+        subtitle={versionsGroup ? `${versionsGroup.industry} · ${versionsGroup.versionCount} versions` : undefined}
+        title={versionsGroup?.accountName ?? ""}
+      >
+        {versionsGroup ? (
+          <ul className={cn(LINE_CARD_CLS, "divide-y divide-divider overflow-hidden")}>
+            {versionsGroup.versions.map((version) => (
+              <li key={version.id}>
+                <button
+                  aria-current={activeSessionId === version.id ? "true" : undefined}
+                  className={cn(
+                    "flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm hover:bg-blue-soft",
+                    activeSessionId === version.id ? "bg-blue-soft font-semibold text-ink" : "text-ink-2",
+                  )}
+                  onClick={() => {
+                    setVersionsAccountKey(null);
+                    onLoadSession(version.id);
+                  }}
+                  type="button"
+                >
+                  <span>
+                    Version {version.version_number ?? 1}, {meetingTypeLabel(version.meeting_type)}
+                  </span>
+                  <span className="text-[13px] text-muted">
+                    {new Date(version.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </Drawer>
     </div>
   );
 }

@@ -2,8 +2,9 @@
 
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { toast } from "sonner";
+import { Drawer } from "@/components/ui/drawer";
 
 const INPUT_CLASS =
   "w-full rounded-[10px] border border-line-strong bg-white px-3 py-2 text-[15px] font-normal text-ink";
@@ -22,6 +23,7 @@ export function ManagerAddAdHocTask({
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const formId = useId();
 
   async function handleAdd(event: React.FormEvent) {
     event.preventDefault();
@@ -65,18 +67,36 @@ export function ManagerAddAdHocTask({
             A one-off task for this SE. You run the live sign-off when they submit it.
           </p>
         </div>
-        <button
-          aria-expanded={open}
-          className="link text-sm"
-          onClick={() => setOpen((value) => !value)}
-          type="button"
-        >
-          {open ? "Cancel" : "Add task"}
+        <button aria-haspopup="dialog" className="link text-sm" onClick={() => setOpen(true)} type="button">
+          Add task
         </button>
       </div>
 
-      {open ? (
-        <form className="mt-4 space-y-3" onSubmit={handleAdd}>
+      <Drawer
+        eyebrow={`Ramp plan · ${personName}`}
+        footer={
+          <>
+            <button
+              className="btn-primary inline-flex items-center gap-2 disabled:opacity-50"
+              disabled={isSaving}
+              form={formId}
+              type="submit"
+            >
+              {isSaving ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
+              Add to ramp plan
+            </button>
+            <button className="btn-secondary" onClick={() => setOpen(false)} type="button">
+              Cancel
+            </button>
+          </>
+        }
+        onClose={() => setOpen(false)}
+        open={open}
+        size="form"
+        subtitle="A one-off task for this SE. You run the live sign-off when they submit it."
+        title="Add ramp task"
+      >
+        <form className="space-y-3" id={formId} onSubmit={handleAdd}>
           <label className={LABEL_CLASS}>
             <span className="block">Task title</span>
             <input
@@ -106,16 +126,8 @@ export function ManagerAddAdHocTask({
               value={dueDate}
             />
           </label>
-          <button
-            className="btn-secondary inline-flex items-center gap-2 disabled:opacity-50"
-            disabled={isSaving}
-            type="submit"
-          >
-            {isSaving ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
-            Add to ramp plan
-          </button>
         </form>
-      ) : null}
+      </Drawer>
     </section>
   );
 }

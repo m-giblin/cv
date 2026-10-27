@@ -617,13 +617,13 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  {bulkOpen ? <BulkUploadWorkbench onClose={() => setBulkOpen(false)} onImported={() => void loadUsers()} people={users} /> : null}
 
  <Drawer
-   size="form"
+ size="form"
  footer={
  <>
  <button className="btn-primary" disabled={isSaving} form="admin-user-form" type="submit">
  {isSaving ? "Saving…" : editingId ? "Save changes" : "Create user"}
  </button>
-<SecondaryButton onClick={closeForm}>Cancel</SecondaryButton>
+ <SecondaryButton onClick={closeForm}>Cancel</SecondaryButton>
  {editingId ? (
  <button className="link ml-auto text-sm" disabled={isSaving} onClick={() => void sendPasswordReset(editingId)} type="button">
  Send password reset

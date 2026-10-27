@@ -2,8 +2,9 @@
 
 import { ExternalLink } from "lucide-react";
 import { useMemo, useState } from "react";
-import { CARD_CLS, H2_CLS, LINE_CARD_CLS } from "@/components/se/form-classes";
+import { LINE_CARD_CLS } from "@/components/se/form-classes";
 import { Chip } from "@/components/ui/chip";
+import { Drawer } from "@/components/ui/drawer";
 import { StatusPill } from "@/components/ui/status-pill";
 import { Tag } from "@/components/ui/tag";
 import type { AssignmentStatus, Challenge, ChallengeSubmission } from "@/lib/types";
@@ -87,31 +88,33 @@ function ChallengeDetail({
  onWorkOn: () => void;
 }) {
  return (
- <section aria-labelledby="challenge-detail-title" className={`${CARD_CLS} flex flex-col overflow-hidden`}>
- <div className="border-b border-divider px-5 py-4">
- <div className="flex items-start justify-between gap-4">
- <div className="flex min-w-0 flex-col gap-2">
- <div className="flex flex-wrap items-center gap-1.5">
+ <Drawer
+ eyebrow="Challenge"
+ footer={
+ <button className="btn-primary" onClick={onWorkOn} type="button">
+ {isActive ? "Use for submit" : "Work on this challenge"}
+ </button>
+ }
+ footerNote={isActive ? "Selected for submission" : "Choose this challenge to submit evidence"}
+ onClose={onClose}
+ open
+ subtitle={
+ <div className="flex flex-col gap-2">
+ <span>
+ About {challenge.estimatedMinutes} min, {challenge.steps.length} steps and {challenge.successCriteria.length}{" "}
+ success criteria
+ </span>
+ <span className="flex flex-wrap items-center gap-1.5">
  {challenge.targetLevel ? <Tag tone="blue">{challenge.targetLevel} SE</Tag> : null}
  <Tag tone="neutral">{challenge.difficulty}</Tag>
  <Tag tone="neutral">{challenge.isAiGenerated ? "AI" : "Curated"}</Tag>
  <SubmissionStatusTag submission={submission} />
+ </span>
  </div>
- <h2 className={H2_CLS} id="challenge-detail-title">
- {challenge.title}
- </h2>
- <p className="text-[13px] text-muted">
- About {challenge.estimatedMinutes} min, {challenge.steps.length} steps and {challenge.successCriteria.length}{" "}
- success criteria
- </p>
- </div>
- <button className="link shrink-0 text-sm" onClick={onClose} type="button">
- Close
- </button>
- </div>
- </div>
-
- <div className="flex flex-col gap-5 px-5 py-4">
+ }
+ title={challenge.title}
+ >
+ <div className="flex flex-col gap-5">
  <section>
  <h3 className="text-[15px] font-bold text-ink">Overview</h3>
  <p className="mt-1.5 text-[15px] leading-[1.5] text-ink-2">{challenge.description}</p>
@@ -179,16 +182,7 @@ function ChallengeDetail({
  </section>
  ) : null}
  </div>
-
- <div className="flex flex-wrap items-center justify-between gap-3 border-t border-divider px-5 py-4">
- <p className="text-[13px] text-muted">
- {isActive ? "Selected for submission" : "Choose this challenge to submit evidence"}
- </p>
- <button className="btn-primary" onClick={onWorkOn} type="button">
- {isActive ? "Use for submit" : "Work on this challenge"}
- </button>
- </div>
- </section>
+ </Drawer>
  );
 }
 
@@ -263,7 +257,6 @@ export function ChallengeLibrary({
  {visibleChallenges.length} of {sortedChallenges.length} challenges
  </p>
 
- <div className={`grid gap-6 ${detailChallenge ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]" : ""}`}>
  {visibleChallenges.length === 0 ? (
  <p className="rounded-[14px] border border-dashed border-line-strong p-7 text-center text-[15px] text-muted">
  No challenges match these filters.
@@ -285,9 +278,9 @@ export function ChallengeLibrary({
  >
  <div className="min-w-0 flex-1 basis-[240px]">
  <button
- aria-expanded={isOpen}
+ aria-haspopup="dialog"
  className="link text-left text-[15px]"
- onClick={() => setDetailChallengeId(isOpen ? null : challenge.id)}
+ onClick={() => setDetailChallengeId(challenge.id)}
  type="button"
  >
  {challenge.title}
@@ -318,7 +311,6 @@ export function ChallengeLibrary({
  submission={submissionForChallenge(submissions, detailChallenge.id)}
  />
  ) : null}
- </div>
  </div>
  );
 }

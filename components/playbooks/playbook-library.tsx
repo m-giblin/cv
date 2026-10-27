@@ -328,13 +328,11 @@ function PracticeStrip({
           </Link>
         ))}
         {check ? (
-          <button aria-expanded={quizOpen} className="btn-secondary" onClick={() => setQuizOpen((value) => !value)} type="button">
+          <button aria-haspopup="dialog" className="btn-secondary" onClick={() => setQuizOpen(true)} type="button">
             <ListChecks aria-hidden className="h-4 w-4" />
-            {quizOpen
-              ? "Hide the knowledge check"
-              : check.lastScore === null
-                ? `Take the knowledge check (${check.questions} questions)`
-                : `Retake the knowledge check (last ${check.lastScore}%)`}
+            {check.lastScore === null
+              ? `Take the knowledge check (${check.questions} questions)`
+              : `Retake the knowledge check (last ${check.lastScore}%)`}
           </button>
         ) : null}
         {hasObjections ? (
@@ -344,10 +342,17 @@ function PracticeStrip({
           </button>
         ) : null}
       </div>
-      {check && quizOpen ? (
-        <div className="border-t border-divider pt-4">
+      {check ? (
+        <Drawer
+          eyebrow={`Knowledge check · Playbook ${playbook.chapter}`}
+          onClose={() => setQuizOpen(false)}
+          open={quizOpen}
+          size="form"
+          subtitle={`${check.questions} questions. Private: your manager isn't notified.`}
+          title={playbook.title}
+        >
           <QuizPlayer check={check} onDone={() => undefined} />
-        </div>
+        </Drawer>
       ) : null}
       {error ? (
         <p className="m-0 rounded-[10px] bg-danger-soft px-3 py-2 text-sm text-danger" role="alert">

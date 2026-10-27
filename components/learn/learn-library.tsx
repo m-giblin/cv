@@ -329,10 +329,10 @@ export function LearnLibrary({
                           </span>
                           {item.kind === "asset" ? (
                             <button
-                              aria-expanded={feedbackAssetId === item.id}
+                              aria-haspopup="dialog"
                               aria-label={`Report a problem with ${item.title}`}
                               className="mt-0.5 shrink-0 rounded-full p-1 text-muted hover:text-ink"
-                              onClick={() => setFeedbackAssetId((current) => (current === item.id ? null : item.id))}
+                              onClick={() => setFeedbackAssetId(item.id)}
                               title="Report a problem"
                               type="button"
                             >
@@ -352,7 +352,6 @@ export function LearnLibrary({
               )}
             </tbody>
           </TableCard>
-          {feedbackAsset ? <CorpusFeedbackWidget assetTitle={feedbackAsset.title} contentAssetId={feedbackAsset.id} /> : null}
         </div>
 
         <aside aria-label="Your learning" className="flex min-w-0 flex-col gap-3.5">
@@ -424,6 +423,16 @@ export function LearnLibrary({
             </ul>
           </div>
         ) : null}
+      </Drawer>
+
+      <Drawer
+        eyebrow="Report a problem"
+        onClose={() => setFeedbackAssetId(null)}
+        open={Boolean(feedbackAsset)}
+        size="form"
+        title={feedbackAsset?.title ?? ""}
+      >
+        {feedbackAsset ? <CorpusFeedbackWidget assetTitle={feedbackAsset.title} contentAssetId={feedbackAsset.id} /> : null}
       </Drawer>
     </div>
   );

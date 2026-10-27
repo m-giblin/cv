@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import { useState } from "react";
 import { ManagerCopilotDraft } from "@/components/manager/manager-copilot-draft";
 import { ScoreBar } from "@/components/ui/bars";
+import { Drawer } from "@/components/ui/drawer";
 import { StatusPill, type StatusTone } from "@/components/ui/status-pill";
 import { cn } from "@/lib/utils";
 
@@ -115,19 +116,22 @@ export function SimulationCoachingReviewPanel({
 
       {item.transcript ? (
         <div>
-          <button
-            aria-expanded={showTranscript}
-            className="link text-sm"
-            onClick={() => setShowTranscript((open) => !open)}
-            type="button"
-          >
-            {showTranscript ? "Hide full transcript" : "Show full transcript"}
+          <button aria-haspopup="dialog" className="link text-sm" onClick={() => setShowTranscript(true)} type="button">
+            Show full transcript
           </button>
-          {showTranscript ? (
-            <pre className="mt-2 max-h-[min(420px,50vh)] overflow-y-auto whitespace-pre-wrap rounded-[14px] border border-line bg-bg p-4 text-sm leading-6 text-ink-2">
+          {/* Stacks over the review workbench; closing it returns to the review. */}
+          <Drawer
+            eyebrow={`Transcript · ${item.personName}`}
+            onClose={() => setShowTranscript(false)}
+            open={showTranscript}
+            size="form"
+            subtitle={item.simulationLabel}
+            title={item.title}
+          >
+            <pre className="whitespace-pre-wrap rounded-[14px] border border-line bg-white p-4 text-sm leading-6 text-ink-2">
               {item.transcript}
             </pre>
-          ) : null}
+          </Drawer>
         </div>
       ) : null}
 

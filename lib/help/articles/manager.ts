@@ -108,7 +108,7 @@ export const MANAGER_ARTICLES: HelpArticle[] = [
     ],
     steps: [
       { title: "Open the person", body: "Click their name in any team list. The workbench opens as a drawer." },
-      { title: "Schedule a 1:1", body: "Click \"Schedule 1:1\". A calendar invite (.ics) downloads with up to four talking points; open it to add it to your calendar." },
+      { title: "Schedule a 1:1", body: "Click \"Schedule 1:1\", pick the date, time and length, and choose whether the mentor joins. The 1:1 is saved: it shows as \"Next 1:1\" on the profile and under \"Coming up\" on their Today page, and they (and the mentor, if invited) get a notification. A calendar invite (.ics) also downloads with up to four talking points; open it to send it from your calendar." },
       { title: "Copy talking points", body: "Click \"Copy talking points\" to put the full list on your clipboard for your 1:1 doc." },
       { title: "Keep private notes", body: "Under \"Private coaching notes\", type observations and commitments, then click \"Save notes\"." },
       { title: "Assign a simulation", body: "Under \"Assign a simulation\", search and pick a prompt template, set the details, and assign it. The SE starts it from Simulations." },
@@ -214,7 +214,7 @@ export const MANAGER_ARTICLES: HelpArticle[] = [
     steps: [
       { title: "Open Cadence", body: "Click Coaching, then Cadence." },
       { title: "Start with Urgent", body: "Clear any open reviews in the Inbox first; that alone moves people out of Urgent." },
-      { title: "Book time", body: "Open a person and click \"Schedule 1:1\" to download an invite with talking points." },
+      { title: "Book time", body: "Open a person and click \"Schedule 1:1\". The meeting is saved so they see it on Today, and an invite with talking points downloads for your calendar." },
       { title: "Check your quality", body: "Read the coaching quality panel and slow down if it flags rubber-stamping." },
     ],
     links: [{ label: "Open Cadence", href: "/manager/coaching" }],

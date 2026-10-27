@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, type ReactNode } from "react";
+import { openStack } from "@/components/ui/drawer";
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -28,10 +29,14 @@ export function Modal({
 
   useEffect(() => {
     if (!open) return;
+    // Shares the workbench stack, so a popup opened over the modal is the only one Esc and Tab act on.
+    const self = Symbol("modal");
+    openStack.push(self);
     const trigger = document.activeElement as HTMLElement | null;
     const panel = panelRef.current;
     panel?.querySelector<HTMLElement>(FOCUSABLE)?.focus();
     const onKey = (event: KeyboardEvent) => {
+      if (openStack[openStack.length - 1] !== self) return;
       if (event.key === "Escape") {
         event.preventDefault();
         onCloseRef.current();
@@ -53,6 +58,7 @@ export function Modal({
     document.addEventListener("keydown", onKey);
     return () => {
       document.removeEventListener("keydown", onKey);
+      openStack.splice(openStack.indexOf(self), 1);
       trigger?.focus();
     };
   }, [open]);

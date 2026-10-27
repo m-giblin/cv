@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { PitchPlaybackViewer } from "@/components/pitch/pitch-playback-viewer";
 import { H2_CLS, LINE_CARD_CLS } from "@/components/se/form-classes";
 import { Chip } from "@/components/ui/chip";
+import { Drawer } from "@/components/ui/drawer";
 import { Tag } from "@/components/ui/tag";
 import type { PeerPitch } from "@/lib/pitch/fetch-peer-pitches";
 
@@ -49,7 +50,7 @@ type PeerPitchLibraryProps = {
 export function PeerPitchLibrary({ initialPitches, variant = "default" }: PeerPitchLibraryProps) {
   const [pitches, setPitches] = useState<PeerPitch[]>(initialPitches ?? []);
   const [filter, setFilter] = useState<"all" | "endorsed">("all");
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [watchingId, setWatchingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (initialPitches !== undefined) {
@@ -66,6 +67,7 @@ export function PeerPitchLibrary({ initialPitches, variant = "default" }: PeerPi
     if (filter === "endorsed") return pitches.filter((p) => p.endorsement_count > 0);
     return pitches;
   }, [filter, pitches]);
+  const watching = pitches.find((pitch) => pitch.id === watchingId) ?? null;
 
   if (variant === "compact") {
     return (
@@ -129,7 +131,7 @@ export function PeerPitchLibrary({ initialPitches, variant = "default" }: PeerPi
             Peer pitch library
           </h2>
           <p className="mt-1 text-sm text-ink-2">
-            Pitches your managers approved and your peers endorsed. Watch them inline.
+            Pitches your managers approved and your peers endorsed. Watch them here.
           </p>
         </div>
         <FilterChips filter={filter} onChange={setFilter} />
@@ -143,7 +145,6 @@ export function PeerPitchLibrary({ initialPitches, variant = "default" }: PeerPi
         <ul>
           {filtered.map((pitch, rowIndex) => {
             const score = pitchScore(pitch);
-            const expanded = expandedId === pitch.id;
             return (
               <li className={rowIndex > 0 ? "border-t border-divider" : undefined} key={pitch.id}>
                 <div className="flex flex-wrap items-center gap-4 px-5 py-3.5">
@@ -168,13 +169,8 @@ export function PeerPitchLibrary({ initialPitches, variant = "default" }: PeerPi
                     <p className="mt-1 text-[13px] text-muted">Score</p>
                   </div>
                   <div className="flex flex-wrap items-center gap-3">
-                    <button
-                      aria-expanded={expanded}
-                      className="btn-secondary"
-                      onClick={() => setExpandedId(expanded ? null : pitch.id)}
-                      type="button"
-                    >
-                      {expanded ? "Hide playback" : "Watch inline"}
+                    <button aria-haspopup="dialog" className="btn-secondary" onClick={() => setWatchingId(pitch.id)} type="button">
+                      Watch
                     </button>
                     <Link className="link text-sm" href={`/practice/pitch?review=${pitch.id}`}>
                       Full review
@@ -196,16 +192,45 @@ export function PeerPitchLibrary({ initialPitches, variant = "default" }: PeerPi
                     {pitch.peer_avg ? <Tag tone="blue">Peers {pitch.peer_avg.toFixed(1)} of 5</Tag> : null}
                   </div>
                 ) : null}
-                {expanded ? (
-                  <div className="px-5 pb-5 pt-2">
-                    <PitchPlaybackViewer submissionId={pitch.id} />
-                  </div>
-                ) : null}
               </li>
             );
           })}
         </ul>
       )}
+
+      <Drawer
+        eyebrow="Peer pitch"
+        footer={
+          watching ? (
+            <Link className="btn-secondary" href={`/practice/pitch?review=${watching.id}`}>
+              Full review
+            </Link>
+          ) : undefined
+        }
+        onClose={() => setWatchingId(null)}
+        open={Boolean(watching)}
+        subtitle={
+          watching
+            ? `${watching.personName}, ${new Date(watching.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })} · Score ${pitchScore(watching)}`
+            : undefined
+        }
+        title={watching?.title ?? ""}
+      >
+        {watching ? (
+          <div className="flex flex-col gap-4">
+            {watching.competencies.length > 0 || watching.manager_grade || watching.peer_avg ? (
+              <div className="flex flex-wrap gap-1.5">
+                {watching.competencies.slice(0, 4).map((label) => (
+                  <Tag key={`${watching.id}-${label}`}>{label}</Tag>
+                ))}
+                {watching.manager_grade ? <Tag tone="success">Manager {watching.manager_grade} of 5</Tag> : null}
+                {watching.peer_avg ? <Tag tone="blue">Peers {watching.peer_avg.toFixed(1)} of 5</Tag> : null}
+              </div>
+            ) : null}
+            <PitchPlaybackViewer submissionId={watching.id} />
+          </div>
+        ) : null}
+      </Drawer>
     </section>
   );
 }
