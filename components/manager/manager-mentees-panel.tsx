@@ -10,6 +10,7 @@ import { MentorCheckinWorkbench } from "@/components/mentoring/mentor-checkin-wo
 import { MentorManagerNote } from "@/components/mentoring/mentor-manager-note";
 import { MentorScheduleEditor } from "@/components/mentoring/mentor-schedule-editor";
 import { MentorStepWorkbench } from "@/components/mentoring/mentor-step-workbench";
+import { Drawer } from "@/components/ui/drawer";
 import { Stat, StatStrip } from "@/components/ui/stat";
 import { StatusPill } from "@/components/ui/status-pill";
 import { PersonCell } from "@/components/ui/table";
@@ -46,6 +47,118 @@ function byOrder(steps: PlanStep[]) {
   return [...steps].sort((a, b) => a.order - b.order);
 }
 
+/** One mentee, full screen: the brief and your notes beside their dates and every step to coach. */
+function MenteeWorkbench({
+  mentee,
+  today,
+  onClose,
+  onOpenStep,
+  onSchedule,
+  onCheckin,
+  onNote,
+}: {
+  mentee: MenteeAssignment;
+  today: string;
+  onClose: () => void;
+  onOpenStep: (step: PlanStep, stagePlanId?: string) => void;
+  onSchedule: () => void;
+  onCheckin: () => void;
+  onNote: () => void;
+}) {
+  const { plan, profile, records, track } = mentee;
+  const firstName = profile.fullName.split(" ")[0] ?? profile.fullName;
+  const summary = summarizeEnrollment(plan, profile);
+  const health = HEALTH_PILL[summary.health];
+  const orderedSteps = byOrder(plan.steps);
+  const nextStep = orderedSteps.find((step) => step.status !== "reviewed" && step.status !== "completed");
+  const attention = mentorAttention(plan.steps, records, today);
+
+  return (
+    <Drawer
+      bodyWidth="full"
+      eyebrow="Mentee"
+      footer={
+        <>
+          <button className="btn-secondary" onClick={onNote} type="button">
+            Note to manager
+          </button>
+          <button className="btn-secondary" onClick={onCheckin} type="button">
+            Log a 1:1
+          </button>
+          <button className="btn-primary" onClick={onSchedule} type="button">
+            Set the schedule
+          </button>
+        </>
+      }
+      mainLabel="Program"
+      onClose={onClose}
+      open
+      side={
+        <div className="space-y-4">
+          <HiringBriefCard brief={records.hiringBrief} firstName={firstName} />
+          <MentorCoachingNotesEditor seUserId={profile.id} />
+        </div>
+      }
+      sideLabel="Brief and notes"
+      subtitle={`${plan.name} · ${summary.done}/${summary.total} steps · ${formatPercent(plan.progress)}`}
+      title={profile.fullName}
+    >
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusPill tone={health.tone}>{health.label}</StatusPill>
+          {attention.map((item) => (
+            <Tag key={item.text} tone={item.tone}>
+              {item.text}
+            </Tag>
+          ))}
+        </div>
+        <p className="text-sm text-muted">
+          Started <span className="font-bold text-ink">{shortDate(plan.startDate)}</span>
+          {" · "}target finish <span className="font-bold text-ink">{shortDate(plan.targetCompletion)}</span>
+          {" · "}click any step to see the task, {firstName}&apos;s work, and how to coach it
+        </p>
+        {track ? <MenteeTrackView onOpenStep={(stage, step) => onOpenStep(step, stage.planId)} track={track} /> : null}
+        <div className="flex items-center justify-between gap-3">
+          <h4 className="text-lg font-extrabold text-ink">{plan.name}</h4>
+          {nextStep ? (
+            <button className="link text-sm" onClick={() => onOpenStep(nextStep)} type="button">
+              Open current step
+            </button>
+          ) : null}
+        </div>
+        <ul className="overflow-hidden rounded-[14px] border border-line bg-white">
+          {orderedSteps.map((step) => {
+            const feedbackCount = records.feedback.filter((item) => item.assignmentStepId === step.assignmentStepId).length;
+            const hasWork = (mentee.evidence[step.id] ?? []).length > 0;
+            return (
+              <li className="border-b border-divider last:border-b-0" key={step.id}>
+                <button
+                  className="flex w-full items-start justify-between gap-3 px-4 py-2.5 text-left text-[15px] hover:bg-blue-soft focus-visible:bg-blue-soft"
+                  onClick={() => onOpenStep(step)}
+                  type="button"
+                >
+                  <span className="flex min-w-0 flex-col">
+                    <span className="font-bold text-ink-2">{step.title}</span>
+                    <span className="text-[13px] text-muted">
+                      {step.isSegmentGate ? "Stage gate" : stepTypeLabel(step.type)}
+                      {hasWork ? " · work to review" : ""}
+                      {feedbackCount ? ` · ${feedbackCount} feedback` : ""}
+                    </span>
+                  </span>
+                  <span className={`shrink-0 text-[13px] ${isStepOverdue(step, today) ? "font-bold text-danger" : "text-muted"}`}>
+                    {step.dueDate ? `Due ${shortDate(step.dueDate)} · ` : ""}
+                    {isStepOverdue(step, today) ? "Overdue" : statusLabel(step.status)}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </Drawer>
+  );
+}
+
 /** Which step is open, by id, so the workbench always reads the latest server data after a refresh. */
 type OpenStep = { assignmentId: string; stepId: string; stagePlanId?: string };
 
@@ -54,7 +167,7 @@ export function ManagerMenteesPanel({
 }: {
   mentees: MenteeAssignment[];
 }) {
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [workbenchFor, setWorkbenchFor] = useState<string | null>(null);
   const [openStep, setOpenStep] = useState<OpenStep | null>(null);
   const [checkinFor, setCheckinFor] = useState<string | null>(null);
   const [noteFor, setNoteFor] = useState<string | null>(null);
@@ -73,6 +186,7 @@ export function ManagerMenteesPanel({
   const checkinMentee = checkinFor ? mentees.find((item) => item.plan.id === checkinFor) : undefined;
   const noteMentee = noteFor ? mentees.find((item) => item.plan.id === noteFor) : undefined;
   const scheduleMentee = scheduleFor ? mentees.find((item) => item.plan.id === scheduleFor) : undefined;
+  const workbenchMentee = workbenchFor ? mentees.find((item) => item.plan.id === workbenchFor) : undefined;
 
   return (
     <>
@@ -107,27 +221,25 @@ export function ManagerMenteesPanel({
             <h3 className="text-xl font-extrabold text-ink">Your mentees</h3>
             <ul className="overflow-hidden rounded-[14px] border border-line bg-white">
               {mentees.map((mentee, index) => {
-                const { plan, profile, pendingMentorReviews, awaitingManagerSignoff, records, track } = mentee;
+                const { plan, profile, pendingMentorReviews, awaitingManagerSignoff, records } = mentee;
                 const summary = summaries[index]!;
                 const health = HEALTH_PILL[summary.health];
-                const isOpen = expandedId === plan.id;
-                const orderedSteps = byOrder(plan.steps);
-                const nextStep = orderedSteps.find((step) => step.status !== "reviewed" && step.status !== "completed");
-                const panelId = `mentee-${plan.id}`;
                 const attention = mentorAttention(plan.steps, records, today);
-                const openFor = (step: PlanStep, stagePlanId?: string) =>
-                  setOpenStep({ assignmentId: plan.id, stepId: step.id, stagePlanId });
 
                 return (
                   <li className="border-b border-divider last:border-b-0" key={plan.id}>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-[13px]">
-                      <span className="min-w-0 flex-1">
+                      <button
+                        className="min-w-0 flex-1 rounded-[10px] text-left hover:bg-blue-soft focus-visible:bg-blue-soft"
+                        onClick={() => setWorkbenchFor(plan.id)}
+                        type="button"
+                      >
                         <PersonCell
                           initials={initials(profile.fullName)}
                           name={profile.fullName}
                           subline={`${plan.name} · ${summary.done}/${summary.total} steps · ${formatPercent(plan.progress)}`}
                         />
-                      </span>
+                      </button>
                       <StatusPill tone={health.tone}>{health.label}</StatusPill>
                       {pendingMentorReviews > 0 ? (
                         <Tag tone="warning">
@@ -136,16 +248,6 @@ export function ManagerMenteesPanel({
                       ) : null}
                       {awaitingManagerSignoff > 0 ? (
                         <StatusPill tone="blue">Manager sign-off pending</StatusPill>
-                      ) : null}
-                      {records.hiringBrief && !isOpen ? (
-                        <button
-                          aria-controls={panelId}
-                          className="btn-secondary"
-                          onClick={() => setExpandedId(plan.id)}
-                          type="button"
-                        >
-                          Read the brief
-                        </button>
                       ) : null}
                       <button className="btn-secondary" onClick={() => setScheduleFor(plan.id)} type="button">
                         Set the schedule
@@ -156,14 +258,8 @@ export function ManagerMenteesPanel({
                       <button className="btn-secondary" onClick={() => setNoteFor(plan.id)} type="button">
                         Note to manager
                       </button>
-                      <button
-                        aria-controls={panelId}
-                        aria-expanded={isOpen}
-                        className="btn-secondary"
-                        onClick={() => setExpandedId(isOpen ? null : plan.id)}
-                        type="button"
-                      >
-                        {isOpen ? "Close" : "Coach"}
+                      <button className="btn-primary" onClick={() => setWorkbenchFor(plan.id)} type="button">
+                        Open
                       </button>
                     </div>
                     {attention.length ? (
@@ -176,56 +272,6 @@ export function ManagerMenteesPanel({
                       </div>
                     ) : null}
 
-                    {isOpen ? (
-                      <div className="space-y-4 border-t border-divider bg-bg px-5 py-4" id={panelId}>
-                        <HiringBriefCard brief={records.hiringBrief} firstName={profile.fullName.split(" ")[0] ?? profile.fullName} />
-                        <p className="text-sm text-muted">
-                          Started <span className="font-bold text-ink">{shortDate(plan.startDate)}</span>
-                          {" · "}target finish <span className="font-bold text-ink">{shortDate(plan.targetCompletion)}</span>
-                          {" · "}click any step to see the task, {profile.fullName.split(" ")[0]}&apos;s work, and how to coach it
-                        </p>
-                        {track ? (
-                          <MenteeTrackView onOpenStep={(stage, step) => openFor(step, stage.planId)} track={track} />
-                        ) : null}
-                        <h4 className="text-lg font-extrabold text-ink">{plan.name}</h4>
-                        <ul className="overflow-hidden rounded-[14px] border border-line bg-white">
-                          {orderedSteps.map((step) => {
-                            const feedbackCount = records.feedback.filter((item) => item.assignmentStepId === step.assignmentStepId).length;
-                            const hasWork = (mentee.evidence[step.id] ?? []).length > 0;
-                            return (
-                              <li className="border-b border-divider last:border-b-0" key={step.id}>
-                                <button
-                                  className="flex w-full items-start justify-between gap-3 px-4 py-2.5 text-left text-[15px] hover:bg-blue-soft focus-visible:bg-blue-soft"
-                                  onClick={() => openFor(step)}
-                                  type="button"
-                                >
-                                  <span className="flex min-w-0 flex-col">
-                                    <span className="font-bold text-ink-2">{step.title}</span>
-                                    <span className="text-[13px] text-muted">
-                                      {step.isSegmentGate ? "Manager gate" : stepTypeLabel(step.type)}
-                                      {hasWork ? " · work to review" : ""}
-                                      {feedbackCount ? ` · ${feedbackCount} feedback` : ""}
-                                    </span>
-                                  </span>
-                                  <span
-                                    className={`shrink-0 text-[13px] ${isStepOverdue(step, today) ? "font-bold text-danger" : "text-muted"}`}
-                                  >
-                                    {step.dueDate ? `Due ${shortDate(step.dueDate)} · ` : ""}
-                                    {isStepOverdue(step, today) ? "Overdue" : statusLabel(step.status)}
-                                  </span>
-                                </button>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                        <MentorCoachingNotesEditor seUserId={profile.id} />
-                        {nextStep ? (
-                          <button className="link text-sm" onClick={() => openFor(nextStep)} type="button">
-                            Open current step
-                          </button>
-                        ) : null}
-                      </div>
-                    ) : null}
                   </li>
                 );
               })}
@@ -233,6 +279,17 @@ export function ManagerMenteesPanel({
           </section>
         </div>
       )}
+      {workbenchMentee ? (
+        <MenteeWorkbench
+          mentee={workbenchMentee}
+          onCheckin={() => setCheckinFor(workbenchMentee.plan.id)}
+          onClose={() => setWorkbenchFor(null)}
+          onNote={() => setNoteFor(workbenchMentee.plan.id)}
+          onOpenStep={(step, stagePlanId) => setOpenStep({ assignmentId: workbenchMentee.plan.id, stepId: step.id, stagePlanId })}
+          onSchedule={() => setScheduleFor(workbenchMentee.plan.id)}
+          today={today}
+        />
+      ) : null}
       {openMentee ? (
         <MentorStepWorkbench
           assignmentId={openStage ? undefined : openMentee.plan.id}
