@@ -27,7 +27,7 @@ const LETTERS = ["A", "B", "C", "D", "E", "F"];
 
 /** Takes one quiz: questions in rotation, then the score with explanations. */
 export function QuizPlayer({ check, onDone }: { check: Check; onDone: () => void }) {
-  const [quiz, setQuiz] = useState<{ title: string; questions: QuizQuestion[] } | null>(null);
+  const [quiz, setQuiz] = useState<{ title: string; token: string; questions: QuizQuestion[] } | null>(null);
   const [error, setError] = useState("");
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [graded, setGraded] = useState<{ score: number; results: Result[]; completedSteps?: string[] } | null>(null);
@@ -57,10 +57,13 @@ export function QuizPlayer({ check, onDone }: { check: Check; onDone: () => void
     const response = await fetch("/api/question-bank/quiz", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ answers: quiz.questions.map((question) => ({ questionId: question.id, chosenIndex: answers[question.id] })) }),
+      body: JSON.stringify({ token: quiz.token, answers: quiz.questions.map((question) => ({ questionId: question.id, chosenIndex: answers[question.id] })) }),
     });
     setBusy(false);
-    if (!response.ok) return setError("Couldn't grade that. Try again.");
+    if (!response.ok) {
+      const body = await response.json().catch(() => null);
+      return setError(body?.error ?? "Couldn't grade that. Try again.");
+    }
     setGraded(await response.json());
     onDone();
   }

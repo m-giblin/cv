@@ -4,9 +4,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 const trackSchema = z.object({
  eventType: z.enum(["room_view", "resource_open", "resource_download", "time_on_page"]),
- resourceLabel: z.string().optional(),
- viewerFingerprint: z.string().optional(),
- durationSeconds: z.number().int().optional(),
+ resourceLabel: z.string().max(200).optional(),
+ viewerFingerprint: z.string().max(200).optional(),
+ durationSeconds: z.number().int().min(0).max(86_400).optional(),
 });
 
 export async function POST(request: Request, context: { params: Promise<{ token: string }> }) {
@@ -17,7 +17,7 @@ export async function POST(request: Request, context: { params: Promise<{ token:
  return NextResponse.json({ success: true, configured: false });
  }
 
- const parsed = trackSchema.safeParse(await request.json());
+ const parsed = trackSchema.safeParse(await request.json().catch(() => null));
  if (!parsed.success) {
  return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
  }

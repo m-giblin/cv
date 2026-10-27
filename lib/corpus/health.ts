@@ -1,3 +1,4 @@
+import { isPublicHttpUrl } from "@/lib/security/public-url";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 
@@ -128,6 +129,10 @@ export async function verifyCorpusAssetLink(
 
   if (!asset?.storage_path?.startsWith("http")) {
     return { ok: true, status: "active" };
+  }
+  // The link is author-supplied; never make the server probe internal addresses.
+  if (!isPublicHttpUrl(asset.storage_path)) {
+    return { ok: false, status: "broken" };
   }
 
   try {

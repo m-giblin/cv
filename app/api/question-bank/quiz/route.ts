@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAuthenticatedSession } from "@/lib/auth/require-authenticated";
-import { gradeQuiz, loadAvailableChecks, serveQuiz } from "@/lib/question-bank/data";
+import { gradeQuiz, loadAvailableChecks, QuizTokenError, serveQuiz } from "@/lib/question-bank/data";
 import { resolveEffectiveTenantId } from "@/lib/tenant/resolve-profile-tenant";
 
 /** ?source=key: a quiz in rotation for that source. No source: the checks on offer. */
@@ -18,6 +18,7 @@ export async function GET(request: Request) {
 }
 
 const answerSchema = z.object({
+  token: z.string().min(20).max(4000),
   answers: z
     .array(z.object({ questionId: z.string().uuid(), chosenIndex: z.number().int().min(0).max(5) }))
     .min(1)
@@ -32,5 +33,10 @@ export async function POST(request: Request) {
   if (!parsed.success) return NextResponse.json({ error: "Answer every question first." }, { status: 400 });
   const tenantId = await resolveEffectiveTenantId(session.supabase, session.user.id);
   if (!tenantId) return NextResponse.json({ error: "No workspace." }, { status: 400 });
-  return NextResponse.json(await gradeQuiz({ tenantId, userId: session.user.id, answers: parsed.data.answers }));
+  try {
+    return NextResponse.json(await gradeQuiz({ tenantId, userId: session.user.id, token: parsed.data.token, answers: parsed.data.answers }));
+  } catch (error) {
+    if (error instanceof QuizTokenError) return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ error: "Couldn't grade that." }, { status: 500 });
+  }
 }

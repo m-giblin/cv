@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getTenantAdminClient } from "@/lib/data/tenant-scoped-query";
 import type { DraftQuestion } from "@/lib/question-bank/generate";
 import { completeKnowledgeCheckSteps } from "@/lib/question-bank/plan-completion";
+import { signQuiz, verifyQuiz } from "@/lib/question-bank/quiz-token";
 import {
   normalizeSolution,
   pickRotation,
@@ -306,7 +307,7 @@ export async function loadAvailableChecks(tenantId: string, userId: string) {
     });
 }
 
-export async function serveQuiz(tenantId: string, userId: string, key: string): Promise<{ title: string; questions: QuizQuestion[] } | null> {
+export async function serveQuiz(tenantId: string, userId: string, key: string): Promise<{ title: string; token: string; questions: QuizQuestion[] } | null> {
   const admin = db();
   if (!admin) return null;
   const bank = await loadBank(tenantId);
@@ -329,8 +330,10 @@ export async function serveQuiz(tenantId: string, userId: string, key: string): 
   }
 
   const picked = pickRotation(pool, lastSeen);
+  const { token } = signQuiz(userId, picked.map((question) => question.id));
   return {
     title: source.title,
+    token,
     questions: picked.map((question) => ({
       id: question.id,
       stem: question.stem,
@@ -343,20 +346,33 @@ export async function serveQuiz(tenantId: string, userId: string, key: string): 
   };
 }
 
-export async function gradeQuiz(input: { tenantId: string; userId: string; answers: { questionId: string; chosenIndex: number }[] }) {
+export class QuizTokenError extends Error {}
+
+export async function gradeQuiz(input: { tenantId: string; userId: string; token: string; answers: { questionId: string; chosenIndex: number }[] }) {
   const admin = db();
   if (!admin) throw new Error("Service unavailable.");
+  // Only the questions this person was served, graded once.
+  const claims = verifyQuiz(input.token, input.userId);
+  if (!claims) throw new QuizTokenError("This quiz expired. Start a new one.");
+  const served = new Set(claims.questionIds);
+  const answers = input.answers.filter((answer) => served.has(answer.questionId));
+  const { count: alreadyGraded } = await admin
+    .from("question_attempts")
+    .select("id", { count: "exact", head: true })
+    .eq("quiz_id", claims.quizId)
+    .eq("user_id", input.userId);
+  if (alreadyGraded) throw new QuizTokenError("This quiz was already graded. Start a new one.");
   const { data } = await admin
     .from("question_bank")
     .select(COLUMNS)
     .eq("tenant_id", input.tenantId)
     .in(
       "id",
-      input.answers.map((answer) => answer.questionId),
+      answers.map((answer) => answer.questionId),
     );
   const byId = new Map(((data ?? []) as Row[]).map((row) => [row.id, mapRow(row)]));
-  const quizId = randomUUID();
-  const results = input.answers
+  const quizId = claims.quizId;
+  const results = answers
     .filter((answer) => byId.has(answer.questionId))
     .map((answer) => {
       const question = byId.get(answer.questionId)!;

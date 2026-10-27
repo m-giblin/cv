@@ -21,5 +21,5 @@ export async function mentorSession(): Promise<MentorSession | NextResponse> {
 
 export function mentorErrorResponse(error: unknown): NextResponse {
   if (error instanceof MentorAccessError) return NextResponse.json({ error: error.message }, { status: 403 });
-  return NextResponse.json({ error: error instanceof Error ? error.message : "Request failed." }, { status: 500 });
+  return NextResponse.json({ error: "Request failed." }, { status: 500 });
 }

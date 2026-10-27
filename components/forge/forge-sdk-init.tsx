@@ -36,13 +36,15 @@ export function ForgeSdkInit({
   function initSdk() {
     if (initialized.current || !window.ForgeSDK) return;
     initialized.current = true;
+    // Never record the sign-in, MFA or password-reset screens.
+    const sensitivePage = /^\/(login|auth|mfa|forgot|reset)/.test(window.location.pathname);
 
     window.ForgeSDK.init({
       apiKey,
       endpoint: `${baseUrl}/api/v1/issues`,
       projectKey,
       environment,
-      sessionReplay: true,
+      sessionReplay: !sensitivePage,
       ignoreErrors: [
         /ResizeObserver loop/,
         /ChunkLoadError/,
