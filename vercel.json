@@ -2,7 +2,7 @@
   "framework": "nextjs",
   "buildCommand": "npm run build",
   "installCommand": "npm ci",
-  "regions": ["iad1"],
+  "regions": ["cle1"],
   "crons": [
     {
       "path": "/api/cron/manager-digest",
