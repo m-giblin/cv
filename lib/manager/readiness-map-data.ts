@@ -208,7 +208,7 @@ function buildSparkline(current: number, trend: "up" | "flat" | "down", mode: Re
   return { pts: coords.join(" "), endY, delta };
 }
 
-function rampCell(planProgress: number, tenureDays: number, firstName: string): ReadinessMapCell {
+export function rampCell(planProgress: number, tenureDays: number, firstName: string): ReadinessMapCell {
   const expected = expectedRampPct(tenureDays);
   const gap = expected - planProgress;
   // Ramp is judged against where they should be by now, not against 100%: on day 1, 0% is on pace.
@@ -277,10 +277,13 @@ function simsCell(simAvg: number | null, firstName: string): ReadinessMapCell {
   };
 }
 
-function segmentsCell(unlocked: number, tenureDays: number, firstName: string): ReadinessMapCell {
+export function segmentsCell(unlocked: number, tenureDays: number, firstName: string): ReadinessMapCell {
   const pct = Math.round((unlocked / SEGMENT_TOTAL) * 100);
-  const level =
-    unlocked <= 1 && tenureDays > 45 ? "critical" : unlocked <= 2 && tenureDays > 75 ? "risk" : statusLevelForScore(pct);
+  // Stages open about every 30 days, so judge against where they should be by now, not against all of them.
+  const expectedStage = Math.min(SEGMENT_TOTAL, Math.floor(tenureDays / 30) + 1);
+  const behind = expectedStage - unlocked;
+  const level: ReadinessStatusLevel =
+    unlocked <= 1 && tenureDays > 45 ? "critical" : behind >= 2 ? "critical" : behind === 1 ? "risk" : "good";
   const status =
     unlocked <= 1 ? "Segment 1 only" : unlocked >= 3 ? "On track" : `Segment ${unlocked}/${SEGMENT_TOTAL}`;
   const insight =
@@ -306,10 +309,16 @@ function segmentsCell(unlocked: number, tenureDays: number, firstName: string): 
   };
 }
 
-function certsCell(approved: number, tenureDays: number, firstName: string): ReadinessMapCell {
+export function certsCell(approved: number, tenureDays: number, firstName: string): ReadinessMapCell {
   const pct = Math.round((approved / CERT_TOTAL) * 100);
-  const level =
-    approved === 0 && tenureDays > 60 ? "critical" : approved === 0 && tenureDays > 30 ? "risk" : statusLevelForScore(pct);
+  const level: ReadinessStatusLevel =
+    approved === 0
+      ? tenureDays > 60
+        ? "critical"
+        : tenureDays > 30
+          ? "risk"
+          : "good" // none yet is expected in the first month
+      : statusLevelForScore(pct);
   const status =
     approved === 0
       ? tenureDays > 60
@@ -341,9 +350,11 @@ function certsCell(approved: number, tenureDays: number, firstName: string): Rea
   };
 }
 
-function labCell(hours: number, firstName: string): ReadinessMapCell {
+export function labCell(hours: number, firstName: string, tenureDays = 999): ReadinessMapCell {
   const pct = Math.round((hours / LAB_WEEKLY_TARGET_HOURS) * 100);
-  const level = hours < 2 ? "critical" : hours < LAB_WEEKLY_TARGET_HOURS ? "risk" : "good";
+  // A full week of lab time is the target; in someone's first week there is nothing to judge yet.
+  const level: ReadinessStatusLevel =
+    tenureDays <= 7 && hours < LAB_WEEKLY_TARGET_HOURS ? "unknown" : hours < 2 ? "critical" : hours < LAB_WEEKLY_TARGET_HOURS ? "risk" : "good";
   const status =
     hours < 1 ? "Far behind target" : hours < LAB_WEEKLY_TARGET_HOURS ? "Short of 5h target" : "On target";
   const insight =
@@ -677,7 +688,7 @@ export function buildReadinessMapPayload(input: {
       Sims: simsCell(breakdown.simulationAvg, firstName),
       Segments: segmentsCell(plan?.unlockedSegmentMax ?? 1, tenureDays, firstName),
       Certs: certsCell(approvedCerts, tenureDays, firstName),
-      Lab: labCell(labHours, firstName),
+      Lab: labCell(labHours, firstName, tenureDays),
       Pitch: pitchCell(pitchScore, firstName),
       Challenges: challengesCell(challengeSignals, firstName),
       FlightCheck: flightCheckCell(flightCheckSignal, firstName),

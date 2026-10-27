@@ -273,7 +273,7 @@ export function ManagerPlanAssignPanel({
  value={mentorId}
  >
  <option value="">No mentor</option>
- {mentors.map((profile) => (
+ {mentors.filter((profile) => profile.id !== userId).map((profile) => (
  <option key={profile.id} value={profile.id}>
  {profile.fullName}
  </option>

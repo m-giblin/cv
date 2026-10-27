@@ -79,7 +79,7 @@ export async function POST(request: Request) {
  await createNotification(session.supabase, {
  userId: parsed.data.mentorId,
  title: `You're mentoring ${name}`,
- body: `${plan?.name ?? "An onboarding plan"} starts ${parsed.data.startDate}. Read the hiring brief, meet ${name.split(" ")[0]}, then set the schedule together.`,
+ body: `${plan?.name ?? "An onboarding plan"} starts ${new Date(`${parsed.data.startDate}T12:00:00`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}. Read the hiring brief, meet ${name.split(" ")[0]}, then set the schedule together.`,
  actionUrl: "/mentoring",
  });
  }
