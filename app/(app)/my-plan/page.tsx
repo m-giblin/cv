@@ -33,20 +33,19 @@ export default async function MyPlanPage({ searchParams }: MyPlanPageProps) {
   const manager = data.profiles.find((profile) => profile.id === data.currentUser.managerId);
   const model = plan ? buildRampModel(plan) : null;
 
-  // Step detail opens in place (replaces /plan-steps/[id]).
+  // Step detail opens as a workbench over the ramp (replaces /plan-steps/[id]).
+  let stepDetail: React.ReactNode = null;
   if (params.step) {
     const step = plan?.steps.find((item) => item.assignmentStepId === params.step || item.id === params.step);
     if (!plan || !model || !step) notFound();
-    return (
-      <>
-        <RampStepDetail
-          mentor={mentor}
-          number={model.steps.findIndex((item) => item.id === step.id) + 1}
-          plan={plan}
-          step={step}
-          total={model.total}
-        />
-      </>
+    stepDetail = (
+      <RampStepDetail
+        mentor={mentor}
+        number={model.steps.findIndex((item) => item.id === step.id) + 1}
+        plan={plan}
+        step={step}
+        total={model.total}
+      />
     );
   }
 
@@ -88,6 +87,7 @@ export default async function MyPlanPage({ searchParams }: MyPlanPageProps) {
           reviewer={reviewer}
         />
       )}
+      {stepDetail}
     </>
   );
 }

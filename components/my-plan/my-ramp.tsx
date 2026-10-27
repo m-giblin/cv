@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { MentorFeedbackForStep } from "@/components/my-plan/mentor-feedback-for-step";
+import { RampStepWorkbench } from "@/components/my-plan/ramp-step-workbench";
 import { PlanStepActions } from "@/components/plans/plan-step-actions";
 import { Note } from "@/components/ui/editorial";
 import { FlightStrip } from "@/components/ui/flight-strip";
@@ -397,7 +398,7 @@ export function RampFrame({ model, children, mentorCard }: { model: RampModel; c
   );
 }
 
-/** Step detail, opened in place inside My ramp (`/my-plan?step=`). */
+/** Step detail, opened as a workbench over My ramp (`/my-plan?step=`). */
 export function RampStepDetail({
   step,
   number,
@@ -413,20 +414,12 @@ export function RampStepDetail({
 }) {
   const due = formatDay(step.dueDate);
   return (
-    <div className="flex flex-col pb-10">
-      <PageHeader
-        eyebrow={
-          <>
-            <Link className="link normal-case tracking-normal" href="/my-plan">
-              My ramp
-            </Link>
-            &nbsp;/&nbsp;Step {number} of {total}
-          </>
-        }
-        subtitle={`${planStepTypeLabel(step.type)}${due ? `, due ${due}` : ""}.`}
-        title={step.title}
-      />
-      <PageBody className="max-w-[1020px]">
+    <RampStepWorkbench
+      eyebrow={`My ramp / Step ${number} of ${total}`}
+      subtitle={`${planStepTypeLabel(step.type)}${due ? `, due ${due}` : ""}.`}
+      title={step.title}
+    >
+      <div className="flex flex-col gap-6">
         {step.locked ? (
           <Note title="Locked">
             This step is in a later segment. Clear the current segment gate and get your manager&apos;s approval to
@@ -434,13 +427,11 @@ export function RampStepDetail({
             {plan.unlockedSegmentMax ? `. You are on segment ${plan.unlockedSegmentMax}.` : "."}
           </Note>
         ) : (
-          <div className="max-w-[680px]">
-            {/* PlanStepActions renders the step brief, "Done when" criteria, evidence and the submit action. */}
-            <PlanStepActions mentorName={mentor?.fullName} step={step} />
-          </div>
+          /* PlanStepActions renders the step brief, "Done when" criteria, evidence and the submit action. */
+          <PlanStepActions mentorName={mentor?.fullName} step={step} />
         )}
         <MentorFeedbackForStep assignmentStepId={step.assignmentStepId} />
-      </PageBody>
-    </div>
+      </div>
+    </RampStepWorkbench>
   );
 }
