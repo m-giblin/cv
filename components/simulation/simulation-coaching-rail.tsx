@@ -1,6 +1,7 @@
 "use client";
 
 import { splitCoachMessage } from "@/lib/simulations/coach-message";
+import { nextMoveHint } from "@/lib/simulations/next-move-hint";
 import { Loader2, RotateCcw } from "lucide-react";
 import { useId, useState } from "react";
 import type { CoachingCardOutput } from "@/lib/ai/schemas";
@@ -17,16 +18,6 @@ function scoreFillClass(score: number) {
   if (score < 60) return "bg-danger";
   if (score < 70) return "bg-warning";
   return "bg-blue";
-}
-
-function lastCoachInsight(messages: TranscriptEntry[]) {
-  for (let i = messages.length - 1; i >= 0; i -= 1) {
-    const entry = messages[i];
-    if (entry?.speaker === "coach") {
-      return splitCoachMessage(entry.message).reply;
-    }
-  }
-  return null;
 }
 
 export function SimulationCoachingRail({
@@ -59,7 +50,8 @@ export function SimulationCoachingRail({
   const reflectionId = useId();
   const [showEarlier, setShowEarlier] = useState(false);
   const lastSe = [...messages].reverse().find((m) => m.speaker === "se");
-  const coachHint = lastCoachInsight(messages);
+  // Advances with the conversation: the AI's HINT: answer, the buyer's latest pushback, then the next untouched move.
+  const nextMove = nextMoveHint(messages, criteria);
   // Scored notes from objection practice, newest first.
   const notes = messages
     .filter((m) => m.speaker === "coach")
@@ -194,10 +186,7 @@ export function SimulationCoachingRail({
         ) : (
           <div className="rounded-[14px] bg-signal-soft p-3.5">
             <p className="text-[13px] font-semibold text-ink">Next move</p>
-            <p className="mt-1 text-sm leading-[1.5] text-ink">
-              {coachHint ??
-                "Probe the approval chain — who signs off on identity governance spend and what audit date is driving urgency?"}
-            </p>
+            <p className="mt-1 text-sm leading-[1.5] text-ink">{nextMove.text}</p>
           </div>
         )}
 

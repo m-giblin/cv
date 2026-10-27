@@ -38,7 +38,7 @@ function capitalize(text: string): string {
 
 function primaryLabel(step: PlanStep): string {
   return step.status === "in_progress"
-    ? `Continue ${planStepTypeLabel(step.type).toLowerCase()}`
+    ? `Continue ${planStepTypeLabel(step.type, step.resourceUrl).toLowerCase()}`
     : planStepActionLabel(step);
 }
 
@@ -67,7 +67,7 @@ function scheduleMeta(step: PlanStep, model: RampModel, minutes: number | null):
   const segment = model.segments.find((item) => item.index === (step.segmentIndex ?? 0));
   if (step.isSegmentGate) return segment ? `Closes the ${segment.label.toLowerCase()} segment` : "Closes this segment";
   if (step.locked) return "Unlocks when the current gate clears";
-  const type = planStepTypeLabel(step.type);
+  const type = planStepTypeLabel(step.type, step.resourceUrl);
   return minutes ? `${type}, about ${minutes} min` : type;
 }
 
@@ -108,7 +108,8 @@ export function SeToday({
   const currentSegment = model?.segments.find((segment) => segment.state === "current");
   const eyebrow = model ? (
     <>
-      Week {model.currentWeek} of {model.totalWeeks}
+      {/* The plan is one stage of the program, so name it: "week 1 of 4" alone reads like a four-week program. */}
+      {plan?.name}&nbsp;/&nbsp;Week {model.currentWeek} of {model.totalWeeks}
       {currentSegment && currentSegment.index !== 0 ? <>&nbsp;/&nbsp;{currentSegment.label}</> : null}
     </>
   ) : (
@@ -128,12 +129,15 @@ export function SeToday({
           month,
           gate: Boolean(step.isSegmentGate),
           title: step.title,
+          href: step.locked ? undefined : planStepHref(step),
           meta: scheduleMeta(step, model, minutesFor(step)),
         };
       })
     : [];
 
   const overdueDays = next && !isStepValidated(next.status) ? daysUntil(next.dueDate) : null;
+  const waitingNext = next && isStepWithReviewer(next.status) ? model?.upcoming.find((step) => !step.locked && !isStepWithReviewer(step.status) && !isStepValidated(step.status)) ?? null : null;
+  const waitingNextNumber = waitingNext && model ? model.steps.findIndex((step) => step.id === waitingNext.id) + 1 : 0;
   const nextMinutes = next ? minutesFor(next) : null;
 
   return (
@@ -193,7 +197,15 @@ export function SeToday({
                   ) : null}
                 </p>
                 <div className="flex flex-wrap items-center gap-[18px] pt-1">
-                  {isStepWithReviewer(next.status) ? (
+                  {isStepWithReviewer(next.status) && waitingNext ? (
+                    // Don't leave them idle on a disabled button: the next step is ready to start.
+                    <>
+                      <Link className="btn-primary" href={planStepHref(waitingNext)}>
+                        Start step {waitingNextNumber}: {waitingNext.title}
+                      </Link>
+                      <span className="text-sm text-muted">Waiting on {reviewerFirst ?? "your manager"} for this one</span>
+                    </>
+                  ) : isStepWithReviewer(next.status) ? (
                     <button className="btn-primary" disabled type="button">
                       Waiting on {reviewerFirst ?? "your manager"}
                     </button>
@@ -250,8 +262,9 @@ export function SeToday({
             {oneOnOnes.length ? <UpcomingOneOnOnesCard meetings={oneOnOnes} /> : null}
             <MyTrainingCard forManager={false} />
             {myMentor ? <MyMentorCard mentor={myMentor} /> : null}
-            <RampDefinitionCard model={model} />
-            {gateRows.length > 0 ? <GateStampsCard level={user.level} rows={gateRows} /> : null}
+            <RampDefinitionCard model={model} planName={plan?.name} />
+            {/* Career gates are for after the ramp; on day one they're noise next to the onboarding stage gates. */}
+            {gateRows.length > 0 && (!plan || plan.status === "completed") ? <GateStampsCard level={user.level} rows={gateRows} /> : null}
           </aside>
         </div>
       </PageBody>

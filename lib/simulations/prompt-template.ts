@@ -32,8 +32,10 @@ Vertical: {{vertical}}
 Difficulty: {{difficulty}}
 
 STEP 1 — PERSONA CARD
-Output a card with: Name | Title | Org type | Top Priority This Quarter |
+Decide privately: Name | Title | Org type | Top Priority This Quarter |
 Attitude Toward Vendors | Secret Fear | Opening Move
+Print only one line: PERSONA: Name | Title | Org type
+Never print the priority, attitude, secret fear or opening move. I have to discover them.
 Role rules: SLG = CISO or CIO | HE = CISO or IAM Director
 K-12 = Director of Technology or IT Director
 For FED vertical: Agency CISO, IAM Program Lead, or IT Director (FedRAMP-aware).
@@ -118,7 +120,25 @@ export function defaultSledPromptSnapshot(input: {
 }
 
 export const SIMULATION_START_MESSAGE =
+  "Begin the simulation now. Decide your STEP 1 persona privately and apply STEP 2 — DIFFICULTY BEHAVIOR internally. Print only one line, PERSONA: Name | Title | Org type. Never print the priority, attitude, secret fear or opening move. Then STEP 3 — print --- ROLEPLAY BEGINS --- and say your opening line in character. Do not wait for my input between steps.";
+
+/** The opening instruction stored on runs created before the card went private. Matched so those runs get the new one. */
+export const LEGACY_SIMULATION_START_MESSAGE =
   "Begin the simulation now. Execute STEP 1 — PERSONA CARD (print the full card), apply STEP 2 — DIFFICULTY BEHAVIOR internally, then STEP 3 — print --- ROLEPLAY BEGINS --- and your persona Opening Move. Do not wait for my input between steps.";
+
+const LEGACY_CARD_INSTRUCTION =
+  /Output a card with:\s*Name \| Title \| Org type \| Top Priority This Quarter \|\s*Attitude Toward Vendors \| Secret Fear \| Opening Move\n?/;
+
+/**
+ * Templates saved before the card went private still tell the AI to print the whole card.
+ * Rewrites that one instruction so a new run keeps the secret fear and opening move hidden.
+ */
+export function withPrivatePersonaCard(promptBody: string): string {
+  return promptBody.replace(
+    LEGACY_CARD_INSTRUCTION,
+    "Decide privately: Name | Title | Org type | Top Priority This Quarter |\nAttitude Toward Vendors | Secret Fear | Opening Move\nPrint only one line: PERSONA: Name | Title | Org type\nNever print the priority, attitude, secret fear or opening move. I have to discover them.\n",
+  );
+}
 
 /** Opening instruction for a written scenario that is not the parameterized SLED card. */
 export const SCENARIO_START_MESSAGE =

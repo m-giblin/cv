@@ -1,5 +1,7 @@
 "use client";
 
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { PracticeToolPage } from "@/components/practice/practice-tool-page";
 import { SimulationStepStrip } from "@/components/simulation/simulation-step-strip";
@@ -28,6 +30,12 @@ export function SimulationsShell({
   return (
     <PracticeToolPage
       actions={<SimulationStepStrip className="min-w-[320px]" step={step} />}
+      eyebrow={
+        <Link className="link inline-flex items-center gap-1.5" href={testMode ? "/practice/simulations?test=1" : "/practice/simulations"}>
+          <ArrowLeft aria-hidden className="h-3.5 w-3.5" />
+          All simulations
+        </Link>
+      }
       subtitle={`AI role-play with ${label}.`}
       testMode={testMode}
       title="Simulations"

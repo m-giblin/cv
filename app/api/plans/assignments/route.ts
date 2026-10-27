@@ -82,7 +82,7 @@ export async function POST(request: Request) {
  userId: parsed.data.userId,
  title: `${assignerFirst} assigned you ${plan?.name ?? "an onboarding plan"}`,
  body: mentorFirst
- ? `${mentorFirst} is your mentor and will set up your first 1:1, where you agree your due dates together. Your first step is on your Today page.`
+ ? `${mentorFirst} is your mentor. At your first 1:1 you agree your due dates together; any meeting that's booked shows on your Today page, along with your first step.`
  : `${assignerFirst} will set up your first 1:1, where you agree your due dates together. Your first step is on your Today page.`,
  actionUrl: "/dashboard",
  });

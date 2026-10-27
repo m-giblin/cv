@@ -12,7 +12,9 @@ const STEP_TYPE_LABELS: Record<PlanStepType, string> = {
   custom: "Task",
 };
 
-export function planStepTypeLabel(type: PlanStepType): string {
+/** Pass the step's link too: a content step that opens Pitch Studio is a pitch, not reading. */
+export function planStepTypeLabel(type: PlanStepType, resourceUrl?: string | null): string {
+  if (type === "content_review" && resourceUrl?.startsWith("/practice/pitch")) return "Pitch";
   return STEP_TYPE_LABELS[type] ?? "Task";
 }
 

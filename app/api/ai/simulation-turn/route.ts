@@ -137,8 +137,7 @@ export async function POST(request: Request) {
 
  if (!model) {
  const demoResponse = parsed.data.isStart
- ? `**PERSONA CARD**
-Name: Jordan Ellis | Title: CISO | Org: State agency (SLG) | Top Priority: Audit readiness before fiscal year close | Attitude: Cautiously optimistic | Secret Fear: Another failed IAM rollout | Opening Move: "We keep getting asked for access certification evidence we cannot produce quickly."
+ ? `PERSONA: Jordan Ellis | CISO | State agency (SLG)
 
 --- ROLEPLAY BEGINS ---
 Jordan Ellis: Before we go deep — why should we talk about ${parsed.data.promptSnapshot.includes("AIS") ? "agent identity" : "identity governance"} now instead of finishing our Entra rollout?`

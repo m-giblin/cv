@@ -17,17 +17,32 @@ export function PitchCoachingRail({
   scores,
   topNote,
   hasSubmission,
+  overall = null,
+  status = null,
 }: {
   scores: PitchScoreRow[];
   topNote: string | null;
   hasSubmission?: boolean;
+  /** Mean of the rubric rows, shown as the headline score. */
+  overall?: number | null;
+  /** A line under the heading, e.g. that the score shown is from the saved take. */
+  status?: string | null;
 }) {
   const showScores = hasSubmission && scores.length > 0;
 
   return (
     <div className="border-b border-divider bg-white">
       <div className="px-5 py-4">
-        <h2 className="label-caps mb-3">AI coaching on your last take</h2>
+        <div className="mb-3 flex items-baseline justify-between gap-2">
+          <h2 className="label-caps">AI coaching on your last take</h2>
+          {showScores && overall !== null ? (
+            <span className={`num text-[20px] font-extrabold ${scoreTextClass(overall)}`}>
+              {overall}
+              <span className="sr-only"> overall</span>
+            </span>
+          ) : null}
+        </div>
+        {showScores && status ? <p className="mb-3 text-[13px] text-muted">{status}</p> : null}
         {showScores ? (
           <ul className="space-y-3">
             {scores.map((row) => (

@@ -7,6 +7,7 @@ import { buildRampModel, splitWeeks, stepLifecycle } from "@/lib/se/ramp-model";
 import { buildGateRows, nextGate } from "@/lib/se/gate-matrix";
 import { buildCompetencyRows, competencyStatus } from "@/lib/se/competency-table";
 import { planStepHref } from "@/lib/utils/plan-links";
+import { planStepTypeLabel } from "@/lib/plans/step-labels";
 import type { CoachingCard, PlanStep, UserPlan } from "@/lib/types";
 
 describe("legacy SE redirects", () => {
@@ -92,6 +93,16 @@ const plan: UserPlan = {
 };
 
 describe("ramp model", () => {
+  it("leaves steps finished early out of what's coming up", () => {
+    const early = { ...plan, steps: plan.steps.map((item) => (item.id === "g2" ? { ...item, status: "reviewed" as const } : item)) };
+    expect(buildRampModel(early, new Date("2026-10-05T12:00:00Z")).upcoming.map((item) => item.id)).toEqual(["c"]);
+  });
+
+  it("labels a content step that opens Pitch Studio as a pitch", () => {
+    expect(planStepTypeLabel("content_review", "/practice/pitch?scenario=x")).toBe("Pitch");
+    expect(planStepTypeLabel("content_review", "https://documentation.sailpoint.com")).toBe("Content");
+  });
+
   it("splits weeks with the remainder at the end", () => {
     expect(splitWeeks(13, 3)).toEqual([4, 4, 5]);
   });

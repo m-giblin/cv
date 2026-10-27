@@ -17,6 +17,7 @@ import { StatusPill } from "@/components/ui/status-pill";
 import { SimulationAssignment } from "@/lib/types";
 import { splitCoachMessage } from "@/lib/simulations/coach-message";
 import { cn } from "@/lib/utils";
+import { stripPersonaCard } from "@/lib/simulations/persona-card";
 
 const formSchema = z.object({
   message: z.string().min(1, "Add a response for the persona."),
@@ -434,7 +435,10 @@ export function SimulationWorkspace({
                 !isSe && !isCoach && "border border-line bg-white",
               )}
             >
-              <p className="whitespace-pre-wrap text-[15px] leading-[1.5] text-ink">{message.message}</p>
+              <p className="whitespace-pre-wrap text-[15px] leading-[1.5] text-ink">
+                {/* The buyer's opening may still carry a private persona card; show only what they say. */}
+                {index === 0 && !isSe ? stripPersonaCard(message.message) : message.message}
+              </p>
             </div>
           </div>
         );

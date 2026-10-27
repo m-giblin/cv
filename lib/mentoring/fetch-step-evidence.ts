@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import type { StepEvidence } from "@/lib/mentoring/mentor-records-model";
+import { PITCH_SAVED_EVENT, PITCH_SHARED_EVENT, overallPitchScore, readPitchSavedMetadata } from "@/lib/pitch/pitch-step";
 import { quizAttemptScores } from "@/lib/question-bank/model";
 import type { PlanStep } from "@/lib/types";
 
@@ -46,7 +47,7 @@ export async function fetchStepEvidence(admin: Db, userId: string, steps: PlanSt
   }
   const assignmentStepIds = steps.map((step) => step.assignmentStepId).filter((id): id is string => Boolean(id));
 
-  const [challengeRows, simRows, readRows, attemptRows, pitchRows, shadowRows, mentorRows] = await Promise.all([
+  const [challengeRows, simRows, readRows, attemptRows, pitchRows, shadowRows, mentorRows, pitchLogRows] = await Promise.all([
     challengeIds.length
       ? admin
           .from("challenge_submissions")
@@ -83,7 +84,56 @@ export async function fetchStepEvidence(admin: Db, userId: string, steps: PlanSt
     assignmentStepIds.length
       ? admin.from("mentor_review_requests").select("assignment_step_id, topic, se_notes, mentor_feedback, status, created_at").in("assignment_step_id", assignmentStepIds)
       : Promise.resolve({ data: [] }),
+    // Pitch Studio pitches saved to a ramp step, or shared with the mentor (activity rows carry the link).
+    scenarioByStep.size
+      ? admin
+          .from("activity_logs")
+          .select("event_type, metadata, created_at")
+          .eq("user_id", userId)
+          .in("event_type", [PITCH_SAVED_EVENT, PITCH_SHARED_EVENT])
+          .order("created_at", { ascending: false })
+          .limit(200)
+      : Promise.resolve({ data: [] }),
   ]);
+
+  // Practice session id -> the step it belongs to, and whether it was submitted or only shared.
+  const stepByAssignmentStep = new Map(steps.filter((step) => step.assignmentStepId).map((step) => [step.assignmentStepId!, step.id]));
+  const stepsByScenario = new Map<string, string[]>();
+  for (const [stepId, scenarioId] of scenarioByStep) stepsByScenario.set(scenarioId, [...(stepsByScenario.get(scenarioId) ?? []), stepId]);
+  const practiceLinks = new Map<string, { stepIds: string[]; how: string; score: number | null; coachingNote: string | null }>();
+  for (const row of (pitchLogRows.data ?? []) as { event_type: string; metadata: unknown }[]) {
+    const meta = readPitchSavedMetadata(row.metadata);
+    if (!meta.practiceSessionId || practiceLinks.has(meta.practiceSessionId)) continue;
+    if (row.event_type === PITCH_SAVED_EVENT && meta.assignmentStepId) {
+      const stepId = stepByAssignmentStep.get(meta.assignmentStepId);
+      if (stepId && scenarioByStep.has(stepId)) {
+        practiceLinks.set(meta.practiceSessionId, {
+          stepIds: [stepId],
+          how: meta.submitted ? "Submitted from Pitch Studio" : "Saved to the step",
+          score: meta.score,
+          coachingNote: meta.coachingNote,
+        });
+      }
+    } else if (row.event_type === PITCH_SHARED_EVENT) {
+      const scenarioId = record(row.metadata).scenarioId;
+      const stepIds = typeof scenarioId === "string" ? (stepsByScenario.get(scenarioId) ?? []) : [];
+      if (stepIds.length) practiceLinks.set(meta.practiceSessionId, { stepIds, how: "Shared with you", score: meta.score, coachingNote: null });
+    }
+  }
+  // Coaching notes are on the save row; a shared pitch picks its note up from there.
+  for (const row of (pitchLogRows.data ?? []) as { event_type: string; metadata: unknown }[]) {
+    const meta = readPitchSavedMetadata(row.metadata);
+    const link = meta.practiceSessionId ? practiceLinks.get(meta.practiceSessionId) : undefined;
+    if (link && !link.coachingNote && meta.coachingNote) link.coachingNote = meta.coachingNote;
+  }
+  const { data: practiceRows } = practiceLinks.size
+    ? await admin
+        .from("pitch_practice_sessions")
+        .select("id, title, response_mode, transcript, reflection_text, ai_scores, duration_sec, created_at")
+        .eq("user_id", userId)
+        .in("id", [...practiceLinks.keys()])
+        .order("created_at", { ascending: false })
+    : { data: [] };
 
   const simAssignments = (simRows.data ?? []) as { id: string; template_id: string | null; status: string; transcript: unknown; updated_at: string }[];
   const { data: cardRows } = simAssignments.length
@@ -200,6 +250,33 @@ export async function fetchStepEvidence(admin: Db, userId: string, steps: PlanSt
             ...(typeof row.transcript === "string" && row.transcript ? [{ label: "What they said", body: row.transcript }] : []),
             ...(typeof row.reflection_text === "string" && row.reflection_text ? [{ label: "Their reflection", body: row.reflection_text }] : []),
             ...(typeof row.manager_feedback === "string" && row.manager_feedback ? [{ label: "Manager feedback", body: row.manager_feedback }] : []),
+          ],
+        });
+      }
+    }
+
+    if (scenario) {
+      for (const row of (practiceRows ?? []).filter((item) => practiceLinks.get(item.id)?.stepIds.includes(step.id)).slice(0, 2)) {
+        const link = practiceLinks.get(row.id)!;
+        const score = link.score ?? overallPitchScore(row.ai_scores);
+        const scoreRows = Array.isArray(row.ai_scores) ? (row.ai_scores as { label?: unknown; score?: unknown }[]) : [];
+        const facts = [
+          { label: "How", value: link.how },
+          { label: "Format", value: row.response_mode === "text" ? "typed" : row.response_mode },
+          { label: "AI score", value: score !== null ? String(score) : "Not scored" },
+        ];
+        if (typeof row.duration_sec === "number") facts.push({ label: "Length", value: `${Math.round(row.duration_sec)} seconds` });
+        add(step.id, {
+          label: "Pitch from Pitch Studio",
+          at: short(row.created_at),
+          facts,
+          lists: scoreRows.length
+            ? [{ label: "Rubric", items: scoreRows.filter((item) => typeof item.label === "string" && typeof item.score === "number").map((item) => `${item.label}: ${item.score}`) }]
+            : [],
+          texts: [
+            ...(row.transcript ? [{ label: row.response_mode === "text" ? "What they typed" : "What they said", body: row.transcript }] : []),
+            ...(link.coachingNote ? [{ label: "AI coaching note", body: link.coachingNote }] : []),
+            ...(row.reflection_text ? [{ label: "Their reflection", body: row.reflection_text }] : []),
           ],
         });
       }

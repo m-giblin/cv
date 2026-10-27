@@ -79,7 +79,7 @@ export function RampHeader({
           />
         ) : undefined
       }
-      eyebrow={model ? `Week ${model.currentWeek} of ${model.totalWeeks}` : plan?.name}
+      eyebrow={model ? `${plan?.name ? `${plan.name} / ` : ""}Week ${model.currentWeek} of ${model.totalWeeks}` : plan?.name}
       title="My ramp."
     />
   );
@@ -103,7 +103,7 @@ export function RampRunwayRow({ model }: { model: RampModel }) {
             className={cn("truncate", segment.state === "current" && "font-bold text-ink")}
             key={segment.index}
           >
-            {segment.index === 0 ? `Weeks 1 to ${model.totalWeeks}` : `${segment.label}, ${weekRange(segment)}`}
+            {`${segment.label}, ${weekRange(segment)}`}
           </span>
         ))}
       </div>
@@ -195,7 +195,7 @@ function StepTable({
                 </span>
               </th>
               <td className={cn(tdCls, "text-sm text-ink-2", index === 0 && "border-t-0")}>
-                {step.isSegmentGate ? "Gate" : planStepTypeLabel(step.type)}
+                {step.isSegmentGate ? "Gate" : planStepTypeLabel(step.type, step.resourceUrl)}
               </td>
               <td className={cn(tdCls, "text-right text-sm text-muted", index === 0 && "border-t-0")}>
                 {formatDay(step.dueDate) ?? "No date"}
@@ -287,7 +287,7 @@ function CurrentSegment({
               </span>
             ) : null}
             <span>
-              Type <b className="text-ink">{planStepTypeLabel(next.type)}</b>
+              Type <b className="text-ink">{planStepTypeLabel(next.type, next.resourceUrl)}</b>
             </span>
             {reviewer ? (
               <span>
@@ -322,9 +322,13 @@ function CurrentSegment({
         <StepTable label={`${segment.label}, remaining steps`} model={model} plan={plan} steps={rest} />
       ) : null}
       {validatedHere.length > 0 ? (
-        <p className="text-[13px] text-muted">
-          {validatedHere.length} {validatedHere.length === 1 ? "step" : "steps"} in this segment already validated.
-        </p>
+        // Keep finished work in view so they can look back at what they submitted and what came back.
+        <>
+          <h3 className="pt-1 text-base font-extrabold text-ink">
+            Done <span className="text-[15px] font-medium text-muted">{validatedHere.length} validated</span>
+          </h3>
+          <StepTable label={`${segment.label}, done`} model={model} plan={plan} steps={validatedHere} />
+        </>
       ) : null}
     </section>
   );
@@ -416,7 +420,7 @@ export function RampStepDetail({
   return (
     <RampStepWorkbench
       eyebrow={`My ramp / Step ${number} of ${total}`}
-      subtitle={`${planStepTypeLabel(step.type)}${due ? `, due ${due}` : ""}.`}
+      subtitle={`${planStepTypeLabel(step.type, step.resourceUrl)}${due ? `, due ${due}` : ""}.`}
       title={step.title}
     >
       <div className="flex flex-col gap-6">

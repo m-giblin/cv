@@ -11,7 +11,7 @@ function segmentNote(segment: RampModel["segments"][number]): string {
 }
 
 /** Today rail (artboard 1a): "ramp, noun, field" with the segment boxes and the navy runway. */
-export function RampDefinitionCard({ model }: { model: RampModel | null }) {
+export function RampDefinitionCard({ model, planName }: { model: RampModel | null; planName?: string }) {
   if (!model) {
     return (
       <DefinitionCard partOfSpeech="noun, field" word="ramp">
@@ -79,7 +79,9 @@ export function RampDefinitionCard({ model }: { model: RampModel | null }) {
       partOfSpeech="noun, field"
       word="ramp"
     >
-      The {numberWord(weeks)} weeks between your first login and your first solo customer call.
+      {planName
+        ? `${capitalize(numberWord(weeks))} weeks of ${planName}. Your manager signs off the gate at the end, which opens your next stage.`
+        : `The ${numberWord(weeks)} weeks between your first login and your first solo customer call.`}
       {segmented ? ` ${capitalize(numberWord(model.segments.length))} segments get you there:` : ""}
     </DefinitionCard>
   );

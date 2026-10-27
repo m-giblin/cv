@@ -69,7 +69,7 @@ const foundationSteps = [
     order: 3,
     day: 5,
     title: "Pitch: the Atlas story",
-    description: "In 60 seconds, explain the Atlas story in plain language.",
+    description: "In 90 seconds, explain the Atlas story in plain language.",
     type: "content_review",
     pitch: "foundation-atlas-story",
     minutes: 15,

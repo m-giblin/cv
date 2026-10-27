@@ -3,6 +3,8 @@ import Link from "next/link";
 import { PitchStudioShell } from "@/components/pitch/pitch-studio-shell";
 import { PageBody, PageHeader } from "@/components/ui/page-header";
 import { requirePitchPageAccess } from "@/lib/auth/require-access";
+import { loadPitchStudioContext } from "@/lib/pitch/pitch-step-context";
+import { createClient } from "@/lib/supabase/server";
 
 const loadingBlock = () => (
   <div className="h-24 animate-pulse rounded-[14px] border border-line bg-white motion-reduce:animate-none" />
@@ -19,7 +21,7 @@ const PitchPeerReviewForm = dynamic(
 );
 
 type PitchPageProps = {
-  searchParams: Promise<{ review?: string; scenario?: string; test?: string }>;
+  searchParams: Promise<{ review?: string; scenario?: string; step?: string; test?: string }>;
 };
 
 export const metadata = { title: "Pitch · Practice" };
@@ -28,6 +30,10 @@ export default async function PitchPage({ searchParams }: PitchPageProps) {
   const { data, tier } = await requirePitchPageAccess();
   const params = await searchParams;
   const testMode = tier === "admin" && params.test === "1";
+  // Opened from a ramp step (?step=<assignment step id>): the saved pitch attaches to that step.
+  const studio = params.review
+    ? { step: null, mentorName: null }
+    : await loadPitchStudioContext(await createClient(), data.currentUser.id, params.step);
 
   return (
     <>
@@ -55,7 +61,9 @@ export default async function PitchPage({ searchParams }: PitchPageProps) {
       ) : (
         <PitchStudioShell
           initialScenarioId={params.scenario}
+          mentorName={studio.mentorName}
           peerPitches={data.peerPitches}
+          rampStep={studio.step}
           testMode={testMode}
           tier={tier}
         />

@@ -58,7 +58,7 @@ export function planStepActionLabel(step: PlanStep) {
     case "simulation":
       return "Start simulation";
     case "content_review":
-      return "Review content";
+      return step.resourceUrl?.startsWith("/practice/pitch") ? "Do the pitch" : "Review content";
     case "shadow_meeting_log":
       return "Log shadow meeting";
     case "mentor_review":

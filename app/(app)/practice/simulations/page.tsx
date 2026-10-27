@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation";
 import { SpacedReinforcementRedirect } from "@/components/practice/spaced-reinforcement-redirect";
+import { SimulationCatalogue } from "@/components/simulation/simulation-catalogue";
 import { SimulationsShell } from "@/components/simulation/simulations-shell";
 import { requireSimulationsPageAccess } from "@/lib/auth/require-access";
+import { buildSimulationCatalogue, loadSimulationCatalogueInputs } from "@/lib/simulations/catalogue";
+import { assignmentForSession } from "@/lib/simulations/persona-card";
 import { resolveSimulationAssignment } from "@/lib/simulations/resolve-assignment";
 import {
   ensureTemplateAssignment,
@@ -40,6 +43,34 @@ export default async function SimulationsPage({ searchParams }: SimulationsPageP
       );
     }
   }
+  const isSe = tier === "se";
+  const testMode = tier === "admin" && params.test === "1";
+  const reinforcement =
+    isSe && params.autoAssign === "1" ? <SpacedReinforcementRedirect autoAssign competency={params.reinforce} /> : null;
+
+  // No scenario named: show the catalogue rather than dropping into someone else's default roleplay.
+  if (!templateId && !params.assignment?.trim()) {
+    const userId = data.currentUser.id;
+    const supabase = await createClient();
+    const assignerIds = [
+      ...new Set(
+        data.simulations
+          .filter((simulation) => simulation.assignedTo === userId && simulation.assignedBy !== userId && simulation.assignedBy !== "system")
+          .map((simulation) => simulation.assignedBy),
+      ),
+    ];
+    const inputs = supabase
+      ? await loadSimulationCatalogueInputs(supabase, { userId, tenantId: data.currentUser.tenantId ?? null, assignerIds })
+      : { templates: [], rampSteps: [], assignerNames: {} };
+    const catalogue = buildSimulationCatalogue({ userId, simulations: data.simulations, testMode, ...inputs });
+    return (
+      <>
+        {reinforcement}
+        <SimulationCatalogue catalogue={catalogue} testMode={testMode} />
+      </>
+    );
+  }
+
   let focusAssignmentId = params.assignment;
   if (templateId) {
     const reusable = reusableAssignmentId(data.simulations, data.currentUser.id, templateId);
@@ -53,7 +84,7 @@ export default async function SimulationsPage({ searchParams }: SimulationsPageP
       );
     }
     if (params.assignment !== opened) {
-      redirect(`/practice/simulations?assignment=${opened}`);
+      redirect(`/practice/simulations?assignment=${opened}${testMode ? "&test=1" : ""}`);
     }
     focusAssignmentId = opened;
   }
@@ -69,16 +100,19 @@ export default async function SimulationsPage({ searchParams }: SimulationsPageP
       </p>
     );
   }
-  const { assignment } = resolved;
-
-  const isSe = tier === "se";
-  const testMode = tier === "admin" && params.test === "1";
+  // The transcript is read here so the first persona message can lose its printed card before it renders.
+  const supabase = await createClient();
+  const { data: stored } = supabase
+    ? await supabase.from("simulation_assignments").select("transcript").eq("id", resolved.assignment.id).maybeSingle()
+    : { data: null };
+  const assignment = assignmentForSession(
+    resolved.assignment,
+    Array.isArray(stored?.transcript) ? (stored.transcript as unknown as typeof resolved.assignment.transcript) : null,
+  );
 
   return (
     <>
-      {isSe && params.autoAssign === "1" ? (
-        <SpacedReinforcementRedirect autoAssign competency={params.reinforce} />
-      ) : null}
+      {reinforcement}
       <SimulationsShell
         assignment={assignment}
         key={assignment.id}

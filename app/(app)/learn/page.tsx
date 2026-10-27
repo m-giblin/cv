@@ -6,6 +6,7 @@ import { getUserReleaseProjectTags } from "@/lib/corpus/user-release-tags";
 import { GENAI_VS_AGENTIC_MODULES } from "@/lib/learn/agentic-curriculum";
 import { isFeatureEnabled } from "@/lib/platform/feature-flags";
 import { loadPlatformSettings } from "@/lib/platform/settings";
+import { loadPlaybookChapterSummaries } from "@/lib/search/playbook-chapters";
 import { isStepValidated } from "@/lib/se/ramp-model";
 import { createClient } from "@/lib/supabase/server";
 
@@ -17,7 +18,11 @@ export default async function LearnPage() {
   const [{ data }, context] = await Promise.all([requireAppAccess("/learn"), resolveTenantContext()]);
   // Managers, admins and operators can assign library items to their team.
   const canAssign = Boolean(context?.tenantId && ["manager", "admin", "super_admin"].includes(context.tier));
-  const settings = await loadPlatformSettings(data.currentUser.tenantId ?? undefined);
+  const [settings, playbooks] = await Promise.all([
+    loadPlatformSettings(data.currentUser.tenantId ?? undefined),
+    // Playbook chapters sit in the library too, so search and the Playbooks filter find them.
+    context?.tenantId ? loadPlaybookChapterSummaries(context.tenantId) : Promise.resolve([]),
+  ]);
   const agenticTrackEnabled = isFeatureEnabled(settings.featureFlags, "agentic-ai-track");
   const labEnabled = isFeatureEnabled(settings.featureFlags, "isc-lab");
   const supabase = await createClient();
@@ -41,6 +46,7 @@ export default async function LearnPage() {
           labEnabled={labEnabled}
           modules={modules}
           pathName="GenAI vs Agentic AI"
+          playbooks={playbooks}
           rampPicks={rampPicks}
           releaseProjectTags={releaseProjectTags}
         />

@@ -142,7 +142,7 @@ const pitches = [
     label: "Foundation: The Atlas story",
     prompt_label: "Connect the ideas",
     prompt:
-      "You have already explained identity, job changes, standing access, and access reviews. In 90 seconds, tell the SailPoint Atlas story to a new colleague. Start with the problem of separate tools, then say what one platform changes. Use the field guide’s idea that the gaps between tools are where extra access hides.",
+      "In 90 seconds, tell the SailPoint Atlas story to a new colleague. Start with the problem of separate tools for granting, reviewing and removing access, then say what one platform changes. Use the field guide’s idea that the gaps between tools are where extra access hides.",
     description: goals([
       "Starts with separate tools for granting, reviewing, and removing access",
       "Explains that the seams between those tools are where policy stops",

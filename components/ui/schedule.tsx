@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { Tag } from "@/components/ui/tag";
 import { cn } from "@/lib/utils";
@@ -9,6 +10,8 @@ export type ScheduleRow = {
   title: ReactNode;
   meta?: ReactNode;
   gate?: boolean;
+  /** Makes the title a link, e.g. to open the step. */
+  href?: string;
 };
 
 /** Date rows: month over day, a two-line cell, and a Gate badge where relevant. */
@@ -22,7 +25,13 @@ export function Schedule({ rows, className }: { rows: ScheduleRow[]; className?:
             <span className="num text-[26px] leading-none font-extrabold">{row.day}</span>
           </span>
           <span className="flex min-w-0 flex-col">
-            <span className="truncate text-[15px] font-bold text-ink">{row.title}</span>
+            {row.href ? (
+              <Link className="truncate text-[15px] font-bold text-ink hover:text-blue hover:underline" href={row.href}>
+                {row.title}
+              </Link>
+            ) : (
+              <span className="truncate text-[15px] font-bold text-ink">{row.title}</span>
+            )}
             {row.meta ? <span className="truncate text-[13px] text-muted">{row.meta}</span> : null}
           </span>
           {row.gate ? <Tag tone="blue">Gate</Tag> : <span />}

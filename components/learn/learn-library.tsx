@@ -14,6 +14,8 @@ import { ProgressBlocks } from "@/components/ui/ramp-card";
 import { StatusPill } from "@/components/ui/status-pill";
 import { TableCard, tdCls, thCls } from "@/components/ui/table";
 import type { LearnModule } from "@/lib/learn/agentic-curriculum";
+import { scoreMatch } from "@/lib/search/match";
+import { playbookChapterHref, type PlaybookChapterSummary } from "@/lib/search/playbook-chapters";
 import { canonicalSeHref } from "@/lib/se/se-routes";
 import { formatShortDate, pad2 } from "@/lib/se/ramp-model";
 import { cn } from "@/lib/utils";
@@ -43,7 +45,7 @@ const FILTERS: { id: FilterId; label: string }[] = [
 
 type LibraryItem = {
   id: string;
-  kind: "module" | "asset";
+  kind: "module" | "asset" | "playbook";
   title: string;
   subline?: string;
   type: string;
@@ -68,10 +70,12 @@ function typeForCategory(category: string): { label: string; filter: FilterId | 
 
 /**
  * Learn (artboard 6a): one searchable library. The learning path (GenAI vs Agentic AI modules,
- * progress from /api/learn/progress) comes first, then every content asset from /api/content.
+ * progress from /api/learn/progress) comes first, then published playbook chapters, then every content
+ * asset from /api/content.
  */
 export function LearnLibrary({
   modules,
+  playbooks = [],
   pathName,
   releaseProjectTags = [],
   labEnabled,
@@ -79,6 +83,8 @@ export function LearnLibrary({
   canAssign = false,
 }: {
   modules: LearnModule[];
+  /** Published playbook chapters; they open in Learn > Playbooks. */
+  playbooks?: PlaybookChapterSummary[];
   /** Library items linked to the SE's open ramp steps. */
   rampPicks?: number;
   pathName: string;
@@ -159,6 +165,20 @@ export function LearnLibrary({
         filter: "modules",
         module,
       }));
+    const playbookItems: LibraryItem[] = playbooks
+      .filter((playbook) => !query || scoreMatch(query, { title: playbook.title, fields: [playbook.summary] }) !== null)
+      .map((playbook) => ({
+        id: `playbook-${playbook.id}`,
+        kind: "playbook",
+        title: playbook.title,
+        subline: playbook.summary || undefined,
+        type: "Playbook",
+        competency: `Chapter ${playbook.chapter}`,
+        updated: formatShortDate(playbook.updatedAt) ?? "–",
+        href: playbookChapterHref(playbook.slug),
+        external: false,
+        filter: "playbook",
+      }));
     const assetItems: LibraryItem[] = assets.map((asset) => {
       const type = typeForCategory(asset.category);
       return {
@@ -173,8 +193,8 @@ export function LearnLibrary({
         filter: type.filter,
       };
     });
-    return [...moduleItems, ...assetItems];
-  }, [assets, completed, modules, pathName, search]);
+    return [...moduleItems, ...playbookItems, ...assetItems];
+  }, [assets, completed, modules, pathName, playbooks, search]);
   const items = useMemo(
     () => allItems.filter((item) => filter === "all" || item.filter === filter),
     [allItems, filter],
@@ -182,6 +202,8 @@ export function LearnLibrary({
 
   const nextModuleIndex = modules.findIndex((module) => !completed.has(module.id));
   const nextModule = nextModuleIndex >= 0 ? modules[nextModuleIndex] : null;
+  // Progress can include modules from a track that's switched off, so count only the ones shown.
+  const modulesDone = modules.filter((module) => completed.has(module.id)).length;
   const feedbackAsset = assets.find((asset) => asset.id === feedbackAssetId);
 
   async function markComplete(module: LearnModule) {
@@ -229,7 +251,7 @@ export function LearnLibrary({
             className="min-w-0 flex-1 bg-transparent text-base text-ink placeholder:text-muted focus-visible:outline-none"
             id={searchId}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search modules, battle cards, demo guides"
+            placeholder="Search modules, playbooks, battle cards, demo guides"
             ref={searchRef}
             type="search"
             value={search}
@@ -319,6 +341,13 @@ export function LearnLibrary({
                               >
                                 {item.title}
                               </button>
+                            ) : item.kind === "playbook" ? (
+                              <Link
+                                className="truncate text-[15px] font-bold text-ink hover:underline hover:decoration-signal hover:decoration-2 hover:underline-offset-4"
+                                href={item.href}
+                              >
+                                {item.title}
+                              </Link>
                             ) : (
                               <a
                                 className="truncate text-[15px] font-bold text-ink hover:underline hover:decoration-signal hover:decoration-2 hover:underline-offset-4"
@@ -373,7 +402,10 @@ export function LearnLibrary({
         <aside aria-label="Your learning" className="flex min-w-0 flex-col gap-3.5">
           {modules.length > 0 ? (
             <>
-              <h2 className="label-caps">{nextModule ? "Continue where you left off" : "Learning path"}</h2>
+              <h2 className="label-caps">
+                {/* Only "continue" once the person has actually finished a module. */}
+                {nextModule ? (modulesDone > 0 ? "Continue where you left off" : "Start here") : "Learning path"}
+              </h2>
               <FlightStrip
                 compact
                 numeral={pad2(nextModule ? nextModuleIndex + 1 : modules.length)}
@@ -384,12 +416,12 @@ export function LearnLibrary({
                   {nextModule ? nextModule.title : "You've finished this learning path"}
                 </h3>
                 <span className="text-[13px] text-muted">
-                  {pathName}, {completed.size} of {modules.length} done
+                  {pathName}, {modulesDone} of {modules.length} done
                 </span>
-                <ProgressBlocks done={modules.filter((module) => completed.has(module.id)).length} total={modules.length} />
+                <ProgressBlocks done={modulesDone} total={modules.length} />
                 {nextModule ? (
                   <button className="link self-start text-sm" onClick={() => setOpenModule(nextModule)} type="button">
-                    {completed.size > 0 ? "Resume" : "Start"}
+                    {modulesDone > 0 ? "Resume" : "Start"}
                   </button>
                 ) : null}
               </FlightStrip>

@@ -56,6 +56,10 @@ describe("assistant guardrails", () => {
   it("lets platform and SailPoint questions through", () => {
     expect(isClearlyOffTopic("How do I submit evidence for my ramp step?")).toBe(false);
     expect(isClearlyOffTopic("Explain SailPoint access certifications to a CISO")).toBe(false);
+    expect(
+      isClearlyOffTopic("My mentor asked me to run the Foundation discovery simulation and send him the score. Where do I find it?"),
+    ).toBe(false);
+    expect(isClearlyOffTopic("How are pitch scores calculated?")).toBe(false);
   });
 
   it("grounds the prompt in matching articles and the scope rule", () => {

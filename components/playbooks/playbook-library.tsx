@@ -3,7 +3,7 @@
 import { Check, ChevronRight, ListChecks, Mic, Search, Swords } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AssignWorkbench, MyAssignments, TeamAssignments } from "@/components/playbooks/playbook-assignments";
 import { QuizPlayer, type Check as KnowledgeCheck } from "@/components/question-bank/knowledge-checks";
 import { GuideOverview } from "@/components/playbooks/guide-overview";
@@ -62,6 +62,9 @@ export function PlaybookLibrary({
   const [assigning, setAssigning] = useState<string[] | null>(null);
   const [read, setRead] = useState(() => new Set(readIds));
   const [marking, setMarking] = useState(false);
+  // "Read to the end" means it: Mark as read unlocks once the end of the chapter has been on screen.
+  const [reachedEndOf, setReachedEndOf] = useState<string | null>(null);
+  const endRef = useRef<HTMLDivElement | null>(null);
 
   const guide = guides.find((item) => item.id === guideId) ?? guides[0];
   const chapters = useMemo(() => playbooks.filter((playbook) => playbook.guideId === guide?.id), [guide?.id, playbooks]);
@@ -79,6 +82,17 @@ export function PlaybookLibrary({
   const openAssignment = open
     ? myAssignments.find((item) => item.playbookId === open.id && item.status === "active") ?? null
     : null;
+
+  useEffect(() => {
+    const target = endRef.current;
+    if (!open || !target || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) setReachedEndOf(open.id);
+    });
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [open]);
+  const reachedEnd = open ? reachedEndOf === open.id : false;
 
   async function markRead(playbookId: string) {
     setMarking(true);
@@ -227,7 +241,12 @@ export function PlaybookLibrary({
                   <Check aria-hidden className="h-4 w-4" /> Read
                 </span>
               ) : (
-                <button className="btn-primary" disabled={marking} onClick={() => void markRead(open.id)} type="button">
+                <button
+                  className="btn-primary"
+                  disabled={marking || !reachedEnd}
+                  onClick={() => void markRead(open.id)}
+                  type="button"
+                >
                   {marking ? "Saving…" : "Mark as read"}
                 </button>
               )}
@@ -241,7 +260,9 @@ export function PlaybookLibrary({
           footerNote={
             openAssignment
               ? `Assigned to you · ${dueLabel(openAssignment.progress, openAssignment.dueDate)}`
-              : "Mark it read when you've worked through it."
+              : read.has(open.id) || reachedEnd
+                ? "Mark it read when you've worked through it."
+                : "Read to the end of the chapter to mark it read."
           }
           key={open.id}
           onClose={() => setOpen(null)}
@@ -252,6 +273,7 @@ export function PlaybookLibrary({
           <div className="flex flex-col gap-8">
             <PracticeStrip pitchDrills={pitchDrills[open.id] ?? []} playbook={open} />
             <PlaybookView body={open.body} />
+            <div aria-hidden ref={endRef} />
           </div>
         </Drawer>
       ) : null}

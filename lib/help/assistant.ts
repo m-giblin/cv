@@ -25,7 +25,8 @@ export const ASSISTANT_REFUSAL =
  */
 const OFF_TOPIC = [
   /\b(weather|forecast|temperature outside)\b/i,
-  /\b(score|scores|nfl|nba|mlb|nhl|premier league|super bowl|world cup|playoffs?)\b/i,
+  // Sports only: "score" on its own is how people talk about simulations, pitches and checks here.
+  /\b(nfl|nba|mlb|nhl|premier league|super bowl|world cup|playoffs?|game scores?|final score)\b/i,
   /\b(stock price|crypto|bitcoin|lottery|horoscope|recipe|movie|song lyrics|celebrity)\b/i,
   /\b(write (me )?(a )?(poem|essay|story|song))\b/i,
 ];

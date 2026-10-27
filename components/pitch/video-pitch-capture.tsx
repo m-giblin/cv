@@ -1,7 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Check, Clock, Loader2, Mic, Trash2, Video } from "lucide-react";
+import { Check, Clock, Loader2, Mic, Send, Trash2, Video } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
 import { PitchCoachingRail, type PitchScoreRow } from "@/components/pitch/pitch-coaching-rail";
@@ -10,6 +11,7 @@ import { Chip } from "@/components/ui/chip";
 import { SegmentedToggle } from "@/components/ui/segmented-toggle";
 import { PITCH_RESPONSE_MODE_LABELS, wordCount, type PitchResponseMode } from "@/lib/playbooks/drills";
 import { PITCH_SCENARIOS } from "@/lib/pitch/pitch-scenarios";
+import { overallPitchScore, type PitchStepContext } from "@/lib/pitch/pitch-step";
 import type { PitchQueueSlot, PitchScenarioRow } from "@/lib/pitch/pitch-queue";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -80,15 +82,21 @@ function formatClock(sec: number) {
 export function VideoPitchCapture({
   initialScenarioId,
   peerLibrary,
+  rampStep = null,
+  mentorName = null,
 }: {
   initialScenarioId?: string;
   peerLibrary?: ReactNode;
+  /** Opened from a ramp step: saving attaches the pitch to it and submitting sends it for review. */
+  rampStep?: PitchStepContext | null;
+  /** The mentor on the SE's active plan; enables "Share with my mentor" in free practice. */
+  mentorName?: string | null;
 }) {
   const reflectionId = useId();
   const typedId = useId();
   const videoRef = useRef<HTMLVideoElement>(null);
   // A link from a playbook opens that drill in free practice.
-  const [studioMode, setStudioMode] = useState<StudioMode>(initialScenarioId ? "practice" : "assigned");
+  const [studioMode, setStudioMode] = useState<StudioMode>(initialScenarioId || rampStep ? "practice" : "assigned");
   const [responseMode, setResponseMode] = useState<PitchResponseMode>("video");
   const [recording, setRecording] = useState(false);
   const [elapsed, setElapsed] = useState(0);
@@ -113,6 +121,12 @@ export function VideoPitchCapture({
   const [showReference, setShowReference] = useState(false);
   const [coaching, setCoaching] = useState(false);
   const [savedPractice, setSavedPractice] = useState(false);
+  const [savedSessionId, setSavedSessionId] = useState<string | null>(null);
+  const [sharing, setSharing] = useState(false);
+  const [sharedWithMentor, setSharedWithMentor] = useState(false);
+  const [stepSubmitted, setStepSubmitted] = useState(rampStep?.status === "submitted");
+  // The last scored take stays on screen after saving or editing, until the scenario changes.
+  const [lastScored, setLastScored] = useState<{ scores: PitchScoreRow[]; note: string | null } | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
@@ -191,6 +205,8 @@ export function VideoPitchCapture({
     setOverTime(false);
     setShowReference(false);
     setSavedPractice(false);
+    setSavedSessionId(null);
+    setSharedWithMentor(false);
   }, []);
 
   useEffect(() => {
@@ -202,6 +218,7 @@ export function VideoPitchCapture({
 
   useEffect(() => {
     clearRecording();
+    setLastScored(null);
     setTitle(scenario.shortLabel);
     setTypedPitch("");
     setResponseMode((current) => (scenario.responseModes.includes(current) ? current : scenario.responseModes[0]!));
@@ -360,6 +377,10 @@ export function VideoPitchCapture({
     setCoachTips(body.tips);
     // Scores only ever come from the AI review; rule-based tips leave the rubric empty.
     setCoachScores(body.scores ?? []);
+    if (body.scores?.length) setLastScored({ scores: body.scores, note: body.tips[0] ?? null });
+    setSavedPractice(false);
+    setSavedSessionId(null);
+    setSharedWithMentor(false);
     setMissed(body.missed ?? []);
     setOverTime(Boolean(body.overTime));
     if (body.source === "rules") toast.message("AI isn't configured, so you got tips without scores.");
@@ -448,17 +469,27 @@ export function VideoPitchCapture({
     return responseMode === "text" ? wordCount(typedPitch) >= 8 : Boolean(blob);
   }
 
-  async function savePractice() {
+  /**
+   * Saves the take. From a ramp step it attaches to that step, and with submit it also sends the step for
+   * review (the mentor gets the usual submission notification). Returns the saved session id.
+   */
+  async function savePractice(opts?: { submit?: boolean; quiet?: boolean }): Promise<string | null> {
     if (!reflection.trim() && !hasAnswer()) {
       toast.error(responseMode === "text" ? "Type your pitch before saving." : "Record or add a reflection before saving.");
-      return;
+      return null;
+    }
+    if (opts?.submit && !hasAnswer()) {
+      toast.error(responseMode === "text" ? "Type your pitch before submitting." : "Record your pitch before submitting.");
+      return null;
     }
 
     setUploading(true);
+    // The reviewer of a ramp step needs the words, not just the recording; a failed transcription doesn't block.
+    const words = rampStep && responseMode !== "text" && blob ? (transcript || (await ensureTranscript()) || "") : pitchText;
     const uploaded = responseMode !== "text" && blob ? await uploadEvidence() : null;
     if (responseMode !== "text" && blob && !uploaded) {
       setUploading(false);
-      return;
+      return null;
     }
 
     const response = await fetch("/api/pitch/practice", {
@@ -471,19 +502,60 @@ export function VideoPitchCapture({
         scenarioId: isUuid(scenario.id) ? scenario.id : undefined,
         aiScores: coachScores.length > 0 ? coachScores : undefined,
         responseMode,
-        transcript: pitchText || undefined,
+        transcript: words || undefined,
         durationSec: responseMode === "text" ? undefined : durationSec,
+        coachingNote: coachScores.length > 0 ? (coachTips[0] ?? undefined) : undefined,
+        assignmentStepId: rampStep?.assignmentStepId,
+        submitStep: rampStep ? Boolean(opts?.submit) : undefined,
       }),
     });
 
     setUploading(false);
+    const body = (await response.json().catch(() => null)) as { session?: { id: string }; error?: string } | null;
+    if (body?.session?.id) {
+      setSavedPractice(true);
+      setSavedSessionId(body.session.id);
+    }
     if (!response.ok) {
-      toast.error("Could not save practice session.");
-      return;
+      toast.error(body?.error ?? "Could not save practice session.");
+      return null;
     }
 
-    setSavedPractice(true);
-    toast.success("Practice saved. Your manager was not notified.");
+    if (rampStep && opts?.submit) {
+      setStepSubmitted(true);
+      toast.success(`Submitted for review. ${mentorName ?? "Your manager"} reviews it.`);
+    } else if (rampStep) {
+      toast.success("Pitch saved to your ramp step. Submit it when you're ready.");
+    } else if (!opts?.quiet) {
+      toast.success("Practice saved. Your manager was not notified.");
+    }
+    return body?.session?.id ?? null;
+  }
+
+  async function shareWithMentor() {
+    if (!coachScores.length && !savedSessionId) {
+      toast.error("Score your pitch first, then share it.");
+      return;
+    }
+    setSharing(true);
+    const id = savedSessionId ?? (await savePractice({ quiet: true }));
+    if (!id) {
+      setSharing(false);
+      return;
+    }
+    const response = await fetch("/api/pitch/practice/share", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ practiceSessionId: id }),
+    }).catch(() => null);
+    setSharing(false);
+    const body = (await response?.json().catch(() => null)) as { mentorName?: string; error?: string } | null;
+    if (!response?.ok) {
+      toast.error(body?.error ?? "Couldn't share it just now.");
+      return;
+    }
+    setSharedWithMentor(true);
+    toast.success(`Sent to ${body?.mentorName ?? mentorName ?? "your mentor"} with your score.`);
   }
 
   async function submitForReview() {
@@ -543,23 +615,41 @@ export function VideoPitchCapture({
   const typedWords = wordCount(typedPitch);
   const typedSeconds = Math.round(typedWords / 2.5);
   const busy = coaching || transcribing;
+  // Keep the last score visible once the take is saved or edited (#53).
+  const railScores = coachScores.length ? coachScores : (lastScored?.scores ?? []);
+  const railNote = coachScores.length ? (coachTips[0] ?? null) : (lastScored?.note ?? coachTips[0] ?? null);
+  const shownScore = overallPitchScore(railScores);
+  const reviewerName = mentorName ?? "Your manager";
 
   return (
     <div className={cn(CARD_CLS, "flex min-h-0 flex-1 flex-col overflow-hidden lg:grid lg:grid-cols-[minmax(0,1fr)_340px]")}>
       <div className="flex min-h-[50vh] min-w-0 flex-col overflow-hidden border-b border-line lg:min-h-0 lg:border-b-0 lg:border-r">
         <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-divider px-4 py-3 sm:px-5">
-          <SegmentedToggle
-            label="Studio mode"
-            onChange={(id) => (id === "assigned" ? switchToAssigned() : switchToPractice())}
-            options={[
-              { id: "assigned", label: "Assigned queue" },
-              { id: "practice", label: "Free practice" },
-            ]}
-            value={studioMode}
-          />
-          <span className="ml-auto text-[13px] text-muted">
-            {studioMode === "assigned" ? "Your manager reviews it when you submit." : "Private. Your manager isn't notified."}
-          </span>
+          {rampStep ? (
+            <p className="m-0 min-w-0 flex-1 text-[14px] text-ink" role="status">
+              <span className="font-bold">For your ramp step: {rampStep.title}.</span>{" "}
+              <span className="text-ink-2">{mentorName ? `${mentorName}, your mentor, reviews it.` : "Your manager reviews it."}</span>
+            </p>
+          ) : (
+            <>
+              <SegmentedToggle
+                label="Studio mode"
+                onChange={(id) => (id === "assigned" ? switchToAssigned() : switchToPractice())}
+                options={[
+                  { id: "assigned", label: "Assigned queue" },
+                  { id: "practice", label: "Free practice" },
+                ]}
+                value={studioMode}
+              />
+              <span className="ml-auto text-[13px] text-muted">
+                {studioMode === "assigned"
+                  ? "Your manager reviews it when you submit."
+                  : mentorName
+                    ? "Private unless you share it with your mentor."
+                    : "Private. Your manager isn't notified."}
+              </span>
+            </>
+          )}
         </div>
 
         {studioMode === "assigned" ? (
@@ -773,19 +863,63 @@ export function VideoPitchCapture({
               {busy ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : null}
               {transcribing ? "Transcribing…" : isDrill ? "Score my pitch" : "Get AI coaching"}
             </button>
-            {studioMode === "practice" ? (
-              <button
-                className="btn-primary ml-auto inline-flex items-center gap-2"
-                disabled={uploading || recording}
-                onClick={() => void savePractice()}
-                type="button"
-              >
-                {uploading ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : null}
-                {savedPractice ? <Check aria-hidden="true" className="h-4 w-4" /> : null}
-                Save practice
-              </button>
+            {rampStep ? (
+              stepSubmitted ? (
+                <span className="ml-auto inline-flex items-center gap-2 text-[14px] text-ink-2" role="status">
+                  <Check aria-hidden="true" className="h-4 w-4 text-blue" />
+                  Submitted. {reviewerName} reviews it.
+                  <Link className="link" href={`/my-plan?step=${rampStep.assignmentStepId}`}>
+                    Back to my plan
+                  </Link>
+                </span>
+              ) : (
+                <>
+                  <button
+                    className={cn(SECONDARY_BTN_CLS, "ml-auto")}
+                    disabled={uploading || recording}
+                    onClick={() => void savePractice()}
+                    type="button"
+                  >
+                    {savedPractice ? <Check aria-hidden="true" className="h-4 w-4" /> : null}
+                    Save practice
+                  </button>
+                  <button
+                    className="btn-primary inline-flex items-center gap-2"
+                    disabled={uploading || recording || busy}
+                    onClick={() => void savePractice({ submit: true })}
+                    type="button"
+                  >
+                    {uploading ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : null}
+                    Submit for review
+                  </button>
+                </>
+              )
+            ) : studioMode === "practice" ? (
+              <>
+                {mentorName && (coachScores.length > 0 || savedSessionId) ? (
+                  <button
+                    className={cn(SECONDARY_BTN_CLS, "ml-auto")}
+                    disabled={sharing || uploading || recording || sharedWithMentor}
+                    onClick={() => void shareWithMentor()}
+                    type="button"
+                  >
+                    {sharing ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : sharedWithMentor ? <Check aria-hidden="true" className="h-4 w-4" /> : <Send aria-hidden="true" className="h-4 w-4" />}
+                    {sharedWithMentor ? "Shared with your mentor" : "Share with my mentor"}
+                  </button>
+                ) : null}
+                <button
+                  className={cn("btn-primary inline-flex items-center gap-2", mentorName && (coachScores.length > 0 || savedSessionId) ? "" : "ml-auto")}
+                  disabled={uploading || recording}
+                  onClick={() => void savePractice()}
+                  type="button"
+                >
+                  {uploading ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : null}
+                  {savedPractice ? <Check aria-hidden="true" className="h-4 w-4" /> : null}
+                  {savedPractice ? "Saved" : "Save practice"}
+                </button>
+              </>
             ) : null}
-            {studioMode === "assigned" ? (
+            {studioMode === "assigned" && !rampStep ? (
               <button
                 className="btn-primary ml-auto inline-flex items-center gap-2"
                 disabled={uploading || recording || !hasAnswer() || selectedSlotPending}
@@ -802,9 +936,17 @@ export function VideoPitchCapture({
 
       <div className="max-h-[45vh] min-h-0 overflow-y-auto bg-white lg:max-h-none">
         <PitchCoachingRail
-          hasSubmission={coachScores.length > 0}
-          scores={coachScores}
-          topNote={coachTips[0] ?? null}
+          hasSubmission={railScores.length > 0}
+          overall={shownScore}
+          scores={railScores}
+          status={
+            railScores.length && !coachScores.length
+              ? "From your last scored take. Score again after changing it."
+              : savedPractice
+                ? "Saved with this score."
+                : null
+          }
+          topNote={railNote}
         />
         {isDrill && coachScores.length ? (
           <section className="flex flex-col gap-3 border-t border-divider px-5 py-4">

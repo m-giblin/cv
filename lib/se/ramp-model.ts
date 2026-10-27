@@ -170,7 +170,8 @@ export function buildRampModel(plan: UserPlan, now = new Date()): RampModel {
     segments,
     nextStep,
     nextStepNumber: nextIndex >= 0 ? nextIndex + 1 : steps.length,
-    upcoming: nextIndex >= 0 ? steps.slice(nextIndex + 1) : [],
+    // Steps already done (a playbook or check finished early) aren't "coming up".
+    upcoming: nextIndex >= 0 ? steps.slice(nextIndex + 1).filter((step) => !isStepValidated(step.status)) : [],
   };
 }
 
@@ -269,7 +270,7 @@ export function stepLifecycle(step: PlanStep, reviewerFirstName: string | null):
 /** Plain meta line for a step: "Challenge, due Thu, Oct 9". */
 export function stepMeta(step: PlanStep): string {
   const due = formatDay(step.dueDate);
-  const type = planStepTypeLabel(step.type);
+  const type = planStepTypeLabel(step.type, step.resourceUrl);
   return due ? `${type}, due ${due}` : type;
 }
 

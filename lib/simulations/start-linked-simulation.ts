@@ -6,6 +6,7 @@ import {
   buildPromptVars,
   isParameterizedTemplate,
   resolveSimulationStartMessage,
+  withPrivatePersonaCard,
 } from "@/lib/simulations/prompt-template";
 import type { SimulationAssignment } from "@/lib/types";
 
@@ -72,16 +73,17 @@ export async function ensureTemplateAssignment(
 
   if (!template || isDraftSimulationPrompt(template.prompt_body)) return null;
 
-  const promptBody = isParameterizedTemplate(template.prompt_body)
+  const templateBody = withPrivatePersonaCard(template.prompt_body);
+  const promptBody = isParameterizedTemplate(templateBody)
     ? buildPromptSnapshot(
-        template.prompt_body,
+        templateBody,
         buildPromptVars({
           solutionFocus: template.solution_focus,
           vertical: template.vertical,
           difficulty: template.difficulty,
         }),
       )
-    : template.prompt_body;
+    : templateBody;
 
   const { data: created, error } = await supabase
     .from("simulation_assignments")

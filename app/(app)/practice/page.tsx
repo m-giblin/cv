@@ -8,10 +8,12 @@ import {
 import { MainWithRail, PageBody, PageHeader } from "@/components/ui/page-header";
 import { requireAppAccess } from "@/lib/auth/require-access";
 import { isFeatureEnabled } from "@/lib/platform/feature-flags";
+import { createClient } from "@/lib/supabase/server";
 import { loadPlatformSettings } from "@/lib/platform/settings";
 import { PREFLIGHT_MINUTES, type PreflightTool } from "@/lib/se/preflight";
 import { daysUntil, formatDay, formatShortDate, isStepValidated } from "@/lib/se/ramp-model";
 import { planStepHref } from "@/lib/utils/plan-links";
+import { pitchTileSummary } from "@/lib/pitch/pitch-step";
 
 export const metadata = { title: "Practice" };
 
@@ -20,6 +22,33 @@ const DEFAULT_AUDIENCES = ["CISO", "CIO", "IAM lead", "IT director", "Procuremen
 
 function personaName(persona: string): string {
   return persona.replace(/\s*\(.*\)\s*$/, "").trim();
+}
+
+/** The SE's own saved and submitted pitches (typed ones too), read with their session. */
+async function loadMyPitchCount(userId: string, lastSubmittedAt: string | null): Promise<{ count: number; lastAt: string | null }> {
+  const fallback = { count: lastSubmittedAt ? 1 : 0, lastAt: lastSubmittedAt };
+  const supabase = await createClient();
+  if (!supabase) return fallback;
+  const [practice, submitted] = await Promise.all([
+    supabase
+      .from("pitch_practice_sessions")
+      .select("created_at", { count: "exact" })
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1),
+    supabase
+      .from("pitch_submissions")
+      .select("created_at", { count: "exact" })
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1),
+  ]);
+  if (practice.error || submitted.error) return fallback;
+  const dates = [practice.data?.[0]?.created_at, submitted.data?.[0]?.created_at, lastSubmittedAt].filter((d): d is string => Boolean(d));
+  return {
+    count: Math.max(fallback.count, (practice.count ?? 0) + (submitted.count ?? 0)),
+    lastAt: dates.sort().at(-1) ?? null,
+  };
 }
 
 export default async function PracticePage() {
@@ -82,6 +111,8 @@ export default async function PracticePage() {
   const lastPitch = data.activity
     .filter((item) => item.userId === userId && item.eventType === "pitch_submitted")
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+  // Saved practice counts as well as submissions, typed pitches included.
+  const myPitches = flags.pitch ? await loadMyPitchCount(userId, lastPitch?.createdAt ?? null) : { count: 0, lastAt: null };
 
   const cards: PracticeToolCard[] = [];
   if (flags.simulations) {
@@ -101,7 +132,8 @@ export default async function PracticePage() {
     cards.push({
       id: "challenges",
       title: "Challenges",
-      description: "Hands-on builds in the lab, reviewed by your manager.",
+      // Everyday challenges on an onboarding plan go to the mentor; gates and everything else to the manager.
+      description: `Hands-on builds in the lab, reviewed by your ${plan?.mentorId ? "mentor" : "manager"}.`,
       last: firstActive
         ? activeSubmissions.length === 1
           ? `${firstActive.title} is in progress`
@@ -116,8 +148,8 @@ export default async function PracticePage() {
     cards.push({
       id: "pitch",
       title: "Pitch",
-      description: "Timed, recorded pitches scored against a rubric.",
-      last: lastPitch ? `Last pitch ${formatShortDate(lastPitch.createdAt)}` : "No recordings yet",
+      description: "Timed pitches, recorded or typed, scored against a rubric.",
+      last: pitchTileSummary(myPitches.count, myPitches.lastAt ? formatShortDate(myPitches.lastAt) : null),
       assigned: 0,
       href: "/practice/pitch",
       linkLabel: "Open pitch",
