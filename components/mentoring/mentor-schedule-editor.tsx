@@ -84,6 +84,7 @@ export function MentorScheduleEditor({
 
   return (
     <Drawer
+      dirty={changed.length > 0 || note.trim().length > 0}
       eyebrow="Schedule"
       footer={
         <button className="btn-primary" disabled={saving || changed.length === 0 || invalid} onClick={() => void save()} type="button">

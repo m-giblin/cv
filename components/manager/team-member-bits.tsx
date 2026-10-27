@@ -50,7 +50,8 @@ export function TeamActionLink({
 }: {
   member: TeamMember;
   readinessAvailable: boolean;
-  onOpenProfile: (profileId: string) => void;
+  /** The second argument opens the profile at the plan form or straight into Schedule 1:1. */
+  onOpenProfile: (profileId: string, focus?: "plan" | "one_on_one") => void;
   onDark?: boolean;
   className?: string;
 }) {
@@ -63,7 +64,11 @@ export function TeamActionLink({
   // person's profile, so these open it rather than jumping elsewhere or downloading straight away.
   if (action.kind === "assign_plan" || action.kind === "one_on_one") {
     return (
-      <button className={cn(cls, "cursor-pointer")} onClick={() => onOpenProfile(member.profileId)} type="button">
+      <button
+        className={cn(cls, "cursor-pointer")}
+        onClick={() => onOpenProfile(member.profileId, action.kind === "assign_plan" ? "plan" : "one_on_one")}
+        type="button"
+      >
         {action.label}
       </button>
     );

@@ -11,6 +11,11 @@ function pad(value: number) {
   return String(value).padStart(2, "0");
 }
 
+function todayIso() {
+  const now = new Date();
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
 /**
  * Pick when the 1:1 is and who joins. Saving records it (the person sees it on Today and is told,
  * so is the mentor if invited) and downloads an invite to send from the calendar.
@@ -100,7 +105,7 @@ export function ScheduleOneOnOne({
         <div className="grid gap-4 sm:grid-cols-3">
           <label className="flex flex-col gap-1.5 text-sm font-semibold text-ink" htmlFor={ids.date}>
             Date
-            <Input id={ids.date} onChange={(event) => setDate(event.target.value)} type="date" value={date} />
+            <Input id={ids.date} min={todayIso()} onChange={(event) => setDate(event.target.value)} type="date" value={date} />
           </label>
           <label className="flex flex-col gap-1.5 text-sm font-semibold text-ink" htmlFor={ids.time}>
             Time

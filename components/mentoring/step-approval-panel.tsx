@@ -1,5 +1,6 @@
 "use client";
 
+import { useUnsavedChanges } from "@/components/ui/drawer";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
@@ -13,6 +14,7 @@ export function StepApprovalPanel({ step, firstName }: { step: PlanStep; firstNa
   const router = useRouter();
   const noteId = useId();
   const [note, setNote] = useState("");
+  useUnsavedChanges(note.trim().length > 0);
   const [busy, setBusy] = useState<"approve" | "reject" | null>(null);
 
   async function decide(decision: "approve" | "reject") {

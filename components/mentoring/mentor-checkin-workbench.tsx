@@ -88,6 +88,7 @@ export function MentorCheckinWorkbench({
 
   return (
     <Drawer
+      dirty={Boolean(notes.trim() || nextActions.trim())}
       eyebrow="Mentor 1:1"
       footer={
         <button

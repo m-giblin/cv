@@ -1,9 +1,10 @@
 import dynamic from "next/dynamic";
+import { ONE_ON_ONE_EVENT } from "@/lib/manager/one-on-ones";
 import { Suspense } from "react";
 import type { ManagerSection } from "@/components/manager/manager-page-shell";
 import { MANAGER_SECTION_PATHS } from "@/lib/manager/manager-routes";
 import { buildCoachingCadence } from "@/lib/manager/coaching-cadence";
-import { enrollmentMentors } from "@/lib/manager/eligible-mentors";
+import { enrollmentMentors, newHireIds } from "@/lib/manager/eligible-mentors";
 import { buildReviewHistory } from "@/components/manager/manager-review-history";
 import type { SeManagerSnapshot } from "@/components/manager/manager-se-detail-panel";
 import { buildSeCoachingSummary } from "@/lib/manager/se-coaching-summary";
@@ -395,6 +396,18 @@ export async function ManagerSectionPage({ section }: { section: ManagerSection 
  ].filter((age): age is number => age !== null && age > INBOX_SLA_DAYS).length;
 
  const readinessRowByUser = new Map((readinessPayload?.rows ?? []).map((row) => [row.userId, row]));
+ // The next booked 1:1 per person, from the activity log, so Today stops suggesting one.
+ const nextOneOnOneByUser = new Map<string, { start: string; label: string }>();
+ for (const item of data.activity) {
+ if ((item.eventType as string) !== ONE_ON_ONE_EVENT) continue;
+ const start = typeof item.metadata.start === "string" ? item.metadata.start : null;
+ const minutes = typeof item.metadata.minutes === "number" ? item.metadata.minutes : 30;
+ if (!start || Date.parse(start) + minutes * 60_000 < now) continue;
+ const current = nextOneOnOneByUser.get(item.userId);
+ if (!current || start < current.start) {
+ nextOneOnOneByUser.set(item.userId, { start, label: typeof item.metadata.label === "string" ? item.metadata.label : start });
+ }
+ }
  const cadenceByUser = new Map(cadenceRows.map((row) => [row.profileId, row.daysSinceCoaching]));
  const teamMembers = sortByUrgency(
  seSnapshots.map((snapshot) => {
@@ -411,6 +424,7 @@ export async function ManagerSectionPage({ section }: { section: ManagerSection 
  : (readinessByUser[snapshot.profile.id] ?? null),
  competencySummary: mapRow?.competencySummary,
  daysSinceCoaching: cadenceByUser.get(snapshot.profile.id) ?? null,
+ nextOneOnOne: nextOneOnOneByUser.get(snapshot.profile.id)?.label ?? null,
  now,
  });
  }),
@@ -428,7 +442,7 @@ export async function ManagerSectionPage({ section }: { section: ManagerSection 
  seSnapshots.map((snapshot) => [snapshot.profile.id, snapshot.coaching]),
  );
 
- const mentors = enrollmentMentors(data.profiles, orgIds, data.currentUser);
+ const mentors = enrollmentMentors(data.profiles, orgIds, data.currentUser, newHireIds(data.profiles, data.plans));
 
  return (
  <>

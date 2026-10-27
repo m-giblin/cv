@@ -185,7 +185,7 @@ export function buildSeCoachingSummary(params: {
     health = "coach_now";
   } else if (redoCount > 0) {
     health = "waiting_on_se";
-  } else if (lastActiveDays !== null && lastActiveDays >= 14 && (plan?.progress ?? 0) < 100) {
+  } else if (plan && lastActiveDays !== null && lastActiveDays >= 14 && plan.progress < 100) {
     health = lastActiveDays >= 21 ? "at_risk" : "stalled";
   } else if (simTrend?.direction === "declining") {
     health = "stalled";

@@ -1,12 +1,22 @@
 "use client";
 
+import { useUnsavedChanges } from "@/components/ui/drawer";
 import { useEffect, useId, useState } from "react";
 import { toast } from "sonner";
 import { Field, TextArea } from "@/components/admin/admin-ui";
 import type { HiringBrief } from "@/lib/mentoring/mentor-records-model";
 
 /** The manager's brief for the mentor: who this hire is, and what the interview left open. */
-export function HiringBriefEditor({ seUserId, seName }: { seUserId: string; seName: string }) {
+export function HiringBriefEditor({
+  seUserId,
+  seName,
+  mentorName,
+}: {
+  seUserId: string;
+  seName: string;
+  /** Their mentor, when one is chosen; the brief is written for them. */
+  mentorName?: string | null;
+}) {
   const ids = { background: useId(), watch: useId() };
   const firstName = seName.split(" ")[0] ?? seName;
   const [background, setBackground] = useState("");
@@ -41,6 +51,7 @@ export function HiringBriefEditor({ seUserId, seName }: { seUserId: string; seNa
   }, [seUserId]);
 
   const dirty = background !== saved.background || watchFor !== saved.watchFor;
+  useUnsavedChanges(dirty);
 
   async function save() {
     setSaving(true);
@@ -56,7 +67,7 @@ export function HiringBriefEditor({ seUserId, seName }: { seUserId: string; seNa
       return;
     }
     setSaved({ background, watchFor });
-    toast.success(`Saved. ${firstName}'s mentor can see this.`);
+    toast.success(mentorName ? `Saved. ${mentorName.split(" ")[0]} can see this.` : `Saved. ${firstName}'s mentor will see this once you choose one.`);
   }
 
   if (loading || forbidden) return null;

@@ -36,8 +36,10 @@ function accentFor(atRisk: number, reviewCount: number) {
   return "All clear today.";
 }
 
-function readinessTone(value: number | null) {
+function readinessTone(value: number | null, newStarter = false) {
   if (value === null) return "text-muted";
+  // A first-month score is a baseline, not a warning.
+  if (newStarter) return "text-ink-2";
   if (value < AT_RISK_READINESS) return "text-danger";
   return "text-ink";
 }
@@ -150,7 +152,7 @@ export function ManagerToday({
                           <span className="block truncate text-[13px] text-muted">{member.reason ?? member.subline}</span>
                         </span>
                         <span className="flex shrink-0 items-center gap-3">
-                          <span className={cn("num text-sm font-bold", member.readiness !== null && member.readiness < AT_RISK_READINESS ? "text-danger" : "text-ink")}>
+                          <span className={cn("num text-sm font-bold", !member.newStarter && member.readiness !== null && member.readiness < AT_RISK_READINESS ? "text-danger" : "text-ink")}>
                             {member.readiness ?? "—"}
                           </span>
                           <TeamStatusTag status={member.status} />
@@ -255,7 +257,7 @@ export function ManagerToday({
                         <span
                           className={cn(
                             "num text-[22px] font-extrabold tracking-[-0.02em]",
-                            readinessTone(member.readiness),
+                            readinessTone(member.readiness, member.newStarter),
                           )}
                         >
                           {member.readiness ?? "—"}

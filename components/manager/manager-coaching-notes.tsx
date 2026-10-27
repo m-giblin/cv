@@ -1,5 +1,6 @@
 "use client";
 
+import { useUnsavedChanges } from "@/components/ui/drawer";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -21,6 +22,7 @@ export function ManagerCoachingNotes({
   }, [initialNotes, seUserId]);
 
   const isDirty = notes !== savedNotes;
+  useUnsavedChanges(isDirty);
 
   async function save() {
     setIsSaving(true);

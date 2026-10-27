@@ -50,3 +50,33 @@ describe("buildTeamMember for new starters", () => {
     expect(member.status).toBe("at_risk");
   });
 });
+
+describe("buildTeamMember follow-ups", () => {
+  it("drops the Schedule a 1:1 nudge once a 1:1 is booked", () => {
+    const member = buildTeamMember({
+      profile: person("2026-10-27T00:00:00Z"),
+      plan: plan("2026-10-27", "2026-11-10"),
+      openReviewCount: 0,
+      readiness: 16,
+      daysSinceCoaching: null,
+      nextOneOnOne: "Thu, Oct 29, 10:00 AM EDT",
+      now: NOW,
+    });
+    expect(member.action).toBeNull();
+    expect(member.reason).toBe("Ramping, week 1, 1:1 booked");
+    expect(member.newStarter).toBe(true);
+  });
+
+  it("does not flag an experienced person with no plan just for being quiet", () => {
+    const member = buildTeamMember({
+      profile: person("2024-01-01T00:00:00Z"),
+      coaching: { health: "on_track", lastActiveDays: 19, talkingPoints: [] } as never,
+      openReviewCount: 0,
+      readiness: null,
+      daysSinceCoaching: null,
+      now: NOW,
+    });
+    expect(member.status).toBe("on_track");
+    expect(member.newStarter).toBe(false);
+  });
+});

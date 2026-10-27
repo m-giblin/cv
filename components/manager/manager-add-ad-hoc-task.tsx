@@ -73,6 +73,7 @@ export function ManagerAddAdHocTask({
       </div>
 
       <Drawer
+        dirty={Boolean(title.trim() || description.trim())}
         eyebrow={`Ramp plan · ${personName}`}
         footer={
           <>

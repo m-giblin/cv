@@ -115,6 +115,13 @@ export function ManagerPlanAssignPanel({
  toast.error("Pick a template and SE.");
  return;
  }
+ // Without a mentor nobody is asked to meet them or agree their dates, so make it a choice.
+ if (
+ !mentorId &&
+ !window.confirm("Assign without a mentor? You'll review every step and agree their dates yourself. You can add a mentor later.")
+ ) {
+ return;
+ }
 
  setIsSaving(true);
  const response = await fetch("/api/plans/assignments", {
@@ -265,14 +272,14 @@ export function ManagerPlanAssignPanel({
  <label className={LABEL_CLASS}>
  <span className="block">Mentor</span>
  <span className="block text-sm font-normal text-muted">
- Anyone on your team. They coach; you sign off.
+ An experienced SE. They meet the new hire, agree the dates and review everyday steps; you sign off each stage gate.
  </span>
  <select
  className={INPUT_CLASS}
  onChange={(event) => setMentorId(event.target.value)}
  value={mentorId}
  >
- <option value="">No mentor</option>
+ <option value="">Choose a mentor</option>
  {mentors.filter((profile) => profile.id !== userId).map((profile) => (
  <option key={profile.id} value={profile.id}>
  {profile.fullName}
@@ -313,7 +320,7 @@ export function ManagerPlanAssignPanel({
 
  <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
  <button
- className="btn-secondary inline-flex items-center gap-2 whitespace-nowrap disabled:opacity-50"
+ className="btn-primary inline-flex items-center gap-2 whitespace-nowrap disabled:opacity-50"
  disabled={isSaving || !selectedTemplateId}
  type="submit"
  >

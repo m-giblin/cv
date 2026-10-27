@@ -56,6 +56,8 @@ export type TeamMember = {
   talkingPoints: string[];
   /** Oldest item waiting on the manager, if any. */
   pending: PendingReviewSummary | null;
+  /** In their first 30 days: a low readiness score is expected, not a warning. */
+  newStarter: boolean;
 };
 
 /** The five career gates, in order (Basic → Senior → Advisory). */
@@ -139,6 +141,8 @@ export function buildTeamMember(input: {
   readiness: number | null;
   competencySummary?: Record<string, number>;
   daysSinceCoaching: number | null;
+  /** The next 1:1 already booked with them, e.g. "Thu, Oct 29, 10:00 AM EDT". */
+  nextOneOnOne?: string | null;
   now?: number;
 }): TeamMember {
   const { profile, plan, coaching, certSummary, openReviewCount, pending, readiness, daysSinceCoaching } = input;
@@ -210,6 +214,11 @@ export function buildTeamMember(input: {
     action = { kind: "one_on_one", label: "Schedule a 1:1" };
   }
 
+  if (input.nextOneOnOne && action?.kind === "one_on_one") {
+    action = null;
+    reason = joinPhrases([reason ?? "", "1:1 booked"].filter(Boolean));
+  }
+
   const rampWeek = currentWeek;
 
   return {
@@ -232,6 +241,7 @@ export function buildTeamMember(input: {
     daysSinceCoaching,
     talkingPoints: coaching?.talkingPoints ?? [],
     pending: pending ?? null,
+    newStarter: isNewStarter,
   };
 }
 

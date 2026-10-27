@@ -143,14 +143,20 @@ function StatusColumns({
                 className="flex items-center justify-between gap-3 border-t border-divider py-[11px] first:border-t-0"
                 key={member.profileId}
               >
-                <PersonButton member={member} onOpen={onOpenProfile} />
+                <span className="flex min-w-0 flex-col gap-0.5">
+                  <PersonButton member={member} onOpen={onOpenProfile} />
+                  {/* On track can still need a setup step, like a plan for a new starter. */}
+                  {member.action ? (
+                    <TeamActionLink className="self-start" member={member} onOpenProfile={onOpenProfile} readinessAvailable={readinessAvailable} />
+                  ) : null}
+                </span>
                 <span className="num text-lg font-extrabold text-ink">{member.readiness ?? "—"}</span>
               </li>
             ))}
           </ul>
         )}
         <p className="pt-3.5 text-[13px] leading-normal text-muted">
-          Click anyone to open their plan, scores and coaching notes in a side panel.
+          Click anyone to open their plan, scores and coaching notes in their workbench.
         </p>
       </section>
     </div>
@@ -225,7 +231,7 @@ function RosterTable({
               <span
                 className={cn(
                   "num text-[22px] font-extrabold tracking-[-0.02em]",
-                  member.readiness !== null && member.readiness < AT_RISK_READINESS ? "text-danger" : "text-ink",
+                  !member.newStarter && member.readiness !== null && member.readiness < AT_RISK_READINESS ? "text-danger" : "text-ink",
                 )}
               >
                 {member.readiness ?? "—"}

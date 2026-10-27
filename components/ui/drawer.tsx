@@ -1,10 +1,28 @@
 "use client";
 
 import { X } from "lucide-react";
-import { useEffect, useId, useRef, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useId, useRef, type ReactNode } from "react";
 
 /** Open workbenches, innermost last: a popup opened from another popup must be the only one Esc and Tab act on. */
 export const openStack: symbol[] = [];
+
+/** Editors inside a workbench report unsaved text here, so closing it asks before throwing it away. */
+const UnsavedContext = createContext<((key: symbol, dirty: boolean) => void) | null>(null);
+
+/**
+ * Call in any editor that sits in a workbench with `dirty` true while it holds text that isn't saved.
+ * Closing the workbench (Esc, the close button or a click outside) then asks before discarding it.
+ */
+export function useUnsavedChanges(dirty: boolean) {
+  const report = useContext(UnsavedContext);
+  const key = useRef(Symbol("editor"));
+  useEffect(() => {
+    if (!report) return;
+    const id = key.current;
+    report(id, dirty);
+    return () => report(id, false);
+  }, [report, dirty]);
+}
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -36,6 +54,7 @@ export function Drawer({
   sideLabel,
   size = "full",
   bodyWidth = "reading",
+  dirty = false,
 }: {
   open: boolean;
   onClose: () => void;
@@ -55,11 +74,23 @@ export function Drawer({
   size?: "full" | "form";
   /** Single-column bodies keep a reading width by default; "full" uses the whole workbench for grids. */
   bodyWidth?: "reading" | "full";
+  /** The workbench's own form holds unsaved text (for forms that render this Drawer themselves). */
+  dirty?: boolean;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  const dirtyEditors = useRef(new Set<symbol>());
+  const reportDirty = useCallback((key: symbol, dirty: boolean) => {
+    if (dirty) dirtyEditors.current.add(key);
+    else dirtyEditors.current.delete(key);
+  }, []);
+  const requestClose = useCallback(() => {
+    if ((dirty || dirtyEditors.current.size > 0) && !window.confirm("You have unsaved changes. Close and discard them?")) return;
+    dirtyEditors.current.clear();
+    onClose();
+  }, [dirty, onClose]);
+  const onCloseRef = useRef(requestClose);
+  onCloseRef.current = requestClose;
 
   useEffect(() => {
     if (!open) return;
@@ -105,8 +136,9 @@ export function Drawer({
   const isForm = size === "form";
 
   return (
+    <UnsavedContext.Provider value={reportDirty}>
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
-      <div aria-hidden className="absolute inset-0 bg-[rgb(11_23_51/0.45)]" onClick={onClose} />
+      <div aria-hidden className="absolute inset-0 bg-[rgb(11_23_51/0.45)]" onClick={requestClose} />
       <div
         aria-labelledby={titleId}
         aria-modal="true"
@@ -135,7 +167,7 @@ export function Drawer({
           <button
             aria-label="Close"
             className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-line-strong bg-white text-ink hover:border-blue hover:text-blue"
-            onClick={onClose}
+            onClick={requestClose}
             type="button"
           >
             <X aria-hidden className="h-5 w-5" />
@@ -173,5 +205,6 @@ export function Drawer({
         ) : null}
       </div>
     </div>
+    </UnsavedContext.Provider>
   );
 }

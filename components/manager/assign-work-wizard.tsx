@@ -233,6 +233,7 @@ export function AssignWorkWizard({
   // A workbench of its own, so it stacks over a profile and opens the same way from Team and Learn.
   return (
     <Drawer
+      dirty={!saving && (note.trim().length > 0 || taskTitle.trim().length > 0 || (!preselected && picked.length > 0))}
       eyebrow="Assign work"
       footer={
         <>

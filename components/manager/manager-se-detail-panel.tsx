@@ -202,13 +202,17 @@ function FieldActivity({ fullName }: { fullName: string }) {
   );
 }
 
-/** SE detail as an accessible 440px drawer (focus trap, Esc, focus return). */
+/** Where to open the profile: at the plan form ("Assign a plan") or straight into Schedule 1:1. */
+export type ProfileFocus = "plan" | "one_on_one";
+
+/** SE detail as a workbench (focus trap, Esc, focus return). */
 export function ManagerSeDetailPanel({
   snapshot,
   challenges,
   plans,
   mentors,
   member,
+  focus,
   onClose,
 }: {
   snapshot: SeManagerSnapshot;
@@ -222,6 +226,7 @@ export function ManagerSeDetailPanel({
   teamAssignees?: Profile[];
   /** Must be stable (useCallback): the drawer re-runs its focus trap when it changes. */
   onClose: () => void;
+  focus?: ProfileFocus;
 }) {
   const {
     profile,
@@ -242,7 +247,16 @@ export function ManagerSeDetailPanel({
   } = snapshot;
 
   const [now] = useState(() => Date.now());
-  const [schedulingOneOnOne, setSchedulingOneOnOne] = useState(false);
+  const [schedulingOneOnOne, setSchedulingOneOnOne] = useState(focus === "one_on_one");
+  // "Assign a plan" lands on the plan form, not three screens above it.
+  useEffect(() => {
+    if (focus !== "plan") return;
+    const timer = window.setTimeout(
+      () => document.getElementById("profile-onboarding-steps")?.scrollIntoView({ behavior: "smooth", block: "start" }),
+      150,
+    );
+    return () => window.clearTimeout(timer);
+  }, [focus]);
   const steps = [...(plan?.steps ?? [])].sort((a, b) => a.order - b.order);
   const gates = buildGates(certSummary);
   const isOverdue = (step: PlanStep) =>
@@ -346,7 +360,7 @@ export function ManagerSeDetailPanel({
       side={
         <>
           <Section title="Mentor and notes">
-            <HiringBriefEditor seName={profile.fullName} seUserId={profile.id} />
+            <HiringBriefEditor mentorName={mentor?.fullName ?? null} seName={profile.fullName} seUserId={profile.id} />
             {plan ? (
               <ManagerReassignMentor
                 assignmentId={plan.id}
@@ -365,6 +379,7 @@ export function ManagerSeDetailPanel({
             <ManagerCoachingNotes initialNotes={managerNotes} seUserId={profile.id} />
           </Section>
 
+          <div className="scroll-mt-4" id="profile-onboarding-steps" />
           <Section title="Onboarding steps">
             {plan ? (
               <>
@@ -465,7 +480,9 @@ export function ManagerSeDetailPanel({
                 "Every gate for this level is cleared."
               )}
             </p>
-            {coaching.careerReadiness !== null ? (
+            {member?.newStarter ? (
+              <p className="text-sm text-muted">Readiness for the next level is scored after their first 30 days.</p>
+            ) : coaching.careerReadiness !== null ? (
               <div className="flex flex-col gap-2">
                 <p className="text-sm">
                   <span className={`num font-bold ${scoreTone(coaching.careerReadiness)}`}>{coaching.careerReadiness}%</span>{" "}
@@ -625,7 +642,15 @@ export function ManagerSeDetailPanel({
             <span className="font-bold">Suggested next: </span>
             {coaching.talkingPoints[0] ?? coaching.storyLine}
           </p>
-          {!assigning ? (
+          {!plan && member?.action?.kind === "assign_plan" ? (
+            <button
+              className="btn-primary"
+              onClick={() => document.getElementById("profile-onboarding-steps")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              type="button"
+            >
+              Assign a plan
+            </button>
+          ) : !assigning ? (
             <button className="btn-primary" onClick={() => setAssigning(true)} type="button">
               Assign work
             </button>

@@ -57,6 +57,7 @@ export function MentorManagerNote({
 
   return (
     <Drawer
+      dirty={Boolean(strength.trim() || risk.trim() || action.trim())}
       eyebrow="For the hiring manager"
       footer={
         <button className="btn-primary" disabled={saving || !ready} onClick={() => void send()} type="button">

@@ -15,7 +15,7 @@ import { Drawer } from "@/components/ui/drawer";
 import { PageSkeleton } from "@/components/ui/page-skeleton";
 import { getAccessTier } from "@/lib/auth/rbac";
 import { ManagerReviewHistory, type ReviewHistoryEntry } from "@/components/manager/manager-review-history";
-import { ManagerSeDetailPanel, type SeManagerSnapshot } from "@/components/manager/manager-se-detail-panel";
+import { ManagerSeDetailPanel, type ProfileFocus, type SeManagerSnapshot } from "@/components/manager/manager-se-detail-panel";
 import { ManagerTeamRoster } from "@/components/manager/manager-team-roster";
 import { ManagerToday } from "@/components/manager/manager-today";
 import type { PlanStepReviewItem } from "@/components/manager/plan-step-review-panel";
@@ -58,10 +58,12 @@ export function TeamTabs({ flags }: { flags?: PlatformFeatureFlags }) {
 }
 
 /** Updates `?profile=` without a server round trip (Next keeps useSearchParams in sync with pushState). */
-function setProfileParam(pathname: string, profileId: string | null) {
+function setProfileParam(pathname: string, profileId: string | null, focus?: ProfileFocus) {
   const params = new URLSearchParams(window.location.search);
   if (profileId) params.set("profile", profileId);
   else params.delete("profile");
+  if (profileId && focus) params.set("focus", focus);
+  else params.delete("focus");
   const query = params.toString();
   window.history.pushState(null, "", query ? `${pathname}?${query}` : pathname);
 }
@@ -146,9 +148,9 @@ export function ManagerPageShell({
   const fullSnapshot = useFullSnapshot(selectedSnapshot, competencies);
 
   const openProfile = useCallback(
-    (profileId: string) => {
+    (profileId: string, focus?: ProfileFocus) => {
       setSelectedProfileId(profileId);
-      setProfileParam(pathname, profileId);
+      setProfileParam(pathname, profileId, focus);
     },
     [pathname],
   );
@@ -291,6 +293,7 @@ export function ManagerPageShell({
         <ManagerSeDetailPanel
           challenges={challenges}
           member={teamMembers.find((item) => item.profileId === fullSnapshot.profile.id)}
+          focus={searchParams.get("focus") === "plan" || searchParams.get("focus") === "one_on_one" ? (searchParams.get("focus") as ProfileFocus) : undefined}
           mentors={mentors}
           onClose={closeProfile}
           plans={plans}

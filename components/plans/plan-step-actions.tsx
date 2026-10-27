@@ -1,5 +1,6 @@
 "use client";
 
+import { useUnsavedChanges } from "@/components/ui/drawer";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
@@ -101,6 +102,7 @@ export function PlanStepActions({
   const [shadowNotes, setShadowNotes] = useState("");
   const [mentorTopic, setMentorTopic] = useState("");
   const [contentNotes, setContentNotes] = useState("");
+  useUnsavedChanges(Boolean(shadowNotes.trim() || mentorTopic.trim() || contentNotes.trim()));
 
   const awaitingReview = step.status === "submitted";
   const needsRevision = step.status === "in_progress" && Boolean(step.description);

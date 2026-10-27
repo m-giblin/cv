@@ -1,4 +1,21 @@
-import type { Profile } from "@/lib/types";
+import type { Profile, UserPlan } from "@/lib/types";
+
+const LEADER_ROLES = new Set(["manager", "director", "admin", "super_admin"]);
+const NEW_HIRE_DAYS = 30;
+
+/**
+ * People who are new hires themselves and so can't mentor one: anyone on an onboarding plan that
+ * isn't finished, and SEs who joined in the last 30 days (even before their plan is assigned).
+ */
+export function newHireIds(profiles: Profile[], plans: Pick<UserPlan, "userId" | "status">[], now = Date.now()): Set<string> {
+  const ids = new Set(plans.filter((plan) => plan.status !== "completed").map((plan) => plan.userId));
+  for (const profile of profiles) {
+    if (LEADER_ROLES.has(profile.role)) continue;
+    const joined = Date.parse(profile.createdAt);
+    if (Number.isFinite(joined) && now - joined < NEW_HIRE_DAYS * 86_400_000) ids.add(profile.id);
+  }
+  return ids;
+}
 
 /** Employees a manager can assign as onboarding mentor (not role-restricted to "mentor"). */
 export function eligibleMentorsForOrg(
@@ -43,9 +60,15 @@ export function eligibleMentorsForEnrollment(profiles: Profile[], orgUserIds: Se
  * Mentor choices for enrollment. The org profile list is the manager's reports, so the signed-in
  * manager is added here and listed first. They can mentor a new hire on their own team.
  */
-export function enrollmentMentors(profiles: Profile[], orgUserIds: Set<string>, viewer?: Profile | null): Profile[] {
+export function enrollmentMentors(
+  profiles: Profile[],
+  orgUserIds: Set<string>,
+  viewer?: Profile | null,
+  /** New hires (see newHireIds), left out because they're onboarding themselves. */
+  exclude: Set<string> = new Set(),
+): Profile[] {
   const pool = viewer && !profiles.some((profile) => profile.id === viewer.id) ? [viewer, ...profiles] : profiles;
-  const mentors = eligibleMentorsForEnrollment(pool, orgUserIds);
+  const mentors = eligibleMentorsForEnrollment(pool, orgUserIds).filter((mentor) => !exclude.has(mentor.id) || mentor.id === viewer?.id);
   if (!viewer) return mentors;
   const self = mentors.find((mentor) => mentor.id === viewer.id);
   if (!self) return mentors;

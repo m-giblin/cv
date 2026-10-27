@@ -1,5 +1,6 @@
 "use client";
 
+import { useUnsavedChanges } from "@/components/ui/drawer";
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 import { toast } from "sonner";
@@ -47,6 +48,7 @@ export function StepFeedbackPanel({
   const router = useRouter();
   const id = useId();
   const [body, setBody] = useState("");
+  useUnsavedChanges(body.trim().length > 0);
   const [saving, setSaving] = useState(false);
 
   async function send() {
@@ -117,6 +119,7 @@ export function MentorDueDatePanel({
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState(step.dueDate ?? "");
   const [note, setNote] = useState("");
+  useUnsavedChanges(open && note.trim().length > 0);
   const [saving, setSaving] = useState(false);
   const firstName = menteeName.split(" ")[0] ?? menteeName;
   const done = step.status === "reviewed" || step.status === "completed";
@@ -207,6 +210,7 @@ export function GateRecommendationPanel({
   const reasonId = useId();
   const [choice, setChoice] = useState<GateRecommendationValue | null>(null);
   const [rationale, setRationale] = useState("");
+  useUnsavedChanges(rationale.trim().length > 0);
   const [saving, setSaving] = useState(false);
 
   async function send() {
