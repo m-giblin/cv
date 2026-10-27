@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { StatusPill } from "@/components/ui/status-pill";
 import { PlanStep } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { planStepActionLabel, planStepHref } from "@/lib/utils/plan-links";
 
 /** "Done when" self-check criteria per step type. Local to the view; they never gate the API submit. */
 const DONE_WHEN: Record<string, string[]> = {
@@ -30,6 +31,8 @@ const DONE_WHEN: Record<string, string[]> = {
   ],
   adhoc: ["Task work completed", "Summary written for your manager's live validation"],
   mentor_review: ["Topic chosen for the mentor discussion", "Review requested from your mentor"],
+  knowledge_check: ["Check opened from this step", "Score at or above the pass mark"],
+  playbook: ["Chapter opened from this step", "Chapter read through to the end"],
   default: ["Activity completed in the practice tool", "Result ready for manager or mentor validation"],
 };
 
@@ -405,6 +408,22 @@ export function PlanStepActions({
     );
   }
 
+  if (step.type === "knowledge_check" || step.type === "playbook") {
+    const finished = step.type === "knowledge_check" ? "Passing the check completes this step." : "Finishing the chapter completes this step.";
+    return (
+      <div className="flex flex-col gap-[22px]">
+        <StepIntro>{step.description}</StepIntro>
+        <DoneWhen criteria={DONE_WHEN[step.type]!} />
+        <div>
+          <Link className="btn-primary" href={planStepHref(step)}>
+            {planStepActionLabel(step)}
+          </Link>
+        </div>
+        <p className={NOTE_CLS}>{finished}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-[22px]">
       <StepIntro>Complete the activity, then your manager or mentor validates it.</StepIntro>
@@ -417,23 +436,10 @@ export function PlanStepActions({
         <p className={NOTE_CLS}>{reviewerNote}</p>
       </section>
       <div>
-        <Link className="btn-primary" href={stepLinkForType(step.type)}>
-          Continue
+        <Link className="btn-primary" href={planStepHref(step)}>
+          {planStepActionLabel(step)}
         </Link>
       </div>
     </div>
   );
-}
-
-function stepLinkForType(type: PlanStep["type"]) {
-  switch (type) {
-    case "challenge":
-      return "/practice/challenges";
-    case "simulation":
-      return "/practice/simulations";
-    case "deal_prep":
-      return "/practice/deal-prep";
-    default:
-      return "/dashboard";
-  }
 }

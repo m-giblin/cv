@@ -3,6 +3,9 @@
 import { X } from "lucide-react";
 import { useEffect, useId, useRef, type ReactNode } from "react";
 
+/** Open workbenches, innermost last: a popup opened from another popup must be the only one Esc and Tab act on. */
+const openStack: symbol[] = [];
+
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
@@ -22,6 +25,8 @@ export function Drawer({
   onClose,
   title,
   eyebrow,
+  breadcrumb,
+  headerExtra,
   subtitle,
   children,
   footer,
@@ -36,6 +41,10 @@ export function Drawer({
   onClose: () => void;
   title: ReactNode;
   eyebrow?: ReactNode;
+  /** Replaces the eyebrow with a trail back through the views that led here. */
+  breadcrumb?: ReactNode;
+  /** Sits in the header's free space between the title and the close button, e.g. a stats strip. */
+  headerExtra?: ReactNode;
   subtitle?: ReactNode;
   children: ReactNode;
   footer?: ReactNode;
@@ -54,6 +63,8 @@ export function Drawer({
 
   useEffect(() => {
     if (!open) return;
+    const self = Symbol("drawer");
+    openStack.push(self);
     const trigger = document.activeElement as HTMLElement | null;
     const panel = panelRef.current;
     panel?.querySelector<HTMLElement>(FOCUSABLE)?.focus();
@@ -61,6 +72,7 @@ export function Drawer({
     document.body.style.overflow = "hidden";
 
     const onKey = (event: KeyboardEvent) => {
+      if (openStack[openStack.length - 1] !== self) return;
       if (event.key === "Escape") {
         event.preventDefault();
         onCloseRef.current();
@@ -82,6 +94,7 @@ export function Drawer({
     document.addEventListener("keydown", onKey);
     return () => {
       document.removeEventListener("keydown", onKey);
+      openStack.splice(openStack.indexOf(self), 1);
       document.body.style.overflow = previousOverflow;
       trigger?.focus();
     };
@@ -105,7 +118,11 @@ export function Drawer({
       >
         <header className="flex shrink-0 items-start justify-between gap-6 border-b border-line bg-white px-5 py-4 sm:px-8 sm:py-5">
           <div className="flex min-w-0 flex-col gap-1.5">
-            {eyebrow ? <span className="label-caps label-caps--blue">{eyebrow}</span> : null}
+            {breadcrumb ? (
+              <div className="label-caps label-caps--blue">{breadcrumb}</div>
+            ) : eyebrow ? (
+              <span className="label-caps label-caps--blue">{eyebrow}</span>
+            ) : null}
             <h2
               className="m-0 text-[24px] leading-[1.1] font-extrabold tracking-[-0.02em] text-ink sm:text-[28px]"
               id={titleId}
@@ -114,6 +131,7 @@ export function Drawer({
             </h2>
             {subtitle ? <div className="text-sm text-muted">{subtitle}</div> : null}
           </div>
+          {headerExtra ? <div className="ml-auto hidden min-w-0 self-center md:block">{headerExtra}</div> : null}
           <button
             aria-label="Close"
             className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-line-strong bg-white text-ink hover:border-blue hover:text-blue"

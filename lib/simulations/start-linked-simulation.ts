@@ -11,6 +11,21 @@ import type { SimulationAssignment } from "@/lib/types";
 
 const OPEN_STATUSES = ["not_started", "in_progress"] as const;
 
+/** Template linked from a ramp step, or null when the step is missing or is not a simulation. */
+export async function templateIdForPlanStep(
+  supabase: SupabaseClient<Database>,
+  stepId: string,
+): Promise<string | null> {
+  const { data } = await supabase
+    .from("plan_steps")
+    .select("simulation_template_id, step_type")
+    .eq("id", stepId)
+    .maybeSingle();
+
+  if (!data || data.step_type !== "simulation") return null;
+  return data.simulation_template_id;
+}
+
 /** An assignment the learner can resume for this template, preferring one already in progress. */
 export function reusableAssignmentId(
   simulations: Pick<SimulationAssignment, "id" | "assignedTo" | "templateId" | "status">[],

@@ -68,12 +68,12 @@ export function FlightStrip({
     <div
       className={cn(
         "grid overflow-hidden rounded-[14px] border border-line bg-white shadow-[var(--shadow-card)]",
-        compact ? "grid-cols-[72px_minmax(0,1fr)]" : "grid-cols-[110px_minmax(0,1fr)] max-sm:grid-cols-[84px_minmax(0,1fr)]",
+        compact ? "grid-cols-[88px_minmax(0,1fr)]" : "grid-cols-[110px_minmax(0,1fr)] max-sm:grid-cols-[84px_minmax(0,1fr)]",
         className,
       )}
     >
-      <div className={cn("flex flex-col justify-between bg-blue text-white", compact ? "px-3 py-3.5" : "px-4 py-5")}>
-        <span className="text-[11px] font-bold tracking-[0.08em] whitespace-nowrap text-signal uppercase">{stubLabel}</span>
+      <div className={cn("flex min-w-0 flex-col justify-between gap-2 overflow-hidden bg-blue text-white", compact ? "px-3 py-3.5" : "px-4 py-5")}>
+        <span className="text-[11px] leading-[1.2] font-bold tracking-[0.08em] break-words text-signal uppercase">{stubLabel}</span>
         <span className="flex flex-col">
           <span className={cn("num leading-[0.85] font-extrabold tracking-[-0.04em]", compact ? "text-[34px]" : "text-[56px]")}>
             {numeral}

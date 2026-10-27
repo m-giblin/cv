@@ -27,7 +27,7 @@ export function resolveSimulationAssignment(
   simulations: SimulationAssignment[],
   userId: string,
   focusAssignmentId?: string,
-): { assignment: SimulationAssignment; isPractice: boolean } {
+): { assignment: SimulationAssignment; isPractice: boolean } | { assignment: null; isPractice: false } {
   if (focusAssignmentId) {
     const focused = simulations.find(
       (simulation) => simulation.id === focusAssignmentId && simulation.assignedTo === userId,
@@ -35,6 +35,8 @@ export function resolveSimulationAssignment(
     if (focused) {
       return { assignment: focused, isPractice: false };
     }
+    // A link named a simulation this person does not have. Do not open a different one.
+    return { assignment: null, isPractice: false };
   }
 
   const assigned = simulations.find((simulation) => simulation.assignedTo === userId) ?? null;

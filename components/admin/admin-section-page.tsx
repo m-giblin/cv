@@ -1,4 +1,4 @@
-import { eligibleMentorsForEnrollment } from "@/lib/manager/eligible-mentors";
+import { enrollmentMentors } from "@/lib/manager/eligible-mentors";
 import { headers } from "next/headers";
 import { Suspense } from "react";
 import { AdminConsole } from "@/components/admin/admin-console";
@@ -53,7 +53,7 @@ export async function AdminSectionPage({ practice = false }: { practice?: boolea
  ]);
 
  const assignees = data.profiles.filter((profile) => getAccessTier(profile.role) === "se");
- const mentors = eligibleMentorsForEnrollment(data.profiles, new Set(data.profiles.map((profile) => profile.id)));
+ const mentors = enrollmentMentors(data.profiles, new Set(data.profiles.map((profile) => profile.id)), data.currentUser);
 
  const pendingReviews = pendingReviewTotal(pendingReviewBreakdown);
 

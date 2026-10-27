@@ -1,0 +1,672 @@
+{
+  "source": "documentation.sailpoint.com",
+  "addedTo": "existing documentation banks",
+  "banks": [
+    {
+      "solution": "Identity Security Cloud (Human Fabric)",
+      "topic": "Identity Security Cloud (Human Fabric)",
+      "questions": [
+        {
+          "stem": "What do you need before roles can be used, and what extra does a dynamic role add?",
+          "choices": [
+            "Search must be enabled, and a dynamic role only changes the request form",
+            "Provisioning must be licensed. A standard role groups entitlements and access profiles. A dynamic role can also grant birthright access through role dimensions",
+            "A virtual appliance, and a dynamic role skips assignment criteria",
+            "Separation of duties, and a dynamic role is limited to one source"
+          ],
+          "correctIndex": 1,
+          "explanation": "Roles require Provisioning. Standard roles group entitlements and access profiles and provision from assignment criteria. Dynamic roles add birthright access through role dimensions inside the same role.",
+          "difficulty": "medium",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/access/roles.html"
+        },
+        {
+          "stem": "When does a new lifecycle state start assigning identities, and which value must the identity carry?",
+          "choices": [
+            "Immediately, using the display name, which can include spaces",
+            "Only after the state is enabled. The identity's Lifecycle State attribute must contain the technical name",
+            "After the first certification, using the state's priority number",
+            "When the HR source is aggregated, using the source name"
+          ],
+          "correctIndex": 1,
+          "explanation": "New lifecycle states are disabled until you enable them. The technical name is filled in from the display name and is the value that must be stored in the Lifecycle State attribute. A new identity profile already includes pre-hire, active, leave of absence, terminated, and archived.",
+          "difficulty": "hard",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/provisioning/lifecycle.html"
+        },
+        {
+          "stem": "How are criteria combined in a campaign filter, and how is the value matched?",
+          "choices": [
+            "Criteria are AND, and the value is case sensitive",
+            "Criteria are OR, and the value is not case sensitive",
+            "Criteria are AND, and only identities can be filtered",
+            "The filter replaces the campaign deadline"
+          ],
+          "correctIndex": 1,
+          "explanation": "Each criteria group matches if any individual criterion matches, because the criteria are connected by OR. The Value field treats Eng and eng as the same. An exclusion filter removes matches. An inclusion filter keeps them.",
+          "difficulty": "medium",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/certs/campaign_filters.html"
+        },
+        {
+          "stem": "What deadline and reminder pattern does a certification campaign use unless you change it?",
+          "choices": [
+            "The deadline is the creation date, and one reminder is sent the day before",
+            "The default deadline is two weeks after creation. Reminders go out when the campaign is activated and then every seven days, unless email was turned off when the campaign was created",
+            "The deadline is 90 days, matching an unfinished access request, with no email",
+            "Reviewers are reminded only after they miss the deadline"
+          ],
+          "correctIndex": 1,
+          "explanation": "You can set the deadline yourself. The default is two weeks after the creation date. Automatic reminders start at activation and repeat every seven days until sign-off, expiry, or an admin completes the remaining decisions. Disabling email at creation suppresses those reminders.",
+          "difficulty": "hard",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/certs/completing_campaigns.html"
+        },
+        {
+          "stem": "What are the size limits on Separation of Duties policies?",
+          "choices": [
+            "50 policies in the org, and 500 items in each access list",
+            "500 policies in the org. Each access-based policy allows 50 items in a list, and each list needs at least one item",
+            "One policy per source, with no limit on list size",
+            "Unlimited policies, but each identity can violate only one"
+          ],
+          "correctIndex": 1,
+          "explanation": "An org can have at most 500 policies of either type. An access-based policy can hold at most 50 items in each access list, and a list with no items causes errors.",
+          "difficulty": "hard",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/sod/manage-policies.html"
+        },
+        {
+          "stem": "When does a Separation of Duties policy record a violation?",
+          "choices": [
+            "When a human identity has something from both access lists",
+            "When an identity has anything from either list",
+            "When a machine identity owns both lists",
+            "When a role contains more than 50 entitlements"
+          ],
+          "correctIndex": 0,
+          "explanation": "You build two lists of conflicting access. A violation is raised when a human identity has access that appears in both lists. The policy is there so someone should not hold both sides of a sensitive process.",
+          "difficulty": "medium",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/sod/manage-policies.html"
+        },
+        {
+          "stem": "What is true of data segmentation before, and after, you enable it?",
+          "choices": [
+            "It is on by default, and sub-admins keep their old record limits",
+            "It is off by default, so even published segments do not limit anyone. Turning it on controls record access and removes the older sub-admin restrictions on those records",
+            "It only changes Identity Graph",
+            "Publishing a segment enables the feature for the tenant"
+          ],
+          "correctIndex": 1,
+          "explanation": "Org admins enable data segmentation under System Settings. Until then, access to records stays global and published segments have no effect. Once it is on, record limits from user levels such as role sub-admin and source sub-admin no longer apply.",
+          "difficulty": "hard",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/segmentation/enable_data_seg.html"
+        },
+        {
+          "stem": "Which accounts does attribute sync change?",
+          "choices": [
+            "It creates a missing account, then writes the identity attributes",
+            "Only existing correlated accounts. It will not create accounts, and every correlated account on the source is updated",
+            "Uncorrelated accounts only",
+            "The oldest account on the source"
+          ],
+          "correctIndex": 1,
+          "explanation": "Attribute sync needs an existing correlated account and an identity-profile mapping for the attribute. It will not create accounts. If the identity has several correlated accounts on the source, all of them are updated. A null is propagated, and attributes left null are not counted as synchronized.",
+          "difficulty": "hard",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/provisioning/attr_sync.html"
+        },
+        {
+          "stem": "Why can't the built-in Manager attribute be used for attribute sync?",
+          "choices": [
+            "It can be mapped in Create Account, but attribute sync will not take it. Sync the manager through a custom identity attribute instead",
+            "Manager is not an identity attribute",
+            "Attribute sync rejects every identity attribute that Create Account already uses",
+            "Manager syncs only during the first aggregation"
+          ],
+          "correctIndex": 0,
+          "explanation": "The built-in Manager attribute may appear in the Create Account definition and still be ineligible for attribute sync. Define a custom attribute, such as one that holds the manager name, and use that attribute in both Create Account and attribute sync.",
+          "difficulty": "hard",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/provisioning/attr_sync.html"
+        },
+        {
+          "stem": "How does native change detection decide what to report?",
+          "choices": [
+            "Any selected operation or any selected attribute is enough, including on a Non-Employee source",
+            "The chosen account operations and attributes are combined with AND. Non-Employee Lifecycle Management sources cannot use it, and an aggregation has to run after you enable it",
+            "It reports every account change in the tenant without an aggregation",
+            "It only detects deleted accounts"
+          ],
+          "correctIndex": 1,
+          "explanation": "If you monitor account creation and memberOf, only a newly created account that has memberOf is detected. Enable it on the source, pick operations and attributes, then aggregate. It is not available for Non-Employee Lifecycle Management sources. The event trigger also requires detection, an operation, and an attribute.",
+          "difficulty": "hard",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/sources/native_change_detection.html"
+        }
+      ]
+    },
+    {
+      "solution": "Agentic Fabric",
+      "topic": "Agentic Fabric",
+      "questions": [
+        {
+          "stem": "What does the Connect stage of Agentic Fabric onboarding set up?",
+          "choices": [
+            "Only a SIEM search",
+            "The identity provider, so human identities from endpoints can be correlated to the agents they own, plus sensors and cloud sources",
+            "A replacement for Human Fabric",
+            "Certification campaigns for every agent"
+          ],
+          "correctIndex": 1,
+          "explanation": "Connect is the identity provider, endpoint and browser sensors, and cloud sources. Integrate is the EDR or SIEM connection, which auto-discovers data sources. Sanction marks business apps. Review and Activate comes last. Steps can be done out of order.",
+          "difficulty": "medium",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/agentic_fabric/onboarding/getting_started.html"
+        },
+        {
+          "stem": "What has to be true before you enable the remote identity provider in Agentic Fabric?",
+          "choices": [
+            "The signing certificate is uploaded, and it must be a .pem file. A custom identity mapping attribute also has to be searchable",
+            "The logout URL is required, and the certificate can be any format",
+            "Enable Remote Identity Provider is turned on before the certificate is imported",
+            "Only Okta is supported, and SAML binding is fixed to Redirect"
+          ],
+          "correctIndex": 0,
+          "explanation": "The guide expects Entra ID or Okta SAML details: entity ID, redirect and POST login URLs, an optional logout URL, and a .pem signing certificate. Leave Enable Remote Identity Provider unchecked until that certificate is imported. A custom identity mapping attribute must be configured as searchable.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/agentic_fabric/onboarding/identity_provider.html"
+        },
+        {
+          "stem": "What does the AWS source step require after you create the StackSet?",
+          "choices": [
+            "Nothing. Events flow as soon as the StackSet name is saved",
+            "An administrator must approve the delegation in the AWS console. The default region in the form is us-east-1",
+            "A virtual appliance in every account",
+            "The Microsoft Entra source must be deleted first"
+          ],
+          "correctIndex": 1,
+          "explanation": "Onboarding can connect AWS and Microsoft Entra. For AWS you supply the StackSet name, administrator account ID, role name, and region. The default region is us-east-1. StackSet events start only after an AWS administrator approves the delegation. An existing Entra SaaS source can be reused and its fields are prefilled.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/agentic_fabric/onboarding/sources.html"
+        },
+        {
+          "stem": "What starts when you select Activate Agentic Fabric?",
+          "choices": [
+            "A one-time import, with no further alerts",
+            "Continuous monitoring. Shadow AI alerts fire for unsanctioned tools, correlations update in real time, and the registries fill from the connections you finished",
+            "Every business app is marked sanctioned",
+            "Human accounts are deleted from the identity provider"
+          ],
+          "correctIndex": 1,
+          "explanation": "You can Edit a step before activation. After activation, the identity provider is maintained under Admin > Security Settings > Service Provider, sensors and EDR or SIEM under Admin > Global > Agent Settings, and sanction status under Agentic Fabric > Business Apps.",
+          "difficulty": "medium",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/agentic_fabric/onboarding/activation.html"
+        },
+        {
+          "stem": "What is a business app in Agentic Fabric, and which statuses can it have?",
+          "choices": [
+            "A single cloud account, marked only sanctioned or unsanctioned",
+            "A grouping of non-human identities for one logical application across its instances. It can be sanctioned, unsanctioned, or unknown, and agents inherit that status",
+            "A human identity's browser profile",
+            "An MCP server with an Active or Inactive status"
+          ],
+          "correctIndex": 1,
+          "explanation": "Business apps are discovered from the identity provider. Sanctioned means approved, unsanctioned means prohibited, and unknown means no decision yet. The onboarding step can be skipped and finished later by an Agentic Fabric administrator on Business Apps.",
+          "difficulty": "medium",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/agentic_fabric/onboarding/sanction_apps.html"
+        },
+        {
+          "stem": "Which EDR and SIEM products does the onboarding page tell you to connect, and how does Sumo Logic connect?",
+          "choices": [
+            "Any syslog receiver, with write access to Sumo Logic",
+            "CrowdStrike Falcon Data Replicator, and Sumo Logic through a read-only Search Job API using HTTP Basic authentication",
+            "Only a browser extension, with no SIEM",
+            "Splunk and Microsoft Sentinel, using an OAuth code flow"
+          ],
+          "correctIndex": 1,
+          "explanation": "The documented platforms are CrowdStrike Falcon Data Replicator and Sumo Logic SIEM. Sumo Logic uses a service account access ID and key. A 403 means the key is invalid or the role's search filter is too tight. If the access key was not saved when it was shown, delete it and create another.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/agentic_fabric/onboarding/siem_connection.html"
+        },
+        {
+          "stem": "How do the endpoint sensor and the browser sensor differ?",
+          "choices": [
+            "They are the same package and share one MDM enrollment",
+            "The endpoint agent finds AI software on managed computers. The browser extension finds AI apps and must use the identity provider first",
+            "The browser extension only runs on servers, and the endpoint agent only runs in Entra",
+            "Neither sensor can be deployed until Agentic Fabric is activated"
+          ],
+          "correctIndex": 1,
+          "explanation": "SailPoint Endpoint Agent Security is a background service deployed through Jamf or Intune. SailPoint Browser Agent Security covers managed and unmanaged SaaS in the browser. The two are deployed separately, and you can deploy both. The browser extension authenticates with the user's corporate identity, so the identity provider comes first.",
+          "difficulty": "hard",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/agentic_fabric/onboarding/sensors/index.html"
+        },
+        {
+          "stem": "Which credential statuses can you filter on the Credentials page?",
+          "choices": [
+            "Active, Expired, and Inactive",
+            "Sanctioned and unsanctioned only",
+            "Discovered as Machine and Discovered as Agent",
+            "Pending certification"
+          ],
+          "correctIndex": 0,
+          "explanation": "Credentials are secret-bearing objects found by the sensors, such as IAM access keys, personal access tokens, app registration client secrets, SAML certificates, and API keys. Open them at Agentic Fabric > Non-Human Identities > Credentials. Status filters are Active, Expired, and Inactive.",
+          "difficulty": "medium",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/agentic_fabric/nhi/credentials.html"
+        },
+        {
+          "stem": "Why does Agentic Fabric treat an MCP server as something to govern?",
+          "choices": [
+            "It is only a display name on the agent",
+            "It can extend an agent's reach to tools, systems, data, and credentials. Its status is Active or Inactive, and its native identity is the resourceId from the source",
+            "It replaces the identity provider",
+            "It stores the human user's password"
+          ],
+          "correctIndex": 1,
+          "explanation": "MCP servers are discovered from the endpoint agent, the browser extension, and cloud connectors. Owners are human identities. MCP clients that an agent uses are listed on that agent's Capabilities tab.",
+          "difficulty": "hard",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/agentic_fabric/nhi/mcp_servers.html"
+        },
+        {
+          "stem": "What does the Endpoints page count?",
+          "choices": [
+            "Every laptop in the identity provider, whether or not a sensor is installed",
+            "Endpoints that have the endpoint agent sensor, split by macOS and Windows, plus the average number of agents on those endpoints",
+            "Only browser extensions",
+            "Cloud accounts in AWS"
+          ],
+          "correctIndex": 1,
+          "explanation": "The page is a view of machines where the endpoint agent sensor is installed. Total Endpoints is broken down by macOS and Windows. Avg. Agents Per Endpoint is the average across that inventory. The documented path is Agent Fabric > Endpoints.",
+          "difficulty": "medium",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/agentic_fabric/nhi/endpoints.html"
+        }
+      ]
+    },
+    {
+      "solution": "Agent Identity Security",
+      "topic": "Agent Identity Security",
+      "questions": [
+        {
+          "stem": "Who can see an AI agent in Identity Graph?",
+          "choices": [
+            "Every tenant, because agents are included as soon as they aggregate",
+            "Select customers. Showing agents in Identity Graph is a limited-availability feature",
+            "Only the agent's additional owners",
+            "Anyone who can open a certification"
+          ],
+          "correctIndex": 1,
+          "explanation": "If the tenant has Identity Graph, an agent can be opened with View in Identity Graph. The page says agents appear there only for select customers and tells you to contact Customer Success.",
+          "difficulty": "medium",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/agent/agent_mgmt.html"
+        },
+        {
+          "stem": "Where are approvals for activating and deactivating agents configured?",
+          "choices": [
+            "On each agent, and the two actions share one policy",
+            "Globally, under System Settings, on the Agent Requests tab, with a separate policy for activation and for deactivation",
+            "On the source schema",
+            "In the certification campaign filter"
+          ],
+          "correctIndex": 1,
+          "explanation": "An administrator turns on Requires Approval for Requests to Activate Agents and, separately, for Requests to Deactivate Agents. Both live at Admin > Global > System Settings > Feature Settings > Approval Settings > Agent Requests.",
+          "difficulty": "medium",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/requests/config_agent_approvals.html"
+        },
+        {
+          "stem": "If the reviewer category is All Owners, who has to act on an agent request?",
+          "choices": [
+            "Every owner, or the request stays pending",
+            "One person is enough. That can be the primary owner or any additional owner, and one of them can approve or deny",
+            "The requester's manager, even if owners exist",
+            "The source owner and the governance group together"
+          ],
+          "correctIndex": 1,
+          "explanation": "All Owners sends the request to the primary owner and the additional owners. Only one of them needs to approve or deny it. A governance group works the same way: one member of the group is enough.",
+          "difficulty": "hard",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/requests/config_agent_approvals.html"
+        },
+        {
+          "stem": "What does a multi-step approval require before an agent is activated?",
+          "choices": [
+            "Any one reviewer can approve, and a denial only skips that step",
+            "Every reviewer must approve. One denial denies the request. Source owner is the default reviewer",
+            "The steps run in parallel and a majority wins",
+            "Comments are mandatory and the owner list is ignored"
+          ],
+          "correctIndex": 1,
+          "explanation": "Multi-step is the multiple-approver type. You can add reviewers and change their order. All of them must approve. If one denies the request, it is denied. You can also require comments on approve or deny.",
+          "difficulty": "hard",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/requests/config_agent_approvals.html"
+        },
+        {
+          "stem": "How often does a scheduled dataset aggregation run?",
+          "choices": [
+            "Every 12 hours after you enable the schedule, with a separate manual start if you need one sooner",
+            "Every evening, with the identity refresh",
+            "Only when the agent owner signs in",
+            "Once, the first time the source is created"
+          ],
+          "correctIndex": 0,
+          "explanation": "On the dataset's Dataset Aggregations tab, Enable Schedule runs the aggregation every 12 hours. Start Aggregation runs one immediately. A dataset groups resources that share that schedule.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/sources/datasets.html"
+        },
+        {
+          "stem": "When are you blocked from removing objects a dataset has aggregated?",
+          "choices": [
+            "While an aggregation is running on that source",
+            "After the dataset schedule is enabled",
+            "Only if the objects are human accounts",
+            "Removing objects is not available"
+          ],
+          "correctIndex": 0,
+          "explanation": "Manual Removal deletes the objects aggregated for that dataset so you can fix a schema and aggregate again. The removal is refused while an aggregation is already running on the source.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/sources/datasets.html"
+        },
+        {
+          "stem": "Which sources let you create your own datasets, and what should you delete first?",
+          "choices": [
+            "Every SaaS source, and you delete the source first",
+            "JDBC and Web Services, SaaS or virtual appliance. Delete the dataset's resources first so they are not left behind",
+            "Only Microsoft Entra, and you delete the agents first",
+            "Delimited file sources, and you delete the identity profile first"
+          ],
+          "correctIndex": 1,
+          "explanation": "Custom datasets and resources are for JDBC SaaS, JDBC VA, Web Services SaaS, and Web Services VA. Other supported connectors ship with their own datasets. SailPoint recommends deleting the resources before deleting the dataset.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/sources/datasets.html"
+        },
+        {
+          "stem": "What are the rules for a resource attribute name?",
+          "choices": [
+            "It must match the name on the source system and cannot be longer than 128 characters",
+            "It can be any label, up to 400 characters",
+            "It is generated and cannot include the source name",
+            "It must be the agent's display name"
+          ],
+          "correctIndex": 0,
+          "explanation": "When you add an attribute to a resource schema, the name should exactly match the attribute on the source. Names cannot exceed 128 characters. You can mark it multi-valued or designate it as the Resource ID.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/sources/datasets.html"
+        },
+        {
+          "stem": "What does Delete Identity do to an AI agent?",
+          "choices": [
+            "It disables the agent and keeps the identity for audit",
+            "It removes the agent from Human Fabric",
+            "It converts the agent into an application identity",
+            "It only removes the additional owners"
+          ],
+          "correctIndex": 1,
+          "explanation": "Use this when the organization has decommissioned the agent. From AI Agents, choose Actions > Delete Identity and confirm. Update Identity on that same menu changes the agent's attributes.",
+          "difficulty": "medium",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/agent/agent_mgmt.html"
+        },
+        {
+          "stem": "Which connectors already include datasets for agents and other non-human objects?",
+          "choices": [
+            "Only generic Web Services sources",
+            "Named SaaS connectors such as AWS, Claude Enterprise, Cursor, Microsoft Entra, Salesforce, and Snowflake, plus JDBC and Web Services",
+            "IdentityIQ connectors only",
+            "Delimited file and Non-Employee sources"
+          ],
+          "correctIndex": 1,
+          "explanation": "The dataset guide lists default datasets on connectors including Argo CD, AWS, Claude Enterprise, Cursor, Databricks, Google Workspace, JDBC, Jenkins, Microsoft Entra, n8n, Salesforce, ServiceNow, Snowflake, Web Services, and Wiz. JDBC and Web Services also allow datasets you create yourself.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/sources/datasets.html"
+        }
+      ]
+    },
+    {
+      "solution": "Machine Identity Security",
+      "topic": "Machine Identity Security",
+      "questions": [
+        {
+          "stem": "What limit applies to machine account subtypes, and what cannot be edited later?",
+          "choices": [
+            "20 subtypes per source. The technical name cannot be changed after the subtype is created",
+            "10 subtypes per tenant, and the display name is fixed",
+            "Unlimited subtypes, and the technical name can be renamed in place",
+            "One subtype per source, shared by every account"
+          ],
+          "correctIndex": 0,
+          "explanation": "Create subtypes under the source's Machine Accounts section before classification. A source can have at most 20. The technical name maps to the account attribute that identifies the subtype, and it cannot be changed after the subtype is created.",
+          "difficulty": "hard",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/machine/account_configuration.html"
+        },
+        {
+          "stem": "What happens when a machine account no longer matches the classification criteria?",
+          "choices": [
+            "It stays a machine account until an admin deletes it",
+            "It is reclassified as a human or uncorrelated account. Matching is case insensitive unless you turn on Case Sensitive",
+            "Aggregation fails for the source",
+            "It is correlated to every application identity on the source"
+          ],
+          "correctIndex": 1,
+          "explanation": "Use Classify all accounts only when the source contains machine accounts alone. Customize classification when humans and machines share the source. If a classified account stops meeting the criteria, it is reclassified. The Value field ignores case unless Case Sensitive is selected.",
+          "difficulty": "hard",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/machine/account_configuration.html"
+        },
+        {
+          "stem": "When does machine-account owner mapping leave the account with no owner?",
+          "choices": [
+            "When more than one human identity matches, or when the owner field is not mapped",
+            "Whenever the primary owner is inactive",
+            "Only when the account is uncorrelated",
+            "When the technical name is lowercase"
+          ],
+          "correctIndex": 0,
+          "explanation": "Account to Identity sets the matching human as owner, but multiple matching identities mean nobody is assigned. Account to Account also assigns nobody when the matches belong to different identities. If Machine Account Owner is not mapped, no owner is assigned.",
+          "difficulty": "hard",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/machine/account_configuration.html"
+        },
+        {
+          "stem": "What should a requester understand before asking for entitlements on a machine identity?",
+          "choices": [
+            "The account belongs to one identity, so the change cannot affect anyone else",
+            "The same machine account may be used by more than one machine identity or agent, so the change can affect identities that are not on the request. These requests are enabled by default",
+            "Entitlement requests for machines are disabled until an admin enables them per source",
+            "Only the application owner can submit the request, and entitlements are never granted"
+          ],
+          "correctIndex": 1,
+          "explanation": "Access requests for machine identities are enabled by default. Turn them off under Admin > Global > System Settings, Feature Settings, Access Requests. Because one machine account can serve more than one machine identity or agent, the requester must confirm they understand the impact.",
+          "difficulty": "hard",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/requests/requests_for_machine_identities.html"
+        },
+        {
+          "stem": "Which attribute mappings does a machine account created from a request use?",
+          "choices": [
+            "The mappings from machine account setup on the source",
+            "Neither the classification mappings nor a password, until the next aggregation",
+            "It ignores the mappings from machine account setup. The password follows the source password policy, or the source default if no policy is defined",
+            "It copies the primary owner's account attributes"
+          ],
+          "correctIndex": 2,
+          "explanation": "Accounts created through machine account requests skip the mappings configured in machine account setup. Password settings can map an existing attribute, a new attribute, or no password. When a password is generated, it follows the source policy, or the connector's default policy if none is set.",
+          "difficulty": "hard",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/machine/account_requests.html"
+        }
+      ]
+    },
+    {
+      "solution": "Entro",
+      "topic": "Entro",
+      "questions": [
+        {
+          "stem": "How do you add the first system to Entro, and what runs after it connects?",
+          "choices": [
+            "Open a SailPoint support ticket and wait for a manual import",
+            "From Accounts and Integrations, add an account and choose automatic setup or a manual setup for tighter access control. Entro then runs an initial discovery scan",
+            "Paste secrets into the inventory yourself",
+            "Install an IdentityIQ plugin"
+          ],
+          "correctIndex": 1,
+          "explanation": "You need an Entro account and the Integration Management permission, plus outbound HTTPS. Automatic setup uses Entro's connector or a script such as CloudFormation for AWS. Manual setup is for strict access control. Results show up in Inventory and Detections.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/entro/help/getting-started/getting-started-with-entro.html"
+        },
+        {
+          "stem": "Which Entro connector fits a self-hosted Git server and an SMB share?",
+          "choices": [
+            "The Docker Compose connector on a VM, because it is meant for local services such as SMB, self-hosted Git, Jira, Confluence, and Vault",
+            "The perimeter connector, because those systems are on the public internet",
+            "The IdentityIQ file connector",
+            "No connector. Entro only scans SaaS"
+          ],
+          "correctIndex": 0,
+          "explanation": "Docker Compose is the lightweight on-prem connector for local services. Use the Helm connector when you want it in Kubernetes. The perimeter connector is the one Entro hosts, with static IPs for firewall rules.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/entro/help/integrations/entro-connector/entro-connector/index.html"
+        },
+        {
+          "stem": "What must an Entro connector be able to reach, and what must a proxy not do?",
+          "choices": [
+            "Only the Entro UI at app.entro.security, and the proxy should intercept TLS",
+            "Every onboarded system inside the network, plus Entro and AWS endpoints. It does not call the Entro UI. Do not strip SSL or inspect TLS on that traffic",
+            "Only port 22 to the identity provider",
+            "The virtual appliance cluster, using the Human Fabric key"
+          ],
+          "correctIndex": 1,
+          "explanation": "The connector needs a direct path to what it scans, including SMB file servers. Outbound HTTPS must reach Entro API hosts and AWS endpoints. The default region is us-east-1. A required proxy is set in the connector env file. SSL stripping or a TLS intercept will break it.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/entro/help/integrations/entro-connector/connector-network-requirements.html"
+        },
+        {
+          "stem": "How does Human Fabric pull non-human identities from Entro?",
+          "choices": [
+            "Entro pushes them into a delimited file source on a schedule",
+            "Human Fabric is the client. You create a Web Services SaaS source, authenticate with an API token from an Entro admin, and correlate owner email to a human",
+            "A virtual appliance reads the Entro database",
+            "The Entro CLI writes identities into an identity profile"
+          ],
+          "correctIndex": 1,
+          "explanation": "The integration is a pull. The documented source type is Web Services SaaS, authentication is API token, and the example base URL is the Entro environment such as https://api.entro.security. The connection timeout in the guide is 120 seconds. ownerEmail is mapped to a human identity.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/entro/help/integrations/security-identity/aggregating-entro-nhis-ai-agents-in-sailpoint-isc.html"
+        },
+        {
+          "stem": "What does the Entro CLI send when a developer scans a change before it is merged?",
+          "choices": [
+            "The scan input goes over HTTPS to Entro's scanner API, and the CLI returns a structured result",
+            "The files are committed first, and Entro scans only the default branch overnight",
+            "The CLI stores secrets in the git history so they can be rotated",
+            "The scan runs entirely offline and never contacts Entro"
+          ],
+          "correctIndex": 0,
+          "explanation": "The CLI is for pre-commit blocking, scripted scans, and local filesystem scans. It uploads the scan input to the scanner API. The security notes on that page call for TLS 1.2 or newer in transit and AES-256 for data at rest.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/entro/help/integrations/code-ci-cd/entro-command-line-interface-cli.html"
+        }
+      ]
+    },
+    {
+      "solution": "Identity Security Connectors",
+      "topic": "Identity Security Connectors",
+      "questions": [
+        {
+          "stem": "What does an asterisk on the Deep Governance connector list mean?",
+          "choices": [
+            "The connector is SaaS-only and cannot use a virtual appliance",
+            "The connector is Express Setup-enabled, whether the guide is SaaS-based or VA-based, so onboarding is faster",
+            "The connector is read-only and cannot provision",
+            "The connector requires a professional-services engagement"
+          ],
+          "correctIndex": 1,
+          "explanation": "Deep Governance connectors read accounts and provision changes. VA-based ones need a virtual appliance cluster. SaaS-based ones do not. An asterisk marks Express Setup on either kind.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/connectors/isc/landingpages/help/landingpages/deep_governance.html"
+        },
+        {
+          "stem": "A customer runs GitHub Enterprise Server in their own data center. Which connector guide applies?",
+          "choices": [
+            "The VA-based GitHub Enterprise Server guide, not the SaaS-based GitHub guide",
+            "The SaaS-based GitHub guide, because GitHub is always cloud",
+            "Quick Compliance, because Enterprise Server cannot be governed",
+            "The IdentityIQ GitHub plugin"
+          ],
+          "correctIndex": 0,
+          "explanation": "On the Deep Governance list, GitHub is a SaaS-based guide and GitHub Enterprise Server is a VA-based guide. The hosting model decides which one you implement.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/connectors/isc/landingpages/help/landingpages/deep_governance.html"
+        },
+        {
+          "stem": "Where do Custom Connectors and Disconnected Applications sit?",
+          "choices": [
+            "Both are VA-based guides",
+            "Both are Quick Compliance connectors",
+            "Custom Connectors are SaaS-only and Disconnected Applications are a mobile app",
+            "They are documented only in the Epic user group"
+          ],
+          "correctIndex": 0,
+          "explanation": "The Deep Governance list files Custom Connectors and Disconnected Applications under VA-based connector guides. They are not on the Quick Compliance list.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/connectors/isc/landingpages/help/landingpages/deep_governance.html"
+        },
+        {
+          "stem": "Which deployment choices does the Deep Governance list show for Amazon Web Services?",
+          "choices": [
+            "A SaaS-based guide and a VA-based guide",
+            "A Quick Compliance connector only",
+            "A read-only mainframe connector",
+            "No AWS connector"
+          ],
+          "correctIndex": 0,
+          "explanation": "Amazon Web Services is listed with both a SaaS-based connector guide and a VA-based connector guide. JDBC is another source listed both ways. The choice follows where the connection has to run.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/connectors/isc/landingpages/help/landingpages/deep_governance.html"
+        },
+        {
+          "stem": "What offering includes Quick Compliance connectivity?",
+          "choices": [
+            "SailPoint's SAAM offering. The page says to contact your CSM for more",
+            "IdentityIQ plugin development",
+            "File Access Manager",
+            "The developer portal Rule Development Kit"
+          ],
+          "correctIndex": 0,
+          "explanation": "Quick Compliance connectors aggregate users and entitlements with a light source setup. The landing page states that this connectivity is part of SailPoint's SAAM offering.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/connectors/isc/landingpages/help/landingpages/quick_compliance.html"
+        }
+      ]
+    }
+  ]
+}

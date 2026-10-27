@@ -1,0 +1,2638 @@
+{
+  "source": "documentation.sailpoint.com",
+  "excluded": "File Access Manager",
+  "banks": [
+    {
+      "solution": "Identity Security Cloud (Human Fabric)",
+      "topic": "Identity Security Cloud (Human Fabric)",
+      "questions": [
+        {
+          "stem": "What can a reviewer do with a role that was assigned by automated criteria?",
+          "choices": [
+            "Revoke it directly from the certification",
+            "Acknowledge it only, because the role model controls the assignment",
+            "Remove the lifecycle state that granted it from the same row",
+            "Convert it into a standalone entitlement and then revoke that"
+          ],
+          "correctIndex": 1,
+          "explanation": "Automated role assignments can only be acknowledged. The role model, not the certification decision, controls whether the identity keeps the role.",
+          "difficulty": "medium",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/certs/understanding_certifications.html"
+        },
+        {
+          "stem": "Which access profiles show up as their own rows in a certification?",
+          "choices": [
+            "Profiles granted through a role or a lifecycle state",
+            "Profiles the user requested, or that were detected from entitlements they already hold",
+            "Every access profile on the source, whether or not the user has it",
+            "Only profiles that were granted in the last 90 days"
+          ],
+          "correctIndex": 1,
+          "explanation": "Profiles granted by a role are managed through that role. Profiles on a lifecycle state do not appear in the certification at all. Requested or detected profiles can be certified.",
+          "difficulty": "hard",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/certs/understanding_certifications.html"
+        },
+        {
+          "stem": "Who receives a certification when the identity has no manager?",
+          "choices": [
+            "The source owner",
+            "The campaign owner",
+            "The org admin",
+            "The identity themselves"
+          ],
+          "correctIndex": 1,
+          "explanation": "The certification goes to the identity's manager. If there is no manager, it is sent to the owner of the campaign.",
+          "difficulty": "easy",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/certs/understanding_certifications.html"
+        },
+        {
+          "stem": "What happens to a revoke decision that was never signed off when the campaign completes?",
+          "choices": [
+            "It is provisioned anyway",
+            "It is treated as if no decision was made",
+            "It becomes a manual task for the source owner immediately",
+            "It is held until the next campaign"
+          ],
+          "correctIndex": 1,
+          "explanation": "Revokes that are not signed off are not applied. At campaign completion, unsigned certifications are treated as though no decisions were made. The campaign configuration then decides whether those items are auto-approved.",
+          "difficulty": "hard",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/certs/understanding_certifications.html"
+        },
+        {
+          "stem": "How many identity profiles can one identity belong to?",
+          "choices": [
+            "One, and the highest-priority authoritative source wins if the person exists in several",
+            "One per authoritative source they appear in",
+            "As many as have a matching email address",
+            "Two: the authoritative profile and a secondary profile"
+          ],
+          "correctIndex": 0,
+          "explanation": "Each identity is associated with only one identity profile. If the person exists in multiple authoritative sources, priority order decides which profile they join.",
+          "difficulty": "easy",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/setup/identity_profiles.html"
+        },
+        {
+          "stem": "Which identity attributes are required on every identity profile?",
+          "choices": [
+            "User Name, Work Email, and Last Name, and none of them can be null",
+            "Department, Manager, and Location",
+            "User Name only",
+            "Work Email and Manager, and the email must pass format validation"
+          ],
+          "correctIndex": 0,
+          "explanation": "User Name (uid), Work Email (email), and Last Name (lastname) must be mapped and cannot be null. User Name must also be unique across every identity profile. Work Email is not validated as an email address.",
+          "difficulty": "medium",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/setup/identity_profiles.html"
+        },
+        {
+          "stem": "Which characters cannot be used in the source attribute mapped to a username?",
+          "choices": [
+            "Spaces and hyphens",
+            "The characters * ( ) & ! .",
+            "Only characters outside ASCII",
+            "Digits"
+          ],
+          "correctIndex": 1,
+          "explanation": "If the username or another sign-in attribute includes * ( ) & ! or a period, the identity may be unable to sign in.",
+          "difficulty": "hard",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/setup/identity_profiles.html"
+        },
+        {
+          "stem": "What is the maximum size of a form, including the user's responses?",
+          "choices": [
+            "40 kilobytes",
+            "400 kilobytes",
+            "4 megabytes",
+            "There is no size limit"
+          ],
+          "correctIndex": 1,
+          "explanation": "If the form, including responses, exceeds 400 kilobytes, it cannot be saved or submitted.",
+          "difficulty": "medium",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/forms/index.html"
+        },
+        {
+          "stem": "What is submitted when a user leaves a form field blank?",
+          "choices": [
+            "The placeholder text",
+            "The default value, if one was set; placeholder text is never submitted",
+            "Both the placeholder and the default",
+            "An empty string, and a default is ignored"
+          ],
+          "correctIndex": 1,
+          "explanation": "Placeholder text is guidance only. A default value is submitted when the user does not enter a response, and it overrides the placeholder.",
+          "difficulty": "easy",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/forms/index.html"
+        },
+        {
+          "stem": "What happens to an access request that is still not fully approved after 90 days?",
+          "choices": [
+            "It is automatically denied and expired, unless timeoutConfig says otherwise",
+            "It stays open until an admin closes it",
+            "It is auto-approved",
+            "It is returned to the requester to start over"
+          ],
+          "correctIndex": 0,
+          "explanation": "The default is to deny and expire the request after 90 days. timeoutConfig on the approvals configuration can shorten that window and can instead auto-approve expired requests.",
+          "difficulty": "medium",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/requests/index.html"
+        },
+        {
+          "stem": "Who can open Identity Graph, and what does data segmentation do there?",
+          "choices": [
+            "Any user, and segmentation hides identities outside their segment",
+            "An Org Admin, Identity Graph Admin, or Identity Graph Read Only user, and the dashboard widget is not segmented",
+            "Only the campaign owner, and segmentation applies to every object",
+            "Source Sub-Admins, and they see only their source"
+          ],
+          "correctIndex": 1,
+          "explanation": "Access requires one of those three user levels. Data segmentation does not apply to the Identity Graph dashboard widget, so anyone who can open it sees every access object and identity in the tenant.",
+          "difficulty": "hard",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/identity_graph/index.html"
+        },
+        {
+          "stem": "In an adaptive approval, how does Quorum differ from Multi-Step?",
+          "choices": [
+            "Quorum requires every reviewer to approve; Multi-Step uses a percentage",
+            "Multi-Step fails if any reviewer denies; Quorum fails only once the configured approval percentage can no longer be reached",
+            "They are the same policy with two names",
+            "Quorum is a single reviewer, and Multi-Step is a sequence"
+          ],
+          "correctIndex": 1,
+          "explanation": "Multi-Step needs every reviewer, and one denial fails the item. Quorum uses a percentage you set, and a single rejection does not fail the request until that percentage is impossible. Serial is the ordered variant.",
+          "difficulty": "medium",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/adaptive_approvals/index.html"
+        },
+        {
+          "stem": "What are the five components of the Shared Signals Framework?",
+          "choices": [
+            "Subject, Event, Transmitter, Receiver, and Stream",
+            "Sender, Token, Webhook, Policy, and Action",
+            "Identity, Role, Entitlement, Source, and Campaign",
+            "Detector, Correlator, Approver, Certifier, and Reporter"
+          ],
+          "correctIndex": 0,
+          "explanation": "A subject is who the event is about. A transmitter broadcasts events, a receiver acts on them, and a stream is how events flow between the two. Workflows define what SailPoint does when a supported event arrives.",
+          "difficulty": "easy",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/shared_signals/index.html"
+        }
+      ]
+    },
+    {
+      "solution": "Machine Identity Security",
+      "topic": "Machine Identity Security",
+      "questions": [
+        {
+          "stem": "Who can discover and classify machine accounts?",
+          "choices": [
+            "Any account owner",
+            "An Org Admin, a Source Admin, or a Source Sub-Admin who belongs to that source's governance group",
+            "Only the certification reviewer",
+            "The primary owner of an application identity"
+          ],
+          "correctIndex": 1,
+          "explanation": "Those three admin roles can discover, classify, and manage machine accounts. Account owners may review application identities and their access in a certification, which is a narrower right.",
+          "difficulty": "medium",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/machine/index.html"
+        },
+        {
+          "stem": "What is an application identity?",
+          "choices": [
+            "A human identity that owns a source",
+            "A machine identity that groups the machine accounts for one program or service",
+            "A subtype used only for bots",
+            "The entitlement that grants Domain Admin"
+          ],
+          "correctIndex": 1,
+          "explanation": "Related machine accounts are correlated to the application identity so they can be reviewed as one program or service instead of as disconnected accounts.",
+          "difficulty": "easy",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/machine/identity.html"
+        },
+        {
+          "stem": "How many additional owners can an application identity have, and who inherits it?",
+          "choices": [
+            "Up to 10. If the primary owner becomes inactive, the first Active additional owner inherits it",
+            "One additional owner, who must be the primary owner's manager",
+            "Unlimited owners, and they all stay owners after they become inactive",
+            "None. Ownership cannot be shared"
+          ],
+          "correctIndex": 0,
+          "explanation": "You can name up to 10 additional owners. Inactive identities are removed from that list. If none remain, ownership passes to the primary owner's manager, and if there is no manager the application has no primary owner until one is added.",
+          "difficulty": "hard",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/machine/identity.html"
+        },
+        {
+          "stem": "How many user entitlements can grant access to one application identity?",
+          "choices": [
+            "1",
+            "10, and they can come from more than one source",
+            "25",
+            "There is no maximum"
+          ],
+          "correctIndex": 1,
+          "explanation": "The create flow allows a maximum of 10 user entitlements from multiple sources. They are visible afterward on the application identity's Details tab.",
+          "difficulty": "medium",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/machine/identity.html"
+        },
+        {
+          "stem": "What belongs in the Native Identity field when you create an application identity?",
+          "choices": [
+            "The primary owner's email",
+            "A unique value that describes the program or service, matching the stored attribute when you have one",
+            "The source name",
+            "The certification campaign id"
+          ],
+          "correctIndex": 1,
+          "explanation": "The name must be unique so people can tell application identities apart. Native Identity is the value used to correlate machine accounts when that value is already stored on the accounts.",
+          "difficulty": "medium",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/machine/identity.html"
+        },
+        {
+          "stem": "Where do you create an application identity?",
+          "choices": [
+            "Admin > Identity Management > Identities, then Applications under Machine Identities",
+            "Admin > Global > System Settings",
+            "The certification campaign wizard",
+            "The source's account schema"
+          ],
+          "correctIndex": 0,
+          "explanation": "Create Application is on the Applications list in the Machine Identities section. You then set the name, native identity, primary owner, and optional additional owners.",
+          "difficulty": "easy",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/machine/identity.html"
+        },
+        {
+          "stem": "When should you create application identities if you do not store application data?",
+          "choices": [
+            "Before any source is configured",
+            "After machine accounts have been classified on a source",
+            "Only during the first aggregation, and never again",
+            "After the certification campaign is signed off"
+          ],
+          "correctIndex": 1,
+          "explanation": "If application data lives in a database you can create the identities earlier. Without that data, classification comes first, and the application identity is what the classified accounts correlate to.",
+          "difficulty": "medium",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/machine/index.html"
+        },
+        {
+          "stem": "What do you do when several uncorrelated application identities represent the same service?",
+          "choices": [
+            "Certify each of them separately forever",
+            "Create one application identity and correlate the related machine accounts to it",
+            "Delete the machine accounts",
+            "Merge them by giving them the same primary owner email"
+          ],
+          "correctIndex": 1,
+          "explanation": "One application identity represents the program. Correlating the accounts to it is what lets SailPoint review that service as a single identity.",
+          "difficulty": "easy",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/machine/identity.html"
+        },
+        {
+          "stem": "Which implementation step classifies future machine accounts, not only the ones already aggregated?",
+          "choices": [
+            "Creating machine account subtypes and classification criteria",
+            "Inviting the account owners to the tenant",
+            "Running a manager certification",
+            "Enabling Password Management"
+          ],
+          "correctIndex": 0,
+          "explanation": "Subtypes describe type and function. Criteria decide which source accounts are classified as machine accounts, including accounts aggregated later. Mappings then copy attributes onto the machine account.",
+          "difficulty": "medium",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/machine/index.html"
+        },
+        {
+          "stem": "What can an account owner do with machine identities?",
+          "choices": [
+            "Change the classification policy",
+            "Review application identities and their access during a certification",
+            "Create sources",
+            "Delete the identity profile"
+          ],
+          "correctIndex": 1,
+          "explanation": "Classification and management stay with Org Admin, Source Admin, or a Source Sub-Admin in the governance group. Account owners are limited to certification review.",
+          "difficulty": "easy",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/machine/index.html"
+        },
+        {
+          "stem": "What is the last step of a machine-identity implementation in the product docs?",
+          "choices": [
+            "A machine account certification campaign",
+            "Deleting uncorrelated accounts automatically",
+            "Replacing the authoritative source",
+            "Disabling human certifications"
+          ],
+          "correctIndex": 0,
+          "explanation": "After classification, mappings, and review, you create a certification so owners can verify the machine accounts and the access they hold. Uncorrelated accounts are certified too if you have not grouped them yet.",
+          "difficulty": "medium",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/machine/index.html"
+        },
+        {
+          "stem": "Who becomes the owner if the primary owner is deleted and no additional owner was named?",
+          "choices": [
+            "The primary owner's manager, or nobody if that manager does not exist",
+            "The org admin automatically",
+            "The source owner",
+            "The oldest machine account on the source"
+          ],
+          "correctIndex": 0,
+          "explanation": "Succession tries additional owners first, then the manager. With neither, the application has no primary owner until someone adds one.",
+          "difficulty": "hard",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/machine/identity.html"
+        },
+        {
+          "stem": "What does Machine Identity Security let you request, besides reviewing accounts?",
+          "choices": [
+            "Creation or deletion of a machine account",
+            "A new identity profile",
+            "A Harbor Pilot prompt",
+            "An emergency access id in SAP"
+          ],
+          "correctIndex": 0,
+          "explanation": "The overview lists discovery, classification, correlation to an application identity, certification, a cross-source view, and requests to create or delete a machine account.",
+          "difficulty": "easy",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/machine/index.html"
+        }
+      ]
+    },
+    {
+      "solution": "Agent Identity Security",
+      "topic": "Agent Identity Security",
+      "questions": [
+        {
+          "stem": "What does the product documentation call an AI agent?",
+          "choices": [
+            "A human identity with an API token",
+            "A machine identity that uses a large language model to perform tasks for a user or another system",
+            "A browser extension",
+            "A certification campaign type"
+          ],
+          "correctIndex": 1,
+          "explanation": "Agent Identity Security treats the agent as a machine identity. Onboarding it into Human Fabric is what makes it discoverable and governable with other identities.",
+          "difficulty": "easy",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/agent/index.html"
+        },
+        {
+          "stem": "Which outcome is specifically about the humans who use an agent?",
+          "choices": [
+            "Preventing those identities from gaining excessive permissions through the agent",
+            "Replacing their identity profile",
+            "Disabling their Human Fabric login",
+            "Moving them to a lifecycle state of inactive"
+          ],
+          "correctIndex": 0,
+          "explanation": "The documented outcomes are discovery, governing agents next to human and application identities, assigning multiple owners, and stopping humans from inheriting excessive access through an agent.",
+          "difficulty": "medium",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/agent/index.html"
+        },
+        {
+          "stem": "How can an AI agent get into Human Fabric if it is not on a supported source dataset?",
+          "choices": [
+            "It cannot. Aggregation is the only path",
+            "An admin can create the agent on the AI Agents list",
+            "It is created automatically from a certification",
+            "Harbor Pilot creates it when someone mentions the agent in a prompt"
+          ],
+          "correctIndex": 1,
+          "explanation": "You aggregate agents through dataset aggregations, and you can also create one in the tenant when a source account represents an agent. Creation starts at Admin > Identity Management > Identities > AI Agents.",
+          "difficulty": "medium",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/agent/agent_mgmt.html"
+        },
+        {
+          "stem": "What do generic sources need before their agents aggregate correctly?",
+          "choices": [
+            "A virtual appliance only",
+            "Datasets and resources so the attributes map to the non-human identity",
+            "A password policy",
+            "An identity profile set as authoritative"
+          ],
+          "correctIndex": 1,
+          "explanation": "Supported sources have preconfigured datasets. Generic sources need datasets and resources you create, including the schema, or the aggregated attributes will not represent the agent.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/agent/index.html"
+        },
+        {
+          "stem": "After aggregation, what do you configure so an agent is not left without an owner?",
+          "choices": [
+            "Owners and an automated succession plan",
+            "A Shared Signals receiver",
+            "A form with a 400 kilobyte limit",
+            "An Express Setup connector"
+          ],
+          "correctIndex": 0,
+          "explanation": "The implementation steps assign owners and a succession plan, then tell you to review attributes, the humans who can reach the agent, and the tools the agent's machine accounts can reach.",
+          "difficulty": "easy",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/agent/index.html"
+        },
+        {
+          "stem": "Which report does the documentation tell you to run for humans who can reach an agent?",
+          "choices": [
+            "Identities Overpermissioned by Agents",
+            "Account Activity",
+            "Lifecycle State Refresh",
+            "Security Audit Log"
+          ],
+          "correctIndex": 0,
+          "explanation": "You can list identities who hold the user entitlement for the agent, and you can run that report. Certification campaigns then let a reviewer decide whether the access should remain.",
+          "difficulty": "medium",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/agent/index.html"
+        },
+        {
+          "stem": "How many additional owners can an AI agent have?",
+          "choices": [
+            "Up to 10 human identities",
+            "1",
+            "25",
+            "Only governance groups, not people"
+          ],
+          "correctIndex": 0,
+          "explanation": "Same ceiling as an application identity. If the primary owner becomes inactive, the first Active additional owner takes over. Inactive identities are removed from the additional-owners list.",
+          "difficulty": "easy",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/agent/agent_mgmt.html"
+        },
+        {
+          "stem": "Who owns the agent if the primary owner is deleted and no additional owner was set?",
+          "choices": [
+            "The primary owner's manager, or no one if there is no manager",
+            "The org admin",
+            "The source's oldest account",
+            "The agent owns itself"
+          ],
+          "correctIndex": 0,
+          "explanation": "Succession is explicit in the create flow. Without an additional owner or a manager, the agent has no primary owner until one is added manually.",
+          "difficulty": "hard",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/agent/agent_mgmt.html"
+        },
+        {
+          "stem": "How many user entitlements can grant a person access to one AI agent?",
+          "choices": [
+            "A maximum of 10, from more than one source",
+            "One entitlement on the authoritative source",
+            "There is no limit",
+            "Only entitlements created by a workflow"
+          ],
+          "correctIndex": 0,
+          "explanation": "You select those entitlements when you create the agent. Afterward they are listed on the agent's Details tab.",
+          "difficulty": "medium",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/agent/agent_mgmt.html"
+        },
+        {
+          "stem": "What should you review on the machine accounts correlated to an agent?",
+          "choices": [
+            "The access entitlements those accounts hold, which are the agent's tools",
+            "The agent's Human Fabric password",
+            "The identity profile priority",
+            "The form's placeholder text"
+          ],
+          "correctIndex": 0,
+          "explanation": "The agent's reach is the entitlements on its correlated machine accounts. The docs tell you to view those entitlements and to certify them.",
+          "difficulty": "medium",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/agent/index.html"
+        },
+        {
+          "stem": "Why review accounts the classification policy may have missed?",
+          "choices": [
+            "A policy can fail to mark a machine account that should be correlated to an agent",
+            "Missed accounts are deleted after 24 hours",
+            "Only missed accounts can be certified",
+            "The policy disables accounts it does not recognize"
+          ],
+          "correctIndex": 0,
+          "explanation": "The steps say to review possible machine accounts the classification policy missed, then map or update their attributes before you correlate them.",
+          "difficulty": "hard",
+          "competency": "discovery",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/agent/index.html"
+        },
+        {
+          "stem": "What makes the Native Identity of an agent different from its name?",
+          "choices": [
+            "Native Identity is a unique value describing the agent, used to tell it apart in correlation; the name is the label people see",
+            "They must be identical",
+            "Native Identity is the primary owner's uid",
+            "The name is written to the source and Native Identity is only a comment"
+          ],
+          "correctIndex": 0,
+          "explanation": "Both must be unique. The name helps people distinguish agents. Native Identity describes the agent itself.",
+          "difficulty": "easy",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/agent/agent_mgmt.html"
+        },
+        {
+          "stem": "Can machine accounts that an agent uses stay unclassified?",
+          "choices": [
+            "No. The documented path classifies them on the source and then correlates them to the agent",
+            "Yes. Correlation does not require a subtype",
+            "Only if they are human accounts",
+            "Only when Agent Identity Security is not licensed"
+          ],
+          "correctIndex": 0,
+          "explanation": "The steps create a subtype, set a classification policy, review misses, map attributes, and then correlate those accounts to the agent.",
+          "difficulty": "medium",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/agent/index.html"
+        }
+      ]
+    },
+    {
+      "solution": "Agentic Fabric",
+      "topic": "Agentic Fabric",
+      "questions": [
+        {
+          "stem": "What is Agentic Fabric, in the product documentation?",
+          "choices": [
+            "A replacement for Human Fabric",
+            "An agent-governance capability inside Human Fabric for AI agents and other non-human identities",
+            "A File Access Manager module",
+            "A connector for SAP only"
+          ],
+          "correctIndex": 1,
+          "explanation": "It discovers agents and non-human identities across enterprise, endpoint, and browser surfaces, ties them to human owners, and classifies usage against policy. It includes onboarding, a registry, Identity Graph, and audit reporting.",
+          "difficulty": "easy",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/agentic_fabric/index.html"
+        },
+        {
+          "stem": "What kind of cloud access does onboarding ask you to provide?",
+          "choices": [
+            "Write access so Agentic Fabric can disable agents in AWS",
+            "Read-only access so it can discover agents on AWS, Azure, and other AI platforms",
+            "The root credentials for every account",
+            "No cloud connection. The browser extension is sufficient"
+          ],
+          "correctIndex": 1,
+          "explanation": "Onboarding connects the systems used for discovery and for correlating agents to the people who own them. Cloud platform access is read-only.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/agentic_fabric/onboarding/index.html"
+        },
+        {
+          "stem": "What does the non-human identity registry let an admin do after activation?",
+          "choices": [
+            "Evaluate non-human identities by risk, manage ownership, and organize agents into business apps",
+            "Reset human passwords",
+            "Replace identity profiles",
+            "Approve access requests for employees"
+          ],
+          "correctIndex": 0,
+          "explanation": "The registry is the single view of enterprise, endpoint, and browser agents. Ownership can be individual identities or governance groups.",
+          "difficulty": "easy",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/agentic_fabric/index.html"
+        },
+        {
+          "stem": "Which agent types does the registry distinguish?",
+          "choices": [
+            "Enterprise, browser, and endpoint, plus Unknown when a new agent is not yet classified",
+            "Human, contractor, and guest",
+            "Joiner, mover, and leaver",
+            "Only agents that have a primary owner"
+          ],
+          "correctIndex": 0,
+          "explanation": "Unknown is used when Agentic Fabric sees activity it has not classified yet, including a newer agent. Business app, status, and owners are the other columns the registry shows.",
+          "difficulty": "medium",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/agentic_fabric/nhi/agent_registry.html"
+        },
+        {
+          "stem": "Which quick filters does the Agent Registry provide?",
+          "choices": [
+            "Discovered in the last 30 days, unsanctioned, and missing an owner",
+            "Failed certifications and expired passwords",
+            "Identities with no email address",
+            "Sources that have not aggregated today"
+          ],
+          "correctIndex": 0,
+          "explanation": "Those filters are on the Agent Registry page. More filters can be added, and Clear All Filters removes them.",
+          "difficulty": "easy",
+          "competency": "discovery",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/agentic_fabric/nhi/agent_registry.html"
+        },
+        {
+          "stem": "What can you change from an agent's details page?",
+          "choices": [
+            "Its active or inactive status, and you can inspect attributes, user entitlements, and change history",
+            "The tenant's identity profile priority",
+            "The SAP audit log format",
+            "Whether Harbor Pilot can edit workflows"
+          ],
+          "correctIndex": 0,
+          "explanation": "Activate and deactivate are documented actions. The Details tab shows attributes and the user entitlements that grant people access to the agent.",
+          "difficulty": "medium",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/agentic_fabric/nhi/agent_registry.html"
+        },
+        {
+          "stem": "What does a warning on a business app mean in the registry?",
+          "choices": [
+            "The app is unsanctioned",
+            "The app failed to aggregate human accounts",
+            "The app is the authoritative source",
+            "The app has no virtual appliance"
+          ],
+          "correctIndex": 0,
+          "explanation": "The business app column can warn when the organization has not sanctioned that app. The agent is still listed so you can see the association.",
+          "difficulty": "medium",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/agentic_fabric/nhi/agent_registry.html"
+        },
+        {
+          "stem": "Does onboarding have to be finished in one sitting?",
+          "choices": [
+            "No. You can skip steps and return to them later",
+            "Yes. Activation fails if any step is skipped",
+            "Only the identity provider step can be skipped",
+            "Steps lock after the first sign-on"
+          ],
+          "correctIndex": 0,
+          "explanation": "The guided onboarding lets you work in whatever order fits. Unfinished steps stay available after you leave.",
+          "difficulty": "easy",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/agentic_fabric/index.html"
+        },
+        {
+          "stem": "What is embedded in Agentic Fabric besides the registry?",
+          "choices": [
+            "Identity Graph, endpoint and browser discovery, ownership and lifecycle controls, and audit-ready reporting",
+            "Password interception only",
+            "SAP emergency access",
+            "A replacement certification engine"
+          ],
+          "correctIndex": 0,
+          "explanation": "The overview lists those capabilities together. Discovery connects agents to human owners and classifies usage against policy.",
+          "difficulty": "medium",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/agentic_fabric/index.html"
+        },
+        {
+          "stem": "Where do you open the list of agents?",
+          "choices": [
+            "Agentic Fabric, then Agents under Non-Human Identities",
+            "Admin > Global > Forms",
+            "The certification campaign owner page",
+            "Identity profiles"
+          ],
+          "correctIndex": 0,
+          "explanation": "The Agent Registry is in the Non-Human Identities section. Accounts for machine, service, and bot accounts are a separate page in that same section.",
+          "difficulty": "easy",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/agentic_fabric/nhi/agent_registry.html"
+        },
+        {
+          "stem": "What label does discovery add when it thinks an account is an agent?",
+          "choices": [
+            "Discovered as Agent",
+            "Unsanctioned human",
+            "Lifecycle state inactive",
+            "Manual remediation"
+          ],
+          "correctIndex": 0,
+          "explanation": "Machine Account Discovery reviews updated accounts daily. Discovered as Machine and Discovered as Agent are the two labels, and each one explains why the account was flagged.",
+          "difficulty": "hard",
+          "competency": "discovery",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/agentic_fabric/nhi/non_human_accounts.html"
+        },
+        {
+          "stem": "What should you do with an account that was discovered as a machine identity?",
+          "choices": [
+            "Correlate it to a machine identity after you confirm it is non-human",
+            "Delete it immediately",
+            "Invite it as a human user",
+            "Put it on an identity profile"
+          ],
+          "correctIndex": 0,
+          "explanation": "The Discovered Accounts tile shows why the account was recommended. If it is non-human, you select it and correlate it to a machine identity. Several accounts can be correlated together.",
+          "difficulty": "medium",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/agentic_fabric/nhi/non_human_accounts.html"
+        },
+        {
+          "stem": "What powers agent discovery and monitoring besides cloud sources and the identity provider?",
+          "choices": [
+            "A connection to your EDR or SIEM",
+            "A nightly CSV upload only",
+            "The password reset flow",
+            "IdentityIQ task servers"
+          ],
+          "correctIndex": 0,
+          "explanation": "Onboarding connects an identity provider, cloud platforms as read-only sources, and your EDR or SIEM. Once connected, Agentic Fabric uses those data sources for discovery and monitoring.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/agentic_fabric/index.html"
+        }
+      ]
+    },
+    {
+      "solution": "Entro",
+      "topic": "Entro",
+      "questions": [
+        {
+          "stem": "What does SailPoint Entro continuously discover and protect?",
+          "choices": [
+            "Human passwords in Active Directory only",
+            "Secrets such as credentials, API keys, and tokens, including other non-human identities",
+            "Certification decisions",
+            "Identity profile mappings"
+          ],
+          "correctIndex": 1,
+          "explanation": "Entro's stated scope is credentials, API keys, tokens, and other non-human identities, wherever they sit in the environment.",
+          "difficulty": "easy",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/entro/help/getting-started/about-entro.html"
+        },
+        {
+          "stem": "Where does the documentation say those secrets are found?",
+          "choices": [
+            "Only inside a vault",
+            "Source code, configuration files, CI/CD pipelines, and third-party integrations",
+            "Only in email",
+            "Only on virtual appliances"
+          ],
+          "correctIndex": 1,
+          "explanation": "The visibility gap Entro is written to close is between cloud providers, developer tools, and internal systems, not only the secrets that already reached a vault.",
+          "difficulty": "medium",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/entro/help/getting-started/about-entro.html"
+        },
+        {
+          "stem": "What is Entro trying to stop before it happens?",
+          "choices": [
+            "Secret leakage, unauthorized access, and privilege escalation",
+            "Failed human certifications",
+            "Identity profile priority conflicts",
+            "Form submissions over 400 kilobytes"
+          ],
+          "correctIndex": 0,
+          "explanation": "That is the stated purpose: secure the development ecosystem by finding the exposure early, rather than after a credential has been misused.",
+          "difficulty": "easy",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/entro/help/getting-started/about-entro.html"
+        },
+        {
+          "stem": "How is a secret's risk level decided?",
+          "choices": [
+            "It is static and based only on the file name",
+            "Dynamically, from privilege, rotation, and exposure",
+            "By the number of lines in the repository",
+            "Only by whether the secret is in GitHub"
+          ],
+          "correctIndex": 1,
+          "explanation": "Context-aware analysis prioritizes exposed or at-risk secrets. Privilege, whether it rotates, and where it is exposed all feed the risk level.",
+          "difficulty": "medium",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/entro/help/getting-started/about-entro.html"
+        },
+        {
+          "stem": "Which systems does the about page list as natively supported?",
+          "choices": [
+            "GitHub, GitLab, Bitbucket, Jenkins, AWS, Azure, GCP, Slack, and Atlassian Cloud",
+            "SAP ECC and IdentityIQ only",
+            "Active Directory and Workday only",
+            "ServiceNow and nothing else"
+          ],
+          "correctIndex": 0,
+          "explanation": "Those are the native integrations named on the product overview. Scanning covers both cloud and on-premises assets.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/entro/help/getting-started/about-entro.html"
+        },
+        {
+          "stem": "What do Entro's machine learning models map?",
+          "choices": [
+            "Relationships among services, users, and credentials, to show possible attack paths",
+            "Identity profile priority",
+            "Certification campaign deadlines",
+            "Password policy strength"
+          ],
+          "correctIndex": 0,
+          "explanation": "Individual findings are not the whole picture. The models connect services, users, and credentials so a path is visible.",
+          "difficulty": "medium",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/entro/help/getting-started/about-entro.html"
+        },
+        {
+          "stem": "How does Entro help a team act on what it finds?",
+          "choices": [
+            "It integrates with ticketing and security orchestration platforms",
+            "It opens a Human Fabric certification automatically for every secret",
+            "It resets the secret's human owner password",
+            "It deletes the repository"
+          ],
+          "correctIndex": 0,
+          "explanation": "Mitigation is handed to the ticketing and orchestration tools the team already runs, after Entro has prioritized the secret.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/entro/help/getting-started/about-entro.html"
+        },
+        {
+          "stem": "What does scanning look for in source code and logs?",
+          "choices": [
+            "Leaked credentials",
+            "Unsanctioned human lifecycles",
+            "Missing managers",
+            "Expired access requests"
+          ],
+          "correctIndex": 0,
+          "explanation": "Detection of leaked credentials in source code and logs is called out separately from the broader scan of cloud and on-premises assets.",
+          "difficulty": "easy",
+          "competency": "discovery",
+          "sourceUrl": "https://documentation.sailpoint.com/entro/help/getting-started/about-entro.html"
+        },
+        {
+          "stem": "What non-human population does Entro show inside development pipelines?",
+          "choices": [
+            "Non-human identities used in those pipelines",
+            "Student accounts",
+            "Campaign owners",
+            "Identity Graph snapshots"
+          ],
+          "correctIndex": 0,
+          "explanation": "Pipeline visibility is one of the documented outcomes, next to continuous scanning and leaked-credential detection.",
+          "difficulty": "medium",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/entro/help/getting-started/about-entro.html"
+        },
+        {
+          "stem": "Why does the documentation mention deployment choice?",
+          "choices": [
+            "So the customer can keep control of data locality and compliance",
+            "Because Entro runs only in one AWS region",
+            "Because scanning requires IdentityIQ",
+            "Because secrets cannot be classified in the cloud"
+          ],
+          "correctIndex": 0,
+          "explanation": "The overview ties deployment options to data locality and compliance. It does not describe Entro as a single fixed region.",
+          "difficulty": "hard",
+          "competency": "positioning",
+          "sourceUrl": "https://documentation.sailpoint.com/entro/help/getting-started/about-entro.html"
+        },
+        {
+          "stem": "What does real-time visibility cover besides repositories?",
+          "choices": [
+            "Vaults and workloads",
+            "Only the current git commit",
+            "Human certification comments",
+            "Identity profile transforms"
+          ],
+          "correctIndex": 0,
+          "explanation": "The overview says centralized, real-time visibility across repositories, vaults, and workloads.",
+          "difficulty": "easy",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/entro/help/getting-started/about-entro.html"
+        },
+        {
+          "stem": "What makes two exposed secrets unequal in Entro?",
+          "choices": [
+            "The risk level, which changes with privilege, rotation, and exposure",
+            "The order they were committed",
+            "Whether a human certified them",
+            "The connector category, Quick Compliance or Deep Governance"
+          ],
+          "correctIndex": 0,
+          "explanation": "Context-aware analysis exists so a team can prioritize. A privileged, unrotated, exposed secret is not treated the same as every other finding.",
+          "difficulty": "medium",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/entro/help/getting-started/about-entro.html"
+        },
+        {
+          "stem": "Which gap is Entro written to close?",
+          "choices": [
+            "The gap between cloud providers, developer tools, and internal systems",
+            "The gap between joiner and leaver tickets",
+            "The gap between two identity profiles",
+            "The gap between a SIEM and a certification campaign"
+          ],
+          "correctIndex": 0,
+          "explanation": "That is the bridging sentence on the about page. Secrets leak in the spaces those systems do not share a view of.",
+          "difficulty": "medium",
+          "competency": "positioning",
+          "sourceUrl": "https://documentation.sailpoint.com/entro/help/getting-started/about-entro.html"
+        }
+      ]
+    },
+    {
+      "solution": "Privileged Task Automation",
+      "topic": "Privileged Task Automation",
+      "questions": [
+        {
+          "stem": "What engine runs a Privileged Task Automation workflow?",
+          "choices": [
+            "SailPoint's Workflows engine",
+            "A standalone script host",
+            "IdentityIQ's task scheduler only",
+            "The browser extension"
+          ],
+          "correctIndex": 0,
+          "explanation": "Privileged Task Automation is documented as workflow automation for privileged tasks, built on the Workflows engine inside Human Fabric.",
+          "difficulty": "easy",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/privilege/privileged_task_automation.html"
+        },
+        {
+          "stem": "What security outcome does automating the task produce?",
+          "choices": [
+            "Standing privilege is removed, because the user no longer needs the credential to perform the action",
+            "The user is granted permanent Domain Admin",
+            "The credential is emailed to the technician",
+            "The vault is disabled"
+          ],
+          "correctIndex": 0,
+          "explanation": "The documented benefits are automating privileged processes, removing standing privilege, and reducing the need for specialized manual work.",
+          "difficulty": "medium",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/privilege/privileged_task_automation.html"
+        },
+        {
+          "stem": "How can a Privileged Task Automation workflow be created?",
+          "choices": [
+            "From a template, in the visual builder, or by uploading JSON that includes a Privileged Task Automation action",
+            "Only by a support ticket",
+            "Only from an IdentityIQ rule",
+            "Only by editing an existing Harbor Pilot workflow"
+          ],
+          "correctIndex": 0,
+          "explanation": "Those are the three documented starting points. Uploaded JSON still has to include the Privileged Task Automation action.",
+          "difficulty": "medium",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/privilege/privileged_task_automation.html"
+        },
+        {
+          "stem": "When can a privileged task run with no one filling in a form?",
+          "choices": [
+            "When it needs no user input. After it is enabled, the schedule or event runs it",
+            "Never. Every task requires the Launchpad",
+            "Only on the first day it is created",
+            "Only if Parameter Storage is empty"
+          ],
+          "correctIndex": 0,
+          "explanation": "Tasks with no inputs run behind the scenes. Tasks that need input must start with the Interactive Trigger, which creates the launcher.",
+          "difficulty": "easy",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/privilege/privileged_task_automation.html"
+        },
+        {
+          "stem": "What is created when a workflow uses an Interactive Trigger?",
+          "choices": [
+            "A launcher, and an entitlement is created automatically so the task can be delegated",
+            "A new identity profile",
+            "A certification campaign",
+            "A Shared Signals transmitter"
+          ],
+          "correctIndex": 0,
+          "explanation": "The launcher is how a user starts the interactive process. Delegation is granting the entitlement that the launcher created. Until someone has that entitlement, they cannot run the task.",
+          "difficulty": "hard",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/privilege/privileged_task_automation.html"
+        },
+        {
+          "stem": "Where are privileged credentials referenced from during the action?",
+          "choices": [
+            "Parameter Storage or a credential provider, and the action uses them without showing the values",
+            "The technician's browser",
+            "The certification sign-off comment",
+            "An email to the source owner"
+          ],
+          "correctIndex": 0,
+          "explanation": "Authentication details are secrets on the workflow. Parameter Storage is the SailPoint-managed repository. A credential provider is the other documented option. The Privilege Gateway virtual appliance uses them to reach the target.",
+          "difficulty": "medium",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/parameter_storage/index.html"
+        },
+        {
+          "stem": "What three kinds of parameters does Parameter Storage hold?",
+          "choices": [
+            "Authentication, connection, and authorization",
+            "Joiner, mover, and leaver",
+            "Easy, medium, and hard",
+            "Subject, event, and stream"
+          ],
+          "correctIndex": 0,
+          "explanation": "Authentication is the username and secret. Connection is the host, address, or URL. Authorization is what the action is allowed to do. Admins update them in one place.",
+          "difficulty": "easy",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/parameter_storage/index.html"
+        },
+        {
+          "stem": "Who can see the secret value when a Privileged Action uses a stored parameter?",
+          "choices": [
+            "The admin building the action cannot see the stored value",
+            "Every user on the Launchpad",
+            "The certification reviewer",
+            "Anyone with Workflows Read Only"
+          ],
+          "correctIndex": 0,
+          "explanation": "Parameter Storage is documented so the action can use authentication and connection parameters without exposing their values to the admin.",
+          "difficulty": "hard",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/parameter_storage/index.html"
+        },
+        {
+          "stem": "Where is Parameter Storage available?",
+          "choices": [
+            "Only in AWS regions where the AWS Nitro Enclaves SailPoint uses are supported",
+            "In every region, including those without Nitro Enclaves",
+            "Only on premises",
+            "Only inside IdentityIQ"
+          ],
+          "correctIndex": 0,
+          "explanation": "The product page states that regional limit directly. It is a SailPoint-managed repository so customers do not have to bring their own secret store.",
+          "difficulty": "hard",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/parameter_storage/index.html"
+        },
+        {
+          "stem": "What does the Privilege Gateway virtual appliance do?",
+          "choices": [
+            "It uses the stored credential to authenticate to the target and run the action",
+            "It stores identity profiles",
+            "It hosts the certification user interface",
+            "It replaces the browser extension"
+          ],
+          "correctIndex": 0,
+          "explanation": "The workflow's secrets authenticate the gateway onto the target application. The person who launched the task does not receive that credential.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/privilege/privileged_task_automation.html"
+        },
+        {
+          "stem": "What has to happen before the first privileged task can be automated?",
+          "choices": [
+            "The site needs a way to supply privileged credentials, either Parameter Storage or a credential provider",
+            "Every human must be certified",
+            "Harbor Pilot must be enabled for end users",
+            "File Access Manager must be connected"
+          ],
+          "correctIndex": 0,
+          "explanation": "The setup section says to choose how privileged credentials will be provided before creating and automating tasks.",
+          "difficulty": "easy",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/privilege/privileged_task_automation.html"
+        },
+        {
+          "stem": "Can a privileged task be started by a person rather than by an event?",
+          "choices": [
+            "Yes. The Interactive Trigger is the manual path, after the launcher is delegated",
+            "No. Tasks run only on a schedule",
+            "Only an Org Admin can type the command on the server",
+            "Only a SIEM alert can start one"
+          ],
+          "correctIndex": 0,
+          "explanation": "Workflows can start from a schedule or an event, or a user can start an interactive process. The interactive path is the one that requires delegation.",
+          "difficulty": "medium",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/privilege/privileged_task_automation.html"
+        },
+        {
+          "stem": "What is a privileged task, as the documentation defines it?",
+          "choices": [
+            "Work that needs a privileged credential so someone can run commands on an application",
+            "Any access request",
+            "A role assigned by automation",
+            "A password reset email"
+          ],
+          "correctIndex": 0,
+          "explanation": "Privileged Task Automation elevates the work for the duration of the action and keeps the credential out of the user's hands.",
+          "difficulty": "easy",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/privilege/privileged_task_automation.html"
+        }
+      ]
+    },
+    {
+      "solution": "Shadow AI Remediation",
+      "topic": "Shadow AI Remediation",
+      "questions": [
+        {
+          "stem": "What does Shadow AI Remediation show, and how does it respond?",
+          "choices": [
+            "Real-time use of AI tools, with just-in-time remediation through guided playbooks",
+            "Only agents that were procured by central IT",
+            "SAP emergency access sessions",
+            "IdentityIQ login failures"
+          ],
+          "correctIndex": 0,
+          "explanation": "The product covers GenAI web applications and GenAI applications registered to the identity provider. Playbooks are the remediation path.",
+          "difficulty": "easy",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/sair/help/index.html"
+        },
+        {
+          "stem": "What are the two setup steps required before you can see usage?",
+          "choices": [
+            "Connect an identity provider, then deploy the browser extension",
+            "Install a virtual appliance and a mainframe connector",
+            "Create an identity profile and a certification campaign",
+            "Enable Harbor Pilot for end users"
+          ],
+          "correctIndex": 0,
+          "explanation": "The identity provider supplies usage and risk. The browser extension discovers what users actually do in GenAI applications.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/sair/help/index.html"
+        },
+        {
+          "stem": "What does the browser extension fail to separate?",
+          "choices": [
+            "Personal activity and business activity in any browser where it is installed",
+            "Sanctioned and unsanctioned applications",
+            "Entra and Okta",
+            "Admins and read-only users"
+          ],
+          "correctIndex": 0,
+          "explanation": "The documentation says the extension captures personal activity and that the customer is responsible for making that collection lawful. Privacy features can be turned off.",
+          "difficulty": "hard",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/sair/help/index.html"
+        },
+        {
+          "stem": "What do you define after the out-of-the-box GenAI application list?",
+          "choices": [
+            "Which additional applications to log, and which applications policy allows",
+            "The SAP application servers",
+            "The identity profile priority",
+            "The form image limit"
+          ],
+          "correctIndex": 0,
+          "explanation": "You can add applications to the inventory, then mark the sanctioned set. Policy comes after that, and it has to be configured and tested.",
+          "difficulty": "medium",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/sair/help/index.html"
+        },
+        {
+          "stem": "Which identity providers are documented connection options?",
+          "choices": [
+            "Microsoft Entra, Okta, and other identity providers",
+            "Only Active Directory on premises",
+            "Only SailPoint IdentityIQ",
+            "A CSV file and nothing else"
+          ],
+          "correctIndex": 0,
+          "explanation": "The admin guide has setup pages for Entra, Okta, and other IdPs. Connecting the IdP is what provides the inventory of registered GenAI applications.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/sair/help/idp/index.html"
+        },
+        {
+          "stem": "Can privacy controls be changed after the extension is deployed?",
+          "choices": [
+            "Yes. Privacy-related features can be managed and optionally disabled",
+            "No. The extension's collection settings are fixed",
+            "Only SailPoint Support can change them",
+            "Only by reinstalling IdentityIQ"
+          ],
+          "correctIndex": 0,
+          "explanation": "Configuring Privacy Controls is the documented place to change those features. The extension still does not itself distinguish personal and business activity.",
+          "difficulty": "medium",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/sair/help/index.html"
+        },
+        {
+          "stem": "What is a playbook in this product?",
+          "choices": [
+            "Guided remediation for a GenAI policy decision, such as steering people away from a banned application",
+            "A Human Fabric certification template",
+            "A connector Express Setup",
+            "An IdentityIQ login configuration"
+          ],
+          "correctIndex": 0,
+          "explanation": "The overview points at playbooks for just-in-time remediation. Examples include avoiding banned GenAI apps and giving corporate GenAI policy guidance.",
+          "difficulty": "medium",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/sair/help/playbooks/index.html"
+        },
+        {
+          "stem": "When do you decide the policy?",
+          "choices": [
+            "After discovery is configured and sanctioned applications are defined, and then you test it",
+            "Before any identity provider is connected",
+            "Only after a certification is signed off",
+            "Policy is generated and cannot be tested"
+          ],
+          "correctIndex": 0,
+          "explanation": "The getting-started order is IdP, browser extension, review and extend the application list, define sanctioned apps, decide the policy, then configure and test it.",
+          "difficulty": "easy",
+          "competency": "discovery",
+          "sourceUrl": "https://documentation.sailpoint.com/sair/help/index.html"
+        },
+        {
+          "stem": "What does the identity provider connection provide that the extension does not replace?",
+          "choices": [
+            "Visibility into AI usage and risk from applications registered to the IdP",
+            "Provisioning of human accounts",
+            "Password interception",
+            "SAP audit logs"
+          ],
+          "correctIndex": 0,
+          "explanation": "Both are required. The IdP shows registered GenAI applications. The extension discovers user activity in the browser.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/sair/help/index.html"
+        },
+        {
+          "stem": "Who is responsible for the personal data the extension collects?",
+          "choices": [
+            "The customer, who must make sure collection and use comply with applicable requirements",
+            "SailPoint, because the extension is a SailPoint component",
+            "The end user, because they installed Chrome",
+            "The identity provider vendor"
+          ],
+          "correctIndex": 0,
+          "explanation": "The documentation states that responsibility directly next to the warning that personal and business activity are not distinguished.",
+          "difficulty": "hard",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/sair/help/index.html"
+        },
+        {
+          "stem": "What inventory do added applications feed?",
+          "choices": [
+            "The inventory and dashboards that log the organization's GenAI activity",
+            "The Human Fabric identity profile list",
+            "The certification campaign archive",
+            "The Parameter Storage repository"
+          ],
+          "correctIndex": 0,
+          "explanation": "Adding an application is how activity that is not in the out-of-the-box list still shows up in those views.",
+          "difficulty": "easy",
+          "competency": "discovery",
+          "sourceUrl": "https://documentation.sailpoint.com/sair/help/index.html"
+        },
+        {
+          "stem": "What should be tested before you rely on a GenAI policy?",
+          "choices": [
+            "The policy configuration itself, after sanctioned applications are defined",
+            "Only the virtual appliance heartbeat",
+            "IdentityIQ Access History partitions",
+            "The 90-day access-request timeout"
+          ],
+          "correctIndex": 0,
+          "explanation": "Configure and test is the last setup step in the overview. Discovery without a tested policy does not remediate.",
+          "difficulty": "medium",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/sair/help/index.html"
+        },
+        {
+          "stem": "Which two populations of GenAI applications does the product cover?",
+          "choices": [
+            "GenAI web applications, and GenAI applications registered to the identity provider",
+            "Only sanctioned applications",
+            "Only applications built in IdentityIQ",
+            "Only desktop executables"
+          ],
+          "correctIndex": 0,
+          "explanation": "Those are the two scopes named at the top of the overview. Unsanctioned use is what the policy and playbooks then address.",
+          "difficulty": "easy",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/sair/help/index.html"
+        }
+      ]
+    },
+    {
+      "solution": "Data Access Security",
+      "topic": "Data Access Security",
+      "questions": [
+        {
+          "stem": "How is Data Access Security delivered with Human Fabric?",
+          "choices": [
+            "As an integrated SaaS solution that classifies data and remediates with workflows and governance policies",
+            "As an on-premises replacement for Human Fabric",
+            "As a File Access Manager upgrade",
+            "As a certification-only add-on with no discovery"
+          ],
+          "correctIndex": 0,
+          "explanation": "The product overview describes automated discovery and classification, built-in workflows, and out-of-the-box governance policies, integrated with Human Fabric.",
+          "difficulty": "easy",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/das/help/index.html"
+        },
+        {
+          "stem": "Why would you create a virtual appliance for Data Access Security?",
+          "choices": [
+            "To connect sources and load account data without opening the firewall",
+            "To store privileged task credentials",
+            "To host IdentityIQ",
+            "To disable data classification"
+          ],
+          "correctIndex": 0,
+          "explanation": "A virtual appliance is required when you want a direct connection that loads account data. It is the first mandatory setup item in the getting-started guide.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/das/help/getting_started/index.html"
+        },
+        {
+          "stem": "Who can grant Data Access Security user levels in Human Fabric?",
+          "choices": [
+            "A Human Fabric admin. Users cannot grant user levels to themselves",
+            "Any Data Access Security user",
+            "The owner of a file share",
+            "The certification campaign reviewer"
+          ],
+          "correctIndex": 0,
+          "explanation": "User levels are Human Fabric permissions. The connect-to-Human-Fabric page says only a Human Fabric admin can grant or remove them, from Admin > Identities > Identity List.",
+          "difficulty": "medium",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/das/help/getting_started/connect_to_isc.html"
+        },
+        {
+          "stem": "Why connect Data Access Security to Human Fabric?",
+          "choices": [
+            "To set permissions, add identities, and assign those identities to Data Access Security roles",
+            "To replace the virtual appliance",
+            "To scan git history",
+            "To provision SAP roles"
+          ],
+          "correctIndex": 0,
+          "explanation": "The connection is mandatory for permissions and identity assignment. Sources and an identity collector come after it.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/das/help/getting_started/index.html"
+        },
+        {
+          "stem": "Which sources should be created first?",
+          "choices": [
+            "The few sources that together contain every user, because their data is the highest priority",
+            "The smallest file share",
+            "Sources that contain no accounts",
+            "Only cloud sources, after all on-premises sources"
+          ],
+          "correctIndex": 0,
+          "explanation": "Those priority sources are created first. Other sources can be added later. An identity collector is then created from a source so accounts and entitlements can be collected.",
+          "difficulty": "medium",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/das/help/getting_started/index.html"
+        },
+        {
+          "stem": "What does an identity collector do?",
+          "choices": [
+            "Collects accounts and entitlements from a source you already created",
+            "Grants user levels",
+            "Writes file permissions back to the share with no review",
+            "Replaces the Human Fabric connection"
+          ],
+          "correctIndex": 0,
+          "explanation": "The collector is created from the source. Without it, Data Access Security does not have the accounts and entitlements from that source.",
+          "difficulty": "easy",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/das/help/getting_started/index.html"
+        },
+        {
+          "stem": "How does Data Access Security treat en-US and en-GB?",
+          "choices": [
+            "Both behave as English. Territory distinctions are ignored, with Chinese called out as the exception",
+            "They are fully separate languages",
+            "Only en-US is supported",
+            "Locales are not configurable"
+          ],
+          "correctIndex": 0,
+          "explanation": "American English is the default, and more than 10 languages are supported. The docs say territory variants such as en-US and en-GB behave as en, and that Chinese is the exception.",
+          "difficulty": "hard",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/das/help/getting_started/index.html"
+        },
+        {
+          "stem": "What appears on the dashboard once aggregation is running?",
+          "choices": [
+            "Tasks, approvals, and the rest of the operating views",
+            "Identity profile transforms",
+            "Harbor Pilot prompts",
+            "SAP security audit logs"
+          ],
+          "correctIndex": 0,
+          "explanation": "The getting-started guide points at the dashboard for tasks and approvals after data has been aggregated.",
+          "difficulty": "easy",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/das/help/getting_started/index.html"
+        },
+        {
+          "stem": "Where are the application-specific connection guides?",
+          "choices": [
+            "The Data Access Security connector documentation",
+            "The IdentityIQ 8.3 install guide",
+            "The File Access Manager 8.3 portal",
+            "The password reset guide"
+          ],
+          "correctIndex": 0,
+          "explanation": "Data Access Security connects to many applications, and the getting-started page sends you to the DAS connector guides for each one.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/das/help/getting_started/index.html"
+        },
+        {
+          "stem": "What kind of risk is the product built to uncover?",
+          "choices": [
+            "Hidden data risk, through discovery and classification of sensitive data",
+            "Only standing privileged accounts on the helpdesk",
+            "Only human joiner tickets",
+            "Only secrets in git history"
+          ],
+          "correctIndex": 0,
+          "explanation": "The overview centers on sensitive data and the security risk around it, with remediation through workflows and governance policies rather than a one-time scan.",
+          "difficulty": "easy",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/das/help/index.html"
+        },
+        {
+          "stem": "Can a Data Access Security user assign themselves a Human Fabric user level?",
+          "choices": [
+            "No. Only a Human Fabric admin can grant or remove user levels",
+            "Yes, from the Data Access Security dashboard",
+            "Yes, if they own a source",
+            "Only during the first aggregation"
+          ],
+          "correctIndex": 0,
+          "explanation": "That restriction is stated on the connect-to-Human-Fabric page. The admin path is Admin > Identities > Identity List.",
+          "difficulty": "medium",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/das/help/getting_started/connect_to_isc.html"
+        },
+        {
+          "stem": "What has to exist before an identity collector can be created?",
+          "choices": [
+            "The source the collector will read",
+            "A completed certification campaign",
+            "Parameter Storage",
+            "An IdentityIQ task server"
+          ],
+          "correctIndex": 0,
+          "explanation": "The guide says to create the source first, then create the identity collector from it.",
+          "difficulty": "easy",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/das/help/getting_started/index.html"
+        },
+        {
+          "stem": "What is the default language?",
+          "choices": [
+            "American English",
+            "British English as a distinct locale",
+            "The browser locale, including territory",
+            "Chinese"
+          ],
+          "correctIndex": 0,
+          "explanation": "American English is the default. Other languages are supported, but territory variants of a language are not treated as separate except for the documented Chinese exception.",
+          "difficulty": "easy",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/das/help/getting_started/index.html"
+        }
+      ]
+    },
+    {
+      "solution": "Access Risk Management",
+      "topic": "Access Risk Management",
+      "questions": [
+        {
+          "stem": "What does Access Risk Management automate?",
+          "choices": [
+            "Monitoring and managing access risk, including separation of duties and emergency access",
+            "Password resets for students",
+            "Browser-extension deployment",
+            "Machine account classification"
+          ],
+          "correctIndex": 0,
+          "explanation": "The overview names IT teams assessing SoD before access is granted, security teams governing emergency access, and audit and compliance teams using the reports.",
+          "difficulty": "easy",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/access-risk-mgmt/help/index.html"
+        },
+        {
+          "stem": "When does an IT team use it relative to granting access?",
+          "choices": [
+            "Before the access is granted, to assess separation-of-duties risk",
+            "Only after a yearly audit",
+            "After the user has had the access for 90 days",
+            "Only when a certification is unsigned"
+          ],
+          "correctIndex": 0,
+          "explanation": "The documented IT use is preventive: simulate and assess the SoD risk before the access exists, not only discover it later.",
+          "difficulty": "medium",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/access-risk-mgmt/help/index.html"
+        },
+        {
+          "stem": "What do security teams govern with auditable controls?",
+          "choices": [
+            "Emergency access workflows",
+            "Identity profile priority",
+            "Form placeholder text",
+            "Harbor Pilot prompts"
+          ],
+          "correctIndex": 0,
+          "explanation": "Emergency access is called out separately from ordinary access reviews. The control has to be auditable.",
+          "difficulty": "easy",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/access-risk-mgmt/help/index.html"
+        },
+        {
+          "stem": "How many reports does the product documentation say it generates?",
+          "choices": [
+            "Over 25, from high-level summaries to granular detail",
+            "One certification export",
+            "Three, one per cloud provider",
+            "None. Reports are an add-on"
+          ],
+          "correctIndex": 0,
+          "explanation": "Those reports are how audit teams lower the cost of evidence and how compliance teams speed the process. Simulation of role and user changes is the preventive companion.",
+          "difficulty": "medium",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/access-risk-mgmt/help/index.html"
+        },
+        {
+          "stem": "How do you stop a risky role change from becoming production access?",
+          "choices": [
+            "Simulate the role or user change before it is made",
+            "Wait for the next certification and revoke it then",
+            "Disable the ERP system",
+            "Shorten the Human Fabric request timeout"
+          ],
+          "correctIndex": 0,
+          "explanation": "The overview says to prevent risk by simulating role and user changes, managing access reviews, and governing emergency access requests.",
+          "difficulty": "medium",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/access-risk-mgmt/help/index.html"
+        },
+        {
+          "stem": "What does Access Risk Management do with locale territory, such as a language variant?",
+          "choices": [
+            "It does not recognize territory distinctions",
+            "It treats every territory as a separate language",
+            "It supports territory variants and nothing else",
+            "It requires en-US and rejects every other locale"
+          ],
+          "correctIndex": 0,
+          "explanation": "The getting-started note is that territory language distinctions are not recognized. Do not expect a regional variant to behave as its own language.",
+          "difficulty": "hard",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/access-risk-mgmt/help/getting_started.html"
+        },
+        {
+          "stem": "Why must every SAP application server be connected for emergency access monitoring?",
+          "choices": [
+            "Security Audit Log activity is missed if any application server connection is left out",
+            "The extra servers improve report formatting only",
+            "SAP allows only one server, so the requirement is optional",
+            "Connections are needed for password sync, not for the audit log"
+          ],
+          "correctIndex": 0,
+          "explanation": "The emergency-access setup says you must add every application server connection or Security Audit Log will not track all EAM activity.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/access-risk-mgmt/help/erp/set_emergency_access_options.html"
+        },
+        {
+          "stem": "Which SAP log reader does the documentation recommend when RSAU_API_GET_LOG_DATA is not present but RSAU_READ_LOG is?",
+          "choices": [
+            "RSAU_READ_LOG",
+            "SM20 on a 4.x system",
+            "The Human Fabric search index",
+            "A virtual appliance syslog"
+          ],
+          "correctIndex": 0,
+          "explanation": "RSAU_READ_LOG is the option when that function module exists but you are not on the release that provides RSAU_API_GET_LOG_DATA. Older ECC systems fall back to SM20 variants.",
+          "difficulty": "hard",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/access-risk-mgmt/help/erp/set_emergency_access_options.html"
+        },
+        {
+          "stem": "Who uses the reports to reduce audit cost?",
+          "choices": [
+            "Audit teams, using automated audit-ready reports",
+            "End users resetting passwords",
+            "Developers scanning git history",
+            "Helpdesk staff unlocking accounts"
+          ],
+          "correctIndex": 0,
+          "explanation": "The overview assigns audit teams the cost outcome and compliance teams the speed outcome. Both depend on the same report set.",
+          "difficulty": "easy",
+          "competency": "discovery",
+          "sourceUrl": "https://documentation.sailpoint.com/access-risk-mgmt/help/index.html"
+        },
+        {
+          "stem": "What else, besides simulation, keeps emergency access governable?",
+          "choices": [
+            "Auditable controls on the emergency access workflow",
+            "Disabling the Security Audit Log",
+            "A single shared SAP account",
+            "Skipping application server connections"
+          ],
+          "correctIndex": 0,
+          "explanation": "Security teams are the audience for emergency access with auditable controls. The SAP configuration is what makes that activity visible.",
+          "difficulty": "medium",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/access-risk-mgmt/help/index.html"
+        },
+        {
+          "stem": "Which ERP is the emergency-access setup page written for?",
+          "choices": [
+            "SAP",
+            "Workday",
+            "ServiceNow",
+            "GitHub"
+          ],
+          "correctIndex": 0,
+          "explanation": "The setup page is the SAP emergency-access options, including how the Security Audit Log is read and how application servers are registered.",
+          "difficulty": "easy",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/access-risk-mgmt/help/erp/set_emergency_access_options.html"
+        },
+        {
+          "stem": "What happens if you monitor only some SAP application servers?",
+          "choices": [
+            "Emergency access activity on the servers you skipped is not in the Security Audit Log collection",
+            "The other servers forward their logs automatically",
+            "Access Risk Management rejects the connection",
+            "Those servers are governed by Human Fabric certifications instead"
+          ],
+          "correctIndex": 0,
+          "explanation": "The requirement is explicit: add every application server connection so all EAM activity is tracked.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/access-risk-mgmt/help/erp/set_emergency_access_options.html"
+        },
+        {
+          "stem": "What kind of decision do the reports support?",
+          "choices": [
+            "Data-informed decisions about access risk, at both summary and detail level",
+            "Which identity profile priority to set",
+            "Whether Harbor Pilot may edit a workflow",
+            "Which browser extension privacy toggle to use"
+          ],
+          "correctIndex": 0,
+          "explanation": "Over 25 reports is the mechanism. Simulation is how you test a change before it becomes one of those findings.",
+          "difficulty": "easy",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/access-risk-mgmt/help/index.html"
+        }
+      ]
+    },
+    {
+      "solution": "Non-Employee Risk Management",
+      "topic": "Non-Employee Risk Management",
+      "questions": [
+        {
+          "stem": "What populations does Non-Employee Risk Management manage?",
+          "choices": [
+            "Non-employees such as contractors, vendors, and other partners",
+            "Employees in the HCM only",
+            "Machine accounts",
+            "SAP emergency-access ids"
+          ],
+          "correctIndex": 0,
+          "explanation": "The admin guide describes profiles for those populations and the data about them. End-user documentation is a separate User Help site.",
+          "difficulty": "easy",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/ne-admin/help/index.html"
+        },
+        {
+          "stem": "Can Non-Employee Risk Management be the only copy of non-employee data?",
+          "choices": [
+            "No. It can be an authoritative source, but the organization must keep a separate, regularly backed-up copy",
+            "Yes. SailPoint backs it up as the system of record",
+            "Yes, if workflows are enabled",
+            "Only when it is connected to Human Fabric"
+          ],
+          "correctIndex": 0,
+          "explanation": "The admin introduction says it should not be the sole repository. Backup guidance is in the Non-Employee API documentation, or through SailPoint Support.",
+          "difficulty": "hard",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/ne-admin/help/index.html"
+        },
+        {
+          "stem": "What must the company obtain before putting personal data into the product?",
+          "choices": [
+            "Consent from the data subjects, and a legal review of regulated data the contract restricts",
+            "A certification sign-off",
+            "An IdentityIQ license",
+            "A virtual appliance in every region"
+          ],
+          "correctIndex": 0,
+          "explanation": "The introduction restricts certain personal and regulated information and says to consult Legal. Consent is the company's responsibility before the data is included.",
+          "difficulty": "hard",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/ne-admin/help/index.html"
+        },
+        {
+          "stem": "What determines which profiles a user can manage?",
+          "choices": [
+            "The roles assigned when the user is added to the tenant",
+            "The identity profile priority in Human Fabric",
+            "Whether they own a source",
+            "The browser extension"
+          ],
+          "correctIndex": 0,
+          "explanation": "Roles gate profile management. Users you add help create, link, and manage non-employee data, but only within the profiles their roles allow.",
+          "difficulty": "medium",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/ne-admin/help/index.html"
+        },
+        {
+          "stem": "What do you build before users can create profiles?",
+          "choices": [
+            "Forms, assembled into pages, then profile types and a workflow set for each type",
+            "A certification campaign",
+            "Parameter Storage",
+            "An SAP application server connection"
+          ],
+          "correctIndex": 0,
+          "explanation": "Forms become the pages users fill in. Profile types categorize the data, such as the person, their organization, or a project. Each profile type needs its own create and update workflows.",
+          "difficulty": "medium",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/ne-admin/help/index.html"
+        },
+        {
+          "stem": "Does one workflow set cover every profile type?",
+          "choices": [
+            "No. Each profile type needs its own workflows",
+            "Yes. One create workflow serves every type",
+            "Workflows are optional if forms exist",
+            "Workflows are inherited from Human Fabric"
+          ],
+          "correctIndex": 0,
+          "explanation": "Users activate those workflows to create and update profiles of that type. A type without workflows cannot be managed the way the guide describes.",
+          "difficulty": "easy",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/ne-admin/help/index.html"
+        },
+        {
+          "stem": "How do profiles become a map of the non-employee population?",
+          "choices": [
+            "Profiles of different types are linked together",
+            "They are correlated by a machine account subtype",
+            "They are exported to a certification and not stored",
+            "They replace the HCM automatically"
+          ],
+          "correctIndex": 0,
+          "explanation": "Once profile types and workflows exist, you create profiles and link them until the organization has the non-employee map it needs.",
+          "difficulty": "medium",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/ne-admin/help/index.html"
+        },
+        {
+          "stem": "What should you track to confirm the system is working?",
+          "choices": [
+            "User activity and workflow activity",
+            "Harbor Pilot prompt quality",
+            "Identity Graph snapshots",
+            "SAP SM20 column layout"
+          ],
+          "correctIndex": 0,
+          "explanation": "The admin guide points at user reports and workflow-activity details for that check.",
+          "difficulty": "easy",
+          "competency": "discovery",
+          "sourceUrl": "https://documentation.sailpoint.com/ne-admin/help/index.html"
+        },
+        {
+          "stem": "Where is the documentation for the people filling in profiles?",
+          "choices": [
+            "The Non-Employee Risk Management User Help, separate from the admin guide",
+            "The IdentityIQ getting-started page",
+            "The connector landing page",
+            "Parameter Storage"
+          ],
+          "correctIndex": 0,
+          "explanation": "The admin page links User Help for end users of the non-employee system. Admin Help is the configuration guide.",
+          "difficulty": "easy",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/ne-admin/help/index.html"
+        },
+        {
+          "stem": "What is an example of a profile type besides the non-employee themselves?",
+          "choices": [
+            "The organization they come from, or the project they are working on",
+            "A Human Fabric identity profile",
+            "A machine account subtype",
+            "A Shared Signals stream"
+          ],
+          "correctIndex": 0,
+          "explanation": "Profile types categorize the data. The person, the vendor organization, and the project are the examples the admin guide gives.",
+          "difficulty": "medium",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/ne-admin/help/index.html"
+        },
+        {
+          "stem": "Who should you ask before loading regulated personal information?",
+          "choices": [
+            "Your legal department, because the contract and the product both restrict categories of data",
+            "The certification campaign owner",
+            "The source sub-admin",
+            "The browser-extension user"
+          ],
+          "correctIndex": 0,
+          "explanation": "The restriction is contractual as well as product-level. Consent from the data subject is a separate obligation the company has to meet.",
+          "difficulty": "hard",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/ne-admin/help/index.html"
+        },
+        {
+          "stem": "How do users create a profile after configuration?",
+          "choices": [
+            "They activate the create workflow for that profile type and complete its pages",
+            "They aggregate a source",
+            "They submit a Human Fabric access request",
+            "They edit the identity profile mapping"
+          ],
+          "correctIndex": 0,
+          "explanation": "Workflows are what users run to create and update profiles. The pages on those workflows are the forms you built.",
+          "difficulty": "medium",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/ne-admin/help/index.html"
+        },
+        {
+          "stem": "What is the product allowed to be for identity governance?",
+          "choices": [
+            "An authoritative source of non-employee information, with another backup kept elsewhere",
+            "The only repository, because SailPoint guarantees the backup",
+            "A read-only report that cannot store profiles",
+            "A replacement for the employee HCM"
+          ],
+          "correctIndex": 0,
+          "explanation": "Authoritative is allowed. Sole repository is not. The organization remains responsible for a separate, regularly backed-up source.",
+          "difficulty": "medium",
+          "competency": "positioning",
+          "sourceUrl": "https://documentation.sailpoint.com/ne-admin/help/index.html"
+        }
+      ]
+    },
+    {
+      "solution": "Cloud Infrastructure Entitlement Management",
+      "topic": "Cloud Infrastructure Entitlement Management",
+      "questions": [
+        {
+          "stem": "What does CIEM add to identity governance?",
+          "choices": [
+            "Effective access on cloud entitlements, and what users do with that access",
+            "A replacement for Human Fabric certifications",
+            "Git secret scanning",
+            "Non-employee profile types"
+          ],
+          "correctIndex": 0,
+          "explanation": "CIEM is the deeper view of effective access to cloud resources and of entitlement activity. You manage those entitlements in Human Fabric after the cloud providers are connected.",
+          "difficulty": "easy",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/ciem/index.html"
+        },
+        {
+          "stem": "What has to happen before cloud entitlements can be managed?",
+          "choices": [
+            "Configure the cloud service providers and connect them to Human Fabric",
+            "Enable Harbor Pilot",
+            "Install IdentityIQ",
+            "Create a Non-Employee profile type"
+          ],
+          "correctIndex": 0,
+          "explanation": "The overview lists AWS, Azure, GCP, and Okta as the providers, each with its own configuration and Human Fabric connection.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/ciem/index.html"
+        },
+        {
+          "stem": "Which cloud providers does the CIEM overview tell you to configure?",
+          "choices": [
+            "AWS, Azure, GCP, and Okta",
+            "Only AWS",
+            "SAP and Workday",
+            "GitHub and Jenkins"
+          ],
+          "correctIndex": 0,
+          "explanation": "Each provider has a configuration page and a Human Fabric connection page. Entitlements are then managed inside Human Fabric.",
+          "difficulty": "medium",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/ciem/index.html"
+        },
+        {
+          "stem": "Can you turn on CIEM inside the AWS SaaS connector and also use the CIEM connector for the same management account?",
+          "choices": [
+            "No. Those two cannot both be enabled for the same management account",
+            "Yes. They are required together",
+            "Only in GovCloud",
+            "Only if Identity Center is disabled"
+          ],
+          "correctIndex": 0,
+          "explanation": "The AWS connection page states that conflict directly. The CIEM connector can still collect data for AWS SaaS accounts and entitlements when those entitlements are marked as cloud.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/ciem/aws/connect_aws.html"
+        },
+        {
+          "stem": "In what order do you connect the AWS source and the CIEM AWS source?",
+          "choices": [
+            "Either order",
+            "The CIEM connector must be first",
+            "The SaaS connector must finish aggregating before CIEM can be created",
+            "Only after a certification is complete"
+          ],
+          "correctIndex": 0,
+          "explanation": "The connection page says the two sources may be connected in any order.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/ciem/aws/connect_aws.html"
+        },
+        {
+          "stem": "How many connectors do you need to govern both IAM users and Identity Center users?",
+          "choices": [
+            "Two",
+            "One SaaS connector covers both",
+            "None. CIEM reads them without a connector",
+            "One virtual appliance and no connector"
+          ],
+          "correctIndex": 0,
+          "explanation": "The page says both populations require two connectors. Identity Center users are managed with the CIEM AWS connector. IAM users use an AWS connector, with the SaaS connector recommended.",
+          "difficulty": "hard",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/ciem/aws/connect_aws.html"
+        },
+        {
+          "stem": "Which connector does the documentation recommend for IAM users?",
+          "choices": [
+            "The SaaS-based AWS connector",
+            "A mainframe connector",
+            "The IdentityIQ connector",
+            "Express Setup for a read-only mainframe"
+          ],
+          "correctIndex": 0,
+          "explanation": "The implementation table lists the SaaS connector as recommended, with a VA-based connector as the alternative. A VA-based IAM connection also requires the CIEM AWS connector.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/ciem/aws/connect_aws.html"
+        },
+        {
+          "stem": "How do you govern Identity Center users when you are not governing IAM users?",
+          "choices": [
+            "Connect the CIEM AWS connector. An IAM connector is not required for that option",
+            "Enable CIEM on the AWS SaaS connector for the same account",
+            "Use a Quick Compliance connector only",
+            "Mark nothing. Identity Center is out of scope"
+          ],
+          "correctIndex": 0,
+          "explanation": "The Identity Center-only path is the CIEM AWS connector. The both-populations path adds a separate IAM connector.",
+          "difficulty": "medium",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/ciem/aws/connect_aws.html"
+        },
+        {
+          "stem": "What do you do after cloud accounts and entitlements have aggregated?",
+          "choices": [
+            "Mark the IAM entitlements, the Identity Center entitlements, or both, as cloud entitlements",
+            "Delete the AWS source",
+            "Disable effective-access calculation",
+            "Move the accounts to an identity profile"
+          ],
+          "correctIndex": 0,
+          "explanation": "Marking is what lets CIEM treat those entitlements as cloud access. The connection page says to mark IAM and/or Identity Center entitlements after aggregation.",
+          "difficulty": "medium",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/ciem/aws/connect_aws.html"
+        },
+        {
+          "stem": "A VA-based connection for IAM users without Identity Center still needs which other connector?",
+          "choices": [
+            "The CIEM AWS connector",
+            "No other connector",
+            "A Deep Governance mainframe connector",
+            "The Non-Employee connector"
+          ],
+          "correctIndex": 0,
+          "explanation": "The table says a VA-based IAM connection requires the CIEM AWS connector as well. The SaaS-based IAM connector is the path that does not add that requirement for the IAM-only case.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/ciem/aws/connect_aws.html"
+        },
+        {
+          "stem": "Where do you manage the cloud entitlements once the providers are connected?",
+          "choices": [
+            "In SailPoint Human Fabric",
+            "Only in the cloud provider console",
+            "In IdentityIQ Access History",
+            "In the browser extension"
+          ],
+          "correctIndex": 0,
+          "explanation": "CIEM's overview says configuration happens at the provider, and management of the entitlements happens in Human Fabric.",
+          "difficulty": "easy",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/ciem/index.html"
+        },
+        {
+          "stem": "What will the CIEM connector still collect if you are not enabling CIEM on the AWS SaaS connector?",
+          "choices": [
+            "Data for AWS SaaS accounts and entitlements, as long as they are marked as cloud",
+            "Nothing from the SaaS source",
+            "Human identity profiles",
+            "SAP audit logs"
+          ],
+          "correctIndex": 0,
+          "explanation": "That collection continues even though you cannot enable CIEM in the SaaS connector for a management account that already uses the CIEM connector.",
+          "difficulty": "hard",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/ciem/aws/connect_aws.html"
+        },
+        {
+          "stem": "What does effective access mean in this product?",
+          "choices": [
+            "The cloud resources an entitlement can actually reach, plus activity on those entitlements",
+            "The role name stored in Human Fabric, ignoring the cloud policy",
+            "Whether the user has signed in to Human Fabric",
+            "The certification decision, regardless of the cloud grant"
+          ],
+          "correctIndex": 0,
+          "explanation": "The overview defines CIEM as the deeper view of effective access to resources and of users' entitlement activity in cloud infrastructure.",
+          "difficulty": "medium",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/saas/help/ciem/index.html"
+        }
+      ]
+    },
+    {
+      "solution": "Accelerated Application Management",
+      "topic": "Accelerated Application Management",
+      "questions": [
+        {
+          "stem": "What does the Application Visibility documentation say it finds?",
+          "choices": [
+            "Commercial SaaS, in-house applications, and unsanctioned shadow IT",
+            "Only applications already in Human Fabric",
+            "Only mainframe accounts",
+            "Only GenAI chatbots"
+          ],
+          "correctIndex": 0,
+          "explanation": "Salesforce and Workday are the commercial examples. Unsanctioned applications are called shadow IT. The product documentation for Accelerated Application Management is this Application Visibility guide.",
+          "difficulty": "easy",
+          "competency": "discovery",
+          "sourceUrl": "https://documentation.sailpoint.com/saam/help/index.html"
+        },
+        {
+          "stem": "What do you connect before the browser extension?",
+          "choices": [
+            "The identity provider, so SaaS usage and risk are visible",
+            "A virtual appliance cluster",
+            "SAP application servers",
+            "Parameter Storage"
+          ],
+          "correctIndex": 0,
+          "explanation": "The identity provider connection comes first. The browser extension is what then discovers user activity.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/saam/help/index.html"
+        },
+        {
+          "stem": "What personal-data warning applies to the Application Visibility browser extension?",
+          "choices": [
+            "It does not distinguish personal and business activity, and privacy features can be disabled",
+            "It captures business applications only",
+            "It never runs in a personal browser profile",
+            "Personal activity is filtered before it is stored"
+          ],
+          "correctIndex": 0,
+          "explanation": "The customer is responsible for lawful collection. Privacy controls are configurable. The same warning is documented for this extension.",
+          "difficulty": "hard",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saam/help/index.html"
+        },
+        {
+          "stem": "Who can administer Application Visibility?",
+          "choices": [
+            "A user with the Org Admin user level",
+            "Any user who can see the inventory",
+            "A certification reviewer",
+            "A read-only administrator"
+          ],
+          "correctIndex": 0,
+          "explanation": "Org Admin is required to administer. Cert Admin, Helpdesk Admin, or Report Admin can have read-only access.",
+          "difficulty": "medium",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saam/help/index.html"
+        },
+        {
+          "stem": "What can a Read-only Administrator do in the product's own admin console?",
+          "choices": [
+            "Retrieve and view data, but not modify or delete it",
+            "Change privacy controls",
+            "Assign Org Admin",
+            "Delete discovered applications"
+          ],
+          "correctIndex": 0,
+          "explanation": "Global Administrator has full access, including system configuration and privacy controls. Read-only Administrator is limited to viewing.",
+          "difficulty": "easy",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saam/help/index.html"
+        },
+        {
+          "stem": "What inventories exist after the identity provider and extension are in place?",
+          "choices": [
+            "Applications, user accounts, and accounts discovered by the extension and the identity provider",
+            "Only a list of Human Fabric sources",
+            "Only sanctioned applications",
+            "Certification sign-off history"
+          ],
+          "correctIndex": 0,
+          "explanation": "Those inventories are the operating view. They include what the extension and the identity provider discovered, not only what was registered in advance.",
+          "difficulty": "medium",
+          "competency": "discovery",
+          "sourceUrl": "https://documentation.sailpoint.com/saam/help/index.html"
+        },
+        {
+          "stem": "Which Human Fabric user levels receive read-only access?",
+          "choices": [
+            "Cert Admin, Helpdesk Admin, or Report Admin",
+            "Org Admin only",
+            "Identity Graph Read Only",
+            "Source Sub-Admin"
+          ],
+          "correctIndex": 0,
+          "explanation": "The overview names those three for read-only access to Application Visibility. Org Admin is the administrative level.",
+          "difficulty": "hard",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saam/help/index.html"
+        },
+        {
+          "stem": "What does a Global Administrator configure that a read-only administrator cannot?",
+          "choices": [
+            "System configuration and privacy controls",
+            "Nothing. The roles are identical",
+            "Only the inventory sort order",
+            "SAP emergency access"
+          ],
+          "correctIndex": 0,
+          "explanation": "Full access includes the admin console, product configuration, system configuration, and privacy controls.",
+          "difficulty": "medium",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saam/help/index.html"
+        },
+        {
+          "stem": "How do you know which portal URL to use?",
+          "choices": [
+            "From the URL in the initial connectivity instructions, which depends on the tenant region",
+            "Everyone uses the same URL",
+            "The URL is the Human Fabric admin console",
+            "The URL is documentation.sailpoint.com"
+          ],
+          "correctIndex": 0,
+          "explanation": "The guide branches on the domain in those instructions. One documented example is app.us-east4.savvy.security.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/saam/help/index.html"
+        },
+        {
+          "stem": "What kinds of applications count as shadow IT here?",
+          "choices": [
+            "Unsanctioned applications running in the environment",
+            "Applications with a Deep Governance connector",
+            "Applications created as identity profiles",
+            "Applications that have completed a certification"
+          ],
+          "correctIndex": 0,
+          "explanation": "The overview groups commercial apps, in-house apps, and unsanctioned apps together as what Application Visibility is meant to see.",
+          "difficulty": "easy",
+          "competency": "discovery",
+          "sourceUrl": "https://documentation.sailpoint.com/saam/help/index.html"
+        },
+        {
+          "stem": "What discovers user-related activity after the identity provider is connected?",
+          "choices": [
+            "The browser extension",
+            "A virtual appliance",
+            "Account aggregation",
+            "Access History"
+          ],
+          "correctIndex": 0,
+          "explanation": "The extension is the second setup step. Without it, the identity provider connection does not discover that user activity.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/saam/help/index.html"
+        },
+        {
+          "stem": "Can privacy-related features be turned off?",
+          "choices": [
+            "Yes. They can be managed and optionally disabled",
+            "No. They are fixed for the life of the tenant",
+            "Only by uninstalling the identity provider",
+            "Only for read-only administrators"
+          ],
+          "correctIndex": 0,
+          "explanation": "Configuring Privacy Controls is the documented place. Global Administrators are the role that can define those controls.",
+          "difficulty": "medium",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saam/help/index.html"
+        },
+        {
+          "stem": "What is a Global Administrator allowed to do in the admin console?",
+          "choices": [
+            "Configure and manage the whole product, including system configuration and privacy controls",
+            "View inventories only",
+            "Read certifications and nothing else",
+            "Reset Human Fabric passwords"
+          ],
+          "correctIndex": 0,
+          "explanation": "That is the full-access role. Read-only Administrator cannot modify or delete.",
+          "difficulty": "easy",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/saam/help/index.html"
+        }
+      ]
+    },
+    {
+      "solution": "Identity Security Connectors",
+      "topic": "Identity Security Connectors",
+      "questions": [
+        {
+          "stem": "What do the Identity Security connector guides cover?",
+          "choices": [
+            "Connectivity for Human Fabric and Agentic Fabric",
+            "IdentityIQ 8.3 only",
+            "File Access Manager connectors",
+            "Non-Employee profile forms"
+          ],
+          "correctIndex": 0,
+          "explanation": "The landing page says the connectivity documentation covers Human Fabric and Agentic Fabric. IdentityIQ connectors are a separate landing page.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/connectors/isc/landingpages/help/landingpages/isc_landing.html"
+        },
+        {
+          "stem": "How do you find which tab a source belongs on?",
+          "choices": [
+            "Search for the source name if you are not sure which category tab to open",
+            "Every source is on the Quick Compliance tab",
+            "Sources are listed only in IdentityIQ",
+            "The tab is chosen by the identity profile priority"
+          ],
+          "correctIndex": 0,
+          "explanation": "The landing page tells you to use the category tabs or the search field when you do not know where a source is listed.",
+          "difficulty": "easy",
+          "competency": "discovery",
+          "sourceUrl": "https://documentation.sailpoint.com/connectors/isc/landingpages/help/landingpages/isc_landing.html"
+        },
+        {
+          "stem": "What is a Quick Compliance connector for?",
+          "choices": [
+            "User and entitlement aggregation with a lightweight, read-only setup so compliance work can start quickly",
+            "Provisioning account changes back to the source",
+            "Replacing a virtual appliance cluster",
+            "Storing privileged credentials"
+          ],
+          "correctIndex": 0,
+          "explanation": "Express Setup creates that read-only connection with minimal configuration. After it succeeds, you are prompted to run an aggregation.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/connectors/isc/landingpages/help/landingpages/quick_compliance.html"
+        },
+        {
+          "stem": "What does Express Setup ask you to do after the connection succeeds?",
+          "choices": [
+            "Run an aggregation",
+            "Enable write-back provisioning",
+            "Create a Privileged Task Automation workflow",
+            "Disable the source"
+          ],
+          "correctIndex": 0,
+          "explanation": "The prompt to aggregate is part of the Quick Compliance setup. The connection itself stays read-only.",
+          "difficulty": "medium",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/connectors/isc/landingpages/help/landingpages/quick_compliance.html"
+        },
+        {
+          "stem": "What do Deep Governance connectors do that Quick Compliance connectors do not?",
+          "choices": [
+            "They provision changes from Identity Security back to the managed system, as well as reading accounts",
+            "They are read-only and cannot aggregate entitlements",
+            "They work only with mainframes",
+            "They replace the need for an authoritative source"
+          ],
+          "correctIndex": 0,
+          "explanation": "Deep Governance reads user account data and provisions changes. Quick Compliance is the lightweight read-only path for compliance operations.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/connectors/isc/landingpages/help/landingpages/deep_governance.html"
+        },
+        {
+          "stem": "Which Deep Governance connectors require a virtual appliance cluster?",
+          "choices": [
+            "VA-based connectors. SaaS-based connectors do not",
+            "All Deep Governance connectors",
+            "None. Deep Governance is always SaaS",
+            "Only the connectors marked for IdentityIQ"
+          ],
+          "correctIndex": 0,
+          "explanation": "The landing page draws that line explicitly. A VA-based connector needs the cluster. A SaaS-based connector does not.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/connectors/isc/landingpages/help/landingpages/deep_governance.html"
+        },
+        {
+          "stem": "Who is responsible for the API keys a connector needs?",
+          "choices": [
+            "The customer. SailPoint is not responsible for the availability of those keys or permissions",
+            "SailPoint Support, as part of the connector",
+            "The source vendor ships them inside the connector",
+            "They are stored in Parameter Storage automatically"
+          ],
+          "correctIndex": 0,
+          "explanation": "The connectivity landing page says the customer maintains the API keys and other credentials required to reach the outside technology.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/connectors/isc/landingpages/help/landingpages/isc_landing.html"
+        },
+        {
+          "stem": "What does a successful Express Setup not do?",
+          "choices": [
+            "Provision changes back to the target. The connection is read-only",
+            "Aggregate users",
+            "Aggregate entitlements",
+            "Prompt you to aggregate"
+          ],
+          "correctIndex": 0,
+          "explanation": "Quick Compliance is aggregation for compliance, with lightweight configuration. Provisioning is the Deep Governance distinction.",
+          "difficulty": "medium",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/connectors/isc/landingpages/help/landingpages/quick_compliance.html"
+        },
+        {
+          "stem": "Where is Epic connector documentation kept?",
+          "choices": [
+            "In the knowledge base, and you join the user group to view it",
+            "On the public Deep Governance tab, with no extra access",
+            "In the IdentityIQ 8.3 guide only",
+            "It is not documented"
+          ],
+          "correctIndex": 0,
+          "explanation": "The Deep Governance page says Epic and Epic SER documentation is in the knowledge base and requires the user group.",
+          "difficulty": "hard",
+          "competency": "discovery",
+          "sourceUrl": "https://documentation.sailpoint.com/connectors/isc/landingpages/help/landingpages/deep_governance.html"
+        },
+        {
+          "stem": "What is the practical difference you would tell a customer choosing a connector category?",
+          "choices": [
+            "Quick Compliance gets to aggregation and compliance fast, and Deep Governance also writes changes back",
+            "They are the same connector with two names",
+            "Quick Compliance is for provisioning and Deep Governance is read-only",
+            "Deep Governance cannot aggregate entitlements"
+          ],
+          "correctIndex": 0,
+          "explanation": "That split is the landing page's reason for the two tabs. Express Setup is the fast read-only path. Deep Governance is the path that provisions.",
+          "difficulty": "easy",
+          "competency": "positioning",
+          "sourceUrl": "https://documentation.sailpoint.com/connectors/isc/landingpages/help/landingpages/isc_landing.html"
+        },
+        {
+          "stem": "A mainframe connector listed as read-only belongs to which story?",
+          "choices": [
+            "Deep Governance still includes read-only mainframe connectors such as Top Secret and RACF",
+            "Read-only means it is a Quick Compliance connector",
+            "Read-only mainframe connectors provision changes",
+            "Mainframe connectors are unsupported"
+          ],
+          "correctIndex": 0,
+          "explanation": "The Deep Governance list includes Mainframe Top Secret and IBM RACF marked read-only. Read-only describes that connector's operations, not which tab it sits on.",
+          "difficulty": "hard",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/connectors/isc/landingpages/help/landingpages/deep_governance.html"
+        },
+        {
+          "stem": "What should the customer have ready before a connector can be used?",
+          "choices": [
+            "The API keys and permissions the target technology requires",
+            "A completed role model",
+            "Harbor Pilot enabled for end users",
+            "An IdentityIQ MFA provider"
+          ],
+          "correctIndex": 0,
+          "explanation": "SailPoint does not supply those keys. The landing page assigns that responsibility to the customer.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://documentation.sailpoint.com/connectors/isc/landingpages/help/landingpages/isc_landing.html"
+        },
+        {
+          "stem": "After Express Setup, what data can the Quick Compliance connector bring in?",
+          "choices": [
+            "Users and entitlements",
+            "Provisioning policies only",
+            "Privileged task credentials",
+            "Non-employee profile types"
+          ],
+          "correctIndex": 0,
+          "explanation": "User and entitlement aggregation is the stated scope, so compliance operations can start without a full write-back integration.",
+          "difficulty": "easy",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/connectors/isc/landingpages/help/landingpages/quick_compliance.html"
+        }
+      ]
+    },
+    {
+      "solution": "IdentityIQ",
+      "topic": "IdentityIQ",
+      "questions": [
+        {
+          "stem": "What does IdentityIQ warn you not to do while you are working?",
+          "choices": [
+            "Open the same session in multiple tabs or browsers, because one can overwrite the other",
+            "Use MFA",
+            "Set a password policy",
+            "Enable Access History"
+          ],
+          "correctIndex": 0,
+          "explanation": "The getting-started guide says opening multiple tabs might overwrite changes made in another tab.",
+          "difficulty": "easy",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/identityiq/help/getting_started_iiq/index.html"
+        },
+        {
+          "stem": "If your password is expired, when do you complete MFA?",
+          "choices": [
+            "Before the password change. The MFA provider's page appears after the IdentityIQ login page",
+            "After the password has been changed",
+            "MFA is skipped when a password is expired",
+            "Only if you have a single provider"
+          ],
+          "correctIndex": 0,
+          "explanation": "You log in on the IdentityIQ page, then the MFA provider's page. An expired or required password change still goes through MFA first.",
+          "difficulty": "medium",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/identityiq/help/getting_started_iiq/index.html"
+        },
+        {
+          "stem": "What do you do if you are assigned more than one MFA provider?",
+          "choices": [
+            "Select a provider from the list before that provider's login page",
+            "IdentityIQ picks one automatically",
+            "Use all of them in sequence",
+            "MFA is disabled until an admin removes the extras"
+          ],
+          "correctIndex": 0,
+          "explanation": "The getting-started guide says the provider list is a required choice when more than one provider is assigned.",
+          "difficulty": "easy",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/identityiq/help/getting_started_iiq/index.html"
+        },
+        {
+          "stem": "What has to be true before authentication questions can reset a password?",
+          "choices": [
+            "An administrator has enabled the option, and you have already answered the questions in User Preferences",
+            "The questions work the first time you need a reset, with no prior setup",
+            "A mobile number is enough",
+            "Access History must be enabled"
+          ],
+          "correctIndex": 0,
+          "explanation": "The guide also distinguishes how many answers you must define from how many correct answers you must provide. If you never set them up, you contact the help desk or an IdentityIQ administrator.",
+          "difficulty": "hard",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/identityiq/help/getting_started_iiq/index.html"
+        },
+        {
+          "stem": "What does a new password have to satisfy?",
+          "choices": [
+            "The password policy the IdentityIQ administrator configured",
+            "A fixed eight-character rule that cannot be changed",
+            "The Human Fabric dictionary check",
+            "No policy. Any value is accepted"
+          ],
+          "correctIndex": 0,
+          "explanation": "The reset flow enforces the policy that was configured in IdentityIQ. It is not a universal rule documented as a fixed length.",
+          "difficulty": "easy",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/identityiq/help/getting_started_iiq/index.html"
+        },
+        {
+          "stem": "What is required for a mobile reset option?",
+          "choices": [
+            "An administrator enables it, and the account has a full mobile number including the area code",
+            "Any phone number, including one without an area code",
+            "The user enables it themselves with no administrator step",
+            "A Shared Signals transmitter"
+          ],
+          "correctIndex": 0,
+          "explanation": "The getting-started guide says the number must be complete, including the area code, and that an administrator activates the option.",
+          "difficulty": "medium",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/identityiq/help/getting_started_iiq/index.html"
+        },
+        {
+          "stem": "How often does Access History run by default?",
+          "choices": [
+            "Once per day, and the frequency can be configured",
+            "Every hour, and the schedule cannot be changed",
+            "Only when an administrator clicks a button",
+            "It is always on and has no task"
+          ],
+          "correctIndex": 0,
+          "explanation": "History events are published through a scheduled or ad hoc service. The default for the Access History run is daily.",
+          "difficulty": "medium",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/identityiq/help/access_history/how_access_history_works.html"
+        },
+        {
+          "stem": "Why is the first Dispatch Access History run slower than later runs?",
+          "choices": [
+            "The first run extracts all identity and related objects. Later runs extract what is new or significantly changed",
+            "Later runs re-extract everything",
+            "The first run extracts only changed objects",
+            "Access History never extracts identities"
+          ],
+          "correctIndex": 0,
+          "explanation": "Unchanged objects are not processed again. The system also distinguishes initial events from change events and skips duplicates.",
+          "difficulty": "hard",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/identityiq/help/access_history/how_access_history_works.html"
+        },
+        {
+          "stem": "What happens if the host running a Dispatch Access History partition fails?",
+          "choices": [
+            "Another host can resume from the last saved progress. The partition does not have to start over",
+            "The entire history database is rebuilt",
+            "That partition's objects are skipped permanently",
+            "Access History disables itself"
+          ],
+          "correctIndex": 0,
+          "explanation": "Each partition periodically saves progress inside its work cycle. That saved state is what another host resumes.",
+          "difficulty": "hard",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/identityiq/help/access_history/how_access_history_works.html"
+        },
+        {
+          "stem": "Is Access History available the moment IdentityIQ is installed?",
+          "choices": [
+            "No. It is disabled by default until the history database and task are configured",
+            "Yes. It is enabled and runs hourly",
+            "Yes, but only for roles",
+            "It cannot be enabled"
+          ],
+          "correctIndex": 0,
+          "explanation": "The guide says Access History is disabled by default so you can configure it, including the database and tables and the task restrictions.",
+          "difficulty": "easy",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/identityiq/help/access_history/how_access_history_works.html"
+        },
+        {
+          "stem": "What does the Access History user interface search?",
+          "choices": [
+            "The access history database, including identities, roles, entitlements, certifications, and requests",
+            "The live IdentityIQ tables only, with no separate history store",
+            "Human Fabric search",
+            "The SAP security audit log"
+          ],
+          "correctIndex": 0,
+          "explanation": "Extracted objects are stored in tables used by the Access History UI. APIs query that database for identities, roles, entitlements, certifications, requests, and managed attributes.",
+          "difficulty": "medium",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/identityiq/help/access_history/how_access_history_works.html"
+        },
+        {
+          "stem": "Who do you contact if authentication questions were never set up and you do not know your password?",
+          "choices": [
+            "The help desk or an IdentityIQ administrator",
+            "SailPoint Harbor Pilot",
+            "The certification campaign owner",
+            "The cloud service provider"
+          ],
+          "correctIndex": 0,
+          "explanation": "The self-service question flow is unavailable until the answers exist in User Preferences. Until then, a person has to reset the password.",
+          "difficulty": "medium",
+          "competency": "identity governance",
+          "sourceUrl": "https://documentation.sailpoint.com/identityiq/help/getting_started_iiq/index.html"
+        },
+        {
+          "stem": "What can self-service registration do?",
+          "choices": [
+            "Let a new user request an IdentityIQ account the first time they open the product, if an administrator enabled it",
+            "Create an account with no administrator action, always",
+            "Reset a password without MFA",
+            "Enable Access History"
+          ],
+          "correctIndex": 0,
+          "explanation": "Registration can also be opened from a direct link that skips the login page. The option has to be enabled, and the user completes the required fields, including the requested identity.",
+          "difficulty": "easy",
+          "competency": "platform",
+          "sourceUrl": "https://documentation.sailpoint.com/identityiq/help/getting_started_iiq/index.html"
+        }
+      ]
+    }
+  ]
+}

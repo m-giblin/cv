@@ -14,6 +14,9 @@ import {
 } from "@/components/manager/coaching-signoff-form";
 import type { DealPrepReviewItem } from "@/components/manager/deal-prep-review-item";
 import { ChallengeSubmissionReviewPanel } from "@/components/manager/challenge-submission-review-panel";
+import { MentorDateRequestsPanel } from "@/components/manager/mentor-date-requests-panel";
+import { MentorManagerNotesPanel } from "@/components/manager/mentor-manager-notes-panel";
+import { MentorGateRecommendationNote } from "@/components/manager/mentor-gate-recommendation-note";
 import type { PlanStepReviewItem } from "@/components/manager/plan-step-review-panel";
 import type { ReviewItem } from "@/components/manager/review-queue";
 import { SimulationCoachingReviewPanel } from "@/components/manager/simulation-coaching-review-panel";
@@ -519,6 +522,8 @@ export function ManagerInbox({
       />
 
       <PageBody className="flex flex-col gap-[22px] pb-8">
+        <MentorManagerNotesPanel />
+        <MentorDateRequestsPanel />
         <FilterBar
           show={
             <span aria-label="Filter by type" className="flex flex-wrap gap-2" role="group">
@@ -784,6 +789,10 @@ export function ManagerInbox({
                     onSuggestedGrade={(suggested) => setGrade(String(suggested))}
                     submissionId={activeItem.id}
                   />
+                ) : null}
+
+                {activeItem.inboxType === "plan_step" && activeItem.isManagerGate ? (
+                  <MentorGateRecommendationNote assignmentStepId={activeItem.assignmentStepId} />
                 ) : null}
 
                 {activeItem.inboxType === "mentor" && activeItem.seNotes ? (

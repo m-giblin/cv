@@ -38,3 +38,16 @@ export function eligibleMentorsForEnrollment(profiles: Profile[], orgUserIds: Se
     })
     .sort((a, b) => a.fullName.localeCompare(b.fullName));
 }
+
+/**
+ * Mentor choices for enrollment. The org profile list is the manager's reports, so the signed-in
+ * manager is added here and listed first. They can mentor a new hire on their own team.
+ */
+export function enrollmentMentors(profiles: Profile[], orgUserIds: Set<string>, viewer?: Profile | null): Profile[] {
+  const pool = viewer && !profiles.some((profile) => profile.id === viewer.id) ? [viewer, ...profiles] : profiles;
+  const mentors = eligibleMentorsForEnrollment(pool, orgUserIds);
+  if (!viewer) return mentors;
+  const self = mentors.find((mentor) => mentor.id === viewer.id);
+  if (!self) return mentors;
+  return [self, ...mentors.filter((mentor) => mentor.id !== viewer.id)];
+}

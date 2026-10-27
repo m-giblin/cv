@@ -1,0 +1,1698 @@
+{
+  "source": "developer.sailpoint.com",
+  "excluded": "File Access Manager",
+  "banks": [
+    {
+      "solution": "APIs and authentication",
+      "topic": "APIs and authentication",
+      "questions": [
+        {
+          "stem": "How many personal access tokens can one user keep?",
+          "choices": [
+            "10, and New Token is disabled once that limit is reached",
+            "25, with older tokens revoked automatically",
+            "One per grant type",
+            "Unlimited, as long as each token has a scope"
+          ],
+          "correctIndex": 0,
+          "explanation": "The New Token button is disabled at 10 personal access tokens per user. Delete tokens you no longer need to stay under that limit.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/api/authentication"
+        },
+        {
+          "stem": "What stays visible after you close the window that created a personal access token?",
+          "choices": [
+            "Both the client ID and the secret",
+            "The client ID only; the secret is not shown again",
+            "The secret only; the client ID is hashed",
+            "Neither value; both must be regenerated to be seen"
+          ],
+          "correctIndex": 1,
+          "explanation": "The client ID remains in the Personal Access Tokens list. The secret is shown only when the token is created, so it has to be stored then.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/api/getting-started"
+        },
+        {
+          "stem": "Whose access does a JWT from a personal access token grant?",
+          "choices": [
+            "A fixed read-only service account",
+            "Whatever the user who created the token can do",
+            "Org Admin, regardless of who created the token",
+            "Only the public identities endpoints"
+          ],
+          "correctIndex": 1,
+          "explanation": "The access token matches the user who generated the personal access token. An admin's token grants admin API access; another user's token does not.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/api/authentication"
+        },
+        {
+          "stem": "Which grant flow does the authentication guide recommend for a web application?",
+          "choices": [
+            "Client credentials, so the app stores the user's password",
+            "Password grant, because it works with SSO",
+            "Authorization code, with a login redirect back to the app",
+            "Refresh token by itself, with no earlier login"
+          ],
+          "correctIndex": 2,
+          "explanation": "Web apps should use the authorization code flow so users sign in to SailPoint and return through a redirect. The password grant is not recommended, and a refresh token is only used together with authorization code.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/api/authentication"
+        },
+        {
+          "stem": "What is the V3 API gateway rate limit?",
+          "choices": [
+            "100 requests per access token every 10 seconds",
+            "100 requests per tenant every minute",
+            "250 requests per personal access token every hour",
+            "10,000 requests per access token every 10 seconds"
+          ],
+          "correctIndex": 0,
+          "explanation": "V3 calls through the API gateway are limited to 100 requests per access token per 10 seconds. Going over that returns HTTP 429 and a Retry-After header.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/api/getting-started"
+        },
+        {
+          "stem": "What does HTTP 401 mean on an API call, compared with 403?",
+          "choices": [
+            "401 means the token is valid but the user lacks access; 403 means the token is missing",
+            "401 means the Authorization header is missing or the access token is invalid; 403 means the token is valid but the caller cannot use that endpoint",
+            "401 means the filter is unsupported; 403 means the page size is over 250",
+            "Both codes mean the personal access token secret was rotated"
+          ],
+          "correctIndex": 1,
+          "explanation": "401 means there is no Authorization header or the access token is invalid or expired. 403 means the token is valid, but the user does not have access. A client-credentials call with no user context often gets 403 on admin APIs.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/api/authentication"
+        },
+        {
+          "stem": "What scope does a personal access token get by default, and what does that scope allow?",
+          "choices": [
+            "sp:scopes:all, every API the user's level allows",
+            "sp:scopes:default, only endpoints that require no authorization, such as List Public Identities",
+            "idn:access-request:manage, request-center APIs only",
+            "No scope until an admin assigns one in API Management"
+          ],
+          "correctIndex": 1,
+          "explanation": "By default a PAT has sp:scopes:default, the least privileged scope. It only reaches endpoints that require no authorization. User level can still limit that access. sp:scopes:all is the broad scope for the user's level.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/api/authorization"
+        },
+        {
+          "stem": "What happens if the create-personal-access-token API call omits the scope property?",
+          "choices": [
+            "The call fails until a scope list is supplied",
+            "The token is created with sp:scopes:all",
+            "The token is created with sp:scopes:default",
+            "The token is created with no scopes and cannot call any API"
+          ],
+          "correctIndex": 1,
+          "explanation": "If the scope property is left off the create request, the credentials are granted sp:scopes:all. The UI is different: it shows the scopes you can toggle before you create the token.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/api/authorization"
+        },
+        {
+          "stem": "How should you page a search that has to go past 10,000 records?",
+          "choices": [
+            "Raise offset past 10,000 on GET /search/v1",
+            "Use searchAfter with a sort, passing the last sort value from each page into the next POST",
+            "Set limit to 250 and count=true until x-total-count is reached",
+            "Call the list identities endpoint, which has no page cap"
+          ],
+          "correctIndex": 1,
+          "explanation": "Search uses Elasticsearch and returns at most 10,000 records by default. searchAfter pages on sorted field values instead of offset, so you can continue past that limit. The sort property is required for that approach.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/api/standard-collection-parameters"
+        },
+        {
+          "stem": "What are the default and maximum page sizes for an ordinary list endpoint?",
+          "choices": [
+            "Default 250 and maximum 250 records",
+            "Default 100 and maximum 1,000 records",
+            "Default 10,000 and maximum 10,000 records",
+            "Default 20 and maximum 100 records"
+          ],
+          "correctIndex": 0,
+          "explanation": "List endpoints default to limit 250 and cannot return more than 250 records per call. The search endpoint is the one that defaults to, and caps at, 10,000.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/api/standard-collection-parameters"
+        },
+        {
+          "stem": "What does count=true add to a collection response?",
+          "choices": [
+            "It changes the body into an object with a total field",
+            "The total size of the collection, ignoring limit and offset, in the x-total-count header",
+            "A searchAfter cursor for the next page",
+            "The number of records in the current page only"
+          ],
+          "correctIndex": 1,
+          "explanation": "count defaults to false. When it is true, x-total-count is the size of the collection after filters, as if limit and offset were ignored. Asking for that total can affect performance.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/api/standard-collection-parameters"
+        },
+        {
+          "stem": "How do collection filters differ from SCIM filters?",
+          "choices": [
+            "They are identical, including uppercase EQ",
+            "Operators must be lowercase, and the supported set is not exactly SCIM",
+            "They only accept numeric fields",
+            "They are JSONPath expressions evaluated by the gateway"
+          ],
+          "correctIndex": 1,
+          "explanation": "The filter syntax is similar to SCIM but not the same. Operators are case-sensitive and must be lowercase, so EQ is rejected. An unsupported filter returns 400.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/api/standard-collection-parameters"
+        },
+        {
+          "stem": "What should you avoid putting in a forked Postman environment?",
+          "choices": [
+            "The tenant variable",
+            "baseUrl, because the collection already sets https://{{tenant}}.api.{{domain}}.com",
+            "The client ID",
+            "The domain variable"
+          ],
+          "correctIndex": 1,
+          "explanation": "When you fork a collection, baseUrl is set automatically. Defining baseUrl again in the environment can interfere with that. Updates come from forking the SailPoint workspace again.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/api/postman-collections"
+        }
+      ]
+    },
+    {
+      "solution": "Transforms",
+      "topic": "Transforms",
+      "questions": [
+        {
+          "stem": "What does an internal transform mean?",
+          "choices": [
+            "It runs only on the virtual appliance",
+            "internal is true, and it cannot be modified without contacting SailPoint",
+            "It is hidden from the identity profile mapping screen",
+            "It is a draft that the API will not return"
+          ],
+          "correctIndex": 1,
+          "explanation": "The list-transforms response includes internal. True means the transform is internal and cannot be modified without contacting SailPoint. False means it is custom and can be changed with the API.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/transforms/guides/your-first-transform"
+        },
+        {
+          "stem": "What does the update-transform API reject?",
+          "choices": [
+            "Adding a key to a lookup table",
+            "A change to the name or type field",
+            "A change to the table values",
+            "A request that leaves requiresPeriodicRefresh false"
+          ],
+          "correctIndex": 1,
+          "explanation": "Updating a transform uses PUT with the new body. Changing the name or type field results in a bad request.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/transforms/guides/your-first-transform"
+        },
+        {
+          "stem": "What comparison can a conditional transform use?",
+          "choices": [
+            "eq only",
+            "eq, sw, and co",
+            "Any operator from the collection filter syntax",
+            "gt and lt on strings"
+          ],
+          "correctIndex": 0,
+          "explanation": "The expression attribute must be eq, in the form ValueA eq ValueB. Anything else throws an IllegalArgumentException. The comparison is case-sensitive, and neither operand can be null.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/transforms/operations/conditional"
+        },
+        {
+          "stem": "How does firstValid choose its output?",
+          "choices": [
+            "It returns the last non-null value in the list",
+            "It returns the first entry that is not null, so the list should be in order of preference",
+            "It concatenates every non-null value",
+            "It returns the default key when every value is present"
+          ],
+          "correctIndex": 1,
+          "explanation": "firstValid walks the values array and returns the first entry that evaluates to a non-null value. Put the preferred sources first. ignoreErrors defaults to false.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/transforms/operations/first-valid"
+        },
+        {
+          "stem": "Where should you avoid an identityAttribute transform?",
+          "choices": [
+            "In a source account create profile",
+            "Inside the calculation of another identity profile attribute",
+            "In a provisioning policy",
+            "When reading the username attribute"
+          ],
+          "correctIndex": 1,
+          "explanation": "identityAttribute is useful in an account create or disable profile. Using it inside another identity attribute calculation is unsafe, because those calculations are multi-threaded and the referenced attribute may not exist yet.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/transforms/operations/identity-attribute"
+        },
+        {
+          "stem": "Which transform type must a provisioning policy use when it needs identity data?",
+          "choices": [
+            "accountAttribute, because provisioning reads the account",
+            "identityAttribute; accountAttribute will not work during provisioning",
+            "lookup, because provisioning policies cannot nest transforms",
+            "dateMath, because every policy attribute is a timestamp"
+          ],
+          "correctIndex": 1,
+          "explanation": "Transforms in a provisioning policy have to use the identityAttribute type. The accountAttribute type will not work during provisioning.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/transforms/guides/transforms-in-provisioning-policies"
+        },
+        {
+          "stem": "What happens when a lookup input matches no key?",
+          "choices": [
+            "The transform returns an empty string",
+            "The transform returns the default value, or an error if no default is set",
+            "The transform returns the original input unchanged",
+            "The transform skips to the next identity attribute"
+          ],
+          "correctIndex": 1,
+          "explanation": "A matching key returns that key's value. If nothing matches and the table has no default, the transform returns an error. Duplicate keys are not allowed.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/transforms/operations/lookup"
+        },
+        {
+          "stem": "What is the type value for a concatenation transform?",
+          "choices": [
+            "concatenation",
+            "concat",
+            "join",
+            "static"
+          ],
+          "correctIndex": 1,
+          "explanation": "The type must be concat. The attributes.values array holds the strings or nested transforms to join, in order.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/transforms/operations/concatenation"
+        },
+        {
+          "stem": "Which account does accountAttribute use when an identity has several accounts on the source?",
+          "choices": [
+            "The newest account, unless you change the sort",
+            "The oldest account by created date, unless accountSortAttribute and accountSortDescending say otherwise",
+            "Every account, concatenated",
+            "Only an account whose attribute is already on the identity profile"
+          ],
+          "correctIndex": 1,
+          "explanation": "The default is the oldest account by created date. accountSortAttribute and accountSortDescending change that order. If the oldest account's value is null, the transform moves to the next account that has a value unless accountReturnFirstLink overrides that.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/transforms/operations/account-attribute"
+        },
+        {
+          "stem": "What does dateMath do when the expression uses now and an input date is also set?",
+          "choices": [
+            "It adds the input date to now",
+            "It prefers now and ignores the input",
+            "It returns an error because both cannot be set",
+            "It uses the input and treats now as a format string"
+          ],
+          "correctIndex": 1,
+          "explanation": "The now keyword is the current instant. If an input date is also supplied, the transform uses now and ignores that input. Rounding by week is not supported and returns an error.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/transforms/operations/date-math"
+        },
+        {
+          "stem": "What format must a dateMath input use?",
+          "choices": [
+            "The source's original format, such as MM/dd/yyyy",
+            "ISO8601 in UTC, such as yyyy-MM-dd'T'HH:mm:ss.SSSZ",
+            "Epoch milliseconds",
+            "yyyy-MM-dd only, with no time"
+          ],
+          "correctIndex": 1,
+          "explanation": "The incoming datetime must be ISO8601 in UTC. dateFormat can convert source data into that form. dateMath's own output format is yyyy-MM-dd'T'HH:mm, so convert again before dateCompare.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/transforms/operations/date-math"
+        },
+        {
+          "stem": "When does requiresPeriodicRefresh cause a transform to run again?",
+          "choices": [
+            "On every aggregation of the source",
+            "Every evening as part of the identity refresh, and only if the flag is true",
+            "Whenever the identity opens the Request Center",
+            "Every hour, because the default is true"
+          ],
+          "correctIndex": 1,
+          "explanation": "requiresPeriodicRefresh is optional and defaults to false. When true, the transform is reevaluated every evening during identity refresh.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/transforms/operations/conditional"
+        },
+        {
+          "stem": "What HTTP status does a successful transform delete return?",
+          "choices": [
+            "200 with the deleted object",
+            "204 with no body",
+            "202 while a review ticket is opened",
+            "404, because custom transforms cannot be deleted"
+          ],
+          "correctIndex": 1,
+          "explanation": "DELETE with the transform id removes it. The server responds with 204 when the transform is gone.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/transforms/guides/your-first-transform"
+        }
+      ]
+    },
+    {
+      "solution": "Rules",
+      "topic": "Rules",
+      "questions": [
+        {
+          "stem": "Where do cloud rules run, and what can they change?",
+          "choices": [
+            "On the virtual appliance, with permission to save objects",
+            "In the multi-tenant cloud, with read-only access to the data model and no ability to commit or save",
+            "In the browser of the user who triggered provisioning",
+            "In IdentityIQ, using the same context as a connector rule"
+          ],
+          "correctIndex": 1,
+          "explanation": "Cloud rules execute in the SailPoint Human Fabric cloud. They may query the data model read-only, but they cannot commit transactions or save objects. Their context is restricted.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/rules"
+        },
+        {
+          "stem": "What can a connector rule see that a cloud rule cannot?",
+          "choices": [
+            "The full SailPoint data model, queried from the virtual appliance",
+            "Nothing from the cloud data model; it uses context sent from the cloud and may use a supplied managed connection",
+            "Every tenant in the same cloud",
+            "The identity warehouse, which it can update directly"
+          ],
+          "correctIndex": 1,
+          "explanation": "Connector rules run on the virtual appliance. They cannot query the SailPoint data model. They rely on context sent from the cloud and may use managed connections that were supplied, but they cannot open extra connections.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/rules"
+        },
+        {
+          "stem": "Who supports a rule after it is deployed?",
+          "choices": [
+            "SailPoint supports the rule configuration the same way it supports the platform",
+            "The customer or implementer owns the configuration; SailPoint supports the platform, and rule work uses Expert Services hours",
+            "The rule review team owns every later change at no charge",
+            "Connector rules are supported, and cloud rules are not"
+          ],
+          "correctIndex": 1,
+          "explanation": "Rules are configurations. SailPoint supports the platform, not the rule itself. Problems in how a rule is written or how it behaves later belong to the customer or implementer. Expert Services hours cover creation, review, and promotion.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/rules"
+        },
+        {
+          "stem": "What is the weekday commitment for a rule review?",
+          "choices": [
+            "A 24 hour SLA, with about 65 percent finished in under 4 business hours",
+            "Same-day deployment for every rule submitted before noon",
+            "A one-week queue, billed as a single hour",
+            "Immediate deployment if the rule is under 50 lines"
+          ],
+          "correctIndex": 0,
+          "explanation": "Weekday submissions have a 24 hour SLA, and weekend submissions are next business day. About 65 percent of reviews finish in less than 4 business hours, with an average of 3 to 6 hours after the ticket is assigned.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/rules"
+        },
+        {
+          "stem": "What has to be reserved before a timed rule deployment window?",
+          "choices": [
+            "Nothing, because weekend go-live support includes rule deploys",
+            "At least 48 hours' notice so a reviewer and a deployment expert can be reserved",
+            "A sandbox promotion, which deploys the rule without review",
+            "A second copy of the rule submitted as a connector rule"
+          ],
+          "correctIndex": 1,
+          "explanation": "A specific deployment window needs at least 48 hours' notice. Weekend go-live support does not cover rule deploys. Rules should be in the sandbox before a weekend go-live so they can be promoted without SailPoint in the middle.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/rules"
+        },
+        {
+          "stem": "How should a rejected rule be sent back?",
+          "choices": [
+            "Reply on the original ticket so the same owner keeps it",
+            "Open a new ticket, so the review is not stuck with an owner who is out",
+            "Upload it with sp-config and skip review",
+            "Mark it as a connector rule, which is not reviewed"
+          ],
+          "correctIndex": 1,
+          "explanation": "If a rule is rejected, submit a new ticket rather than waiting on a case owner who may be out. Typical reviews are billed at 15 to 30 minutes per rule, and SailPoint prefers one rule at a time, or only rules that must ship together.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/rules"
+        },
+        {
+          "stem": "Which logging calls are allowed in a rule?",
+          "choices": [
+            "System.out, because the log aggregator captures it",
+            "log.debug, log.info, log.warn, and log.error, with log.error reserved for unexpected or critical failures",
+            "A logger the rule declares itself",
+            "Full object dumps through toXml"
+          ],
+          "correctIndex": 1,
+          "explanation": "Do not use System.out or declare your own logger. Use the log methods, and use log.error only for an unexpected error or critical failure. Do not log sensitive data or full object serialization.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/rules"
+        },
+        {
+          "stem": "Which lookups are blocked in new cloud and connector rules?",
+          "choices": [
+            "Identity.getAttribute calls",
+            "context methods such as getObject, search, and countObjects",
+            "log.info calls",
+            "Null checks before using an object"
+          ],
+          "correctIndex": 1,
+          "explanation": "context, getObjectById, getObjectByName, getObject, search, and countObjects are not allowed. New rules that use them are sent back. Use the Rule Utility helper methods instead. Do not iterate whole lists of accounts or identities; use a projection query.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/rules"
+        },
+        {
+          "stem": "How does an approved sandbox rule get to production?",
+          "choices": [
+            "It is copied by hand, because sp-config cannot move cloud rules",
+            "sp-config can import any approved rule, including cloud rules, because the signature was already verified",
+            "Production requires a second full review even when the rule is unchanged",
+            "Only connector rules can be promoted"
+          ],
+          "correctIndex": 1,
+          "explanation": "Once the rule review has approved the signature, sp-config can import that approved rule into production. That includes cloud rules. The rule itself is not rewritten during the move.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/rules"
+        },
+        {
+          "stem": "What language are SailPoint Human Fabric rules written in?",
+          "choices": [
+            "Java Beanshell",
+            "TypeScript",
+            "Python",
+            "Go"
+          ],
+          "correctIndex": 0,
+          "explanation": "Rules are written in Java Beanshell. The same rule text is not automatically valid in IdentityIQ, and rules that are not in the supported cloud or connector lists are unsupported.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/rules"
+        },
+        {
+          "stem": "What does an attribute generator rule run with?",
+          "choices": [
+            "Read-only cloud data, and no access to on-premise sources",
+            "A JDBC connection opened by the rule",
+            "Write access to the identity it is naming",
+            "The virtual appliance file system"
+          ],
+          "correctIndex": 0,
+          "explanation": "An attribute generator rule creates account attribute values, such as a username, during provisioning. It executes in the cloud with read-only access to the data model and does not reach on-premise sources.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/rules/guides/your-first-rule"
+        },
+        {
+          "stem": "What does the Rule Development Kit let you do before review?",
+          "choices": [
+            "Deploy the rule straight to production",
+            "Mock the rule's classes locally and test the logic before submitting it",
+            "Convert the rule into a transform so review is skipped",
+            "Sign the rule with your own JWS header"
+          ],
+          "correctIndex": 1,
+          "explanation": "The Rule Development Kit supplies the classes and methods a rule can use. You mock them and run the rule locally before review. It needs Java 17 and Maven 3.9.3 or newer.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/tools/rule-development-kit"
+        },
+        {
+          "stem": "What must you leave out when you copy rule logic into the XML?",
+          "choices": [
+            "The return statement",
+            "The imports",
+            "Variables you initialized for inputs, because those inputs are passed in at runtime",
+            "The rule description"
+          ],
+          "correctIndex": 2,
+          "explanation": "Write the logic in Java under src/main/java, then copy it into the XML under src/main/resources/rules. Do not include the initialized input variables. The runtime supplies those. Tests use Mockito.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/tools/rule-development-kit"
+        }
+      ]
+    },
+    {
+      "solution": "MCP Server",
+      "topic": "MCP Server",
+      "questions": [
+        {
+          "stem": "Which MCP server URL does SailPoint recommend for a typical tenant?",
+          "choices": [
+            "The global URL, which needs no tenant in the address",
+            "Only the tenant-specific URL under api.identitynow.com",
+            "A virtual appliance hostname",
+            "The IdentityIQ plugin guide"
+          ],
+          "correctIndex": 0,
+          "explanation": "The global MCP URL is the recommended entry point and works for all tenants without a tenant-specific address. FedRAMP and data-sovereignty customers should keep using the tenant-specific URL instead.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/mcp-getting-started"
+        },
+        {
+          "stem": "How do you authenticate when you use the tenant-specific MCP URL?",
+          "choices": [
+            "OAuth discovery from the global well-known endpoint",
+            "A bearer token in the Authorization header, including the Bearer prefix",
+            "A personal access token secret with no access token",
+            "No authentication, because the inspector is public"
+          ],
+          "correctIndex": 1,
+          "explanation": "The tenant-specific URL takes a bearer access token. In the MCP Inspector, set the header name to Authorization and paste the token with the Bearer prefix. The global URL can use OAuth discovery instead.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/mcp-getting-started"
+        },
+        {
+          "stem": "What transport does the getting-started guide select in the MCP Inspector?",
+          "choices": [
+            "stdio",
+            "Streamable HTTP",
+            "Server-sent events from the virtual appliance",
+            "WebSocket to the tenant UI"
+          ],
+          "correctIndex": 1,
+          "explanation": "In the inspector, set Transport Type to Streamable HTTP, then enter either the global or the tenant-specific server URL.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/mcp-getting-started"
+        },
+        {
+          "stem": "How many core tools does the SailPoint MCP server provide?",
+          "choices": [
+            "Four: search requestable access, create a request, view status, and cancel",
+            "One: list identities",
+            "Twelve, one for each source operation",
+            "Two: aggregate accounts and certify them"
+          ],
+          "correctIndex": 0,
+          "explanation": "The server exposes four tools for the Request Center: list-requestable, create-access-request, view-access-requests, and cancel-access-request.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/mcp-available-tools"
+        },
+        {
+          "stem": "What limit applies to list-requestable?",
+          "choices": [
+            "25 items per call, with a total count so the query can be narrowed and tried again",
+            "10,000 items, the same cap as the search API",
+            "250 items, the list-endpoint page size",
+            "One item, the same as create-access-request"
+          ],
+          "correctIndex": 0,
+          "explanation": "list-requestable returns at most 25 items. resultsCount is that page, and totalCount is everything that matched, so a broad query can be refined and called again.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/mcp-available-tools"
+        },
+        {
+          "stem": "How many access items can one create-access-request call submit?",
+          "choices": [
+            "A single requestable item",
+            "Up to 25 items",
+            "Every item the search returned",
+            "One item per source on the identity"
+          ],
+          "correctIndex": 0,
+          "explanation": "create-access-request opens a request for a single requestable item in the Request Center.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/mcp-available-tools"
+        },
+        {
+          "stem": "How are access requests ordered when you view them through MCP?",
+          "choices": [
+            "Oldest first, with no cap",
+            "At most 100 requests, most recent first",
+            "Only requests still pending approval",
+            "One request, matching the id you pass"
+          ],
+          "correctIndex": 1,
+          "explanation": "view-access-requests is limited to 100 access requests and sorts them with the most recent first.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/mcp-available-tools"
+        },
+        {
+          "stem": "What comment does cancel-access-request add?",
+          "choices": [
+            "Whatever the user typed, with nothing added",
+            "An automatic note that the request was canceled by AI on behalf of the user, alone or appended to the comment",
+            "The approver's name",
+            "No comment, because cancellation is silent"
+          ],
+          "correctIndex": 1,
+          "explanation": "The tool cancels one request by id. The system adds a comment that it was canceled by AI on behalf of the user, either by itself or appended to a comment you provided.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/mcp-available-tools"
+        },
+        {
+          "stem": "Who decides whether Cursor may connect to the SailPoint MCP server?",
+          "choices": [
+            "SailPoint, as part of the tenant license",
+            "The customer's administrator; SailPoint does not take responsibility for that AI provider",
+            "Cursor, based on the mcp.json file",
+            "Any user who can create a personal access token"
+          ],
+          "correctIndex": 1,
+          "explanation": "Before configuring Cursor, confirm with the organization's administrator that this AI provider is allowed. SailPoint does not bear responsibility for that decision.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/mcp/integrations/cursor"
+        },
+        {
+          "stem": "Which URL does the Cursor mcp.json example use?",
+          "choices": [
+            "https://mcp.sailpoint.com/latest/access-requests/mcp",
+            "https://[tenant].identitynow.com/ui/session",
+            "http://localhost:3000",
+            "The IdentityIQ plugin endpoint"
+          ],
+          "correctIndex": 0,
+          "explanation": "The Cursor configuration uses the global MCP URL, which works for every tenant without a tenant-specific change. You replace the placeholder with your authorization token.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/mcp/integrations/cursor"
+        },
+        {
+          "stem": "How can you tell the Cursor connection worked?",
+          "choices": [
+            "Cursor shows four tools",
+            "Cursor shows the transform editor",
+            "The tenant creates a new source named MCP",
+            "A rule review ticket is opened"
+          ],
+          "correctIndex": 0,
+          "explanation": "After you save the token and open MCP settings, Cursor shows that it is connected and that four tools are available.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/mcp/integrations/cursor"
+        },
+        {
+          "stem": "What should a FedRAMP customer use instead of the global MCP URL?",
+          "choices": [
+            "The tenant-specific URL",
+            "The Postman collection baseUrl",
+            "A webhook.site address",
+            "The Configuration Hub backup URL"
+          ],
+          "correctIndex": 0,
+          "explanation": "Customers with FedRAMP or data-sovereignty requirements should keep the tenant-specific MCP URL rather than the global one.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/mcp-getting-started"
+        },
+        {
+          "stem": "What does the global MCP URL do for an AI client that supports OAuth discovery?",
+          "choices": [
+            "It discovers the authorization and token endpoints, and may ask for the tenant name if the client ID does not reveal it",
+            "It requires a bearer token and ignores OAuth",
+            "It only works inside the MCP Inspector",
+            "It creates a personal access token automatically"
+          ],
+          "correctIndex": 0,
+          "explanation": "Clients that understand .well-known OAuth discovery learn the authorization and token endpoints from the global URL. If the client cannot tell the tenant from the client ID, the flow asks for the tenant name.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/mcp-getting-started"
+        }
+      ]
+    },
+    {
+      "solution": "Event triggers",
+      "topic": "Event triggers",
+      "questions": [
+        {
+          "stem": "How many subscribers can a fire-and-forget trigger have?",
+          "choices": [
+            "50 per event",
+            "1 per event",
+            "Unlimited",
+            "10, the same cap as personal access tokens"
+          ],
+          "correctIndex": 0,
+          "explanation": "A fire-and-forget trigger only forwards the event. It does not wait, and it cannot tell whether a subscriber received it or resend it. It allows at most 50 subscribers per event.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/event-triggers/trigger-types"
+        },
+        {
+          "stem": "How many subscribers can a response-required trigger have?",
+          "choices": [
+            "One per event",
+            "50 per event",
+            "One per tenant, shared by every event",
+            "As many as the filter allows"
+          ],
+          "correctIndex": 0,
+          "explanation": "A response-required trigger expects the subscriber to say how to proceed. It can have only one subscriber per event.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/event-triggers/trigger-types"
+        },
+        {
+          "stem": "What must a subscriber accept before you can subscribe?",
+          "choices": [
+            "An email to a shared mailbox",
+            "An HTTP POST whose JSON body it can parse",
+            "A file dropped on the virtual appliance",
+            "A scheduled search"
+          ],
+          "correctIndex": 1,
+          "explanation": "The subscriber has to accept a POST at an endpoint you choose and parse the JSON the trigger sends. Webhook testers, SaaS workflows, no-code tools, and your own application can all do that.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/event-triggers/preparing-subscriber-service"
+        },
+        {
+          "stem": "Where do you see the triggers enabled in a tenant?",
+          "choices": [
+            "Admin, on the Event Triggers tab",
+            "The identity profile mappings tab",
+            "Configuration Hub backups",
+            "The personal access token page"
+          ],
+          "correctIndex": 0,
+          "explanation": "Available triggers are listed under Admin on the Event Triggers tab. Some triggers are early access and appear only after you request them.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/event-triggers/subscribing-to-trigger"
+        },
+        {
+          "stem": "Why filter an event trigger inside SailPoint instead of in the subscriber?",
+          "choices": [
+            "Filters are required or the subscription will not save",
+            "The subscriber would otherwise receive every event, which costs invocations on services that charge per call",
+            "Filtering deletes the events from the tenant",
+            "A filter replaces the need for a public URL"
+          ],
+          "correctIndex": 1,
+          "explanation": "Without a filter, every event is sent. The subscriber then has to ignore most of them. Filters use a Jayway JSONPath expression so only matching events leave SailPoint.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/event-triggers/filtering-events"
+        },
+        {
+          "stem": "What can you use to try a JSONPath filter before attaching it?",
+          "choices": [
+            "The SailPoint JSONPath evaluator or the CLI JSONPath command",
+            "A certification campaign preview",
+            "The transform lookup table",
+            "Postman's baseUrl variable"
+          ],
+          "correctIndex": 0,
+          "explanation": "SailPoint hosts a web JSONPath evaluator for event triggers and workflows, and the CLI can evaluate JSONPath too. Paste a sample event and check the expression before you test the subscription.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/event-triggers/filtering-events"
+        },
+        {
+          "stem": "How long does a SYNC response-required subscriber have to answer?",
+          "choices": [
+            "10 seconds, or the invocation ends without a decision",
+            "Until the subscription deadline, with no immediate response",
+            "3 minutes, the same window as a SaaS connector",
+            "Until the next identity refresh"
+          ],
+          "correctIndex": 0,
+          "explanation": "SYNC is a synchronous HTTP response. The application must answer within 10 seconds. If it takes longer, the invocation terminates and no decision is made.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/event-triggers/responding-request-response-trigger"
+        },
+        {
+          "stem": "How does an ASYNC subscriber finish a response-required invocation?",
+          "choices": [
+            "It returns the full decision in the first response, after the deadline",
+            "It returns 200 and an empty object within 10 seconds, then calls the callback URL with the secret before the deadline",
+            "It returns 202 and never calls back",
+            "It sends a second fire-and-forget event"
+          ],
+          "correctIndex": 1,
+          "explanation": "ASYNC acknowledges within 10 seconds with HTTP 200 and an empty JSON object. The full decision goes later to the callback URL, using the secret from _metadata, before the subscription deadline.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/event-triggers/responding-request-response-trigger"
+        },
+        {
+          "stem": "What can a DYNAMIC subscriber choose on each event?",
+          "choices": [
+            "Whether to answer as SYNC within 10 seconds, or as ASYNC by returning 202 and completing through the callback",
+            "Whether the trigger is fire-and-forget or response-required",
+            "Which of the 50 subscribers receives the event",
+            "Whether to skip the public URL check"
+          ],
+          "correctIndex": 0,
+          "explanation": "DYNAMIC lets the application decide per event. A quick decision follows the SYNC path. A long task returns 202 Accepted within 10 seconds and completes later with the callback URL and secret.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/event-triggers/responding-request-response-trigger"
+        },
+        {
+          "stem": "What does Test Subscription send?",
+          "choices": [
+            "The trigger's default example payload, which you cannot edit in that command",
+            "A live production event from the last hour",
+            "An empty body, to check authentication only",
+            "Every event that failed the filter"
+          ],
+          "correctIndex": 0,
+          "explanation": "Test Subscription, under Options on the subscription, sends the default example payload. To choose the payload and test a filter, use the test invocation API.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/event-triggers/testing-triggers"
+        },
+        {
+          "stem": "Why would a test event be missing from the activity log?",
+          "choices": [
+            "The filter did not match the payload, so nothing was sent",
+            "Fire-and-forget triggers are never logged",
+            "The log only keeps response-required completions",
+            "Activity is recorded only after the subscription is deleted"
+          ],
+          "correctIndex": 0,
+          "explanation": "If the subscription filter does not match the test payload, no event is sent and it will not appear in the activity log. Check the expression against that payload in a JSONPath editor.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/event-triggers/testing-triggers"
+        },
+        {
+          "stem": "What has to be true of the integration URL?",
+          "choices": [
+            "It must be reachable from the public internet, not only from the company intranet",
+            "It must be a SailPoint hostname",
+            "It must be HTTP on port 80",
+            "It must be the tenant's vanity URL"
+          ],
+          "correctIndex": 0,
+          "explanation": "The trigger service calls the URL from outside your network. A service that you can open on the intranet can still be unreachable. The username, password, or bearer token also has to be valid.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/event-triggers/testing-triggers"
+        },
+        {
+          "stem": "What do fire-and-forget rows look like in the invocation status API?",
+          "choices": [
+            "completeInvocationInput is null, because those triggers do not need a response",
+            "They are omitted, because the API is only for response-required triggers",
+            "They always show a callback secret",
+            "They include the subscriber's decision payload"
+          ],
+          "correctIndex": 0,
+          "explanation": "List invocation statuses works for both trigger types. Fire-and-forget invocations have null completeInvocationInput because they complete without a response.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/event-triggers/responding-request-response-trigger"
+        }
+      ]
+    },
+    {
+      "solution": "Configuration management",
+      "topic": "Configuration management",
+      "questions": [
+        {
+          "stem": "What do Configuration Hub backup and deploy call underneath?",
+          "choices": [
+            "The SaaS Configuration export and import APIs",
+            "The search API",
+            "A virtual appliance backup job",
+            "The rule review queue"
+          ],
+          "correctIndex": 0,
+          "explanation": "Backup is an export and deploy is an import. Configuration Hub uses the SaaS Configuration APIs for both.",
+          "difficulty": "easy",
+          "competency": "platform",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/configuration-management/saas-configuration"
+        },
+        {
+          "stem": "Who can start a configuration export or import?",
+          "choices": [
+            "A tenant administrator, ORG_ADMIN",
+            "Any user with a personal access token",
+            "Report Admin",
+            "The source owner"
+          ],
+          "correctIndex": 0,
+          "explanation": "Both the export and the import require tenant administrator credentials, ORG_ADMIN.",
+          "difficulty": "easy",
+          "competency": "platform",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/configuration-management/saas-configuration"
+        },
+        {
+          "stem": "What is left out of a configuration export?",
+          "choices": [
+            "Source passwords, secret tokens, and other sensitive data, which you add again after import",
+            "Identity profiles",
+            "Transforms",
+            "The object types you listed in the export options"
+          ],
+          "correctIndex": 0,
+          "explanation": "Source passwords, secret tokens, and other sensitive data are not exported. They have to be entered again on the target.",
+          "difficulty": "easy",
+          "competency": "platform",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/configuration-management/saas-configuration"
+        },
+        {
+          "stem": "Why can a rule not be edited while it is moved between tenants?",
+          "choices": [
+            "The object is checked with jwsHeader and jwsSignature",
+            "Rules are skipped on every import",
+            "The export encrypts the Beanshell so it cannot be opened",
+            "Only connector rules are exported, and they are read-only"
+          ],
+          "correctIndex": 0,
+          "explanation": "Rules can be exported and imported. They cannot be changed during that move because jwsHeader and jwsSignature validate the object. Connector rules do not need another rule review; cloud rules were already reviewed.",
+          "difficulty": "hard",
+          "competency": "platform",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/configuration-management/saas-configuration"
+        },
+        {
+          "stem": "What happens if you deploy a Non-Employee source from a backup?",
+          "choices": [
+            "The import fails and nothing else is deployed",
+            "The source is created as a standard source, which can cause problems in the target tenant",
+            "The source is created as a Non-Employee source",
+            "The source is skipped and a warning is the only result"
+          ],
+          "correctIndex": 1,
+          "explanation": "Non-Employee sources are not supported for import or deploy, including a backup from another tenant. Deploying one creates a standard source instead.",
+          "difficulty": "hard",
+          "competency": "platform",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/configuration-management/saas-configuration"
+        },
+        {
+          "stem": "What happens when an import payload includes an object type the import API does not support?",
+          "choices": [
+            "The whole job fails",
+            "That object is skipped and the import still completes",
+            "The object is converted into a transform",
+            "The job waits until the type is enabled"
+          ],
+          "correctIndex": 1,
+          "explanation": "A mark in the Import column means that type cannot be imported. Including it does not fail the job. The unsupported object is skipped and the import completes.",
+          "difficulty": "medium",
+          "competency": "platform",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/configuration-management/saas-configuration"
+        },
+        {
+          "stem": "Which of these can be imported with the SaaS Configuration API?",
+          "choices": [
+            "Transforms, sources, identity profiles, and rules",
+            "Roles, workflows, and access profiles",
+            "Password policies and segments",
+            "Governance groups and notification templates"
+          ],
+          "correctIndex": 0,
+          "explanation": "Transforms, sources, identity profiles, rules, connector rules, and event trigger subscriptions are importable. Roles, workflows, access profiles, password policies, segments, governance groups, and notification templates can be exported but not imported.",
+          "difficulty": "hard",
+          "competency": "platform",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/configuration-management/saas-configuration"
+        },
+        {
+          "stem": "Can roles be moved with an import?",
+          "choices": [
+            "No. Roles can be exported, but the import column is not supported",
+            "Yes, together with workflows",
+            "Yes, but only from production back to sandbox",
+            "Only if they contain no access profiles"
+          ],
+          "correctIndex": 0,
+          "explanation": "Roles are marked for export and backup, and not for import or deploy. Putting a role in the import payload skips that object rather than failing the job.",
+          "difficulty": "medium",
+          "competency": "platform",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/configuration-management/saas-configuration"
+        },
+        {
+          "stem": "How do you retrieve the exported JSON?",
+          "choices": [
+            "POST /beta/sp-config/export, poll the job, and GET the download when status is COMPLETE",
+            "GET /beta/sp-config/export returns the JSON immediately",
+            "The export is emailed to ORG_ADMIN",
+            "Download it from the virtual appliance cluster page"
+          ],
+          "correctIndex": 0,
+          "explanation": "Start the export with POST /beta/sp-config/export and keep the jobId. Poll GET /beta/sp-config/export/{id} until the status is COMPLETE or FAILED, then download with GET /beta/sp-config/export/{id}/download. A long job can expire.",
+          "difficulty": "medium",
+          "competency": "platform",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/configuration-management/saas-configuration"
+        },
+        {
+          "stem": "What does a completed import download contain?",
+          "choices": [
+            "The objects that imported, plus errors, warnings, and other information about the run",
+            "A new tenant URL",
+            "The source passwords that were omitted from the export",
+            "Only the jobId"
+          ],
+          "correctIndex": 0,
+          "explanation": "When status is COMPLETE, GET /beta/sp-config/import/{id}/download lists what imported and any errors, warnings, or information. Import uses the same start, poll, and download pattern as export.",
+          "difficulty": "medium",
+          "competency": "platform",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/configuration-management/saas-configuration"
+        },
+        {
+          "stem": "What is Configuration Hub for, in the product UI?",
+          "choices": [
+            "Backing up configuration such as sources and identity profiles, restoring it, or deploying it to another tenant",
+            "Writing cloud rules",
+            "Subscribing to event triggers",
+            "Building a SaaS connector"
+          ],
+          "correctIndex": 0,
+          "explanation": "Configuration Hub manages configuration objects through backup and deploy in the UI. You can restore after a bad change or move configuration to another tenant.",
+          "difficulty": "easy",
+          "competency": "platform",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/configuration-management/configuration-hub"
+        },
+        {
+          "stem": "Which object types are both exportable and importable?",
+          "choices": [
+            "Event trigger subscriptions and connector rules",
+            "Separation of duties policies and service desk integrations",
+            "Campaign filters and form definitions",
+            "Tags and public identities configuration"
+          ],
+          "correctIndex": 0,
+          "explanation": "Event trigger subscriptions and connector rules are marked for both export and import. Separation of duties policies, service desk integrations, campaign filters, form definitions, tags, and public identities configuration export but do not import.",
+          "difficulty": "hard",
+          "competency": "platform",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/configuration-management/saas-configuration"
+        },
+        {
+          "stem": "What skill does the SaaS configuration guide expect?",
+          "choices": [
+            "Reading JSON and calling REST APIs; coding is not required",
+            "Java Beanshell",
+            "An Angular build",
+            "A virtual appliance tunnel"
+          ],
+          "correctIndex": 0,
+          "explanation": "The guide is for administrators, implementers, integrators, and developers who can read JSON and make REST calls. Writing code is not required.",
+          "difficulty": "easy",
+          "competency": "platform",
+          "sourceUrl": "https://developer.sailpoint.com/docs/extensibility/configuration-management/saas-configuration"
+        }
+      ]
+    },
+    {
+      "solution": "SaaS connectivity",
+      "topic": "SaaS connectivity",
+      "questions": [
+        {
+          "stem": "Which systems can SaaS Connectivity not reach?",
+          "choices": [
+            "Cloud applications with a public API",
+            "On-prem systems that have no public internet access, including JDBC and mainframe applications",
+            "GitHub",
+            "Any source that already has a virtual appliance connector"
+          ],
+          "correctIndex": 1,
+          "explanation": "SaaS Connectivity runs in the cloud, not on a virtual appliance. It cannot reach intranet-only services. JDBC and mainframe applications are examples of what that excludes.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/connectivity/saas-connectivity"
+        },
+        {
+          "stem": "Where does the encryption key pair for a SaaS connector live?",
+          "choices": [
+            "On the virtual appliance, the same place as a VA connector's private key",
+            "In the cloud, accessible only to the Connectivity service",
+            "In the connector source code",
+            "In the identity profile"
+          ],
+          "correctIndex": 1,
+          "explanation": "VA connectors keep the private key on the appliance. SaaS connectors do not use a VA cluster, so the asymmetric key pair stays in the cloud and only the Connectivity service can use it. Store secrets in secret or secrettextarea fields.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/connectivity/saas-connectivity"
+        },
+        {
+          "stem": "What Node version does a SaaS connector project require?",
+          "choices": [
+            "Node 18 or newer",
+            "Node 10",
+            "Node 24 or newer, the UI plugin recommendation",
+            "No Node, because the project is Java"
+          ],
+          "correctIndex": 0,
+          "explanation": "Connector development requires Node 18.0.0 or newer, plus the SailPoint CLI. An IDE and Postman are recommended, not required.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/connectivity/saas-connectivity/prerequisites"
+        },
+        {
+          "stem": "What does npm run dev start for a connector?",
+          "choices": [
+            "An Express server on port 3000 that accepts POST commands locally",
+            "A deploy to the tenant",
+            "The MCP inspector",
+            "A virtual appliance tunnel"
+          ],
+          "correctIndex": 0,
+          "explanation": "npm run dev starts a local Express server on port 3000. You POST the command type, input, and config to localhost:3000. You do not need to restart it after code changes.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/connectivity/saas-connectivity/test-build-deploy"
+        },
+        {
+          "stem": "Why should connector source be kept in your own version control?",
+          "choices": [
+            "SailPoint stores the original TypeScript and can return it",
+            "The upload is compiled, minified JavaScript, and you cannot recover the original project from the tenant",
+            "The zip is deleted after the first aggregation",
+            "The CLI refuses a second upload"
+          ],
+          "correctIndex": 1,
+          "explanation": "npm run pack-zip builds a zip in dist. After upload, the tenant has a compiled bundle, not a project you can expand back into source. Keep your own backup.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/connectivity/saas-connectivity/test-build-deploy"
+        },
+        {
+          "stem": "What does the first connector upload create besides the version?",
+          "choices": [
+            "A latest tag that points at that version",
+            "A personal access token for the connector",
+            "An identity profile",
+            "A cloud rule review ticket"
+          ],
+          "correctIndex": 0,
+          "explanation": "The first upload creates the latest tag. In the source list the connector appears with that tag, for example example-connector (tag: latest). sail conn tags list shows the tags.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/connectivity/saas-connectivity/test-build-deploy"
+        },
+        {
+          "stem": "How long can a SaaS connector go without calling back before it times out?",
+          "choices": [
+            "3 minutes without res.keepAlive or res.send",
+            "10 seconds, the same window as a SYNC event trigger",
+            "30 seconds",
+            "There is no timeout if the call is paginated"
+          ],
+          "correctIndex": 0,
+          "explanation": "If the connector does not send a response within 3 minutes, SailPoint returns a timeout. For a long source call, res.keepAlive keeps the connection open. Paginate large result sets instead of holding every record in memory.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/connectivity/saas-connectivity/in-depth/connector-timeouts"
+        },
+        {
+          "stem": "When should a connector throw ConnectorErrorType.NotFound?",
+          "choices": [
+            "In stdAccountRead or stdAccountUpdate, so a missing account is created rather than treated as a failure",
+            "During stdAccountList, so missing accounts are reported as errors",
+            "On every 403 from the source",
+            "When configuration is missing at startup"
+          ],
+          "correctIndex": 0,
+          "explanation": "NotFound tells SailPoint the account is not on the source. During provisioning, SailPoint then calls std:account:create. Do not use it while listing accounts; a missing account there is simply omitted.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/connectivity/saas-connectivity/in-depth/error-handling"
+        },
+        {
+          "stem": "Which error class matches a 403 from the source API?",
+          "choices": [
+            "InsufficientPermissionError",
+            "InvalidConfigurationError",
+            "InvalidRequestError",
+            "TimeoutError"
+          ],
+          "correctIndex": 0,
+          "explanation": "InsufficientPermissionError is for a 403 or an equivalent access-denied response. InvalidConfigurationError is for bad setup before any API call. InvalidRequestError is for a request the connector cannot build, or a 400 from the source.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/connectivity/saas-connectivity/in-depth/error-handling"
+        },
+        {
+          "stem": "What files does a new connector project start with?",
+          "choices": [
+            "index.ts, my-client.ts, and connector-spec.ts",
+            "A single XML rule",
+            "sp-ui-plugin.json only",
+            "A Go module"
+          ],
+          "correctIndex": 0,
+          "explanation": "index.ts registers commands. my-client.ts is the place for custom API calls when the vendor has no SDK. connector-spec.ts tells SailPoint which commands, config, and schemas the connector has.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/connectivity/saas-connectivity/prerequisites"
+        },
+        {
+          "stem": "What does a connector customizer project contain at the start?",
+          "choices": [
+            "One source file, index.ts, that registers the customizer commands",
+            "The same three files as a full connector",
+            "A Beanshell rule",
+            "An Angular workspace"
+          ],
+          "correctIndex": 0,
+          "explanation": "A customizer uses the same tools as a connector. The generated project has a single index.ts that registers the customizer commands. You can add more files later.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/connectivity/saas-connectivity/customizers/getting-started"
+        },
+        {
+          "stem": "Where should config.json live relative to git?",
+          "choices": [
+            "In .gitignore, because it holds credentials used to invoke the connector",
+            "In the zip you upload, so the tenant can store the token",
+            "In the connector spec, as a secrettextarea default",
+            "It is optional and can be omitted even when the command requires a key"
+          ],
+          "correctIndex": 0,
+          "explanation": "config.json is required for CLI invoke tests and must contain at least one key. It holds values such as tokens and passwords, so it belongs in .gitignore.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/connectivity/saas-connectivity/test-build-deploy"
+        },
+        {
+          "stem": "What is the main reason SailPoint added SaaS Connectivity?",
+          "choices": [
+            "To connect to cloud sources without a virtual appliance, and to build and test the connector locally",
+            "To replace every virtual appliance connector, including JDBC",
+            "To run IdentityIQ plugins in the cloud",
+            "To store connector secrets in the identity profile"
+          ],
+          "correctIndex": 0,
+          "explanation": "SaaS Connectivity targets cloud sources without a VA. You can develop and debug locally, customize the configuration UI, and use current languages. VA connectivity remains for on-prem sources.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/connectivity/saas-connectivity"
+        }
+      ]
+    },
+    {
+      "solution": "UI plugins and UI Development Kit",
+      "topic": "UI plugins and UI Development Kit",
+      "questions": [
+        {
+          "stem": "What has to be true before UI plugin CLI commands will succeed?",
+          "choices": [
+            "The tenant has the experimental feature enabled, and the user has the right for that operation",
+            "Any user with a personal access token can create a plugin",
+            "A virtual appliance must be connected",
+            "The plugin must already be published in CoLab"
+          ],
+          "correctIndex": 0,
+          "explanation": "UI plugins are experimental and gated. If the feature is off, the backend says it is not enabled for the tenant. Each operation checks its own right, and the CLI names the right you are missing.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/ui-plugins/prerequisites"
+        },
+        {
+          "stem": "Which Node release does the UI plugin starter recommend?",
+          "choices": [
+            "Node 24 or later",
+            "Node 18, the SaaS connector minimum",
+            "Node 16",
+            "No Node, because the starter is Java"
+          ],
+          "correctIndex": 0,
+          "explanation": "The starter is an Angular application. Node 24 or later is recommended, and the SailPoint CLI must be authenticated to the tenant.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/ui-plugins/prerequisites"
+        },
+        {
+          "stem": "What does init send to the tenant?",
+          "choices": [
+            "Nothing. It scaffolds the workspace and checks the alias, and it does not register the plugin",
+            "The manifest, which creates the plugin instance",
+            "The compiled assets",
+            "A local-dev override for every user"
+          ],
+          "correctIndex": 0,
+          "explanation": "init scaffolds an Angular workspace, or prepares an existing project, and validates the alias. It does not install dependencies, build, or register. create does the registration.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/ui-plugins/cli-command-reference"
+        },
+        {
+          "stem": "Which part of sp-ui-plugin.json is stored in the tenant?",
+          "choices": [
+            "Only the manifest; the build section stays local",
+            "The whole file, including port and outDir",
+            "Only the build section",
+            "Neither, because the file is documentation"
+          ],
+          "correctIndex": 0,
+          "explanation": "The manifest declares the alias, names, scopes, security policy, and slots, and that is what create sends. outDir and port are local CLI settings and are never sent.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/ui-plugins/create-a-plugin-instance"
+        },
+        {
+          "stem": "What is the lasting identifier of a plugin instance?",
+          "choices": [
+            "The UUID returned by create; the alias is the friendly tenant-unique name",
+            "The alias only, which changes when you upload",
+            "The local port",
+            "The developer's identity id"
+          ],
+          "correctIndex": 0,
+          "explanation": "create returns a plugin instance id. That UUID is the permanent registration. The alias is the friendly handle and must be unique in the tenant.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/ui-plugins/create-a-plugin-instance"
+        },
+        {
+          "stem": "Who sees local code after link?",
+          "choices": [
+            "Only the developer who linked, through a per-developer override",
+            "Every user in the tenant",
+            "Only users listed in restrictToUsers, including people who did not link",
+            "Nobody, until upload replaces the instance"
+          ],
+          "correctIndex": 0,
+          "explanation": "link binds your dev server to your own identity. Other people, and the deployed assets, are unchanged. The tenant shows a Local Dev badge for you. link does not start the dev server.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/ui-plugins/create-a-plugin-instance"
+        },
+        {
+          "stem": "Which port does link use if you do not pass one?",
+          "choices": [
+            "build.port from the manifest, otherwise 4200",
+            "3000, the connector dev server",
+            "8081, the event-trigger sample",
+            "443"
+          ],
+          "correctIndex": 0,
+          "explanation": "The port comes from --port, then build.port, then 4200. The Angular dev server has to already be running on that port.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/ui-plugins/cli-command-reference"
+        },
+        {
+          "stem": "What does the UI Development Kit do with a client ID already stored by the CLI?",
+          "choices": [
+            "You must enter the client ID and secret again; they are not shared into the kit",
+            "It reuses them with no prompt",
+            "It rejects PAT authentication",
+            "It copies them into the plugin manifest"
+          ],
+          "correctIndex": 0,
+          "explanation": "The kit uses the CLI's environment shape, but you must re-enter the client ID and secret. You can authenticate with OAuth or a personal access token.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/tools/ui-development-kit/getting-started"
+        },
+        {
+          "stem": "What is the Community Toolbox relative to the UI Development Kit?",
+          "choices": [
+            "The same project",
+            "A separate IdentityIQ plugin",
+            "The MCP server",
+            "The Rule Development Kit"
+          ],
+          "correctIndex": 0,
+          "explanation": "The UI Development Kit is also the Community Toolbox. Shared components live in projects/sailpoint-components and can be toggled from the component selector.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/tools/ui-development-kit/features"
+        },
+        {
+          "stem": "Where does a local UI Development Kit build land?",
+          "choices": [
+            "The ./release folder, after npm run electron:build",
+            "dist, the connector zip folder",
+            "The tenant's plugin slot",
+            "src/main/resources/rules"
+          ],
+          "correctIndex": 0,
+          "explanation": "npm run electron:build produces the app for your platform under ./release. Forked GitHub workflows can build macOS, Linux, and Windows copies.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/tools/ui-development-kit/deploying"
+        },
+        {
+          "stem": "How do you ship a kit build that only opens the transform tool?",
+          "choices": [
+            "Edit app/config.json so the navigation lists only that component",
+            "Delete projects/sailpoint-components",
+            "Set the plugin to private",
+            "Remove the theme picker images"
+          ],
+          "correctIndex": 0,
+          "explanation": "app/config.json is the default navigation. Limiting it to the transform tool hides the component selector. If a config already exists in the user data directory, the app does not overwrite it.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/tools/ui-development-kit/deploying"
+        },
+        {
+          "stem": "Where are UI Development Kit theme and user settings stored on Windows?",
+          "choices": [
+            "appData/Roaming/sailpoint-ui-development-kit",
+            "The tenant branding API",
+            "sp-ui-plugin.json",
+            "The virtual appliance keystore"
+          ],
+          "correctIndex": 0,
+          "explanation": "Theme colors and logos chosen in the theme component are saved under appData/Roaming/sailpoint-ui-development-kit. User settings that turn components on live in that same folder.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/tools/ui-development-kit/theming"
+        },
+        {
+          "stem": "What does generate:component add?",
+          "choices": [
+            "A folder under sailpoint-components, a route, a sidebar link, and an export from public-api.ts",
+            "A connector command in index.ts",
+            "A cloud rule template",
+            "An MCP tool"
+          ],
+          "correctIndex": 0,
+          "explanation": "npm run generate:component creates the component files, registers the component in the selector, adds a route and a sidebar link, and exports it from public-api.ts.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/tools/ui-development-kit/getting-started"
+        }
+      ]
+    },
+    {
+      "solution": "SDKs and CLI",
+      "topic": "SDKs and CLI",
+      "questions": [
+        {
+          "stem": "What is the SailPoint CLI command?",
+          "choices": [
+            "sail",
+            "spcli",
+            "idn",
+            "isc"
+          ],
+          "correctIndex": 0,
+          "explanation": "The CLI is invoked as sail. Prebuilt binaries exist for macOS, Windows, and Linux. The Windows installer is a 64-bit MSI.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/tools/cli"
+        },
+        {
+          "stem": "How does CLI OAuth sign-in work?",
+          "choices": [
+            "The CLI opens a browser, shows a confirmation code, and you paste back a one-time code that starts with sp1.",
+            "You paste a client secret into the browser",
+            "The CLI stores your SailPoint password",
+            "OAuth works in a pipeline with no terminal"
+          ],
+          "correctIndex": 0,
+          "explanation": "OAuth uses the authorization code flow with PKCE. The confirmation code on https://developer.sailpoint.com/sailapps must match the CLI. Paste the one-time code only into the CLI that started that sign-in. A pipeline should use a personal access token instead.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/tools/cli"
+        },
+        {
+          "stem": "What does a tenant name such as acme mean when you configure the CLI?",
+          "choices": [
+            "The CLI uses the identitynow.com domain",
+            "The CLI uses identitynow-demo.com",
+            "The CLI asks you to type both URLs every time",
+            "The name is ignored unless SAIL_BASE_URL is set"
+          ],
+          "correctIndex": 0,
+          "explanation": "A bare tenant name uses identitynow.com. For any other domain, including a demo tenant, pass the HTTPS URL. You can paste an API URL or a browser URL. sail env update fixes URLs that fail the check.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/tools/cli"
+        },
+        {
+          "stem": "When can the CLI run without sail env create?",
+          "choices": [
+            "When SAIL_BASE_URL is set",
+            "When the tenant name is acme",
+            "Only on macOS with Homebrew",
+            "Never; an environment file is mandatory"
+          ],
+          "correctIndex": 0,
+          "explanation": "Environment variables are the way to configure the CLI in CI. If SAIL_BASE_URL is set, you do not need a configured environment. PAT values can come from SAIL_CLIENT_ID and SAIL_CLIENT_SECRET.",
+          "difficulty": "hard",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/tools/cli"
+        },
+        {
+          "stem": "Which flag is required on sail search query?",
+          "choices": [
+            "indices",
+            "sort",
+            "folderPath",
+            "wait"
+          ],
+          "correctIndex": 0,
+          "explanation": "indices is required and names the indices to search. sort is optional; a leading hyphen sorts descending. Results go to search_results in the current directory unless folderPath is set.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/tools/cli/search"
+        },
+        {
+          "stem": "What does sail spconfig export do if you leave wait off?",
+          "choices": [
+            "It starts the job and returns without waiting, because wait defaults to false",
+            "It waits until the export is COMPLETE",
+            "It only prints a template",
+            "It imports the folder you pass"
+          ],
+          "correctIndex": 0,
+          "explanation": "wait defaults to false on export, import, and template. Set it to true to wait and then download. include and exclude choose object types, and download saves a finished job.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/tools/cli/spconfig"
+        },
+        {
+          "stem": "How is the Python SDK organized?",
+          "choices": [
+            "By API resource, imported from sailpoint, with the endpoint version on the method name",
+            "By a separate package for each API version",
+            "As one class that covers every endpoint",
+            "As generated Beanshell"
+          ],
+          "correctIndex": 0,
+          "explanation": "You import a class such as TransformsApi from sailpoint. list_transforms_v1 calls the v1 list endpoint. A second form, list_transforms_v1_with_http_info, also returns status, headers, and raw data.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/tools/sdk/python/getting-started"
+        },
+        {
+          "stem": "How do Go SDK method names show the endpoint version?",
+          "choices": [
+            "The version is a suffix, as in ListTransformsV1",
+            "You import a v1 or v3 package",
+            "The version is a query parameter you set after the call",
+            "Go only supports beta endpoints"
+          ],
+          "correctIndex": 0,
+          "explanation": "Change TransformsAPI to another collection, such as SourcesAPI, and change ListTransformsV1 to another method. The version is part of the method name, not a separate package.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/tools/sdk/go/getting-started"
+        },
+        {
+          "stem": "How does the TypeScript SDK avoid a package per API version?",
+          "choices": [
+            "Methods are suffixed with the version, such as listTransformsV1, and you run the example with bun",
+            "You install @sailpoint/v1 and @sailpoint/v3 separately",
+            "The SDK calls only the latest beta",
+            "Version is selected in tsconfig"
+          ],
+          "correctIndex": 0,
+          "explanation": "Import the resource class, such as TransformsApi, with no version namespace. listTransformsV1 is the v1 list call. The getting-started example runs with bun src/index.ts.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/tools/sdk/typescript/getting-started"
+        },
+        {
+          "stem": "What does the Python example return when it asks for transforms named like Test?",
+          "choices": [
+            "No more than 10 transforms whose names start with Test",
+            "Every transform in the tenant",
+            "Only internal transforms",
+            "A single transform, because the method does not take query parameters"
+          ],
+          "correctIndex": 0,
+          "explanation": "The getting-started example passes query parameters to list_transforms_v1 so the call returns at most 10 transforms whose names start with Test. The same method without those parameters returns the list the endpoint sends back.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/tools/sdk/python/getting-started"
+        },
+        {
+          "stem": "How do you switch the CLI to a personal access token?",
+          "choices": [
+            "sail set pat, then sail set auth pat",
+            "sail set auth oauth, then paste the secret in the browser",
+            "Export SAIL_BASE_URL only",
+            "sail search query with the client id as the query string"
+          ],
+          "correctIndex": 0,
+          "explanation": "sail set pat prompts for the client ID and secret, masking each character. sail set auth pat selects that method. If the tenant rejects the token, it may be wrong, deleted, or from another tenant.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/tools/cli"
+        },
+        {
+          "stem": "What does a leading hyphen on a CLI search sort field mean?",
+          "choices": [
+            "Descending order",
+            "That the field is required",
+            "That the field is excluded",
+            "A descending search is not allowed"
+          ],
+          "correctIndex": 0,
+          "explanation": "sort defaults to ascending. -created sorts that field descending. You can pass more than one sort field, and more than one index.",
+          "difficulty": "easy",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/tools/cli/search"
+        },
+        {
+          "stem": "Where does sail search write results when folderPath is omitted?",
+          "choices": [
+            "A search_results folder in the current working directory",
+            "The tenant's report inbox",
+            "stdout only, with no file",
+            "The spconfig download directory"
+          ],
+          "correctIndex": 0,
+          "explanation": "Both query and template write JSON into search_results under the current directory unless folderPath points somewhere else. The query goes through the V3 search endpoint.",
+          "difficulty": "medium",
+          "competency": "integration",
+          "sourceUrl": "https://developer.sailpoint.com/docs/tools/cli/search"
+        }
+      ]
+    }
+  ]
+}

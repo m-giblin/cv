@@ -42,23 +42,30 @@ import { ProfileRole } from "@/lib/types";
 async function getProfileContext(
   supabase: ReturnType<typeof createServerClient<Database>>,
   userId: string,
-): Promise<{ role: ProfileRole; tenantId: string | null; workspaceHats: string[] | null }> {
-  const { data: profile } = await supabase
+): Promise<{ role: ProfileRole; tenantId: string | null; workspaceHats: string[] | null; status: string | null }> {
+  type Row = { role: ProfileRole; tenant_id: string | null; workspace_hats: string[] | null; status?: string | null };
+  // One round trip for the profile and status. If the status column isn't there yet the query
+  // errors, so fall back to the original columns and everyone counts as active.
+  let { data: profile, error } = await supabase
     .from("profiles")
-    .select("role, tenant_id, workspace_hats")
+    .select("role, tenant_id, workspace_hats, status")
     .eq("id", userId)
     .maybeSingle();
+  if (error) {
+    ({ data: profile } = (await supabase
+      .from("profiles")
+      .select("role, tenant_id, workspace_hats")
+      .eq("id", userId)
+      .maybeSingle()) as unknown as { data: typeof profile });
+  }
 
-  const row = profile as {
-    role: ProfileRole;
-    tenant_id: string | null;
-    workspace_hats: string[] | null;
-  } | null;
+  const row = profile as Row | null;
 
   return {
     role: row?.role ?? "basic_se",
     tenantId: row?.tenant_id ?? null,
     workspaceHats: row?.workspace_hats ?? null,
+    status: row?.status ?? null,
   };
 }
 
@@ -234,15 +241,18 @@ export async function middleware(request: NextRequest) {
   const profileContext = await getProfileContext(supabase, user.id);
   // Inactive people (for example a bulk upload not yet activated) can't sign in. If the status
   // column isn't there yet the query errors and everyone counts as active.
-  const { data: statusRow } = await supabase.from("profiles").select("status").eq("id", user.id).maybeSingle();
-  if ((statusRow as { status?: string } | null)?.status === "inactive") {
+  if (profileContext.status === "inactive") {
     await supabase.auth.signOut();
     const loginUrl = new URL(AUTH_ROUTES.login, request.url);
     loginUrl.searchParams.set("error", "inactive");
     return NextResponse.redirect(loginUrl);
   }
 
-  const tenantEmailError = await validateProfileTenantEmail(user.email, profileContext.tenantId);
+  // Independent lookups run together; the checks below still apply in the original order.
+  const [tenantEmailError, mfaStatusEarly] = await Promise.all([
+    validateProfileTenantEmail(user.email, profileContext.tenantId),
+    getMfaStatus(supabase, user),
+  ]);
   if (tenantEmailError) {
     await supabase.auth.signOut();
     const loginUrl = new URL(AUTH_ROUTES.login, request.url);
@@ -275,7 +285,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  const mfaStatus = await getMfaStatus(supabase, user);
+  const mfaStatus = mfaStatusEarly;
   const requiredPath = mfaRedirectPath(mfaStatus);
 
   if (mfaStatus.state !== "aal2") {

@@ -11,7 +11,7 @@ export const PLAYBOOK_ARTICLES: HelpArticle[] = [
     category: "Learn",
     keywords: ["playbook", "field guide", "elevator pitch", "objection", "objection handling", "discovery questions", "fast track", "battlecard", "sled", "pitch", "drill", "practice", "voice", "typed"],
     overview: [
-      "Playbooks come from your organization's sales field guide. Each one covers a single capability, such as Identity Graph or Entro, in the same order: the problem, the solution, the selling motion, the pitch, discovery questions, buying triggers, stories, objections, common mistakes and a self-test.",
+      "Playbooks come from your organization's sales field guide. Each one covers a single capability, such as Identity Graph or Credentials Management, in the same order: the problem, the solution, the selling motion, the pitch, discovery questions, buying triggers, stories, objections, common mistakes and a self-test.",
       "The guide's rule applies here too: lead with the problem, not the product, and pick two capabilities for a deal, not ten.",
     ],
     steps: [

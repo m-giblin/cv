@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import Link from "next/link";
 import { ManagerMenteesPanel } from "@/components/manager/manager-mentees-panel";
 import { PageBody, PageHeader } from "@/components/ui/page-header";
 import { requireAppAccess } from "@/lib/auth/require-access";
@@ -65,6 +66,11 @@ export default async function MentoringPage() {
     <>
       <PageHeader
         accent="Who you mentor, and how they're doing."
+        actions={
+          <Link className="btn-secondary" href="/mentoring/guide">
+            Mentor guide
+          </Link>
+        }
         eyebrow="Mentoring"
         subtitle="Timeline, progress and overdue work for everyone you mentor, so you can report back to their manager."
         title="Mentoring."

@@ -1,8 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import type { PlanStep, UserPlan } from "@/lib/types";
-import { parsePlanStepMetadata } from "@/lib/corpus/parse-step-metadata";
-import { isStepLockedForSegment } from "@/lib/corpus/parse-step-metadata";
+import { isStepLockedForSegment, parsePlanStepMetadata } from "@/lib/corpus/parse-step-metadata";
 import { fetchAdHocStepsForAssignments } from "@/lib/plans/ad-hoc-steps";
 
 type DbPlanStep = Database["public"]["Tables"]["plan_steps"]["Row"];
@@ -89,33 +88,14 @@ export async function fetchPlansForUsers(
 
     const unlockedSegmentMax = assignment.unlocked_segment_max ?? 1;
 
-    const steps: PlanStep[] = templateSteps.map((step) => {
-      const progress = progressSteps.find((item) => item.plan_step_id === step.id);
-      const segmentMeta = parsePlanStepMetadata(step.metadata, step.sort_order);
-
-      return {
-        id: step.id,
-        assignmentStepId: progress?.id,
-        title: step.title,
-        description: step.description ?? "",
-        type: playbookMeta(step.metadata).playbookId ? "playbook" : step.step_type,
-        order: step.sort_order,
-        status: progress?.status ?? "not_started",
-        dueDate: progress?.due_date ?? undefined,
-        resourceUrl:
-          step.content_url ??
-          (step.content_asset_id ? contentUrlByAssetId.get(step.content_asset_id) : undefined) ??
-          undefined,
-        contentAssetId: step.content_asset_id ?? undefined,
-        challengeId: step.challenge_id ?? undefined,
-        simulationTemplateId: step.simulation_template_id ?? undefined,
-        ...knowledgeCheckMeta(step.metadata),
-        ...playbookMeta(step.metadata),
-        segmentIndex: segmentMeta.segmentIndex,
-        isSegmentGate: segmentMeta.isSegmentGate,
-        locked: isStepLockedForSegment(segmentMeta.segmentIndex, unlockedSegmentMax),
-      };
-    });
+    const steps: PlanStep[] = templateSteps.map((step) =>
+      planStepFromRow(
+        step,
+        progressSteps.find((item) => item.plan_step_id === step.id),
+        contentUrlByAssetId,
+        unlockedSegmentMax,
+      ),
+    );
 
     const adHocSteps = adHocByAssignment.get(assignment.id) ?? [];
 
@@ -135,12 +115,58 @@ export async function fetchPlansForUsers(
   });
 }
 
-/** Knowledge check settings stored in a step's metadata. */
+/** A template step, merged with one person's progress on it when they have been assigned the plan. */
+export function planStepFromRow(
+  step: DbPlanStep,
+  progress: DbPlanAssignmentStep | undefined,
+  contentUrlByAssetId: Map<string, string>,
+  unlockedSegmentMax: number,
+): PlanStep {
+  const segmentMeta = parsePlanStepMetadata(step.metadata, step.sort_order);
+  return {
+    id: step.id,
+    assignmentStepId: progress?.id,
+    title: step.title,
+    description: step.description ?? "",
+    type: playbookMeta(step.metadata).playbookId ? "playbook" : step.step_type,
+    order: step.sort_order,
+    status: progress?.status ?? "not_started",
+    dueDate: progress?.due_date ?? undefined,
+    resourceUrl:
+      step.content_url ??
+      (step.content_asset_id ? contentUrlByAssetId.get(step.content_asset_id) : undefined) ??
+      undefined,
+    contentAssetId: step.content_asset_id ?? undefined,
+    challengeId: step.challenge_id ?? undefined,
+    simulationTemplateId: step.simulation_template_id ?? undefined,
+    ...knowledgeCheckMeta(step.metadata),
+    ...playbookMeta(step.metadata),
+    ...reviewMeta(step.metadata),
+    submissionNotes: progress?.notes ?? undefined,
+    completedAt: progress?.completed_at ?? undefined,
+    segmentIndex: segmentMeta.segmentIndex,
+    isSegmentGate: segmentMeta.isSegmentGate,
+    locked: isStepLockedForSegment(segmentMeta.segmentIndex, unlockedSegmentMax),
+  };
+}
+
 function playbookMeta(metadata: unknown): { playbookId?: string; playbookSlug?: string } {
   const raw = metadata && typeof metadata === "object" ? (metadata as Record<string, unknown>) : {};
   return {
     playbookId: typeof raw.playbookId === "string" && raw.playbookId ? raw.playbookId : undefined,
     playbookSlug: typeof raw.playbookSlug === "string" && raw.playbookSlug ? raw.playbookSlug : undefined,
+  };
+}
+
+function reviewMeta(metadata: unknown): { estimatedMinutes?: number; criteria?: string[]; reviewer?: string } {
+  const raw = metadata && typeof metadata === "object" ? (metadata as Record<string, unknown>) : {};
+  const criteria = Array.isArray(raw.criteria)
+    ? raw.criteria.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    : [];
+  return {
+    estimatedMinutes: typeof raw.estimatedMinutes === "number" ? raw.estimatedMinutes : undefined,
+    criteria: criteria.length > 0 ? criteria : undefined,
+    reviewer: typeof raw.reviewer === "string" ? raw.reviewer : undefined,
   };
 }
 

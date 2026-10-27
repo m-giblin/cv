@@ -290,6 +290,24 @@ export function emptyBuilderStep(partial: Partial<BuilderStep> = {}): BuilderSte
   };
 }
 
+/**
+ * A test-out gate: a step the SE has to pass in front of a reviewer before the stage finishes
+ * (for example presenting the corporate deck). Pre-fills the fields a gate needs so it can publish.
+ */
+export function gateStepPreset(partial: Partial<BuilderStep> = {}): BuilderStep {
+  return emptyBuilderStep({
+    title: "Test-out gate",
+    description: "Present this live to your reviewer. The next stage opens once they sign it off.",
+    stepType: "mentor_review",
+    isSegmentGate: true,
+    reviewer: "manager",
+    evidence: "observation",
+    criteria: ["Delivered live without notes", "Reviewer signs off the test-out"],
+    estimatedMinutes: 45,
+    ...partial,
+  });
+}
+
 /** Payload for POST/PATCH /api/plans/templates. */
 export function builderStepsToPayload(steps: BuilderStep[]) {
   return steps.map((step) => ({

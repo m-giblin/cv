@@ -1,6 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { fetchPlansForUsers } from "@/lib/data/fetch-plans-bundle";
+import { fetchMenteeTrack, type MenteeTrack } from "@/lib/mentoring/fetch-mentee-track";
+import { fetchStepEvidence } from "@/lib/mentoring/fetch-step-evidence";
+import { fetchStepResources } from "@/lib/mentoring/fetch-step-resources";
+import type { StepResource } from "@/lib/mentoring/mentor-guide";
+import { loadMentorRecords } from "@/lib/mentoring/mentor-records";
+import { EMPTY_RECORDS, type MenteeRecords, type StepEvidence } from "@/lib/mentoring/mentor-records-model";
 import type { Profile, UserPlan } from "@/lib/types";
 
 export type MenteeAssignment = {
@@ -8,6 +14,12 @@ export type MenteeAssignment = {
   profile: Profile;
   pendingMentorReviews: number;
   awaitingManagerSignoff: number;
+  /** Summaries of the content each step links to, keyed by resourceKeyForStep. */
+  resources: Record<string, StepResource>;
+  /** The mentee's own work for each step, keyed by plan step id. */
+  evidence: Record<string, StepEvidence[]>;
+  records: MenteeRecords;
+  track: MenteeTrack | null;
 };
 
 export async function fetchMenteeAssignments(
@@ -34,12 +46,20 @@ export async function fetchMenteeAssignments(
   const userIds = [...new Set(assignments.map((row) => row.user_id))];
   const plans = await fetchPlansForUsers(supabase, userIds, tenantId);
   const profileById = new Map(profiles.map((profile) => [profile.id, profile]));
+  const assignmentIds = new Set(assignments.map((assignment) => assignment.id));
+  const mentored = plans.filter((plan) => assignmentIds.has(plan.id));
+  const [records, tracks, evidence] = await Promise.all([
+    loadMentorRecords(supabase, userIds),
+    Promise.all(mentored.map((plan) => fetchMenteeTrack(supabase, plan))),
+    Promise.all(mentored.map((plan) => fetchStepEvidence(supabase, plan.userId, plan.steps))),
+  ]);
+  const trackSteps = tracks.flatMap((track) => track?.stages.flatMap((stage) => stage.steps) ?? []);
+  const resources = await fetchStepResources(supabase, [...mentored.flatMap((plan) => plan.steps), ...trackSteps]);
 
-  return assignments
-    .map((assignment) => {
-      const plan = plans.find((item) => item.id === assignment.id);
-      const profile = profileById.get(assignment.user_id);
-      if (!plan || !profile) return null;
+  return mentored
+    .map((plan, index): MenteeAssignment | null => {
+      const profile = profileById.get(plan.userId);
+      if (!profile) return null;
 
       const pendingMentorReviews = plan.steps.filter(
         (step) => step.type === "mentor_review" && step.status === "submitted",
@@ -48,7 +68,16 @@ export async function fetchMenteeAssignments(
         (step) => step.status === "under_review",
       ).length;
 
-      return { plan, profile, pendingMentorReviews, awaitingManagerSignoff };
+      return {
+        plan,
+        profile,
+        pendingMentorReviews,
+        awaitingManagerSignoff,
+        resources,
+        evidence: evidence[index] ?? {},
+        records: records.get(plan.userId) ?? EMPTY_RECORDS,
+        track: tracks[index] ?? null,
+      };
     })
     .filter((item): item is MenteeAssignment => item !== null)
     .sort((a, b) => a.profile.fullName.localeCompare(b.profile.fullName));

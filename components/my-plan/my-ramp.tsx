@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { MentorFeedbackForStep } from "@/components/my-plan/mentor-feedback-for-step";
 import { PlanStepActions } from "@/components/plans/plan-step-actions";
 import { Note } from "@/components/ui/editorial";
 import { FlightStrip } from "@/components/ui/flight-strip";
@@ -383,8 +384,8 @@ export function RampFrame({ model, children }: { model: RampModel; children: Rea
             </p>
           </section>
           <Note title="How gates work">
-            A gate ends each segment. Your mentor or manager signs it off once the steps before it are validated.
-            Missed gates move; they never reset your progress.
+            A gate ends each stage. Your manager signs it off once the steps before it are done, and that approval opens
+            your next 30 days. Your mentor helps you get ready. Missed gates move; they never reset your progress.
           </Note>
         </aside>
       </div>
@@ -434,6 +435,7 @@ export function RampStepDetail({
             <PlanStepActions mentorName={mentor?.fullName} step={step} />
           </div>
         )}
+        <MentorFeedbackForStep assignmentStepId={step.assignmentStepId} />
       </PageBody>
     </div>
   );

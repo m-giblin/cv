@@ -204,3 +204,15 @@ describe("tenant feature settings", () => {
     expect(changedFeatureIds(flags, next!)).toEqual(expect.arrayContaining(["simulations", "ai-features"]));
   });
 });
+
+describe("gateStepPreset", () => {
+  it("builds a test-out gate that can publish as it stands", async () => {
+    const { gateStepPreset, stepIssues, canPublish } = await import("@/lib/admin/plan-builder");
+    const gate = gateStepPreset({ segmentIndex: 1, title: "Test out: Corp Deck", dueOffsetDays: 28 });
+    expect(gate.isSegmentGate).toBe(true);
+    expect(gate.reviewer).toBe("manager");
+    expect(gate.evidence).toBe("observation");
+    expect(stepIssues(gate)).toEqual([]);
+    expect(canPublish("Days 1–30", [gate])).toBe(true);
+  });
+});

@@ -40,11 +40,24 @@ export async function loadTenantAllowedEmailDomains(tenantId: string): Promise<s
   return Array.isArray(domains) ? domains.filter((value): value is string => typeof value === "string") : [];
 }
 
+// Sign-in domains change rarely; middleware checks them on every request, so keep them briefly.
+const DOMAIN_CACHE_TTL = 30_000;
+const domainCache = new Map<string, { value: string[]; loadedAt: number }>();
+
+async function loadTenantAllowedEmailDomainsCached(tenantId: string): Promise<string[]> {
+  const cached = domainCache.get(tenantId);
+  if (cached && Date.now() - cached.loadedAt < DOMAIN_CACHE_TTL) return cached.value;
+  const value = await loadTenantAllowedEmailDomains(tenantId);
+  domainCache.set(tenantId, { value, loadedAt: Date.now() });
+  return value;
+}
+
 export async function validateEmailForTenant(
   email: string,
   tenantId: string,
+  loadDomains: (tenantId: string) => Promise<string[]> = loadTenantAllowedEmailDomains,
 ): Promise<string | null> {
-  const domains = await loadTenantAllowedEmailDomains(tenantId);
+  const domains = await loadDomains(tenantId);
   if (!isEmailDomainAllowedForTenant(email, domains)) {
     const label =
       domains.length > 0
@@ -64,5 +77,5 @@ export async function validateProfileTenantEmail(
     return isAllowedEmail(email) ? null : `Only platform-approved email domains can sign in.`;
   }
 
-  return validateEmailForTenant(email, profileTenantId);
+  return validateEmailForTenant(email, profileTenantId, loadTenantAllowedEmailDomainsCached);
 }

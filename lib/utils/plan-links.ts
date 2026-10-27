@@ -1,5 +1,11 @@
 import { PlanStep } from "@/lib/types";
 
+function simulationStepHref(step: PlanStep) {
+  const params = new URLSearchParams({ focus: "simulation", step: step.id });
+  if (step.simulationTemplateId) params.set("template", step.simulationTemplateId);
+  return `/practice/simulations?${params.toString()}`;
+}
+
 export function planStepHref(step: PlanStep) {
   if (step.type === "knowledge_check") {
     return step.questionSource ? `/learn/knowledge-checks?source=${encodeURIComponent(step.questionSource)}` : "/learn/knowledge-checks";
@@ -11,9 +17,7 @@ export function planStepHref(step: PlanStep) {
           ? `/practice/challenges?focus=challenge&step=${step.id}&challenge=${step.challengeId}`
           : `/practice/challenges?focus=challenge&step=${step.id}`;
       case "simulation":
-        return step.simulationTemplateId
-          ? `/practice/simulations?focus=simulation&step=${step.id}&template=${step.simulationTemplateId}`
-          : `/practice/simulations?focus=simulation&step=${step.id}`;
+        return simulationStepHref(step);
       case "playbook":
         return step.playbookSlug
           ? `/learn/playbooks?playbook=${encodeURIComponent(step.playbookSlug)}`
@@ -33,7 +37,7 @@ export function planStepHref(step: PlanStep) {
     case "challenge":
       return `/practice/challenges?focus=challenge&step=${step.id}`;
     case "simulation":
-      return `/practice/simulations?focus=simulation&step=${step.id}`;
+      return simulationStepHref(step);
     case "playbook":
       return step.playbookSlug
         ? `/learn/playbooks?playbook=${encodeURIComponent(step.playbookSlug)}`

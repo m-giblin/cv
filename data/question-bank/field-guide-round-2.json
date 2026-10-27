@@ -1,0 +1,1770 @@
+{
+  "solution": "Identity Security Cloud (Human Fabric)",
+  "guide": "Sales Enablement Field Guide",
+  "chapters": [
+    {
+      "playbookId": "23763421-ecbd-4625-bb2f-ed0a31b5f6c5",
+      "chapter": 1,
+      "title": "The SailPoint ISC Atlas Platform",
+      "questions": [
+        {
+          "stem": "Why does the chapter tell you not to open with the multi-tenant microservices architecture?",
+          "choices": [
+            "The architecture description is inaccurate and should stay out of the meeting",
+            "It means nothing to a buyer who is not an architect, and it sounds recited",
+            "Multi-tenancy is a future roadmap item, not something Atlas does today",
+            "Government buyers already know the architecture, so it wastes the opening"
+          ],
+          "correctIndex": 1,
+          "explanation": "Lead with the integration-gap problem. Architecture is the answer to that problem, not the opening line, especially for a non-technical audience.",
+          "difficulty": "medium",
+          "competency": "discovery"
+        },
+        {
+          "stem": "How many of the five Atlas pillars should you cover in one conversation?",
+          "choices": [
+            "All five, or the platform story is incomplete",
+            "The two that match what the prospect just told you; the others can wait",
+            "Only connector depth, in every meeting",
+            "None. Pillars are internal language and should not be said to a customer"
+          ],
+          "correctIndex": 1,
+          "explanation": "Trying to cover all five loses the buyer. Connectivity fits a legacy environment. Native AI fits audit pain. Pick from what they just said.",
+          "difficulty": "easy",
+          "competency": "discovery"
+        },
+        {
+          "stem": "A prospect says they cannot afford a platform and only need one problem fixed. What do you do?",
+          "choices": [
+            "End the conversation until they can buy the whole platform",
+            "Start with that one problem, on Atlas, so the next capability is configuration rather than another tool",
+            "Quote Atlas as its own SKU they can add in a later year",
+            "Agree they should keep the point tools and add one more specialist product"
+          ],
+          "correctIndex": 1,
+          "explanation": "Most SLED customers started with one capability. The test is that the thing they buy does not become the fourth tool they have to integrate.",
+          "difficulty": "hard",
+          "competency": "objection handling"
+        },
+        {
+          "stem": "A state agency says multi-tenant SaaS is a security non-starter. What is the response?",
+          "choices": [
+            "Offer an on-premises edition and drop the SaaS discussion",
+            "SailPoint runs FedRAMP-authorized environments, and multi-tenancy is what allows continuous patching without upgrade projects",
+            "Explain that tenants share each other's identity data, then move on",
+            "Ask them to wait for a single-tenant release"
+          ],
+          "correctIndex": 1,
+          "explanation": "The chapter treats this as a common government objection. Continuous patching is the security argument against an on-premises system that is versions behind, and you still bring the authorization docs for their level.",
+          "difficulty": "hard",
+          "competency": "objection handling"
+        },
+        {
+          "stem": "What happened in the Department of Transportation story before Atlas?",
+          "choices": [
+            "Fourteen leftover Active Directory domains, and three weeks to find and disable every account when someone left",
+            "A single domain where leavers were disabled the same day",
+            "They had already replaced Active Directory and only needed reporting",
+            "An auditor accepted a spreadsheet in place of a live access list"
+          ],
+          "correctIndex": 0,
+          "explanation": "Decades of mergers left 14 domains. Connecting the HR system and all 14 domains produced one view, without a reconciliation project.",
+          "difficulty": "medium",
+          "competency": "discovery"
+        },
+        {
+          "stem": "Why does the chapter say not to position Atlas as something you quote?",
+          "choices": [
+            "Atlas is the architecture the other capabilities run on, not a separate line item",
+            "Atlas is the SKU you price before any capability",
+            "Customers evaluate Atlas on its own, apart from the capabilities",
+            "Quoting Atlas is how you avoid an awkward pricing question"
+          ],
+          "correctIndex": 0,
+          "explanation": "If you treat Atlas as a thing to buy, you get a pricing question you cannot answer cleanly. It is the reason the capabilities they buy still work together when they add the next system.",
+          "difficulty": "medium",
+          "competency": "positioning"
+        },
+        {
+          "stem": "What does the Identity Cube aggregate into one profile?",
+          "choices": [
+            "HR records, Active Directory accounts, and contractor rosters, including machine and AI identities",
+            "Human employees only, with contractors kept in a side system",
+            "Application entitlements, and nothing from HR",
+            "Audit reports from the Access Intelligence Center"
+          ],
+          "correctIndex": 0,
+          "explanation": "The unified model correlates those sources into one contextual profile per identity. The customer line is one place to answer who has access, instead of reconciling three systems.",
+          "difficulty": "easy",
+          "competency": "platform"
+        }
+      ]
+    },
+    {
+      "playbookId": "7a63d4ac-dd3c-49fb-b4c4-5c2587aa94b7",
+      "chapter": 2,
+      "title": "Adaptive Identity Lifecycle Security",
+      "questions": [
+        {
+          "stem": "What is the three-step chain you use in a discovery call?",
+          "choices": [
+            "HR updates an attribute, SailPoint recalculates Roles and Lifecycle State, and access is granted and revoked with no ticket",
+            "The manager opens a ticket, IT provisions the new role, and certification removes the old one next quarter",
+            "A joiner is hired, a mover is transferred, and a leaver is terminated, each by a separate ticket",
+            "The employee requests access, a quorum approves it, and a workflow opens a ServiceNow task"
+          ],
+          "correctIndex": 0,
+          "explanation": "The chain is the script: an HR attribute change is detected, Roles and Lifecycle State are recalculated, and both the grant and the revocation happen without a manual step.",
+          "difficulty": "easy",
+          "competency": "discovery"
+        },
+        {
+          "stem": "In the Department of Health story, why did the promoted clinic manager keep patient-record access?",
+          "choices": [
+            "No ticket was opened for a promotion, so nothing revoked the old role",
+            "Workday failed to record the department change",
+            "Policy required her to keep both roles for a transition period",
+            "The auditor had approved the dual access"
+          ],
+          "correctIndex": 0,
+          "explanation": "A promotion updated HR and never opened an IT ticket. She held clinic and administrative access at once, which the chapter calls an active HIPAA exposure.",
+          "difficulty": "medium",
+          "competency": "identity governance"
+        },
+        {
+          "stem": "A prospect says they already ticket every role change. What do you challenge?",
+          "choices": [
+            "The exception rate. Manual processes always have one, and those exceptions are what the audit finds",
+            "The ticket tool, which should be replaced before any lifecycle discussion",
+            "The speed of the queue, because SailPoint's value is faster tickets",
+            "Whether HR is allowed to open tickets at all"
+          ],
+          "correctIndex": 0,
+          "explanation": "Most of the time the ticket works. SailPoint replaces it with a policy that runs every time, plus an audit trail, so the value is eliminating variance rather than gaining speed.",
+          "difficulty": "hard",
+          "competency": "objection handling"
+        },
+        {
+          "stem": "When should you stop promising full Mover automation?",
+          "choices": [
+            "When the HR system is custom and has no API, which you should learn in discovery",
+            "Only after the demo, once they have seen Roles",
+            "Whenever the customer is in higher education",
+            "Never. The automation story is the same for every HR platform"
+          ],
+          "correctIndex": 0,
+          "explanation": "Connector depth covers Banner and PeopleSoft. A custom system with no API changes the story materially, so qualify the HR platform before you promise it.",
+          "difficulty": "medium",
+          "competency": "discovery"
+        },
+        {
+          "stem": "What does a Leave of Absence Lifecycle State do for an adjunct?",
+          "choices": [
+            "Suspends Active Directory, Canvas, and network access together, then restores them when the state returns to Active",
+            "Deletes the account so a new one can be created next term",
+            "Opens a ticket for IT to disable each system by hand",
+            "Keeps all access live so the adjunct can prepare the next course"
+          ],
+          "correctIndex": 0,
+          "explanation": "The university story is the opposite of deleting and recreating accounts. The state change suspends access and brings it back with the history intact, and both transitions are audited.",
+          "difficulty": "medium",
+          "competency": "platform"
+        },
+        {
+          "stem": "Why ask how many internal moves the organization processes in a year?",
+          "choices": [
+            "The number they have never calculated is the business case, and it is stronger coming from them",
+            "SailPoint prices lifecycle automation from that count",
+            "The chapter says the volume does not matter if joiner tickets work",
+            "You need it to decide whether they are a Role customer or a Lifecycle State customer"
+          ],
+          "correctIndex": 0,
+          "explanation": "Prospects usually have not added up transfers, promotions, and status changes. That figure makes privilege creep concrete without you supplying a vendor statistic.",
+          "difficulty": "easy",
+          "competency": "discovery"
+        },
+        {
+          "stem": "How does the chapter say you should open the Mover conversation?",
+          "choices": [
+            "With the promoted manager who kept her old access, not with Identity Profiles and Roles",
+            "With the product names, so the buyer hears the mechanism first",
+            "With a Joiner demo, because new hires are the failure",
+            "With the connector list for their HR system"
+          ],
+          "correctIndex": 0,
+          "explanation": "Opening on Identity Profiles is a product description. The failure — old access that nobody revoked because no ticket existed — is what makes the mechanism matter.",
+          "difficulty": "medium",
+          "competency": "discovery"
+        }
+      ]
+    },
+    {
+      "playbookId": "ef5fa18c-5d5d-4dd4-ae67-35bc76faa179",
+      "chapter": 3,
+      "title": "Continuous Compliance and Audit Mastery",
+      "questions": [
+        {
+          "stem": "Why does the chapter say not to lead with AI recommendations?",
+          "choices": [
+            "The buyer hears that a machine is approving access, which raises alarm before the problem is established",
+            "The AI threshold is undocumented, so you cannot defend it",
+            "AI recommendations replace the Role Owner and should be saved for the close",
+            "Auditors have rejected peer-group recommendations"
+          ],
+          "correctIndex": 0,
+          "explanation": "AI is the fourth thing that matters. Establish rubber-stamping first. Then the recommendation is a relief, with a documented rationale, rather than a risk.",
+          "difficulty": "hard",
+          "competency": "positioning"
+        },
+        {
+          "stem": "How should you set expectations for building a Role model?",
+          "choices": [
+            "Start with the three or four job functions that cause the most audit pain, then expand",
+            "Model every job before the first certification campaign",
+            "Skip Roles and certify raw entitlements until the model is finished",
+            "Promise a complete model in the first quarter"
+          ],
+          "correctIndex": 0,
+          "explanation": "A full model has a deserved reputation as a multi-year project. A phased start gets certification relief on the highest-risk population in the first cycle.",
+          "difficulty": "medium",
+          "competency": "objection handling"
+        },
+        {
+          "stem": "A buyer says managers will never adopt another tool. What is actually in the way?",
+          "choices": [
+            "Decision volume. Cutting a 45-line review to one or two decisions is what drives adoption",
+            "The color of the certification interface",
+            "Managers refusing to use email",
+            "The Access Intelligence Center requiring a separate login"
+          ],
+          "correctIndex": 0,
+          "explanation": "The chapter calls adoption problems volume problems wearing a UI costume. You are not adding a tool to their week. You are removing decisions they cannot interpret.",
+          "difficulty": "medium",
+          "competency": "objection handling"
+        },
+        {
+          "stem": "What changed for the Department of Revenue manager in the chapter's story?",
+          "choices": [
+            "A review of 45 AD groups for one employee became approval of a single Tax Auditor Role",
+            "The manager stopped certifying and the auditor certified instead",
+            "Reviews moved from quarterly to annually",
+            "AI approved the campaign with no manager involved"
+          ],
+          "correctIndex": 0,
+          "explanation": "Department heads had been approving every line, and consecutive NIST audits failed because the control could not be relied on. One Role, plus an AI flag for out-of-band access, is what stopped the rubber stamp.",
+          "difficulty": "easy",
+          "competency": "identity governance"
+        },
+        {
+          "stem": "How do this chapter and the lifecycle chapter fit together?",
+          "choices": [
+            "Lifecycle automation stops bad access from accumulating; certifications catch what is already there",
+            "They solve the same problem, so you pitch only one of them",
+            "Certifications replace the need for Mover automation",
+            "Lifecycle states are a kind of certification campaign"
+          ],
+          "correctIndex": 0,
+          "explanation": "The chapter says to pair them. Together they are the strongest opening two-capability story in SLED, especially with an audit on the calendar.",
+          "difficulty": "easy",
+          "competency": "positioning"
+        },
+        {
+          "stem": "Why do managers approve cryptic entitlement reviews in bulk?",
+          "choices": [
+            "They cannot interpret strings like an AD group name, and they have hundreds of rows plus a day job",
+            "They have been told that a high approval rate is the audit target",
+            "The entitlements are already known to be correct",
+            "Role Owners have already removed every bad entitlement"
+          ],
+          "correctIndex": 0,
+          "explanation": "The chapter calls this predictable, not negligence. A 99% approval rate is what you get when a person is asked to judge objects they cannot read.",
+          "difficulty": "medium",
+          "competency": "identity governance"
+        },
+        {
+          "stem": "What did the research university need Principal Investigators to prove?",
+          "choices": [
+            "That lab access was actually controlled, because federal research funding depended on that evidence",
+            "That every PI had completed a password reset",
+            "That student workers held Domain Admin",
+            "That the Role model covered the entire campus before any campaign"
+          ],
+          "correctIndex": 0,
+          "explanation": "Quarterly spreadsheets were ignored or bulk-approved. The evidence would not have survived scrutiny, which is why the campaigns moved to Research Roles and a short AI-guided review.",
+          "difficulty": "medium",
+          "competency": "discovery"
+        }
+      ]
+    },
+    {
+      "playbookId": "eee5d57a-8e5f-421c-a218-584841884efd",
+      "chapter": 4,
+      "title": "Identity Graph",
+      "questions": [
+        {
+          "stem": "What does access path tracing change about an investigation?",
+          "choices": [
+            "It shows direct grants, inherited roles, and nested groups, turning a multi-day trace into minutes",
+            "It lists the SIEM events that fired after the account was used",
+            "It revokes the entitlement as soon as the path is drawn",
+            "It compares two users and highlights only the differences"
+          ],
+          "correctIndex": 0,
+          "explanation": "The question it answers is how this identity got this access. The chapter contrasts a three-day reconstruction from reports with a visual lineage you can follow immediately.",
+          "difficulty": "medium",
+          "competency": "platform"
+        },
+        {
+          "stem": "A smaller agency says they are too small to need Identity Graph. What actually drives the need?",
+          "choices": [
+            "Nesting depth. Years of Active Directory groups tangle a 2,000-person agency as badly as a much larger one",
+            "Headcount above 10,000",
+            "Whether they already own a SIEM",
+            "A recent ransomware payment"
+          ],
+          "correctIndex": 0,
+          "explanation": "A smaller agency usually has fewer people to untangle those paths by hand. Complexity is the driver, not the size of the org chart.",
+          "difficulty": "hard",
+          "competency": "objection handling"
+        },
+        {
+          "stem": "A buyer says the graph looks like a nice picture. What test does the chapter offer?",
+          "choices": [
+            "Whether it changes a containment decision under time pressure, and whether Snapshots produce the evidence afterward",
+            "Whether the export matches the SIEM's event count",
+            "Whether every ring is the same color",
+            "Whether it replaces the need for an incident-response plan"
+          ],
+          "correctIndex": 0,
+          "explanation": "A lot of security visualizations are decorative. The operational test is whether an analyst knows what to isolate in minutes, and whether the Snapshot is usable in the audit that follows.",
+          "difficulty": "medium",
+          "competency": "objection handling"
+        },
+        {
+          "stem": "In the state-agency tabletop, what did the graph find that the reports had missed?",
+          "choices": [
+            "Nested access to a CJIS database through a forgotten group, contained in under 15 minutes",
+            "A password that had not been rotated",
+            "A student account with alumni-donor access",
+            "A workflow that had failed silently"
+          ],
+          "correctIndex": 0,
+          "explanation": "The analyst needed blast radius for the human account and connected service accounts. The nested group was the path, and the orphaned entitlements were remediated before exfiltration.",
+          "difficulty": "easy",
+          "competency": "discovery"
+        },
+        {
+          "stem": "How had the undergraduate reached the alumni donor database in the FERPA story?",
+          "choices": [
+            "An old Active Directory group membership that also granted entitlements to service accounts",
+            "A manager had certified the access the previous quarter",
+            "The student requested it through ServiceNow and it was auto-approved",
+            "A shared guest account for visiting scholars"
+          ],
+          "correctIndex": 0,
+          "explanation": "The lineage showed a group decision from years earlier, made by someone who had left. Seeing the path is what let them revoke the access and dismantle the orphaned group.",
+          "difficulty": "medium",
+          "competency": "identity governance"
+        },
+        {
+          "stem": "What does outlier and risk detection surface on the graph?",
+          "choices": [
+            "High-risk identities, separation-of-duties violations, and peer deviations for human and non-human identities",
+            "Only human users who failed MFA",
+            "Password-reset volume by department",
+            "A point-in-time export for a single identity"
+          ],
+          "correctIndex": 0,
+          "explanation": "Heatmaps and color coding are the detection view. Snapshots and Comparison Mode are separate capabilities. This one is the risk picture across both populations.",
+          "difficulty": "easy",
+          "competency": "platform"
+        },
+        {
+          "stem": "What does a spreadsheet export fail to show when ransomware hits?",
+          "choices": [
+            "The reach of AI agents, machine identities, and service accounts, which is most of the blast radius",
+            "The human users in Active Directory",
+            "Which certification campaign ran last quarter",
+            "The SIEM events from the last hour"
+          ],
+          "correctIndex": 0,
+          "explanation": "Reports reconstruct human access after the fact and leave non-human access invisible. The chapter's point is that you do not have days to hunt that blast radius by hand.",
+          "difficulty": "medium",
+          "competency": "positioning"
+        }
+      ]
+    },
+    {
+      "playbookId": "85737cf2-c144-479b-98d0-0c282cbf0ebd",
+      "chapter": 5,
+      "title": "Intelligent Access Requests",
+      "questions": [
+        {
+          "stem": "In the emergency-management story, why did staff work around the ticket process?",
+          "choices": [
+            "The standard ticket took 48 hours and the weather event lasted 36",
+            "The portal rejected requests from field staff",
+            "Auto-approval had been disabled for every request type",
+            "ServiceNow was being replaced that week"
+          ],
+          "correctIndex": 0,
+          "explanation": "A uniform path cannot serve an urgent, low-sensitivity communication tool and a sensitive administrative system at the same time. Adaptive routing split those two paths.",
+          "difficulty": "easy",
+          "competency": "discovery"
+        },
+        {
+          "stem": "What does a three-week wait for grant software produce, in the chapter's account?",
+          "choices": [
+            "Faculty expense their own SaaS, and research data lands in tools nobody governs",
+            "Faculty stop applying for grants",
+            "The helpdesk resets their passwords instead",
+            "Auditors treat the delay as a passed control"
+          ],
+          "correctIndex": 0,
+          "explanation": "Slow low-risk approvals are how shadow IT starts. The elevator pitch says every delayed approval in higher ed and state government creates it.",
+          "difficulty": "medium",
+          "competency": "identity governance"
+        },
+        {
+          "stem": "Approval chains are set by policy and the buyer says they cannot change them. What do you propose?",
+          "choices": [
+            "Leave the mandated chains as written, and stop applying that same path to the low-risk majority",
+            "Rewrite the policy before any workflow is built",
+            "Auto-approve the sensitive requests so the mandated chain is unused",
+            "Move every request out of ServiceNow"
+          ],
+          "correctIndex": 0,
+          "explanation": "Adaptive routing does not require loosening a governed path. The policy constraint usually applies to fewer request types than people assume.",
+          "difficulty": "hard",
+          "competency": "objection handling"
+        },
+        {
+          "stem": "What happens if you pitch only the speed of adaptive approvals?",
+          "choices": [
+            "The security buyer hears a convenience tool and has a reason to say no",
+            "The economic buyer hears the control story automatically",
+            "Quorum routing is implied and does not need to be said",
+            "ServiceNow integration becomes unnecessary"
+          ],
+          "correctIndex": 0,
+          "explanation": "The chapter's mistake is pitching speed without the quorum story. Fast single approvals and strict review of sensitive requests have to travel together.",
+          "difficulty": "medium",
+          "competency": "positioning"
+        },
+        {
+          "stem": "Why do Slack, Teams, and ServiceNow matter to whether approvals get done?",
+          "choices": [
+            "People request and approve in the tools they already have open, instead of an identity portal they avoid",
+            "Those tools replace the need for an approval policy",
+            "SailPoint requires one of them before a workflow can run",
+            "They are where the AI recommendation is calculated"
+          ],
+          "correctIndex": 0,
+          "explanation": "Adoption depends on meeting users where they work. The decision logic still sits in SailPoint. The chat or ITSM tool is the front door.",
+          "difficulty": "easy",
+          "competency": "integration"
+        },
+        {
+          "stem": "What ends a high-sensitivity request in a serial chain?",
+          "choices": [
+            "Any denial. The request does not continue to the next approver",
+            "A single approval from the manager, which overrides security",
+            "The request staying open until all three approvers have a week to respond",
+            "An auto-approval once the peer match is above a threshold"
+          ],
+          "correctIndex": 0,
+          "explanation": "The student-worker path to financial-aid data is a quorum or a serial chain through manager, data owner, and security. A denial stops it.",
+          "difficulty": "medium",
+          "competency": "platform"
+        },
+        {
+          "stem": "What does Atlas evaluate before it picks a route?",
+          "choices": [
+            "The requester's attributes, such as department and title, and whether peers already hold that access",
+            "Only the org chart of the approver's manager",
+            "The age of the ServiceNow ticket",
+            "Whether the user has completed MFA that day"
+          ],
+          "correctIndex": 0,
+          "explanation": "Context, not a fixed chain, picks the path. A peer match on standard campus software can go to one approver. A sensitive system takes the strict path.",
+          "difficulty": "easy",
+          "competency": "platform"
+        }
+      ]
+    },
+    {
+      "playbookId": "a384d439-2934-434c-bde3-5ae028aefed4",
+      "chapter": 6,
+      "title": "Securing Machine Identities at Scale",
+      "questions": [
+        {
+          "stem": "A prospect will not disable unknown service accounts because something might break. How do you respond?",
+          "choices": [
+            "Use last-authentication evidence, and start with accounts that have been dormant rather than ones that run nightly",
+            "Disable every unowned account in the first week",
+            "Leave them all in place until a spreadsheet is finished",
+            "Hand the list to the infrastructure team and step out of the decision"
+          ],
+          "correctIndex": 0,
+          "explanation": "Discovery comes before decommissioning. An account silent for 18 months is a different decision from one that authenticates every night. You work inward from evidence.",
+          "difficulty": "hard",
+          "competency": "objection handling"
+        },
+        {
+          "stem": "A prospect calls unowned service accounts an infrastructure problem. What failure does the chapter name instead?",
+          "choices": [
+            "An identity failure: access with no owner and no review, which infrastructure cannot certify",
+            "A network-segmentation failure",
+            "A password-policy failure",
+            "A helpdesk staffing failure"
+          ],
+          "correctIndex": 0,
+          "explanation": "Infrastructure can say the account exists. Identity governance is what says whether it should, who is accountable, and whether someone reviewed it.",
+          "difficulty": "medium",
+          "competency": "objection handling"
+        },
+        {
+          "stem": "Which step handles accounts that discovery cannot correlate to an existing application?",
+          "choices": [
+            "Auto-creation, so the uncorrelated account still enters governance instead of staying invisible",
+            "Immediate deletion",
+            "A spreadsheet row assigned to the helpdesk",
+            "Exclusion from certification until an owner volunteers"
+          ],
+          "correctIndex": 0,
+          "explanation": "The five capabilities are discovery and classification, Application Identity correlation, auto-creation for uncorrelated accounts, enforced ownership with succession, and certification with decommissioning.",
+          "difficulty": "medium",
+          "competency": "platform"
+        },
+        {
+          "stem": "What had happened to the university's RPA bots before SailPoint?",
+          "choices": [
+            "They held super-user access to FERPA data, and the project owners who created them had moved on",
+            "They were already certified quarterly by the admissions office",
+            "They had no access beyond a test tenant",
+            "They were vaulted, so ownership was unnecessary"
+          ],
+          "correctIndex": 0,
+          "explanation": "The bots were correlated under Application Identities for each business process, and department heads had to accept ownership and certify them. An invisible backdoor became a governed asset.",
+          "difficulty": "easy",
+          "competency": "identity governance"
+        },
+        {
+          "stem": "What did the state agency do with the legacy service accounts once they had owners?",
+          "choices": [
+            "Decommissioned more than half and put the rest under quarterly certification, ahead of the audit",
+            "Left them all running because last-login data was unavailable",
+            "Moved them into a shared guest account",
+            "Replaced Active Directory as part of the same project"
+          ],
+          "correctIndex": 0,
+          "explanation": "The accounts had broad database access and nobody could explain several of them. Grouping, ownership, and certification made decommissioning a decision rather than a guess.",
+          "difficulty": "medium",
+          "competency": "discovery"
+        },
+        {
+          "stem": "Why ask the service-account count at the start of discovery?",
+          "choices": [
+            "The silence is the business case, and it lands harder than a vendor breach statistic",
+            "The count is required to size Parameter Storage",
+            "Most prospects already know the exact number, which builds credibility",
+            "It replaces the need to talk about ownership succession"
+          ],
+          "correctIndex": 0,
+          "explanation": "The chapter calls this the highest-leverage question. Buyers are tired of breach numbers. An inventory they cannot produce is their own gap.",
+          "difficulty": "easy",
+          "competency": "discovery"
+        },
+        {
+          "stem": "Which buying trigger does the chapter tie to cloud migration?",
+          "choices": [
+            "New service principals are being created faster than anyone can govern them",
+            "Cloud migration removes the need for service accounts",
+            "The HR feed has to be rebuilt before any machine identity work",
+            "Password resets spike during the migration weekend"
+          ],
+          "correctIndex": 0,
+          "explanation": "Cloud migration is listed alongside RPA growth and an incident involving a service account or API credential. Each one means the unowned population is growing.",
+          "difficulty": "medium",
+          "competency": "discovery"
+        }
+      ]
+    },
+    {
+      "playbookId": "9c43bd63-3c08-4c84-9212-4f29634bb6e0",
+      "chapter": 7,
+      "title": "Governing AI Agents",
+      "questions": [
+        {
+          "stem": "Which platforms does the chapter say SailPoint discovers agents from natively?",
+          "choices": [
+            "Bedrock, Copilot Studio, Agentforce, ServiceNow, Vertex AI, Cohere, Mistral, and Workato",
+            "Only Microsoft Copilot and ChatGPT",
+            "Any model hosted in FedRAMP GovCloud, including Foundry Classic",
+            "ServiceNow only, with every other agent excluded"
+          ],
+          "correctIndex": 0,
+          "explanation": "Those eight are the native connectors. Agents outside them can be registered manually. Microsoft Foundry Classic is the coverage caveat, and you confirm the deployment type before promising it.",
+          "difficulty": "hard",
+          "competency": "platform"
+        },
+        {
+          "stem": "A prospect says their AI vendor handles security. What do they still own?",
+          "choices": [
+            "The entitlements the agent holds in their environment, and which person is accountable for them",
+            "The vendor's model weights and training pipeline",
+            "Nothing, if the contract includes a security addendum",
+            "Only the prompts employees type into the chatbot"
+          ],
+          "correctIndex": 0,
+          "explanation": "The vendor secures their platform. They cannot govern the access you granted the agent, or answer the audit question of who at your organization owns it.",
+          "difficulty": "hard",
+          "competency": "objection handling"
+        },
+        {
+          "stem": "A prospect says they do not have many agents. What pattern does the chapter describe?",
+          "choices": [
+            "The sanctioned count is usually right, and the total is not, because departments build their own",
+            "The sanctioned count is inflated and discovery lowers it",
+            "Small populations should wait for Agentic Fabric",
+            "Agent count is irrelevant if each one has an API key"
+          ],
+          "correctIndex": 0,
+          "explanation": "Discovery settles the number in days. If it really is small, governance is cheap. Either result is useful, so the objection is not a reason to wait.",
+          "difficulty": "medium",
+          "competency": "objection handling"
+        },
+        {
+          "stem": "What was wrong with the unemployment chatbot in the state-agency story?",
+          "choices": [
+            "Developers gave it read access to the whole tax database for context, and no owner was assigned",
+            "It had no access to citizen data, so governance could wait",
+            "The CISO had already certified it before launch",
+            "It ran only against synthetic data"
+          ],
+          "correctIndex": 0,
+          "explanation": "A prompt-injection path to tax records was the risk. Aggregation flagged the over-privilege in Identity Graph, the database access was revoked, and multi-owner stewardship was assigned.",
+          "difficulty": "medium",
+          "competency": "identity governance"
+        },
+        {
+          "stem": "What does SailPoint require because an agent cannot be accountable?",
+          "choices": [
+            "A primary human owner plus additional owners, with succession when the builder leaves",
+            "A Chief AI Officer as the only allowed owner",
+            "Ownership by the model vendor",
+            "A shared service account with no named person"
+          ],
+          "correctIndex": 0,
+          "explanation": "The clinical-trial agent kept running on PII after the researcher graduated. Succession is what assigns a living owner instead of leaving the debate to the department.",
+          "difficulty": "easy",
+          "competency": "identity governance"
+        },
+        {
+          "stem": "Where does an agent's downstream reach show up for the security team?",
+          "choices": [
+            "Natively in Identity Graph, including unstructured data when Data Access Security is connected",
+            "Only in the vendor's chatbot transcript",
+            "In the HR system of record",
+            "In a quarterly spreadsheet the developer maintains"
+          ],
+          "correctIndex": 0,
+          "explanation": "Blast radius is one of the four things the chapter says to be able to show: discovery, human ownership, least privilege, and the graph.",
+          "difficulty": "easy",
+          "competency": "platform"
+        },
+        {
+          "stem": "What question does the chapter prefer over a breach scenario?",
+          "choices": [
+            "Who owns the agents today? The buyer has to answer it, and the vacuum is the point",
+            "How many agents were breached in your industry last year?",
+            "Which foundation model are you standardizing on?",
+            "Can we replace your chatbot vendor this quarter?"
+          ],
+          "correctIndex": 0,
+          "explanation": "Fear-based framing gets discounted. The ownership question produces three different answers or none, which is the governance gap without an apocalyptic story.",
+          "difficulty": "medium",
+          "competency": "discovery"
+        }
+      ]
+    },
+    {
+      "playbookId": "0fd2cc63-5fa6-44d3-b915-0f44c200c427",
+      "chapter": 8,
+      "title": "Workflow Solutions",
+      "questions": [
+        {
+          "stem": "What does a script in the security path do when it stops running?",
+          "choices": [
+            "Nothing visible. Accounts that should be disabled stay active until an audit finds them",
+            "It pages the on-call engineer immediately",
+            "It opens a ServiceNow incident by default",
+            "It rolls back the last identity change"
+          ],
+          "correctIndex": 0,
+          "explanation": "Silent failure is the difference between a slow manual process and a script. The parks-department revocation and the expulsion phone tree both depend on someone noticing.",
+          "difficulty": "easy",
+          "competency": "identity governance"
+        },
+        {
+          "stem": "A buyer says they lack staff to build workflows. What do you trade the script queue for?",
+          "choices": [
+            "A visual canvas that the people who understand the process can edit themselves",
+            "A professional-services project for every new branch",
+            "A larger helpdesk to run the steps by hand",
+            "PowerShell templates stored on a file share"
+          ],
+          "correctIndex": 0,
+          "explanation": "The people who know the process are often not developers. Today they file a request with whoever owns the scripts. The builder lets them change the workflow directly.",
+          "difficulty": "medium",
+          "competency": "objection handling"
+        },
+        {
+          "stem": "What is enough for a legacy system to start a SailPoint workflow?",
+          "choices": [
+            "The ability to make a REST call. No SailPoint-side development and no native connector",
+            "A certified connector and a data model mapping project",
+            "An agent installed on the legacy host",
+            "A nightly file drop into Active Directory"
+          ],
+          "correctIndex": 0,
+          "explanation": "The External/HTTP trigger is why automation is feasible in estates that will never have a native connector. The legacy system only has to send the request.",
+          "difficulty": "medium",
+          "competency": "integration"
+        },
+        {
+          "stem": "Which actions does the chapter list beyond provisioning?",
+          "choices": [
+            "An Okta password reset, a Slack post, a ServiceNow incident, or a call to a legacy API",
+            "Replacing the SIEM and the HR system",
+            "Issuing badges and rewriting the chart of accounts",
+            "Approving access inside the chatbot"
+          ],
+          "correctIndex": 0,
+          "explanation": "Ecosystem extensibility is the point: the workflow reaches the tools they already run, and every action is logged.",
+          "difficulty": "easy",
+          "competency": "platform"
+        },
+        {
+          "stem": "What did the seasonal-hire workflow do that the manual process missed?",
+          "choices": [
+            "Granted day-one access to 500 workers and revoked it on a set date without someone remembering",
+            "Shortened provisioning from three weeks to two weeks, with revocation still manual",
+            "Replaced the HR system that stored the Seasonal Hire attribute",
+            "Sent each worker a password spreadsheet"
+          ],
+          "correctIndex": 0,
+          "explanation": "IT had spent three weeks provisioning scheduling and payroll, and season-end revocation depended on memory. The scheduled revocation is the part the chapter calls more important.",
+          "difficulty": "medium",
+          "competency": "discovery"
+        },
+        {
+          "stem": "What triggers the expulsion workflow in the university story?",
+          "choices": [
+            "The Dean's office flags the student profile, and access ends across the campus systems at once",
+            "Four departments call each other until housing, email, and the network are disabled",
+            "A certification campaign at the end of the term",
+            "The student submits a leaver request"
+          ],
+          "correctIndex": 0,
+          "explanation": "The old path was a phone tree, and the gap was measured in days. The workflow logs every revocation for the record.",
+          "difficulty": "medium",
+          "competency": "identity governance"
+        },
+        {
+          "stem": "Why is selling Workflows by itself a mistake?",
+          "choices": [
+            "Alone it sounds like generic automation. It is the engine under access requests, privileged tasks, and lifecycle",
+            "Workflows cannot run unless PTA is purchased first",
+            "Customers are not allowed to see the builder",
+            "It competes with the HR system and should be positioned that way"
+          ],
+          "correctIndex": 0,
+          "explanation": "The chapter warns that a standalone pitch loses to tools like Power Automate. As the identity orchestration layer, the same builder is differentiated.",
+          "difficulty": "hard",
+          "competency": "positioning"
+        }
+      ]
+    },
+    {
+      "playbookId": "15e04d78-6906-4b3e-886e-749fb930d090",
+      "chapter": 9,
+      "title": "Non-Employee Risk Management",
+      "questions": [
+        {
+          "stem": "What is the default when a non-employee contract date passes?",
+          "choices": [
+            "Access is disabled. An extension requires the sponsor to request it before the deadline",
+            "Access continues until IT hears from the department",
+            "The account converts to an employee record automatically",
+            "A shared guest account is created for the next contractor"
+          ],
+          "correctIndex": 0,
+          "explanation": "Time-bound access flips the default from persistence to revocation. That is what a spreadsheet of contract end dates never does.",
+          "difficulty": "easy",
+          "competency": "identity governance"
+        },
+        {
+          "stem": "When do you introduce the NERM add-on instead of the built-in lifecycle?",
+          "choices": [
+            "When the contractor population is large enough to need complex approvals and risk scoring",
+            "On every deal, because the built-in manager is only a demo feature",
+            "Only for employees who are missing from Workday",
+            "Never. The add-on replaces certifications"
+          ],
+          "correctIndex": 0,
+          "explanation": "Baseline sponsor-driven onboarding and time-bound access are included in ISC. NERM is the enterprise-scale add-on, and you lead with what they already have.",
+          "difficulty": "medium",
+          "competency": "positioning"
+        },
+        {
+          "stem": "What was wrong with the highway authority's 2,000 contractors?",
+          "choices": [
+            "Contracts expired on a spreadsheet, and access to the project systems did not",
+            "Each contractor already had an HR record and a sponsor",
+            "They shared one employee account, which made attribution easy",
+            "Access was revoked on the contract end date automatically"
+          ],
+          "correctIndex": 0,
+          "explanation": "Nobody could say which of the 2,000 still had credentials. That is the structural result of having no system of record for people who are not in HR.",
+          "difficulty": "easy",
+          "competency": "discovery"
+        },
+        {
+          "stem": "Why are shared guest accounts for visiting scholars worse than a single orphaned account?",
+          "choices": [
+            "Several people use one account, so you cannot attribute activity, and the accounts outlive the visits",
+            "Guest accounts cannot be disabled",
+            "Scholars are employees, so a guest account violates HR policy only",
+            "The only risk is a weak password"
+          ],
+          "correctIndex": 0,
+          "explanation": "The university created generic Guest accounts, shared them, and never deleted them. Attribution failure is a separate finding from an account that simply stayed on.",
+          "difficulty": "medium",
+          "competency": "identity governance"
+        },
+        {
+          "stem": "What does identity verification add for a remote contractor?",
+          "choices": [
+            "Confirmation that the person accessing the network is who they claim to be, which a badge does for an employee",
+            "A replacement for the sponsor",
+            "Automatic approval of every access request",
+            "A password that synchronizes to Active Directory"
+          ],
+          "correctIndex": 0,
+          "explanation": "The chapter pairs verification providers with the lifecycle. A remote vendor has no badge, so knowing the account belongs to the right person matters more.",
+          "difficulty": "medium",
+          "competency": "platform"
+        },
+        {
+          "stem": "What becomes the system of record for non-employees?",
+          "choices": [
+            "NERM, capturing the person, the contract, and the access before they reach the network",
+            "The employee HCM, after a manual hire transaction",
+            "The helpdesk ticket that created the guest account",
+            "The sponsor's inbox"
+          ],
+          "correctIndex": 0,
+          "explanation": "The missing system of record is the structural problem. NERM holds the contract terms that HR will never have, which is what makes an end date real.",
+          "difficulty": "easy",
+          "competency": "platform"
+        },
+        {
+          "stem": "Who does the chapter remove as the bottleneck for contractor onboarding?",
+          "choices": [
+            "IT. The sponsor who engaged the contractor requests the access and sets the dates",
+            "The sponsor, so IT owns the contract end date",
+            "Procurement, which must approve every login",
+            "The contractor, who self-registers with no review"
+          ],
+          "correctIndex": 0,
+          "explanation": "The department is the only party that knows when the work ends. Leaving that knowledge with IT means the account outlives the engagement.",
+          "difficulty": "medium",
+          "competency": "discovery"
+        }
+      ]
+    },
+    {
+      "playbookId": "f89a11b0-9176-4e29-af39-03997831986c",
+      "chapter": 10,
+      "title": "Data Access Security",
+      "questions": [
+        {
+          "stem": "A prospect says the file shares are too large to scan. What do you propose?",
+          "choices": [
+            "Start with the two repositories that hold the most regulated data, and expand from those findings",
+            "Scan everything in the first project or the results will not count",
+            "Skip scanning and rely on the DLP alerts",
+            "Wait until the shares have been reorganized"
+          ],
+          "correctIndex": 0,
+          "explanation": "The mess is why it pays off, and it is also why you do not boil the ocean. Highest-risk data first produces a defensible answer and the case to continue.",
+          "difficulty": "hard",
+          "competency": "objection handling"
+        },
+        {
+          "stem": "What should you ask a DSPM vendor that DAS can already answer?",
+          "choices": [
+            "What the remediation path is after a finding, and whether it reaches a specific identity",
+            "How many file types the scanner recognizes",
+            "Whether the tool can block outbound email",
+            "How long the proof of concept takes to install"
+          ],
+          "correctIndex": 0,
+          "explanation": "A standalone DSPM tool reports an over-exposed folder. Because DAS is native to ISC, the finding is tied to identities and can go into a certification or revocation workflow.",
+          "difficulty": "medium",
+          "competency": "positioning"
+        },
+        {
+          "stem": "What did DAS find at the child-protective-services agency?",
+          "choices": [
+            "Forty former case workers who still had access to active case folders",
+            "A single over-shared folder with no PII",
+            "That application Roles already covered every SharePoint library",
+            "A DLP policy that had replaced the need for permissions"
+          ],
+          "correctIndex": 0,
+          "explanation": "The files were spread across thousands of folders. Scanning tagged PII and mapped access back to the identity cube, which is how the former workers were found.",
+          "difficulty": "easy",
+          "competency": "discovery"
+        },
+        {
+          "stem": "How did every undergraduate gain read access to unpublished medical research?",
+          "choices": [
+            "A nested group on a shared drive granted it, and DAS was what made that visible",
+            "Each student had been approved by the principal investigator",
+            "The dataset lived in a governed application Role",
+            "A certification campaign had renewed the access on purpose"
+          ],
+          "correctIndex": 0,
+          "explanation": "Nested inheritance is why a manual review of the folder misses the population. They locked it down and put quarterly data-owner certifications on the research repositories.",
+          "difficulty": "medium",
+          "competency": "identity governance"
+        },
+        {
+          "stem": "What is the mistake in presenting DAS as a standalone data-security product?",
+          "choices": [
+            "The differentiator is the link to governed identities and a remediation workflow, not the scan itself",
+            "DAS cannot classify file content",
+            "Standalone tools are easier to displace, so you should invite that comparison",
+            "Identity linkage is a later module and should not be mentioned"
+          ],
+          "correctIndex": 0,
+          "explanation": "A tool that finds exposed data and cannot tie it to an identity is a report generator. The chapter says to connect every finding to the person and the workflow.",
+          "difficulty": "medium",
+          "competency": "positioning"
+        },
+        {
+          "stem": "Which buying trigger does the chapter attach to a file-share project?",
+          "choices": [
+            "A migration to SharePoint Online, a consolidation, or an incident that started in a misconfigured folder",
+            "A password-reset spike at semester start",
+            "An HR system replacement",
+            "A request to remove MFA"
+          ],
+          "correctIndex": 0,
+          "explanation": "Those are the moments unstructured access is already on the table. An audit that flagged uncontrolled file data is the other trigger.",
+          "difficulty": "easy",
+          "competency": "discovery"
+        },
+        {
+          "stem": "Why does fixing DAS permissions also help a DLP program?",
+          "choices": [
+            "DLP alerts pile up because permissions are too broad. Narrower access gives DLP less to police",
+            "DAS disables the DLP sensors",
+            "DLP and DAS inspect the same packets, so one license covers both",
+            "DLP already maps nested groups back to a person"
+          ],
+          "correctIndex": 0,
+          "explanation": "They solve different halves. DLP watches data in motion. DAS decides who should have the file. Broad access is why the DLP console is noisy.",
+          "difficulty": "medium",
+          "competency": "objection handling"
+        }
+      ]
+    },
+    {
+      "playbookId": "8f3fe536-8745-4a80-a79c-8dc134dfbbc5",
+      "chapter": 11,
+      "title": "Privileged Task Automation",
+      "questions": [
+        {
+          "stem": "Why is standing privilege on the helpdesk a ransomware condition, even with a vault?",
+          "choices": [
+            "Compromising the technician still yields the credential if a human checks it out and uses it",
+            "Vaults store passwords in plaintext",
+            "Ransomware only targets accounts that were never privileged",
+            "PTA removes the vault, which is what stops the attack"
+          ],
+          "correctIndex": 0,
+          "explanation": "The vault improves the audit trail. It does not remove the capability. PTA runs the task so the credential never reaches the person.",
+          "difficulty": "medium",
+          "competency": "identity governance"
+        },
+        {
+          "stem": "Where are the admin credentials for a privileged task stored?",
+          "choices": [
+            "Encrypted in Parameter Storage, which the technician never opens",
+            "In the technician's password manager",
+            "In the Launchpad form, shown after submit",
+            "In a shared mailbox the helpdesk uses for break-glass"
+          ],
+          "correctIndex": 0,
+          "explanation": "The workflow holds the credential. The Launcher only collects inputs, such as the username to unlock, and the Privileged Action Gateway runs the command.",
+          "difficulty": "easy",
+          "competency": "platform"
+        },
+        {
+          "stem": "What did the state helpdesk have to keep doing before PTA?",
+          "choices": [
+            "Twenty junior technicians held standing Domain Admin so they could reset passwords and clear lockouts",
+            "A single domain admin performed every unlock, so no standing privilege existed",
+            "Researchers held the helpdesk passwords",
+            "Unlocks were already a governed entitlement with no admin rights"
+          ],
+          "correctIndex": 0,
+          "explanation": "Removing the rights would have stopped the helpdesk, which is why the NIST finding persisted. After PTA they use an Unlock launcher and nobody touches an admin credential.",
+          "difficulty": "easy",
+          "competency": "discovery"
+        },
+        {
+          "stem": "How did the database administrator stop handing out the master password?",
+          "choices": [
+            "Researchers received a Launcher entitlement and submit a session ID; the gateway clears the lock",
+            "Researchers were added to Domain Admin so they could clear their own sessions",
+            "The password was emailed at the start of each term",
+            "Sessions were left locked until the next business day"
+          ],
+          "correctIndex": 0,
+          "explanation": "The 2 a.m. pages were the reason the credential had spread to people with no security training. Delegating the task removed both the pages and the exposure.",
+          "difficulty": "medium",
+          "competency": "identity governance"
+        },
+        {
+          "stem": "Which tasks belong on a Launchpad, and which stay with PAM?",
+          "choices": [
+            "Repeatable tasks are automated. Genuinely discretionary administration stays with the vault",
+            "Every administrative action moves to PTA, and PAM is retired",
+            "Only password resets for students, with servers excluded",
+            "PAM handles routine unlocks, and PTA handles incident response"
+          ],
+          "correctIndex": 0,
+          "explanation": "The discovery question is how many of today's privileged tasks are routine. Those are the PTA candidates. Discretionary work is why customers keep PAM.",
+          "difficulty": "medium",
+          "competency": "positioning"
+        },
+        {
+          "stem": "What must you confirm before positioning PTA to a federal-tier agency?",
+          "choices": [
+            "That Parameter Storage in their region is acceptable, because GovCloud is not supported",
+            "That they have already retired every PAM product",
+            "That the helpdesk is willing to see the admin password",
+            "That workflows are disabled"
+          ],
+          "correctIndex": 0,
+          "explanation": "Parameter Storage is AWS us-east-1 and us-west-2 only, and it is not available in FedRAMP GovCloud. Stating that before the demo is the credibility point.",
+          "difficulty": "hard",
+          "competency": "platform"
+        },
+        {
+          "stem": "Why does high helpdesk turnover make standing privilege worse?",
+          "choices": [
+            "Elevated rights are slow to remove when technicians leave, so old admin access accumulates",
+            "Turnover reduces the number of privileged accounts",
+            "New technicians cannot use a Launchpad",
+            "PTA grants each new hire Domain Admin automatically"
+          ],
+          "correctIndex": 0,
+          "explanation": "The chapter lists slow offboarding of elevated rights, and cyber-insurance pressure to cut privileged accounts, as buying triggers. A governed Launcher entitlement can be revoked like any other access.",
+          "difficulty": "medium",
+          "competency": "discovery"
+        }
+      ]
+    },
+    {
+      "playbookId": "2df981d8-7025-46e9-8b95-9b918051cee7",
+      "chapter": 12,
+      "title": "Application Onboarding",
+      "questions": [
+        {
+          "stem": "What does continuous discovery find that a CMDB usually misses?",
+          "choices": [
+            "SaaS that departments bought on their own and never brought under identity governance",
+            "Only the applications already in the IAM tool",
+            "Service account passwords",
+            "The Role model for Tier-1 systems"
+          ],
+          "correctIndex": 0,
+          "explanation": "Shadow IT discovery is one of the three capabilities. The governance gap is the distance between applications that exist and applications someone is actually governing.",
+          "difficulty": "easy",
+          "competency": "platform"
+        },
+        {
+          "stem": "What does the chapter claim the guided flow does to onboarding time?",
+          "choices": [
+            "Cuts it by up to 70 percent, bringing baseline governance in days rather than months",
+            "Eliminates onboarding time for deep entitlement modeling as well",
+            "Adds a multi-year integration program before the first application",
+            "Moves each application in one afternoon, including full entitlement depth"
+          ],
+          "correctIndex": 0,
+          "explanation": "Be precise when you repeat the number. Baseline governance is the fast part. Deep entitlement governance for a complex application still takes longer.",
+          "difficulty": "medium",
+          "competency": "positioning"
+        },
+        {
+          "stem": "Why does an audit eventually find the ungoverned applications?",
+          "choices": [
+            "Most applications stay outside identity governance because each manual integration takes months",
+            "Auditors only review applications that are already connected",
+            "Tier-3 applications are excluded from every audit scope",
+            "Discovery hides departmental SaaS by design"
+          ],
+          "correctIndex": 0,
+          "explanation": "The coverage gap is the pitch. Hundreds of applications, months per integration, so most never get connected. That is the finding waiting to happen.",
+          "difficulty": "easy",
+          "competency": "discovery"
+        },
+        {
+          "stem": "What should you ask about the last application they onboarded?",
+          "choices": [
+            "How long it took to bring it under identity governance",
+            "Which SAAM edition they used",
+            "Whether the helpdesk liked the icon",
+            "How many passwords it synchronizes"
+          ],
+          "correctIndex": 0,
+          "explanation": "That duration, next to the count of applications that are not governed at all, is the pair of numbers that sizes the gap.",
+          "difficulty": "medium",
+          "competency": "discovery"
+        },
+        {
+          "stem": "What makes a Tier-3 departmental app a real risk?",
+          "choices": [
+            "It often shares credentials or network position with a system that does matter, and attackers look for the weak path",
+            "Tier-3 apps are out of audit scope by definition",
+            "They cannot store data",
+            "They are already covered once a Tier-1 Role exists"
+          ],
+          "correctIndex": 0,
+          "explanation": "Caring first about critical applications is reasonable. The objection response is that attackers and auditors have started looking past that list.",
+          "difficulty": "hard",
+          "competency": "objection handling"
+        },
+        {
+          "stem": "How should risk-prioritized intelligence change the onboarding order?",
+          "choices": [
+            "Bring the riskiest ungoverned applications under governance first, instead of boiling the ocean",
+            "Onboard applications alphabetically so the program looks fair",
+            "Wait until every shadow application is discovered before connecting any of them",
+            "Start with the applications that already have a connector and stop there"
+          ],
+          "correctIndex": 0,
+          "explanation": "Discovery without a priority just produces a longer list. Intelligence is what tells you which applications close the most risk per onboarding.",
+          "difficulty": "medium",
+          "competency": "platform"
+        },
+        {
+          "stem": "A buyer uses the old SAAM name. What do you correct?",
+          "choices": [
+            "The product name. SAAM is retired branding; the capability is SailPoint Application Onboarding",
+            "Nothing. SAAM is still the name on the order form",
+            "Tell them the capability was cancelled",
+            "Quote SAAM as an add-on beside Application Onboarding"
+          ],
+          "correctIndex": 0,
+          "explanation": "Using the retired name makes a current capability sound like something they may have already dismissed. Correct the name and stay on the three capabilities.",
+          "difficulty": "easy",
+          "competency": "objection handling"
+        }
+      ]
+    },
+    {
+      "playbookId": "e01c2b49-b37e-4a2c-8b4b-0de8432d7e7f",
+      "chapter": 13,
+      "title": "Password Management",
+      "questions": [
+        {
+          "stem": "Which argument does the chapter say beats the helpdesk-cost argument?",
+          "choices": [
+            "Password fatigue across disconnected systems leads people to write credentials down",
+            "Self-service resets eliminate MFA",
+            "A lower ticket count is the only thing a CISO will fund",
+            "Dictionary Check replaces the need for unique passwords"
+          ],
+          "correctIndex": 0,
+          "explanation": "Cost matters, and you still ask for their ticket percentage. The security problem is the written-down password that fatigue produces when every system has its own.",
+          "difficulty": "medium",
+          "competency": "positioning"
+        },
+        {
+          "stem": "What does a user have to do differently when Password Intercept is on?",
+          "choices": [
+            "Nothing. They still change the password in Active Directory, and the change propagates",
+            "They must reset every password inside SailPoint or the change is rejected",
+            "They call the helpdesk, which types the new password into each system",
+            "They stop using Active Directory passwords entirely"
+          ],
+          "correctIndex": 0,
+          "explanation": "Intercept exists so you do not retrain the campus. AD remains the place they change the password. Downstream systems receive it.",
+          "difficulty": "easy",
+          "competency": "platform"
+        },
+        {
+          "stem": "Why is Dictionary Check more than a best practice in a government conversation?",
+          "choices": [
+            "Checking passwords against known breach lists is a named CJIS and FISMA requirement",
+            "It is required only for student populations",
+            "It satisfies the control by blocking passwords shorter than eight characters",
+            "Auditors accept it as optional if MFA is enabled"
+          ],
+          "correctIndex": 0,
+          "explanation": "Tie the feature to the control by name. A best-practice description is weaker with a government buyer than the requirement it satisfies.",
+          "difficulty": "easy",
+          "competency": "identity governance"
+        },
+        {
+          "stem": "What still has passwords after a passwordless program starts?",
+          "choices": [
+            "The mainframe and other legacy applications, which move last",
+            "Nothing. Passwordless retires every credential on day one",
+            "Only the cloud applications, which is why synchronization is unnecessary",
+            "Helpdesk accounts, which are out of scope"
+          ],
+          "correctIndex": 0,
+          "explanation": "The objection response agrees with the direction. Modern systems go first. Password management and synchronization cover the transition rather than competing with it.",
+          "difficulty": "medium",
+          "competency": "objection handling"
+        },
+        {
+          "stem": "When does the chapter say the helpdesk queue spikes?",
+          "choices": [
+            "At the start of a semester, or right after a policy forces passwords to expire",
+            "Only during a certification campaign",
+            "When MFA is turned off",
+            "When workflows are enabled"
+          ],
+          "correctIndex": 0,
+          "explanation": "Those spikes are the discovery prompt. Asking what happens to the queue then produces their number, which is the business case.",
+          "difficulty": "easy",
+          "competency": "discovery"
+        },
+        {
+          "stem": "What does universal synchronization change about the number of passwords a person keeps?",
+          "choices": [
+            "One change reaches the legacy and cloud systems, so they stop keeping a different password in each",
+            "Each system keeps its own password on purpose, and sync only reports drift",
+            "Synchronization runs once per semester",
+            "Users get a shared password for the whole campus"
+          ],
+          "correctIndex": 0,
+          "explanation": "Self-service on a single system does not cure fatigue. Propagation is what removes the reason to write the others down.",
+          "difficulty": "medium",
+          "competency": "platform"
+        },
+        {
+          "stem": "What protects the self-service reset itself?",
+          "choices": [
+            "MFA, before the new password is accepted and synchronized",
+            "A helpdesk agent who reads the new password back to the user",
+            "Security questions stored in Active Directory",
+            "The user's manager approving each reset"
+          ],
+          "correctIndex": 0,
+          "explanation": "The elevator pitch is specific: MFA-verified self-service, then automatic synchronization, plus the breach-list check. The reset is not an anonymous form.",
+          "difficulty": "medium",
+          "competency": "identity governance"
+        }
+      ]
+    },
+    {
+      "playbookId": "6b24fa36-02db-4499-a201-ac4875fb3173",
+      "chapter": 14,
+      "title": "Model Context Protocol",
+      "questions": [
+        {
+          "stem": "Who still decides an access request that starts in an enterprise assistant?",
+          "choices": [
+            "The existing approvers, in the existing workflow. The assistant only initiates and tracks it",
+            "The assistant, for anything the peer group already holds",
+            "The model vendor's trust and safety team",
+            "No one. Chat requests are pre-approved"
+          ],
+          "correctIndex": 0,
+          "explanation": "The four MCP actions are list, initiate, query status, and cancel. Approval is not among them, which is the correction when a buyer says they do not want AI deciding.",
+          "difficulty": "easy",
+          "competency": "platform"
+        },
+        {
+          "stem": "What do you qualify before you mention Harbor Pilot or the MCP Server?",
+          "choices": [
+            "Whether the tenant is FedRAMP GovCloud, where both are unavailable",
+            "Whether the helpdesk uses Slack",
+            "Whether they have finished the Role model",
+            "Whether passwords are synchronized"
+          ],
+          "correctIndex": 0,
+          "explanation": "Positioning either capability to a federal-tier agency without checking the deployment is the credibility failure the chapter warns about.",
+          "difficulty": "hard",
+          "competency": "discovery"
+        },
+        {
+          "stem": "What audit property does every MCP action have?",
+          "choices": [
+            "A timestamped immutable record that can serve as CJIS, FERPA, or FISMA evidence",
+            "A chat log the user can delete",
+            "No record, because natural language is not a transaction",
+            "A weekly digest with the prompts removed"
+          ],
+          "correctIndex": 0,
+          "explanation": "Natural language is the front end. The governance workflow and the audit record behind it do not change because the request was typed to an assistant.",
+          "difficulty": "easy",
+          "competency": "identity governance"
+        },
+        {
+          "stem": "What can a user ask the assistant to do with a request that is already in flight?",
+          "choices": [
+            "Check its status or cancel it",
+            "Approve it on behalf of their manager",
+            "Skip the quorum",
+            "Grant the access and write the justification later"
+          ],
+          "correctIndex": 0,
+          "explanation": "Query status and cancel are two of the four documented actions. They keep the assistant useful after initiation without moving the decision.",
+          "difficulty": "medium",
+          "competency": "platform"
+        },
+        {
+          "stem": "Which standard is MCP, and who published it?",
+          "choices": [
+            "An open standard from Anthropic for connecting an assistant to enterprise systems",
+            "A SailPoint-proprietary API that replaces approvals",
+            "A FedRAMP control family",
+            "A password-vault protocol"
+          ],
+          "correctIndex": 0,
+          "explanation": "SailPoint implements a server for that standard. The customer's existing assistant is the interface. SailPoint remains the system that governs the request.",
+          "difficulty": "easy",
+          "competency": "platform"
+        },
+        {
+          "stem": "A security team will allow chat requests only if approvals do not change. Can you agree?",
+          "choices": [
+            "Yes. That is the design: the assistant is the front door and the approval chain stays as written",
+            "No. Chat requests have to be auto-approved or the experience fails",
+            "Only if the assistant is added as an approver",
+            "Only for requests that originate in GovCloud"
+          ],
+          "correctIndex": 0,
+          "explanation": "The discovery question in the chapter is exactly this comfort test. You can say yes without weakening who approves what.",
+          "difficulty": "medium",
+          "competency": "objection handling"
+        },
+        {
+          "stem": "What should you ask if they already have Copilot or another assistant deployed?",
+          "choices": [
+            "What happens today when someone asks it for something it cannot act on",
+            "Whether they plan to turn the assistant off",
+            "Which foundation model they will replace it with",
+            "How many passwords the assistant resets"
+          ],
+          "correctIndex": 0,
+          "explanation": "The gap is an assistant people already talk to, with no governed way to turn a request into an access workflow. MCP is that bridge, not a new chatbot.",
+          "difficulty": "medium",
+          "competency": "discovery"
+        }
+      ]
+    },
+    {
+      "playbookId": "48159a07-8f5a-4003-a7e3-16a1d6bb6bda",
+      "chapter": 15,
+      "title": "Shared Signals Framework",
+      "questions": [
+        {
+          "stem": "What is a CAEP event in this chapter?",
+          "choices": [
+            "The event type SSF uses to exchange a security signal in real time",
+            "A certification campaign that runs every quarter",
+            "A SailPoint workflow error code",
+            "A password-reset notification"
+          ],
+          "correctIndex": 0,
+          "explanation": "SSF is the open standard. CAEP events are the mechanism. Together they close the gap between a detection and the next scheduled identity evaluation.",
+          "difficulty": "easy",
+          "competency": "platform"
+        },
+        {
+          "stem": "What can SailPoint do as a Transmitter that a Receiver-only tool cannot?",
+          "choices": [
+            "Send an identity-governance finding back out to the rest of the security stack",
+            "Replace the EDR agent on the endpoint",
+            "Store SIEM logs for a year",
+            "Approve access requests inside the chatbot"
+          ],
+          "correctIndex": 0,
+          "explanation": "Bidirectional support is the differentiator. Receiver takes a risk event in. Transmitter pushes identity risk out so other controls can act on it.",
+          "difficulty": "medium",
+          "competency": "platform"
+        },
+        {
+          "stem": "A cautious buyer rejects automated revocation. Which responses are still available?",
+          "choices": [
+            "Raise the identity's risk, start a targeted certification, or restrict access",
+            "None. SSF only supports revocation",
+            "A ticket that waits for the next quarterly review",
+            "An email to the user with no change in access"
+          ],
+          "correctIndex": 0,
+          "explanation": "The response spectrum is the way through the objection. Revocation is one end of it, not the only setting.",
+          "difficulty": "medium",
+          "competency": "objection handling"
+        },
+        {
+          "stem": "When your EDR flags a compromised endpoint, what does the chapter say should happen to access?",
+          "choices": [
+            "The signal itself triggers a governance action, instead of waiting for someone to coordinate it",
+            "The identity platform hears about it at the next scheduled evaluation",
+            "The SIEM correlates the event and an analyst files a ticket the next business day",
+            "The user keeps access until their password expires"
+          ],
+          "correctIndex": 0,
+          "explanation": "Detection already happens in seconds. The window attackers use is the delay before identity acts. SSF removes the human relay from that loop.",
+          "difficulty": "easy",
+          "competency": "identity governance"
+        },
+        {
+          "stem": "Why would you decline to pitch SSF?",
+          "choices": [
+            "The prospect has no detection stack, so there are no signals to exchange",
+            "They already have a SIEM, which makes SSF redundant",
+            "The agency has fewer than 5,000 employees",
+            "They already run access certifications"
+          ],
+          "correctIndex": 0,
+          "explanation": "Qualify for security maturity first. Correlation in a SIEM is not the same objection: a SIEM still needs a person to change access, and SSF is the action.",
+          "difficulty": "hard",
+          "competency": "discovery"
+        },
+        {
+          "stem": "How is SSF different from a SIEM correlation rule?",
+          "choices": [
+            "Correlation tells an analyst two events are related. SSF makes the signal trigger the access change",
+            "They are the same control with different names",
+            "SSF replaces the need to collect logs",
+            "A correlation rule already revokes access inside SailPoint"
+          ],
+          "correctIndex": 0,
+          "explanation": "The objection sounds like overlap. The distinction is analysis versus action. Someone still has to execute the access change after the SIEM fires.",
+          "difficulty": "medium",
+          "competency": "objection handling"
+        },
+        {
+          "stem": "Which SailPoint response fits a signal you do not yet trust enough to revoke on?",
+          "choices": [
+            "A targeted certification or a restriction, short of removing the access outright",
+            "Immediate revocation, because partial responses are unsupported",
+            "Ignoring the signal until the next annual audit",
+            "Disabling SSF for that source"
+          ],
+          "correctIndex": 0,
+          "explanation": "Configurable responses are how you start. You can tighten from restriction to revocation once the signal has proved itself.",
+          "difficulty": "easy",
+          "competency": "identity governance"
+        }
+      ]
+    },
+    {
+      "playbookId": "348007bd-c56f-4bed-8fd8-8689ac1766c7",
+      "chapter": 16,
+      "title": "SailPoint Agentic Fabric",
+      "questions": [
+        {
+          "stem": "How many of Agentic Fabric's five discovery channels are sensors installed on devices?",
+          "choices": [
+            "Two. The other three are API connections, and nothing is installed for those",
+            "All five. Each one is an agent on the endpoint",
+            "One. The browser extension covers cloud, EDR, and the identity provider",
+            "None. Discovery is API-only"
+          ],
+          "correctIndex": 0,
+          "explanation": "The endpoint agent and the browser extension are the sensors. Cloud sources, the EDR or SIEM, and the identity provider are connections. Getting that wrong in front of an IT director gets you corrected in the room.",
+          "difficulty": "hard",
+          "competency": "platform"
+        },
+        {
+          "stem": "Who deploys the endpoint agent and the browser extension?",
+          "choices": [
+            "The customer's own MDM administrator, using artifacts generated in the product. SailPoint never touches the endpoints",
+            "SailPoint professional services, with remote access to every laptop",
+            "Each employee, from a public download link",
+            "The EDR vendor, as part of the CrowdStrike agent"
+          ],
+          "correctIndex": 0,
+          "explanation": "That is the reassuring answer for a technical buyer. The customer already runs Jamf or Intune. They push what Agentic Fabric generates.",
+          "difficulty": "medium",
+          "competency": "integration"
+        },
+        {
+          "stem": "On a Mac fleet, what has to happen before the endpoint package is installed?",
+          "choices": [
+            "The Jamf configuration profile must arrive first, because the agent reads it on first run",
+            "The package and the profile can land in either order",
+            "The user has to approve Full Disk Access in a popup",
+            "Windows Intune policy has to be applied to the Mac"
+          ],
+          "correctIndex": 0,
+          "explanation": "The profile also grants the Full Disk Access the agent needs. Order is part of a correct answer, not an implementation detail you can skip.",
+          "difficulty": "hard",
+          "competency": "platform"
+        },
+        {
+          "stem": "What does the Windows endpoint agent do before the Intune policy script lands?",
+          "choices": [
+            "It collects inventory locally and uploads nothing",
+            "It uploads inventory immediately using a shared token",
+            "It refuses to install",
+            "It disables the browser extension"
+          ],
+          "correctIndex": 0,
+          "explanation": "The Win32 app and the policy script must target the same device group. The script carries the install token and should be treated as confidential. Until it runs, nothing leaves the device.",
+          "difficulty": "medium",
+          "competency": "platform"
+        },
+        {
+          "stem": "The prospect names how many AI tools IT has approved. What does the chapter say that number is?",
+          "choices": [
+            "The sanctioned count, usually a third or a quarter of what is actually running",
+            "The complete inventory, because unsanctioned tools cannot reach the network",
+            "An overestimate that discovery will shrink",
+            "Irrelevant, because shadow AI is out of scope"
+          ],
+          "correctIndex": 0,
+          "explanation": "The 90-second hook waits for their answer and then says the real number is three to four times higher. Staff adopt AI without asking, which is why the sanctioned list is not the inventory.",
+          "difficulty": "easy",
+          "competency": "discovery"
+        },
+        {
+          "stem": "Why did AI skip the review that would have caught a normal software purchase?",
+          "choices": [
+            "Adopting it does not require procurement. A browser tab, a research install, or a department trial is enough",
+            "Procurement approved every tool and then lost the records",
+            "AI tools cannot hold credentials, so review was unnecessary",
+            "The browser extension blocks unsanctioned tools by default"
+          ],
+          "correctIndex": 0,
+          "explanation": "That is the specific reason the shift outran governance. No purchase order means no review, and the tools still reach data.",
+          "difficulty": "easy",
+          "competency": "identity governance"
+        },
+        {
+          "stem": "Why are MCP clients registered as non-human identities?",
+          "choices": [
+            "They carry credentials and can reach sensitive data, so they are governed like other machine identities",
+            "They are human users with a service account name",
+            "They only exist inside FedRAMP GovCloud",
+            "They replace Business Apps"
+          ],
+          "correctIndex": 0,
+          "explanation": "MCP clients are one of the six registry types, alongside agents, applications, accounts, credentials, and endpoints. The credential is what makes the client an identity rather than a feature.",
+          "difficulty": "medium",
+          "competency": "platform"
+        }
+      ]
+    },
+    {
+      "playbookId": "8dd30d20-e61c-486b-b0c2-907df64769db",
+      "chapter": 17,
+      "title": "Entro by SailPoint",
+      "questions": [
+        {
+          "stem": "Name four detections NHIDR uses for a misused non-human credential.",
+          "choices": [
+            "Anomalous authentication, impossible travel, scope expansion, and a dormant credential becoming active",
+            "Failed MFA, a helpdesk password reset, a certification denial, and a locked AD account",
+            "A Role-model gap, a missing sponsor, a shared guest account, and an expired contract",
+            "High CPU, a full disk, a failed backup, and a certificate expiry on a website"
+          ],
+          "correctIndex": 0,
+          "explanation": "The chapter also includes rotation evasion and vault exfiltration. NHIDR both detects these and can respond. A scanner that only lists a secret does not.",
+          "difficulty": "hard",
+          "competency": "platform"
+        },
+        {
+          "stem": "Why does the chapter say not to lead with the 700-plus secret types?",
+          "choices": [
+            "Breadth sounds impressive and does not make anyone act. The attack path does",
+            "The number is marketing and should not be said",
+            "Customers only have a handful of secret types, so the figure hurts credibility",
+            "Secret types are the vault's job, not Entro's"
+          ],
+          "correctIndex": 0,
+          "explanation": "Detection breadth is real. The Secrets Graph, which shows how one finding reaches an identity and a system, is what an executive can use.",
+          "difficulty": "medium",
+          "competency": "positioning"
+        },
+        {
+          "stem": "Which sources does continuous scanning cover besides the current state of a repository?",
+          "choices": [
+            "Commit history, CI/CD pipelines, cloud configuration, collaboration tools, vaults, and Identity Security Cloud",
+            "The production vault only",
+            "Email attachments and nothing else",
+            "Human password hashes in Active Directory"
+          ],
+          "correctIndex": 0,
+          "explanation": "Secrets escape into all of those places. A pipeline scanner that sees the current file misses history, Slack, and the key that never made it into the vault.",
+          "difficulty": "medium",
+          "competency": "platform"
+        },
+        {
+          "stem": "A buyer says this feels like a developer tool. Who is the buyer the chapter wants?",
+          "choices": [
+            "Security and compliance. Development is where the findings live, and they implement the fix",
+            "The developer experience team, because friction is the outcome",
+            "The helpdesk, because each secret becomes a password ticket",
+            "Procurement, as a replacement for the incumbent vault"
+          ],
+          "correctIndex": 0,
+          "explanation": "The output is a prioritized risk register tied to identities, plus audit evidence. Enter through security, then bring development in as partners.",
+          "difficulty": "easy",
+          "competency": "discovery"
+        },
+        {
+          "stem": "In the university story, why was rotating the AWS key in the repository not enough?",
+          "choices": [
+            "The same credentials were referenced in CI/CD pipelines, so a repo-only rotation would break builds and leave a path open",
+            "Git history deletes a credential when the file is deleted",
+            "The keys were already in a vault and marked stale",
+            "Students had read-only access, so the keys could not be used"
+          ],
+          "correctIndex": 0,
+          "explanation": "The Secrets Graph showed the pipelines. Remediation had to rotate across every system that referenced the credential, and NHIDR watched for later use of a revoked one.",
+          "difficulty": "hard",
+          "competency": "identity governance"
+        },
+        {
+          "stem": "What does Entro still look for inside a vault the customer already trusts?",
+          "choices": [
+            "Secrets that are stale, over-privileged, or shared, which vault policy alone does not surface as exposure",
+            "Nothing. A managed secret is out of scope",
+            "Only secrets that were never checked in",
+            "Human passwords that failed Dictionary Check"
+          ],
+          "correctIndex": 0,
+          "explanation": "Entro integrates with HashiCorp, CyberArk, Akeyless, and AWS Secrets Manager. Visibility into the vault is not a replacement pitch. It is coverage of what the vault contains and how it is used.",
+          "difficulty": "medium",
+          "competency": "objection handling"
+        },
+        {
+          "stem": "How are AI agent credentials typically created, according to the chapter?",
+          "choices": [
+            "Ad hoc: a hardcoded API key, or a long-lived shared token, which then scales when the agent is deployed widely",
+            "Through a governed rotation policy before the agent is allowed to run",
+            "Only inside the vault, with no exceptions",
+            "They do not use credentials, because the model authenticates itself"
+          ],
+          "correctIndex": 0,
+          "explanation": "Agent authentication is the newest ungoverned surface. A vendor assistant on a shared token, or a developer's key in a config file, becomes production risk as soon as the agent is broadly used.",
+          "difficulty": "easy",
+          "competency": "identity governance"
+        }
+      ]
+    },
+    {
+      "playbookId": "4faf57f3-5de6-4887-aaa4-d59371512485",
+      "chapter": 18,
+      "title": "The Master Narrative",
+      "questions": [
+        {
+          "stem": "What are the four movements, in order?",
+          "choices": [
+            "Humans are governed, machines inverted the population, AI arrived without procurement, and credentials sit underneath all three",
+            "Discover, classify, certify, and revoke",
+            "Joiner, mover, leaver, and contractor",
+            "SIEM, PAM, DLP, and ITSM"
+          ],
+          "correctIndex": 0,
+          "explanation": "The arc is the whole narrative. Movement 1 credits the human program. The next three are the populations that program was never built to cover.",
+          "difficulty": "easy",
+          "competency": "positioning"
+        },
+        {
+          "stem": "What do you do after you ask which population worries them most?",
+          "choices": [
+            "Stop talking. Filling the silence turns the question back into a pitch",
+            "Explain the other three populations before they answer",
+            "Open the demo of all four products",
+            "Ask for a signature on a platform agreement"
+          ],
+          "correctIndex": 0,
+          "explanation": "The narrative exists to earn that question. Their answer picks the next chapters more accurately than a qualification script, but only if you let them give it.",
+          "difficulty": "medium",
+          "competency": "discovery"
+        },
+        {
+          "stem": "What does their answer select?",
+          "choices": [
+            "The next two chapters, which is a better qualifier than walking the whole guide",
+            "The discount you are allowed to offer",
+            "Which incumbent to displace first",
+            "Whether Movement 1 should be skipped"
+          ],
+          "correctIndex": 0,
+          "explanation": "You do not pitch all four solutions. The question narrows the deal, and the platform point is that the other populations can come later.",
+          "difficulty": "medium",
+          "competency": "discovery"
+        },
+        {
+          "stem": "What happens if you skip Movement 1 with an executive who already has an identity program?",
+          "choices": [
+            "They feel dismissed and stop listening, and you do not get the room back",
+            "You save three minutes and improve the close rate",
+            "They appreciate that you did not waste time on what they have already built",
+            "Movement 1 is only for accounts with no incumbent"
+          ],
+          "correctIndex": 0,
+          "explanation": "Crediting the existing program is what keeps them in the conversation. It is also what lets you expand into uncovered populations without a rip-and-replace fight.",
+          "difficulty": "hard",
+          "competency": "objection handling"
+        },
+        {
+          "stem": "How long should the four movements take out loud?",
+          "choices": [
+            "Under three minutes, long enough to earn the question and short enough to leave room for the answer",
+            "At least ten minutes, so every product is demonstrated",
+            "Thirty seconds, with no mention of machines or credentials",
+            "As long as it takes to cover all 18 chapters"
+          ],
+          "correctIndex": 0,
+          "explanation": "The retrieval check is to deliver the four movements and time them. Over three minutes means you started pitching products instead of earning the question.",
+          "difficulty": "easy",
+          "competency": "discovery"
+        },
+        {
+          "stem": "A CIO says they already have an identity vendor. What do you ask instead of counter-pitching?",
+          "choices": [
+            "Which of the four populations they feel best about, and which worries them",
+            "When the incumbent contract expires so you can replace it",
+            "Why the current vendor failed the last audit",
+            "Whether they will rip out human lifecycle in phase one"
+          ],
+          "correctIndex": 0,
+          "explanation": "The four-population frame expands into what the incumbent does not cover. Attacking the installed human-identity program is the fight the chapter tells you not to start.",
+          "difficulty": "medium",
+          "competency": "objection handling"
+        },
+        {
+          "stem": "The executive says it is too much. What is the only strategic condition on the 90-day proof?",
+          "choices": [
+            "Whatever they buy for that one population sits on a platform that can cover the others later",
+            "The proof has to include all four populations or it does not count",
+            "The proof replaces their incumbent in the first 90 days",
+            "The proof is limited to a point tool with no platform underneath"
+          ],
+          "correctIndex": 0,
+          "explanation": "You scope the proof to the population they named and leave the rest alone. The platform point is the one thing you do not give up when you narrow the deal.",
+          "difficulty": "hard",
+          "competency": "positioning"
+        }
+      ]
+    }
+  ]
+}

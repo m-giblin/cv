@@ -6,7 +6,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import type { WorkspaceHat } from "@/lib/auth/workspace";
 import { canonicalAdminHref } from "@/lib/admin/admin-routes";
 import { canonicalHref } from "@/lib/manager/manager-routes";
-import { resolveActive, visibleNav } from "@/lib/navigation/nav-model";
+import { NAV, resolveActive, visibleNav } from "@/lib/navigation/nav-model";
 import { canonicalPlatformHref } from "@/lib/platform/platform-routes";
 import type { PlatformFeatureFlags } from "@/lib/platform/settings-shared";
 import type { Notification } from "@/lib/types";
@@ -55,8 +55,15 @@ export function SidebarContent({
   const pathname = usePathname();
   const params = useSearchParams();
   const { itemId, childId } = resolveActive(workspace, pathname, params);
-  // Mentoring only appears for people who currently mentor someone (the shell passes the count).
-  const items = visibleNav(workspace, flags).filter((item) => item.id !== "mentoring" || Boolean(counts?.mentoring));
+  const visibleItems = visibleNav(workspace, flags);
+  const mentoring = NAV.se.find((item) => item.id === "mentoring");
+  const hasMentees = Boolean(counts?.mentoring);
+  // Mentoring stays visible in the SE workspace; its page has a useful guide and empty state for
+  // people without mentees. Active mentors also get a shortcut from their other workspaces.
+  const items = [
+    ...visibleItems,
+    ...(hasMentees && mentoring && !visibleItems.some((item) => item.id === "mentoring") ? [mentoring] : []),
+  ];
 
   return (
     <div className="flex flex-col gap-[26px] py-6">

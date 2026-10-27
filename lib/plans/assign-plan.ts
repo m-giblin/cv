@@ -1,5 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { Database } from "@/lib/database.types";
+import { assertPriorStageApproved } from "@/lib/plans/stage-progression";
 import { DEFAULT_TENANT_ID } from "@/lib/tenant/types";
 
 type PlanStepRow = Database["public"]["Tables"]["plan_steps"]["Row"];
@@ -39,6 +40,7 @@ export async function assignPlanToUser(
     tenantId?: string | null;
   },
 ) {
+  await assertPriorStageApproved(supabase, params.userId, params.planId);
   const tenantId = await resolveTenantIdForUser(supabase, params.userId, params.tenantId);
 
   const { data: assignment, error: assignmentError } = await supabase

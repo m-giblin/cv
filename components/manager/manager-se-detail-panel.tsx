@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { AssignWorkWizard } from "@/components/manager/assign-work-wizard";
 import { AssignedWorkList } from "@/components/manager/assigned-work-list";
+import { HiringBriefEditor } from "@/components/manager/hiring-brief-editor";
 import { ManagerCoachingNotes } from "@/components/manager/manager-coaching-notes";
 import { ManagerPlanAssignPanel } from "@/components/manager/manager-plan-assign-panel";
 import { ManagerReassignMentor } from "@/components/manager/manager-reassign-mentor";
@@ -331,6 +332,7 @@ export function ManagerSeDetailPanel({
       side={
         <>
           <Section title="Mentor and notes">
+            <HiringBriefEditor seName={profile.fullName} seUserId={profile.id} />
             {plan ? (
               <ManagerReassignMentor
                 assignmentId={plan.id}

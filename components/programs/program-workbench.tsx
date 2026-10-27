@@ -102,6 +102,8 @@ export function ProgramWorkbench({
   startEditing = false,
   focusStepId = null,
   addStep = false,
+  addPreset = "step",
+  trail = null,
   onClose,
   onChanged,
   onCreated,
@@ -120,6 +122,9 @@ export function ProgramWorkbench({
   /** From the timeline: open the editor on this step, or with a new step added. */
   focusStepId?: string | null;
   addStep?: boolean;
+  addPreset?: "step" | "gate";
+  /** Set when opened from a program timeline: the way back to it. */
+  trail?: { programName: string; onProgram: () => void; onPrograms: () => void } | null;
   onClose: () => void;
   onChanged: () => void;
   onCreated?: (id: string) => void;
@@ -131,6 +136,14 @@ export function ProgramWorkbench({
   const person = enrollments.find((item) => item.plan.userId === personId) ?? null;
   const name = program?.name ?? template?.name ?? "New program";
   const [deleting, setDeleting] = useState(false);
+  const [stepTitle, setStepTitle] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
+  /** Leaving the outline editor with unpublished changes asks first. */
+  const leave = (action: () => void) => () => {
+    if (!dirty || window.confirm("Discard unpublished changes to this stage?")) action();
+  };
+  const goPrograms = trail ? leave(trail.onPrograms) : undefined;
+  const goProgram = trail ? leave(trail.onProgram) : undefined;
 
   async function deleteProgram() {
     if (!template) return;
@@ -163,9 +176,43 @@ export function ProgramWorkbench({
   return (
     <Drawer
       bodyWidth="full"
+      breadcrumb={
+        trail ? (
+          <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-x-1.5">
+            <button className="underline-offset-4 hover:underline" onClick={goPrograms} type="button">
+              Programs
+            </button>
+            <span aria-hidden>/</span>
+            <button className="underline-offset-4 hover:underline" onClick={goProgram} type="button">
+              {trail.programName}
+            </button>
+            <span aria-hidden>/</span>
+            {editing && stepTitle ? (
+              <>
+                <span>{name}</span>
+                <span aria-hidden>/</span>
+                <span aria-current="page" className="text-ink">
+                  {stepTitle}
+                </span>
+              </>
+            ) : (
+              <span aria-current="page" className="text-ink">
+                {name}
+              </span>
+            )}
+          </nav>
+        ) : undefined
+      }
       eyebrow="Program"
       footer={
         canEdit && !isNew && template ? (
+          <>
+          {trail ? (
+            <button className="btn-secondary" onClick={goProgram} type="button">
+              <ArrowLeft aria-hidden className="mr-1.5 inline h-4 w-4" />
+              Back to {trail.programName}
+            </button>
+          ) : null}
           <button
             className="rounded-full border border-danger px-4 py-2 text-sm font-bold text-danger hover:bg-danger-row disabled:opacity-50"
             disabled={deleting}
@@ -174,10 +221,16 @@ export function ProgramWorkbench({
           >
             {deleting ? "Deleting…" : "Delete program"}
           </button>
+          </>
+        ) : trail ? (
+          <button className="btn-secondary" onClick={goProgram} type="button">
+            <ArrowLeft aria-hidden className="mr-1.5 inline h-4 w-4" />
+            Back to {trail.programName}
+          </button>
         ) : null
       }
       footerNote={editing ? "Publish saves the outline; people already enrolled keep their dates." : "Esc closes."}
-      onClose={onClose}
+      onClose={leave(onClose)}
       open
       subtitle={subtitle}
       title={name}
@@ -213,8 +266,11 @@ export function ProgramWorkbench({
           editing && canEdit ? (
             <div className="-mx-5 overflow-hidden rounded-[14px] border border-line bg-white sm:-mx-8">
               <PlanBuilder
+                addPreset={addPreset}
                 addStep={addStep}
                 embedded
+                onDirtyChange={setDirty}
+                onSelectedTitle={setStepTitle}
                 focusStepId={focusStepId}
                 lockedPlanId={isNew ? null : (template?.id ?? null)}
                 onDeleted={() => {
@@ -464,6 +520,7 @@ function Outline({ template, canEdit, onEdit }: { template: DbTemplate | null; c
           const phaseSteps = steps.filter(
             (step, position) => phaseOfStep({ segmentIndex: step.segmentIndex }, position, steps.length) === phase.index,
           );
+          if (phaseSteps.length === 0) return null;
           return (
             <section className="flex flex-col gap-3 rounded-[14px] border border-line bg-white p-4" key={phase.index}>
               <header className="flex flex-col gap-0.5">
@@ -685,7 +742,7 @@ function People({
                   .filter((mentor) => !selected.has(mentor.id))
                   .map((mentor) => (
                     <option key={mentor.id} value={mentor.id}>
-                      {mentor.fullName} · {MENTOR_ROLE_LABEL[mentor.role] ?? mentor.role}
+                      {mentor.fullName} · {mentor.id === viewerId ? "You" : (MENTOR_ROLE_LABEL[mentor.role] ?? mentor.role)}
                     </option>
                   ))}
               </select>

@@ -194,11 +194,16 @@ export function VideoPitchCapture({
   }, []);
 
   useEffect(() => {
+    if (!initialScenarioId) return;
+    setStudioMode("practice");
+    setSelectedQueueSlotId(null);
+    setSelectedScenarioId(initialScenarioId);
+  }, [initialScenarioId]);
+
+  useEffect(() => {
+    clearRecording();
     setTitle(scenario.shortLabel);
-    resetAttempt();
-    setTranscript("");
     setTypedPitch("");
-    setDurationSec(undefined);
     setResponseMode((current) => (scenario.responseModes.includes(current) ? current : scenario.responseModes[0]!));
     // Keyed on the scenario's id: its object (and responseModes array) is rebuilt every render, which looped.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -271,6 +276,14 @@ export function VideoPitchCapture({
   }
 
   function clearRecording() {
+    const recorder = mediaRecorderRef.current;
+    if (recorder) {
+      recorder.ondataavailable = null;
+      recorder.onstop = null;
+      if (recorder.state !== "inactive") recorder.stop();
+      mediaRecorderRef.current = null;
+    }
+    setRecording(false);
     if (blobUrl) URL.revokeObjectURL(blobUrl);
     setBlob(null);
     setBlobUrl(null);

@@ -88,9 +88,6 @@ export function ProgramsWorkspace({
     () => (templates ? summarizePrograms(templates, scopedPlans, roster) : []),
     [roster, scopedPlans, templates],
   );
-  // Plans that are stages of a program show on its timeline, not again in the plan table.
-  const stagePlanIds = useMemo(() => new Set(tracks.flatMap((track) => track.stages.map((stage) => stage.planId))), [tracks]);
-  const otherPlans = useMemo(() => programs.filter((program) => !stagePlanIds.has(program.id)), [programs, stagePlanIds]);
   const openTrack = tracks.find((track) => track.id === searchParams.get("track")) ?? null;
   const setTrack = useCallback(
     (id: string | null) => {
@@ -102,13 +99,27 @@ export function ProgramsWorkspace({
     },
     [pathname, router, searchParams],
   );
+  /** Opens a stage's outline editor, keeping the program open underneath so the editor can go back to it. */
+  const openStage = useCallback(
+    (planId: string, extra: Record<string, string>) => {
+      if (!openTrack) return;
+      const params = new URLSearchParams({ track: openTrack.id, program: planId, tab: "outline", ...extra });
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    },
+    [openTrack, pathname, router],
+  );
+  const backToTimeline = useCallback(() => {
+    if (!openTrack) return;
+    router.replace(`${pathname}?${new URLSearchParams({ track: openTrack.id }).toString()}`, { scroll: false });
+  }, [openTrack, pathname, router]);
   const unenrolled = useMemo(() => unenrolledPeople(people, scopedPlans), [people, scopedPlans]);
 
   const openId = searchParams.get("program");
   const tabParam = searchParams.get("tab");
   const addingPractice = canEdit && Boolean(searchParams.get("addPractice"));
   const focusStepId = canEdit ? searchParams.get("step") : null;
-  const addingStep = canEdit && searchParams.get("addStep") === "1";
+  const addStepParam = canEdit ? searchParams.get("addStep") : null;
+  const addingStep = addStepParam === "1" || addStepParam === "gate";
   const openProgram = programs.find((program) => program.id === openId) ?? null;
   const openTemplate = templates?.find((template) => template.id === openId) ?? null;
 
@@ -177,10 +188,9 @@ export function ProgramsWorkspace({
       />
       <PageBody className="flex flex-col gap-6">
         <StatStrip>
-          {/* Programs are the tracks; plans that are their stages aren't counted again. */}
           <Stat
             label="Programs"
-            note={tracks.length && otherPlans.length ? `plus ${otherPlans.length} other plan${otherPlans.length === 1 ? "" : "s"}` : undefined}
+            note={tracks.length ? `${programs.length} ${programs.length === 1 ? "stage" : "stages"}` : undefined}
             value={loading ? "—" : tracks.length || programs.length}
           />
           <Stat
@@ -219,13 +229,13 @@ export function ProgramsWorkspace({
 
         <ProgramTrackCards onOpen={(id) => setTrack(id)} summaries={programs} tracks={tracks} />
 
-        {tracks.length && otherPlans.length ? <h2 className="label-caps pt-2">Other plans</h2> : null}
+        {tracks.length && programs.length ? <h2 className="label-caps pt-2">Stages</h2> : null}
 
         {loading ? (
           <p className="py-10 text-center text-sm text-muted" role="status">
             Loading programs…
           </p>
-        ) : otherPlans.length === 0 && tracks.length ? null : programs.length === 0 ? (
+        ) : programs.length === 0 ? (
           <div className="flex flex-col items-start gap-3 rounded-[14px] border border-dashed border-line-strong bg-white px-6 py-8">
             <p className="text-[15px] font-bold text-ink">No programs yet.</p>
             <p className="text-sm text-ink-2">
@@ -260,7 +270,7 @@ export function ProgramsWorkspace({
               </tr>
             </thead>
             <tbody>
-              {(tracks.length ? otherPlans : programs).map((program) => (
+              {programs.map((program) => (
                 <tr
                   className={cn("cursor-pointer hover:bg-[#FBF9F5]", program.atRisk > 0 && "bg-danger-row")}
                   key={program.id}
@@ -330,20 +340,14 @@ export function ProgramsWorkspace({
         <PeopleBreakdown kind={breakdown} onClose={() => setBreakdown(null)} programs={programs} tracks={tracks} unenrolled={unenrolled} />
       ) : null}
 
-      {openTrack ? (
+      {openTrack && !openId ? (
         <ProgramTimeline
           canEdit={canEdit}
+          onChanged={refresh}
           onClose={() => setTrack(null)}
-          onAddStep={(planId) => {
-            setOpen(planId, "outline");
-            const params = new URLSearchParams({ program: planId, tab: "outline", addStep: "1" });
-            router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-          }}
-          onEditStage={(planId) => setOpen(planId, "outline")}
-          onEditStep={(planId, stepId) => {
-            const params = new URLSearchParams({ program: planId, tab: "outline", step: stepId });
-            router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-          }}
+          onAddStep={(planId, preset) => openStage(planId, { addStep: preset === "gate" ? "gate" : "1" })}
+          onEditStage={(planId) => openStage(planId, {})}
+          onEditStep={(planId, stepId) => openStage(planId, { step: stepId })}
           summaries={programs}
           track={openTrack}
         />
@@ -359,10 +363,12 @@ export function ProgramsWorkspace({
           key={openId}
           mentors={mentors}
           onChanged={refresh}
-          onClose={() => setOpen(null)}
+          onClose={openTrack ? backToTimeline : () => setOpen(null)}
           onCreated={(id) => setOpen(id, "people")}
           program={openProgram}
+          addPreset={addStepParam === "gate" ? "gate" : "step"}
           addStep={addingStep}
+          trail={openTrack ? { programName: openTrack.name, onProgram: backToTimeline, onPrograms: () => setOpen(null) } : null}
           focusStepId={focusStepId}
           startEditing={addingPractice || Boolean(focusStepId) || addingStep}
           template={openTemplate}

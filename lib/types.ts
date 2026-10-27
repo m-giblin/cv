@@ -72,6 +72,13 @@ export type PlanStep = {
   segmentIndex?: number | null;
   isSegmentGate?: boolean;
   locked?: boolean;
+  estimatedMinutes?: number;
+  /** Gate steps: what the reviewer checks before approving. */
+  criteria?: string[];
+  reviewer?: string;
+  /** What the learner wrote when they submitted the step. */
+  submissionNotes?: string;
+  completedAt?: string;
 };
 
 export type UserPlan = {

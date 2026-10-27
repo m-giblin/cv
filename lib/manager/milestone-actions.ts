@@ -4,6 +4,7 @@ import {
   approveAssignmentStep,
   recalculatePlanProgress,
 } from "@/lib/plans/complete-step";
+import { enrollNextProgramStage } from "@/lib/plans/advance-program";
 import { maybeUnlockNextSegment } from "@/lib/plans/segment-gates";
 import { canManagerSignOffStep } from "@/lib/plans/review-policy";
 import { createNotification } from "@/lib/notifications/create-notification";
@@ -317,6 +318,7 @@ export async function completeMilestoneStep(
 
   await recalculatePlanProgress(supabase, step.assignment_id);
   await maybeUnlockNextSegment(supabase, step.assignment_id, step.plan_step_id);
+  await enrollNextProgramStage(supabase, step.assignment_id, step.plan_step_id);
 
   await supabase.from("activity_logs").insert({
     user_id: assignment.user_id,

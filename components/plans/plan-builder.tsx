@@ -33,6 +33,7 @@ import {
   dayOf,
   dueLabel,
   emptyBuilderStep,
+  gateStepPreset,
   incompleteSteps,
   issueLabel,
   minutesPerWeek,
@@ -88,6 +89,9 @@ export function PlanBuilder({
   onDeleted,
   focusStepId,
   addStep: startWithNewStep = false,
+  addPreset = "step",
+  onSelectedTitle,
+  onDirtyChange,
 }: {
   /** Open one program (or null for a new one) and hide the plan picker; used inside the program workbench. */
   lockedPlanId?: string | null;
@@ -99,6 +103,12 @@ export function PlanBuilder({
   focusStepId?: string | null;
   /** Open with a new blank step added at the end (from the timeline's Add step). */
   addStep?: boolean;
+  /** What the timeline's Add button asked for: a plain step or a test-out gate. */
+  addPreset?: "step" | "gate";
+  /** Reports the selected step's title so the workbench breadcrumb can name it. */
+  onSelectedTitle?: (title: string | null) => void;
+  /** Lets the workbench confirm before leaving with unpublished changes. */
+  onDirtyChange?: (dirty: boolean) => void;
 } = {}) {
   const data = usePlanBuilderData();
   const [planId, setPlanId] = useState<string | null>(null);
@@ -147,12 +157,13 @@ export function PlanBuilder({
       // A new step due a day after the stage's last one, in the same segment.
       const existing = templateToBuilderSteps(next);
       const lastDue = existing.reduce((max, step) => Math.max(max, step.dueOffsetDays), 0);
-      const step = emptyBuilderStep({ dueOffsetDays: lastDue + 1 || 5, segmentIndex: existing.at(-1)?.segmentIndex ?? null });
+      const placement = { dueOffsetDays: lastDue + 1 || 5, segmentIndex: existing.at(-1)?.segmentIndex ?? null };
+      const step = addPreset === "gate" ? gateStepPreset(placement) : emptyBuilderStep(placement);
       setSteps([...existing, step]);
       setSelectedKey(step.key);
     }
     setInitialised(true);
-  }, [data.loading, data.templates, focusStepId, initialised, lockedPlanId, openPlan, startWithNewStep]);
+  }, [addPreset, data.loading, data.templates, focusStepId, initialised, lockedPlanId, openPlan, startWithNewStep]);
 
   // "Add to a ramp plan" from the practice wizard lands here with ?addPractice=sim:<id>&title=<name>.
   useEffect(() => {
@@ -187,6 +198,11 @@ export function PlanBuilder({
   }, [initialised, router, searchParams, steps]);
 
   useEffect(() => {
+    onDirtyChange?.(dirty);
+    return () => onDirtyChange?.(false);
+  }, [dirty, onDirtyChange]);
+
+  useEffect(() => {
     if (!dirty) return;
     const warn = (event: BeforeUnloadEvent) => event.preventDefault();
     window.addEventListener("beforeunload", warn);
@@ -196,6 +212,10 @@ export function PlanBuilder({
   const selectedIndex = steps.findIndex((step) => step.key === selectedKey);
   const selected = selectedIndex >= 0 ? steps[selectedIndex]! : null;
   const incomplete = incompleteSteps(steps);
+  const selectedTitle = selected ? selected.title.trim() || "Untitled step" : null;
+  useEffect(() => {
+    onSelectedTitle?.(selectedTitle);
+  }, [onSelectedTitle, selectedTitle]);
   const publishable = canPublish(name, steps) && !saving;
 
   const challengeMinutes = useMemo(
@@ -223,10 +243,11 @@ export function PlanBuilder({
     openPlan(value === NEW_PLAN ? null : (data.templates.find((entry) => entry.id === value) ?? null));
   }
 
-  function addStep(segmentIndex: number | null) {
+  function addStep(segmentIndex: number | null, gate = false) {
     const segmentSteps = steps.filter((step) => step.segmentIndex === segmentIndex);
     const lastDue = (segmentSteps.at(-1) ?? steps.at(-1))?.dueOffsetDays ?? 0;
-    const step = emptyBuilderStep({ segmentIndex, dueOffsetDays: Math.min(PLAN_WEEKS * 7, lastDue + 7) || 5 });
+    const placement = { segmentIndex, dueOffsetDays: Math.min(PLAN_WEEKS * 7, lastDue + (gate ? 1 : 7)) || 5 };
+    const step = gate ? gateStepPreset(placement) : emptyBuilderStep(placement);
     const insertAt = segmentSteps.length
       ? steps.indexOf(segmentSteps[segmentSteps.length - 1]!) + 1
       : steps.length;
@@ -564,6 +585,15 @@ export function PlanBuilder({
                   + Add step
                 </button>
               ) : null}
+              {group.segmentIndex === selectedSegment || (selectedSegment === null && group === groups.at(-1)) ? (
+                <button
+                  className="self-start px-2.5 pb-2.5 text-sm font-bold text-blue hover:underline"
+                  onClick={() => addStep(group.segmentIndex, true)}
+                  type="button"
+                >
+                  + Add test-out gate
+                </button>
+              ) : null}
             </div>
           ))}
           {groups.length === 0 ? (
@@ -851,6 +881,12 @@ function StepEditor({
 
   return (
     <>
+      {step.isSegmentGate ? (
+        <p className="flex items-center gap-2 rounded-[10px] border border-blue bg-blue-soft px-3 py-2 text-sm font-bold text-blue">
+          <span aria-hidden className="h-[9px] w-[9px] shrink-0 rotate-45 bg-blue" />
+          Gate: a test-out the SE must pass before the next stage opens.
+        </p>
+      ) : null}
       <fieldset className="flex flex-col gap-1.5">
         <legend className="mb-1.5 text-sm font-bold text-ink">Step type</legend>
         <div className="flex flex-wrap gap-1.5">
@@ -1126,7 +1162,7 @@ function StepEditor({
               onChange={(event) => onChange({ isSegmentGate: event.target.checked })}
               type="checkbox"
             />
-            This step is a gate. Clearing it unlocks the next segment.
+            This step is a test-out gate. Passing it unlocks the next stage.
           </label>
         </div>
       </div>

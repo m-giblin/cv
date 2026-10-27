@@ -117,6 +117,12 @@ describe("ramp model", () => {
   it("links steps to the new practice routes", () => {
     expect(planStepHref(plan.steps[2]!)).toBe("/practice/challenges?focus=challenge&step=b");
     expect(planStepHref({ ...plan.steps[4]!, assignmentStepId: "as-c" })).toBe("/my-plan?step=as-c");
+    expect(planStepHref(step({ id: "sim", order: 6, type: "simulation", simulationTemplateId: "tpl-1" }))).toBe(
+      "/practice/simulations?focus=simulation&step=sim&template=tpl-1",
+    );
+    expect(
+      planStepHref(step({ id: "sim-2", order: 7, type: "simulation", assignmentStepId: "as-sim" })),
+    ).toBe("/practice/simulations?focus=simulation&step=sim-2");
   });
 });
 

@@ -22,7 +22,7 @@ export type ShellData = {
   shadowMode: "admin" | "manager" | "se" | null;
   shadowTenantName: string | null;
   people: SidebarPerson[];
-  /** Active mentees this person mentors; the Mentoring nav item only shows when this is above zero. */
+  /** Active mentees this person mentors; shown as a badge and used to enable cross-workspace access. */
   menteeCount: number;
   forgeEnabled: boolean;
   /** AI assistant switched on for this tenant (operator flag plus the AI master switch). */
@@ -127,21 +127,27 @@ export const loadShellData = cache(async (): Promise<ShellData | null> => {
     createdAt: row.created_at,
   };
 
-  const access = await getEffectiveAccess(currentUser.role, currentUser.tenantId ?? null);
+  // Mentoring is a relationship, not a profile role. A platform operator or tenant admin can
+  // still be assigned a mentee, so discover that relationship before resolving workspace hats.
+  const [menteeCount, access] = await Promise.all([
+    countMentees(currentUser.id),
+    getEffectiveAccess(currentUser.role, currentUser.tenantId ?? null),
+  ]);
   const enterMode = access.isShadowing ? (access.shadowMode ?? "admin") : null;
   const enterCeiling = access.isShadowing
     ? parseShadowMode(cookieStore.get(SHADOW_CEILING_COOKIE)?.value ?? enterMode)
     : null;
-  const workspaceHats = resolveSessionWorkspaceHats(currentUser.role, currentUser.workspaceHats ?? null, {
+  const resolvedHats = resolveSessionWorkspaceHats(currentUser.role, currentUser.workspaceHats ?? null, {
     enteredTenant: access.isShadowing,
     enterMode: enterCeiling,
   });
+  const workspaceHats: WorkspaceHat[] =
+    menteeCount > 0 && !resolvedHats.includes("se") ? [...resolvedHats, "se"] : resolvedHats;
   const brandingTenantId = access.isShadowing ? access.tenantId : (currentUser.tenantId ?? access.tenantId);
 
-  const [branding, people, menteeCount, settings] = await Promise.all([
+  const [branding, people, settings] = await Promise.all([
     getTenantShellBranding(brandingTenantId),
     workspaceHats.includes("se") ? loadSeTeam(supabase, currentUser) : Promise.resolve([]),
-    workspaceHats.includes("se") ? countMentees(currentUser.id) : Promise.resolve(0),
     loadPlatformSettings(brandingTenantId ?? undefined).catch(() => null),
   ]);
   const assistantEnabled = Boolean(

@@ -1,6 +1,7 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { Database } from "@/lib/database.types";
 import { parsePlanStepMetadata } from "@/lib/corpus/parse-step-metadata";
+import { enrollNextProgramStage } from "@/lib/plans/advance-program";
 import { maybeUnlockNextSegment } from "@/lib/plans/segment-gates";
 import { assertStepAccessible } from "@/lib/plans/step-prerequisites";
 import {
@@ -10,6 +11,7 @@ import {
 } from "@/lib/plans/review-policy";
 import type { PlanStepType } from "@/lib/types";
 import { createNotification } from "@/lib/notifications/create-notification";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export { StepSegmentLockedError } from "@/lib/plans/segment-lock";
 
@@ -151,7 +153,38 @@ export async function submitAssignmentStep(
     },
   });
 
+  if (assignment.mentor_id && assignment.mentor_id !== params.userId) {
+    await notifyMentorOfSubmission(supabase, {
+      mentorId: assignment.mentor_id,
+      menteeId: params.userId,
+      planStepId: step.plan_step_id,
+    });
+  }
+
   return { assignmentId: step.assignment_id, planStepId: step.plan_step_id };
+}
+
+async function notifyMentorOfSubmission(
+  supabase: SupabaseClient<Database>,
+  params: { mentorId: string; menteeId: string; planStepId: string },
+) {
+  const [{ data: planStep }, { data: mentee }, { isSegmentGate }] = await Promise.all([
+    supabase.from("plan_steps").select("title").eq("id", params.planStepId).maybeSingle(),
+    supabase.from("profiles").select("full_name").eq("id", params.menteeId).maybeSingle(),
+    getPlanStepMeta(supabase, params.planStepId),
+  ]);
+  const name = mentee?.full_name ?? "Your mentee";
+  const title = planStep?.title ?? "a step";
+  // A mentee's session cannot write to their mentor's notifications.
+  const writer = (createAdminClient() as SupabaseClient<Database> | null) ?? supabase;
+  await createNotification(writer, {
+    userId: params.mentorId,
+    title: isSegmentGate ? `${name} reached a gate` : `${name} submitted work`,
+    body: isSegmentGate
+      ? `${title} is ready for manager sign-off. Add your recommendation so the manager has your view.`
+      : `${title} is waiting on review. Open it to see what they did.`,
+    actionUrl: "/mentoring",
+  });
 }
 
 /** Mentor endorses a coaching check-in — awaits manager live sign-off. */
@@ -305,6 +338,7 @@ export async function approveAssignmentStep(
   await recalculatePlanProgress(supabase, step.assignment_id);
 
   await maybeUnlockNextSegment(supabase, step.assignment_id, step.plan_step_id);
+  await enrollNextProgramStage(supabase, step.assignment_id, step.plan_step_id);
 
   await supabase.from("activity_logs").insert({
     user_id: assignment.user_id,

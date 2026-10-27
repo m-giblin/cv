@@ -3,7 +3,11 @@ import { SpacedReinforcementRedirect } from "@/components/practice/spaced-reinfo
 import { SimulationsShell } from "@/components/simulation/simulations-shell";
 import { requireSimulationsPageAccess } from "@/lib/auth/require-access";
 import { resolveSimulationAssignment } from "@/lib/simulations/resolve-assignment";
-import { ensureTemplateAssignment, reusableAssignmentId } from "@/lib/simulations/start-linked-simulation";
+import {
+  ensureTemplateAssignment,
+  reusableAssignmentId,
+  templateIdForPlanStep,
+} from "@/lib/simulations/start-linked-simulation";
 import { createClient } from "@/lib/supabase/server";
 import { profileLevelLabel } from "@/lib/utils/level-label";
 
@@ -11,6 +15,7 @@ type SimulationsPageProps = {
   searchParams: Promise<{
     assignment?: string;
     template?: string;
+    step?: string;
     reinforce?: string;
     autoAssign?: string;
     test?: string;
@@ -22,7 +27,19 @@ export const metadata = { title: "Simulations · Practice" };
 export default async function SimulationsPage({ searchParams }: SimulationsPageProps) {
   const { data, tier } = await requireSimulationsPageAccess();
   const params = await searchParams;
-  const templateId = params.template?.trim() ?? "";
+  let templateId = params.template?.trim() ?? "";
+  const stepId = params.step?.trim() ?? "";
+  if (!templateId && stepId) {
+    const supabase = await createClient();
+    templateId = supabase ? ((await templateIdForPlanStep(supabase, stepId)) ?? "") : "";
+    if (!templateId) {
+      return (
+        <p className="m-[var(--gutter)] text-sm text-muted" role="status">
+          This ramp step is not linked to a simulation.
+        </p>
+      );
+    }
+  }
   let focusAssignmentId = params.assignment;
   if (templateId) {
     const reusable = reusableAssignmentId(data.simulations, data.currentUser.id, templateId);
@@ -40,11 +57,19 @@ export default async function SimulationsPage({ searchParams }: SimulationsPageP
     }
     focusAssignmentId = opened;
   }
-  const { assignment } = resolveSimulationAssignment(
+  const resolved = resolveSimulationAssignment(
     data.simulations,
     data.currentUser.id,
     focusAssignmentId,
   );
+  if (!resolved.assignment) {
+    return (
+      <p className="m-[var(--gutter)] text-sm text-muted" role="status">
+        That simulation is not assigned to you.
+      </p>
+    );
+  }
+  const { assignment } = resolved;
 
   const isSe = tier === "se";
   const testMode = tier === "admin" && params.test === "1";
@@ -56,6 +81,7 @@ export default async function SimulationsPage({ searchParams }: SimulationsPageP
       ) : null}
       <SimulationsShell
         assignment={assignment}
+        key={assignment.id}
         testMode={testMode}
         tier={tier}
         userLevel={profileLevelLabel(data.currentUser)}
