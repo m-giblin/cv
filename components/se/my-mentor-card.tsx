@@ -24,7 +24,7 @@ export function MyMentorCard({ mentor }: { mentor: MyMentor }) {
             ? `${first} set your schedule ${scheduled}. The due dates on your ramp are the ones you agreed.`
             : `You'll agree your due dates with ${first} at your first 1:1.`}
         </li>
-        <li>{first} runs your test-outs and helps you get ready for each gate.</li>
+        <li>{first} reviews your steps and runs your test-outs. Your manager signs off each stage gate.</li>
       </ul>
     </section>
   );

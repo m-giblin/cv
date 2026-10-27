@@ -104,9 +104,12 @@ export function PlanStepActions({
 
   const awaitingReview = step.status === "submitted";
   const needsRevision = step.status === "in_progress" && Boolean(step.description);
-  const reviewerNote = mentorName
-    ? `Your manager or ${mentorName} validates this step after you submit.`
-    : "Your manager or mentor validates this step after you submit.";
+  // Mentors approve everyday steps; the hiring manager signs off stage gates (see canMentorApproveStep).
+  const reviewerNote = step.isSegmentGate
+    ? "Your manager signs off this gate after you submit. It opens your next stage."
+    : mentorName
+      ? `${mentorName} reviews this step after you submit.`
+      : "Your manager reviews this step after you submit.";
 
   if (step.locked) {
     return (

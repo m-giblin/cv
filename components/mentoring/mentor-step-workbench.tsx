@@ -4,6 +4,7 @@ import Link from "next/link";
 import { GateRecommendationPanel, MentorDueDatePanel, StepFeedbackPanel } from "@/components/mentoring/mentor-step-actions";
 import { StepEvidenceView } from "@/components/mentoring/step-evidence-view";
 import { Drawer } from "@/components/ui/drawer";
+import { StepApprovalPanel } from "@/components/mentoring/step-approval-panel";
 import { StatusPill } from "@/components/ui/status-pill";
 import { Tag } from "@/components/ui/tag";
 import {
@@ -50,7 +51,7 @@ function approverText(step: PlanStep) {
   if (step.isSegmentGate) return "The hiring manager approves this gate. Approval assigns the next program.";
   if (step.type === "mentor_review") return "You approve this check-in once the conversation has happened.";
   if (step.type === "knowledge_check" || step.type === "playbook") return "Completes automatically when they finish it.";
-  return "Their manager or you can validate it after they submit.";
+  return "You approve it after they submit. Their manager sees the progress.";
 }
 
 export function MentorStepWorkbench({
@@ -161,6 +162,9 @@ export function MentorStepWorkbench({
           </section>
           )}
 
+          {!preview && step.status === "submitted" && !step.isSegmentGate && step.type !== "mentor_review" ? (
+            <StepApprovalPanel firstName={firstName} step={step} />
+          ) : null}
           {!preview && step.isSegmentGate ? (
             <GateRecommendationPanel current={gateRecommendation} firstName={firstName} step={step} />
           ) : null}

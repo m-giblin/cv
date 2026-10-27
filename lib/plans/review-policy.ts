@@ -40,3 +40,18 @@ export function canManagerSignOffStep(params: {
   }
   return false;
 }
+
+/**
+ * Everyday steps (reading, pitches, challenges, practice) are approved by the assigned mentor.
+ * Check-ins keep the endorse-then-sign-off flow, and stage gates stay with the hiring manager.
+ */
+export function canMentorApproveStep(params: {
+  reviewerId: string;
+  mentorId: string | null;
+  stepType: PlanStepType;
+  isSegmentGate?: boolean;
+}): boolean {
+  if (!params.mentorId || params.mentorId !== params.reviewerId) return false;
+  if (params.isSegmentGate) return false;
+  return params.stepType !== "mentor_review";
+}

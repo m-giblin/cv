@@ -6,6 +6,7 @@ import { maybeUnlockNextSegment } from "@/lib/plans/segment-gates";
 import { assertStepAccessible } from "@/lib/plans/step-prerequisites";
 import {
   canManagerSignOffStep,
+  canMentorApproveStep,
   canMentorEndorseStep,
   isMentorCoachingStep,
 } from "@/lib/plans/review-policy";
@@ -297,7 +298,15 @@ export async function approveAssignmentStep(
     return endorseAssignmentStep(supabase, params);
   }
 
+  const mentorApproves = canMentorApproveStep({
+    reviewerId: params.reviewerId,
+    mentorId: assignment.mentor_id,
+    stepType,
+    isSegmentGate,
+  });
+
   if (
+    !mentorApproves &&
     !canManagerSignOffStep({
       reviewerId: params.reviewerId,
       assigneeManagerId,
@@ -380,15 +389,22 @@ export async function rejectAssignmentStep(
     reviewerRole,
   });
 
-  if (isMentor && !isMentorCoachingStep(stepType, isSegmentGate)) {
-    throw new Error("Mentors cannot reject capability steps — manager sign-off only.");
+  const mentorApproves = canMentorApproveStep({
+    reviewerId: params.reviewerId,
+    mentorId: assignment.mentor_id,
+    stepType,
+    isSegmentGate,
+  });
+
+  if (isMentor && !mentorApproves && !isMentorCoachingStep(stepType, isSegmentGate)) {
+    throw new Error("Stage gates are signed off by the hiring manager.");
   }
 
   if (!isMentor && !canManager) {
     throw new Error("Not authorized to reject this step.");
   }
 
-  if (isMentor && !canMentorEndorseStep({
+  if (isMentor && !mentorApproves && !canMentorEndorseStep({
     reviewerId: params.reviewerId,
     mentorId: assignment.mentor_id,
     stepType,

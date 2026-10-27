@@ -175,6 +175,12 @@ export function ManagerMenteesPanel({
   const summaries = mentees.map((item) => summarizeEnrollment(item.plan, item.profile));
   const behind = summaries.filter((item) => item.health === "at_risk").length;
   const overdueSteps = summaries.reduce((sum, item) => sum + item.overdue, 0);
+  // Everyday steps the mentor approves (check-ins are counted in pendingMentorReviews).
+  const waitingOnReview = mentees.reduce(
+    (sum, item) =>
+      sum + item.plan.steps.filter((step) => step.status === "submitted" && !step.isSegmentGate && step.type !== "mentor_review").length,
+    0,
+  );
   const today = new Date().toISOString().slice(0, 10);
 
   const openMentee = openStep ? mentees.find((item) => item.plan.id === openStep.assignmentId) : undefined;
@@ -204,8 +210,9 @@ export function ManagerMenteesPanel({
           <StatStrip>
             <Stat label="Active mentees" value={mentees.length} />
             <Stat
-              label="Check-ins pending"
-              value={mentees.reduce((sum, item) => sum + item.pendingMentorReviews, 0)}
+              label="Waiting on your review"
+              tone={waitingOnReview > 0 ? "danger" : "blue"}
+              value={waitingOnReview + mentees.reduce((sum, item) => sum + item.pendingMentorReviews, 0)}
             />
             <Stat label="Behind schedule" tone={behind > 0 ? "danger" : "blue"} value={behind} />
             <Stat label="Overdue steps" tone={overdueSteps > 0 ? "danger" : "blue"} value={overdueSteps} />
