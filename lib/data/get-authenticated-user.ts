@@ -1,10 +1,11 @@
 import { cache } from "react";
+import { getVerifiedUser } from "@/lib/auth/verified-user";
 import { createClient } from "@/lib/supabase/server";
 
 /**
  * Returns the signed-in user when Supabase auth is available; otherwise null.
- * Cached per request: getUser() is a network round trip to the auth server, and the layout and
- * page loaders each need it, so they share one call.
+ * Cached per request so the layout and page loaders share one check. The token is verified
+ * locally (see getVerifiedUser), not with a round trip to the auth server.
  */
 export const getAuthenticatedUser = cache(async () => {
   const supabase = await createClient();
@@ -12,9 +13,5 @@ export const getAuthenticatedUser = cache(async () => {
     return null;
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  return user;
+  return getVerifiedUser(supabase);
 });

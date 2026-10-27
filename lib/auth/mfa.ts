@@ -34,7 +34,7 @@ export async function getMfaStatus(
   }
 
   // Named test accounts may skip MFA while the platform is in testing (see mfa_exemptions).
-  if (await isMfaExempt(supabase)) {
+  if (await isMfaExemptCached(supabase, user.id)) {
     return { state: "aal2" };
   }
 
@@ -43,6 +43,18 @@ export async function getMfaStatus(
   }
 
   return { state: "needs_enrollment" };
+}
+
+// Exemptions change rarely; checking once a minute per person keeps a database call off every request.
+const EXEMPT_TTL_MS = 60_000;
+const exemptCache = new Map<string, { value: boolean; at: number }>();
+
+async function isMfaExemptCached(supabase: SupabaseClient<Database>, userId: string): Promise<boolean> {
+  const hit = exemptCache.get(userId);
+  if (hit && Date.now() - hit.at < EXEMPT_TTL_MS) return hit.value;
+  const value = await isMfaExempt(supabase);
+  exemptCache.set(userId, { value, at: Date.now() });
+  return value;
 }
 
 /** Whether the signed-in person has a current MFA exemption. Any error counts as not exempt. */

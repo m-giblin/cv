@@ -1,4 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
+import { getVerifiedUser } from "@/lib/auth/verified-user";
 import { NextResponse, type NextRequest } from "next/server";
 import { AUTH_ROUTES, isAuthRoute, isProtectedAppRoute, isPublicApiRoute, isPublicAppRoute } from "@/lib/auth/routes";
 import { isAllowedEmail } from "@/lib/auth/email-domain";
@@ -198,9 +199,7 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getVerifiedUser(supabase);
 
   if (pathname.startsWith("/api/share/")) {
     const token = pathname.split("/")[3];
