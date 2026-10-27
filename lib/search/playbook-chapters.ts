@@ -1,19 +1,7 @@
 import { getTenantAdminClient } from "@/lib/data/tenant-scoped-query";
+import type { PlaybookChapterSummary } from "@/lib/search/playbook-chapter-summary";
 
-/** A published playbook chapter, light enough to list and search (no body). */
-export type PlaybookChapterSummary = {
-  id: string;
-  slug: string;
-  chapter: number;
-  title: string;
-  /** The chapter's subtitle, e.g. "The foundation every other capability in this book runs on". */
-  summary: string;
-  updatedAt: string | null;
-};
-
-export function playbookChapterHref(slug: string) {
-  return `/learn/playbooks?playbook=${encodeURIComponent(slug)}`;
-}
+export { playbookChapterHref, type PlaybookChapterSummary } from "@/lib/search/playbook-chapter-summary";
 
 /** Published chapters for one tenant, in chapter order. */
 export async function loadPlaybookChapterSummaries(tenantId: string): Promise<PlaybookChapterSummary[]> {

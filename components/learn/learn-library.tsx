@@ -15,7 +15,7 @@ import { StatusPill } from "@/components/ui/status-pill";
 import { TableCard, tdCls, thCls } from "@/components/ui/table";
 import type { LearnModule } from "@/lib/learn/agentic-curriculum";
 import { scoreMatch } from "@/lib/search/match";
-import { playbookChapterHref, type PlaybookChapterSummary } from "@/lib/search/playbook-chapters";
+import { playbookChapterHref, type PlaybookChapterSummary } from "@/lib/search/playbook-chapter-summary";
 import { canonicalSeHref } from "@/lib/se/se-routes";
 import { formatShortDate, pad2 } from "@/lib/se/ramp-model";
 import { cn } from "@/lib/utils";
