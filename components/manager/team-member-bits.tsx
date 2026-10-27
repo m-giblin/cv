@@ -2,11 +2,9 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { toast } from "sonner";
 import { Stat } from "@/components/ui/stat";
 import { StatusPill, type StatusTone } from "@/components/ui/status-pill";
 import { managerSectionHref } from "@/lib/manager/manager-routes";
-import { downloadOneOnOneIcs } from "@/lib/manager/one-on-one-ics";
 import type { TeamMember, TeamStatus } from "@/lib/manager/team-status";
 import { cn } from "@/lib/utils";
 
@@ -61,11 +59,13 @@ export function TeamActionLink({
   // Inside `.on-navy` the link turns amber on its own; `onDark` is kept for callers outside one.
   const cls = cn("link text-sm", onDark && "link--on-navy", className);
 
-  if (action.kind === "assign_plan") {
+  // Assigning a plan (with its mentor and hiring brief) and scheduling a 1:1 both happen on the
+  // person's profile, so these open it rather than jumping elsewhere or downloading straight away.
+  if (action.kind === "assign_plan" || action.kind === "one_on_one") {
     return (
-      <Link className={cls} href={managerSectionHref("assign")}>
+      <button className={cn(cls, "cursor-pointer")} onClick={() => onOpenProfile(member.profileId)} type="button">
         {action.label}
-      </Link>
+      </button>
     );
   }
 
@@ -88,19 +88,7 @@ export function TeamActionLink({
     );
   }
   return (
-    <button
-      className={cn(cls, "cursor-pointer")}
-      onClick={() => {
-        downloadOneOnOneIcs({
-          name: member.fullName,
-          email: member.email,
-          level: member.level,
-          talkingPoints: member.talkingPoints.slice(0, 4),
-        });
-        toast.success(`1:1 invite for ${member.firstName} downloaded`);
-      }}
-      type="button"
-    >
+    <button className={cn(cls, "cursor-pointer")} onClick={() => onOpenProfile(member.profileId)} type="button">
       {action.label}
     </button>
   );
