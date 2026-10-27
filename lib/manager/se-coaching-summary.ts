@@ -159,7 +159,15 @@ export function buildSeCoachingSummary(params: {
     plans: plan ? [plan] : [],
   } as Pick<DashboardData, "coachingCards" | "competencies" | "plans">;
 
-  const gaps = analyzeCompetencyGaps(miniDashboard as DashboardData, profile.id);
+  // Gaps, gate targets and career percentages only mean something once there is work to judge.
+  // Someone who hasn't finished a step, sim or submission yet has no "recurring gap".
+  const hasEvidence =
+    submissions.length > 0 ||
+    coachingCards.length > 0 ||
+    approvedCerts.length > 0 ||
+    (simTrend?.average ?? null) !== null ||
+    (plan?.steps ?? []).some((step) => ["submitted", "under_review", "reviewed", "completed"].includes(step.status));
+  const gaps = hasEvidence ? analyzeCompetencyGaps(miniDashboard as DashboardData, profile.id) : [];
   const topGaps = gaps.slice(0, 3).map((gap) => gap.competencyName);
 
   const career = computeCareerProgress({
@@ -228,7 +236,14 @@ export function buildSeCoachingSummary(params: {
   if (cohortBenchmark && cohortBenchmark.simDelta !== null && cohortBenchmark.simDelta <= -5) {
     talkingPoints.push(cohortBenchmark.simComparisonLabel);
   }
-  if (certSummary?.nextGateLabel && certSummary.nextGateStatus !== "approved") {
+  if (!hasEvidence && plan) {
+    talkingPoints.push(
+      currentStep
+        ? `Getting started: walk through the plan, confirm the schedule the mentor agreed, and start with ${currentStep.title}.`
+        : "Getting started: walk through the plan and confirm the schedule the mentor agreed.",
+    );
+  }
+  if (hasEvidence && certSummary?.nextGateLabel && certSummary.nextGateStatus !== "approved") {
     talkingPoints.push(
       `Next cert gate: ${certSummary.nextGateLabel} (${certSummary.nextGateStatus?.replaceAll("_", " ") ?? "not started"}).`,
     );
@@ -247,7 +262,7 @@ export function buildSeCoachingSummary(params: {
   if (practiceCadenceMessage(lastActivity?.createdAt ?? null).includes("Overdue")) {
     talkingPoints.push("Practice cadence is slipping — assign or encourage a simulation.");
   }
-  if (career.nextStage && career.readinessPercent < 60) {
+  if (hasEvidence && career.nextStage && career.readinessPercent < 60) {
     talkingPoints.push(
       `Career path: ${career.readinessPercent}% ready for ${career.nextStage.title} — review cert and plan milestones.`,
     );

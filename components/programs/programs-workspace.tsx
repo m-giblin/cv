@@ -140,6 +140,16 @@ export function ProgramsWorkspace({
     },
     [pathname, router, searchParams],
   );
+  /** New people start at the first stage of a program, shown inside that program so the breadcrumb says where they are. */
+  const enrollUnenrolled = useCallback(() => {
+    const firstStage = tracks[0]?.stages.slice().sort((a, b) => a.index - b.index)[0];
+    if (tracks[0] && firstStage) {
+      const params = new URLSearchParams({ track: tracks[0].id, program: firstStage.planId, tab: "people" });
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+      return;
+    }
+    if (programs[0]) setOpen(programs[0].id, "people");
+  }, [pathname, programs, router, setOpen, tracks]);
 
   // "Add to a ramp plan" from the practice library lands here; open the first program's editor.
   useEffect(() => {
@@ -210,7 +220,7 @@ export function ProgramsWorkspace({
                 <button className="btn-secondary" onClick={() => setBreakdown("unenrolled")} type="button">
                   See who
                 </button>
-                <button className="btn-primary" onClick={() => setOpen(programs[0]!.id, "people")} type="button">
+                <button className="btn-primary" onClick={enrollUnenrolled} type="button">
                   Enroll them
                 </button>
               </span>

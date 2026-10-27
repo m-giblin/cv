@@ -1,17 +1,27 @@
-/** Builds a tentative 30-minute 1:1 invite for the next business day at 10:00 local time. */
+/** The next business day at 10:00 local time: the default slot for a new 1:1. */
+export function defaultOneOnOneStart(now = new Date()): Date {
+  const start = new Date(now);
+  const dayOffset = now.getDay() === 5 ? 3 : now.getDay() === 6 ? 2 : 1;
+  start.setDate(start.getDate() + dayOffset);
+  start.setHours(10, 0, 0, 0);
+  return start;
+}
+
+/** Builds a tentative 1:1 invite. Without a start it uses the next business day at 10:00, 30 minutes. */
 export function buildOneOnOneIcs(input: {
   name: string;
   email: string;
   level?: string;
   talkingPoints?: string[];
   now?: Date;
+  start?: Date;
+  durationMinutes?: number;
+  /** Extra invitees, for example the mentor. */
+  otherAttendees?: string[];
 }): string {
   const now = input.now ?? new Date();
-  const start = new Date(now);
-  const dayOffset = now.getDay() === 5 ? 3 : now.getDay() === 6 ? 2 : 1;
-  start.setDate(start.getDate() + dayOffset);
-  start.setHours(10, 0, 0, 0);
-  const end = new Date(start.getTime() + 30 * 60_000);
+  const start = input.start ?? defaultOneOnOneStart(now);
+  const end = new Date(start.getTime() + (input.durationMinutes ?? 30) * 60_000);
   const stamp = (date: Date) => `${date.toISOString().replace(/[-:]/g, "").split(".")[0]}Z`;
   const escape = (text: string) => text.replace(/\\/g, "\\\\").replace(/[,;]/g, (m) => `\\${m}`).replace(/\n/g, "\\n");
 
@@ -33,6 +43,7 @@ export function buildOneOnOneIcs(input: {
     `DESCRIPTION:${escape(description)}`,
     "STATUS:TENTATIVE",
     ...(input.email ? [`ATTENDEE;RSVP=TRUE:MAILTO:${input.email}`] : []),
+    ...(input.otherAttendees ?? []).filter(Boolean).map((email) => `ATTENDEE;RSVP=TRUE:MAILTO:${email}`),
     "END:VEVENT",
     "END:VCALENDAR",
   ].join("\r\n");

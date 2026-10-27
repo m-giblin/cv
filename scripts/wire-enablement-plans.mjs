@@ -508,7 +508,7 @@ async function main() {
   console.log("1. New SE ramp: 5 stages attached, weeks 1 to 10.");
 
   const foundationId =
-    plans.get("Days 1–30 — New Hirer - Foundation") ?? must(plans, "New Hirer - Foundation", "plan");
+    plans.get("Days 1–30 — Foundation") ?? plans.get("Days 1–30 — New Hirer - Foundation") ?? must(plans, "New Hirer - Foundation", "plan");
   await expandFoundation(admin, foundationId, catalogs);
   console.log(`2. New Hirer - Foundation: ${foundationSteps.length} steps across days 1–30.`);
 

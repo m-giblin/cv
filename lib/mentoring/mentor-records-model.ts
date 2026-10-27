@@ -9,6 +9,8 @@ export const MENTOR_EVENT = {
   checkin: "mentor_checkin",
   dateProposal: "mentor_due_date_proposal",
   dateDecision: "mentor_due_date_decision",
+  /** The mentor set one or more due dates directly, after agreeing them with the mentee. */
+  dateSet: "mentor_due_date_set",
   gateRecommendation: "mentor_gate_recommendation",
   overdueAlert: "mentor_overdue_alert",
   hiringBrief: "mentor_hiring_brief",
@@ -67,6 +69,25 @@ export type DateProposal = {
   decidedAt?: string;
 };
 
+/** One due date a mentor set. */
+export type ScheduleDateChange = { assignmentStepId: string; stepTitle: string; from: string | null; to: string };
+
+/** Due dates a mentor set in one save: a single step, or the whole stage schedule. */
+export type ScheduleChange = {
+  id: string;
+  menteeId: string;
+  assignmentId: string;
+  planName: string;
+  scope: "step" | "schedule";
+  changes: ScheduleDateChange[];
+  note: string;
+  /** Latest due date across the stage after the change: the stage's end date. */
+  lastDue: string | null;
+  setById: string | null;
+  setByName: string;
+  createdAt: string;
+};
+
 export type GateRecommendationValue = "ready" | "not_yet";
 
 export type GateRecommendation = {
@@ -104,6 +125,8 @@ export type MenteeRecords = {
   feedback: StepFeedback[];
   checkins: MentorCheckin[];
   proposals: DateProposal[];
+  /** Due dates the mentor set, newest first. */
+  scheduleChanges: ScheduleChange[];
   /** Latest recommendation per gate step. */
   gateRecommendations: GateRecommendation[];
   /** Latest brief the manager wrote for this person. */
@@ -115,6 +138,7 @@ export const EMPTY_RECORDS: MenteeRecords = {
   feedback: [],
   checkins: [],
   proposals: [],
+  scheduleChanges: [],
   gateRecommendations: [],
   hiringBrief: null,
   managerNotes: [],
@@ -140,6 +164,7 @@ export function buildMenteeRecords(rows: MentorEventRow[], nameOf: (id: string |
   const feedback: StepFeedback[] = [];
   const checkins: MentorCheckin[] = [];
   const proposals = new Map<string, DateProposal>();
+  const scheduleChanges: ScheduleChange[] = [];
   const gates = new Map<string, GateRecommendation>();
   const managerNotes = new Map<string, ManagerNote>();
   let hiringBrief: HiringBrief | null = null;
@@ -193,6 +218,30 @@ export function buildMenteeRecords(rows: MentorEventRow[], nameOf: (id: string |
         proposal.decidedAt = row.created_at;
         break;
       }
+      case MENTOR_EVENT.dateSet:
+        scheduleChanges.push({
+          id: row.id,
+          menteeId: row.user_id,
+          assignmentId: text(data.assignment_id),
+          planName: text(data.plan_name),
+          scope: data.scope === "step" ? "step" : "schedule",
+          changes: Array.isArray(data.changes)
+            ? data.changes
+                .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object")
+                .map((item) => ({
+                  assignmentStepId: text(item.assignment_step_id),
+                  stepTitle: text(item.step_title),
+                  from: text(item.from) || null,
+                  to: text(item.to),
+                }))
+            : [],
+          note: text(data.note),
+          lastDue: text(data.last_due) || null,
+          setById: row.actor_id,
+          setByName: nameOf(row.actor_id),
+          createdAt: row.created_at,
+        });
+        break;
       case MENTOR_EVENT.gateRecommendation:
         gates.set(text(data.assignment_step_id), {
           id: row.id,
@@ -243,6 +292,7 @@ export function buildMenteeRecords(rows: MentorEventRow[], nameOf: (id: string |
     feedback: feedback.reverse(),
     checkins: checkins.reverse(),
     proposals: [...proposals.values()].reverse(),
+    scheduleChanges: scheduleChanges.reverse(),
     gateRecommendations: [...gates.values()],
     hiringBrief,
     managerNotes: [...managerNotes.values()].reverse(),
@@ -354,3 +404,42 @@ export type StepEvidence = {
   texts: { label: string; body: string }[];
   transcript?: { speaker: string; message: string }[];
 };
+
+/**
+ * A date-only value ("2026-11-24") as "Nov 24" in the reader's calendar. Parsing "2026-11-24" with
+ * new Date() would treat it as UTC midnight and show the day before anywhere west of UTC.
+ */
+export function formatDueDate(iso: string | null | undefined, options: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" }) {
+  if (!iso) return "no date";
+  const [year, month, day] = iso.slice(0, 10).split("-").map(Number);
+  if (!year || !month || !day) return iso;
+  return new Date(year, month - 1, day).toLocaleDateString("en-US", options);
+}
+
+export type ScheduleRow = { id: string; title: string; order: number; due: string | null };
+
+/** Steps due before an earlier step in the plan. A warning only: a mentor may reorder on purpose. */
+export function scheduleOrderWarnings(rows: ScheduleRow[]): string[] {
+  const ordered = [...rows].sort((a, b) => a.order - b.order);
+  const warnings: string[] = [];
+  let latest: ScheduleRow | null = null;
+  for (const row of ordered) {
+    if (!row.due) continue;
+    if (latest?.due && row.due < latest.due) {
+      warnings.push(`${row.title} is due before ${latest.title}, which comes earlier in the plan.`);
+    }
+    if (!latest?.due || row.due >= latest.due) latest = row;
+  }
+  return warnings;
+}
+
+/** The stage's end date: the latest due date across its steps. */
+export function latestDueDate(dates: (string | null | undefined)[]): string | null {
+  return dates.filter((value): value is string => Boolean(value)).sort().at(-1) ?? null;
+}
+
+/** Today in the reader's own calendar, as YYYY-MM-DD (toISOString would give the UTC date). */
+export function localToday(now: Date = new Date()): string {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}

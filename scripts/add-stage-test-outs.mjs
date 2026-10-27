@@ -12,7 +12,7 @@ const TENANT_ID = "00000000-0000-4000-8000-000000000001";
 
 const STAGES = [
   {
-    plan: "Days 1–30 — New Hirer - Foundation",
+    plan: "Days 1–30 — Foundation",
     index: 1,
     competency: "Identity foundations",
     learn: {
@@ -128,7 +128,7 @@ for (const stage of STAGES) {
         metadata: {
           competency: stage.competency,
           segmentIndex: stage.index,
-          dueOffsetDays: 26,
+          dueOffsetDays: 28,
           isSegmentGate: false,
           estimatedMinutes: stage.learn.minutes,
         },
@@ -142,7 +142,7 @@ for (const stage of STAGES) {
         metadata: {
           competency: stage.competency,
           segmentIndex: stage.index,
-          dueOffsetDays: 28,
+          dueOffsetDays: 29,
           isSegmentGate: true,
           reviewer: "manager",
           evidence: "observation",

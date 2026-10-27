@@ -12,6 +12,7 @@ import {
 } from "@/lib/mentoring/mentor-records";
 import { MENTOR_EVENT, type DateProposal } from "@/lib/mentoring/mentor-records-model";
 import { createNotification } from "@/lib/notifications/create-notification";
+import { applyMentorSchedule } from "@/lib/mentoring/set-schedule";
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const ADMIN_ROLES = ["director", "admin", "super_admin"];
@@ -58,43 +59,26 @@ export async function GET() {
   return NextResponse.json({ proposals });
 }
 
-/** Mentor proposes a new due date. The manager decides; nothing moves until then. */
+/**
+ * Older clients ask to move a date. Mentors now set dates directly (see /api/mentor/schedule), so a
+ * request applies at once and the mentee and manager are told; nothing waits on approval.
+ */
 export async function POST(request: Request) {
   const session = await mentorSession();
   if (session instanceof NextResponse) return session;
   const parsed = postSchema.safeParse(await request.json().catch(() => ({})));
   if (!parsed.success) return NextResponse.json({ error: "Pick a date and give a reason of at least a sentence." }, { status: 400 });
-  const today = new Date().toISOString().slice(0, 10);
-  if (parsed.data.proposedDue < today) return NextResponse.json({ error: "Pick today or a future date." }, { status: 400 });
 
   try {
-    const { assignment, step, planStep } = await requireMentoredStep(session.admin, session.userId, parsed.data.assignmentStepId);
-    if (step.status === "reviewed" || step.status === "completed") throw new MentorAccessError("That step is already done.");
-    const id = await recordMentorEvent(session.admin, {
-      menteeId: assignment.user_id,
-      actorId: session.userId,
-      tenantId: assignment.tenant_id,
-      type: MENTOR_EVENT.dateProposal,
-      title: `Mentor proposed a new date for ${planStep.title}`,
-      metadata: {
-        assignment_id: assignment.id,
-        assignment_step_id: step.id,
-        step_title: planStep.title,
-        current_due: step.due_date,
-        proposed_due: parsed.data.proposedDue,
-        reason: parsed.data.reason,
-      },
+    const { assignment } = await requireMentoredStep(session.admin, session.userId, parsed.data.assignmentStepId);
+    const result = await applyMentorSchedule(session.admin, {
+      mentorId: session.userId,
+      assignmentId: assignment.id,
+      dates: [{ assignmentStepId: parsed.data.assignmentStepId, dueDate: parsed.data.proposedDue }],
+      note: parsed.data.reason,
+      scope: "step",
     });
-    const { data: mentee } = await session.admin.from("profiles").select("full_name").eq("id", assignment.user_id).maybeSingle();
-    for (const approver of await approversFor(session.admin, assignment, session.userId)) {
-      await createNotification(session.admin, {
-        userId: approver,
-        title: "Mentor asked to move a due date",
-        body: `${mentee?.full_name ?? "Your report"}, ${planStep.title}: ${step.due_date ?? "no date"} to ${parsed.data.proposedDue}. ${parsed.data.reason.slice(0, 160)}`,
-        actionUrl: "/manager/inbox",
-      });
-    }
-    return NextResponse.json({ id });
+    return NextResponse.json(result);
   } catch (error) {
     return mentorErrorResponse(error);
   }

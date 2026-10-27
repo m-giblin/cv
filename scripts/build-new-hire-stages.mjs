@@ -9,8 +9,8 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const TENANT_ID = "00000000-0000-4000-8000-000000000001";
-const FOUNDATION = "Days 1–30 — New Hirer - Foundation";
-const FOUNDATION_PREVIOUS = "New Hirer - Foundation";
+const FOUNDATION = "Days 1–30 — Foundation";
+const FOUNDATION_PREVIOUS = "Days 1–30 — New Hirer - Foundation";
 const PROGRAM = "New Hire";
 
 const RETIRED_PROGRAMS = ["Experienced SE fast track", "New SE ramp", "120-Day SE Mastery"];

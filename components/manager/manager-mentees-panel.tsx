@@ -8,6 +8,7 @@ import { HiringBriefCard } from "@/components/mentoring/hiring-brief-card";
 import { MenteeTrackView } from "@/components/mentoring/mentee-track-view";
 import { MentorCheckinWorkbench } from "@/components/mentoring/mentor-checkin-workbench";
 import { MentorManagerNote } from "@/components/mentoring/mentor-manager-note";
+import { MentorScheduleEditor } from "@/components/mentoring/mentor-schedule-editor";
 import { MentorStepWorkbench } from "@/components/mentoring/mentor-step-workbench";
 import { Stat, StatStrip } from "@/components/ui/stat";
 import { StatusPill } from "@/components/ui/status-pill";
@@ -57,6 +58,7 @@ export function ManagerMenteesPanel({
   const [openStep, setOpenStep] = useState<OpenStep | null>(null);
   const [checkinFor, setCheckinFor] = useState<string | null>(null);
   const [noteFor, setNoteFor] = useState<string | null>(null);
+  const [scheduleFor, setScheduleFor] = useState<string | null>(null);
   const summaries = mentees.map((item) => summarizeEnrollment(item.plan, item.profile));
   const behind = summaries.filter((item) => item.health === "at_risk").length;
   const overdueSteps = summaries.reduce((sum, item) => sum + item.overdue, 0);
@@ -70,6 +72,7 @@ export function ManagerMenteesPanel({
   const openSteps = openStage ? byOrder(openStage.steps) : openMentee ? byOrder(openMentee.plan.steps) : [];
   const checkinMentee = checkinFor ? mentees.find((item) => item.plan.id === checkinFor) : undefined;
   const noteMentee = noteFor ? mentees.find((item) => item.plan.id === noteFor) : undefined;
+  const scheduleMentee = scheduleFor ? mentees.find((item) => item.plan.id === scheduleFor) : undefined;
 
   return (
     <>
@@ -134,6 +137,9 @@ export function ManagerMenteesPanel({
                       {awaitingManagerSignoff > 0 ? (
                         <StatusPill tone="blue">Manager sign-off pending</StatusPill>
                       ) : null}
+                      <button className="btn-secondary" onClick={() => setScheduleFor(plan.id)} type="button">
+                        Set the schedule
+                      </button>
                       <button className="btn-secondary" onClick={() => setCheckinFor(plan.id)} type="button">
                         Log a 1:1
                       </button>
@@ -219,6 +225,7 @@ export function ManagerMenteesPanel({
       )}
       {openMentee ? (
         <MentorStepWorkbench
+          assignmentId={openStage ? undefined : openMentee.plan.id}
           evidence={openMentee.evidence}
           menteeName={openMentee.profile.fullName}
           onClose={() => setOpenStep(null)}
@@ -229,6 +236,16 @@ export function ManagerMenteesPanel({
           stageName={openStage?.name}
           step={openSteps.find((step) => step.id === openStep?.stepId) ?? null}
           steps={openSteps}
+        />
+      ) : null}
+      {scheduleMentee ? (
+        <MentorScheduleEditor
+          changes={scheduleMentee.records.scheduleChanges}
+          key={scheduleMentee.plan.id}
+          menteeName={scheduleMentee.profile.fullName}
+          onClose={() => setScheduleFor(null)}
+          open
+          plan={scheduleMentee.plan}
         />
       ) : null}
       {noteMentee ? (

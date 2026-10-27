@@ -42,8 +42,6 @@ export function templateDurationLabel(days: number): string {
   if (days <= 14) return "Week 2";
   if (days <= 21) return "Week 3";
   if (days <= 28) return "Week 4";
-  if (days <= 60) return "60 days";
-  if (days <= 90) return "90 days";
   return `${days} days`;
 }
 
@@ -65,7 +63,10 @@ export function stepTypeSummary(steps: { step_type: string }[]): string {
   if (counts.simulation) labels.push(`${counts.simulation} sim${counts.simulation > 1 ? "s" : ""}`);
   if (counts.deal_prep) labels.push(`${counts.deal_prep} deal prep`);
   if (counts.shadow_meeting_log) labels.push(`${counts.shadow_meeting_log} shadow`);
-  if (counts.mentor_review) labels.push(`${counts.mentor_review} mentor`);
+  if (counts.knowledge_check) labels.push(`${counts.knowledge_check} check${counts.knowledge_check > 1 ? "s" : ""}`);
+  if (counts.playbook) labels.push(`${counts.playbook} playbook`);
+  if (counts.mentor_review) labels.push(`${counts.mentor_review} review${counts.mentor_review > 1 ? "s" : ""}`);
+  if (counts.custom) labels.push(`${counts.custom} task${counts.custom > 1 ? "s" : ""}`);
 
   return labels.join(" · ") || `${steps.length} steps`;
 }

@@ -5,11 +5,13 @@ import { useId, useState } from "react";
 import { toast } from "sonner";
 import { Field, TextArea, TextInput } from "@/components/admin/admin-ui";
 import { StatusPill } from "@/components/ui/status-pill";
-import type {
-  DateProposal,
-  GateRecommendation,
-  GateRecommendationValue,
-  StepFeedback,
+import {
+  formatDueDate,
+  localToday,
+  type GateRecommendation,
+  type GateRecommendationValue,
+  type ScheduleChange,
+  type StepFeedback,
 } from "@/lib/mentoring/mentor-records-model";
 import type { PlanStep } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -97,83 +99,90 @@ export function StepFeedbackPanel({
   );
 }
 
-export function DueDateProposalPanel({ step, proposals }: { step: PlanStep; proposals: DateProposal[] }) {
+/** The mentor sets this step's date after agreeing it with the mentee. It applies at once. */
+export function MentorDueDatePanel({
+  step,
+  assignmentId,
+  menteeName,
+  changes,
+}: {
+  step: PlanStep;
+  assignmentId?: string;
+  menteeName: string;
+  changes: ScheduleChange[];
+}) {
   const router = useRouter();
   const dateId = useId();
-  const reasonId = useId();
+  const noteId = useId();
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState(step.dueDate ?? "");
-  const [reason, setReason] = useState("");
+  const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
-  const pending = proposals.find((item) => item.status === "pending");
-  const latest = proposals[0];
+  const firstName = menteeName.split(" ")[0] ?? menteeName;
   const done = step.status === "reviewed" || step.status === "completed";
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localToday();
+  const latest = changes
+    .flatMap((change) => change.changes.filter((item) => item.assignmentStepId === step.assignmentStepId).map((item) => ({ change, item })))
+    .at(0);
 
-  async function send() {
-    if (!step.assignmentStepId) return;
+  async function save() {
+    if (!step.assignmentStepId || !assignmentId) return;
     setSaving(true);
-    const ok = await post("/api/mentor/due-date-proposals", {
-      assignmentStepId: step.assignmentStepId,
-      proposedDue: date,
-      reason,
+    const ok = await post("/api/mentor/schedule", {
+      assignmentId,
+      scope: "step",
+      note: note.trim() || undefined,
+      dates: [{ assignmentStepId: step.assignmentStepId, dueDate: date }],
     });
     setSaving(false);
     if (!ok) return;
     setOpen(false);
-    setReason("");
-    toast.success("Sent to the manager. The date moves once they approve.");
+    setNote("");
+    toast.success(`Due ${formatDueDate(date)}. ${firstName} and their manager have been told.`);
     router.refresh();
   }
 
-  if (!step.assignmentStepId || done) return null;
+  if (!step.assignmentStepId || !assignmentId || done) return null;
 
   return (
     <section className={CARD_CLS}>
-      <h3 className="text-lg font-extrabold text-ink">Timeline</h3>
-      {pending ? (
-        <p className="text-[15px] text-ink-2">
-          You asked to move this to <span className="font-bold text-ink">{shortDate(pending.proposedDue)}</span>. Waiting on the manager.
-        </p>
-      ) : latest ? (
-        <p className="text-[15px] text-ink-2">
-          Your last request ({shortDate(latest.proposedDue)}) was{" "}
-          <span className="font-bold text-ink">{latest.status}</span>
-          {latest.decidedByName ? ` by ${latest.decidedByName}` : ""}.
-        </p>
-      ) : (
-        <p className="text-[15px] text-ink-2">If this date no longer fits, ask the manager to move it.</p>
-      )}
-      {pending ? null : open ? (
+      <h3 className="text-lg font-extrabold text-ink">Due date</h3>
+      <p className="text-[15px] text-ink-2">
+        Due dates are agreed between you and {firstName}. Due{" "}
+        <span className="font-bold text-ink">{step.dueDate ? formatDueDate(step.dueDate) : "no date yet"}</span>
+        {latest ? ` · set by ${latest.change.setByName} on ${formatDueDate(latest.change.createdAt.slice(0, 10))}` : ""}.
+      </p>
+      {open ? (
         <>
-          <Field htmlFor={dateId} label="New due date">
+          <Field htmlFor={dateId} label="Due date">
             <TextInput id={dateId} min={today} onChange={(event) => setDate(event.target.value)} type="date" value={date} />
           </Field>
-          <Field htmlFor={reasonId} label="Why">
+          <Field htmlFor={noteId} label="Note (optional)">
             <TextArea
-              id={reasonId}
-              onChange={(event) => setReason(event.target.value)}
-              placeholder="For example: customer travel this week, or they need another practice round first"
-              value={reason}
+              id={noteId}
+              onChange={(event) => setNote(event.target.value)}
+              placeholder="For example: we agreed to do this after the customer shadow next week"
+              value={note}
             />
           </Field>
           <div className="flex gap-3">
             <button
               className="btn-secondary"
-              disabled={saving || !date || date < today || reason.trim().length < 10}
-              onClick={() => void send()}
+              disabled={saving || !date || date < today || date === step.dueDate}
+              onClick={() => void save()}
               type="button"
             >
-              {saving ? "Sending…" : "Ask the manager"}
+              {saving ? "Saving…" : "Set the date"}
             </button>
             <button className="link text-sm" onClick={() => setOpen(false)} type="button">
               Cancel
             </button>
           </div>
+          <p className="text-[13px] text-muted">{firstName} and their manager are notified of the new date.</p>
         </>
       ) : (
         <button className="btn-secondary self-start" onClick={() => setOpen(true)} type="button">
-          Propose a new date
+          Change the date
         </button>
       )}
     </section>

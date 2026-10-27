@@ -2,11 +2,14 @@ import { CAREER_STAGES, CERT_LABELS } from "@/lib/growth/career-readiness";
 import type { CertSummary } from "@/lib/manager/growth-insights";
 import type { SeCoachingSummary } from "@/lib/manager/se-coaching-summary";
 import type { Profile, UserPlan } from "@/lib/types";
+import { isPastDue } from "@/lib/utils/date-only";
 
 /** Below this readiness score an SE is flagged at risk (the "under 60" band on Team › Readiness). */
 export const AT_RISK_READINESS = 60;
 /** Team target used across the manager portal. */
 export const READINESS_TARGET = 70;
+/** Weeks a new starter ramps before low readiness counts against them (the first program stage). */
+const NEW_HIRE_WEEKS = 4;
 /** Inbox items older than this many days are flagged in danger. */
 export const INBOX_SLA_DAYS = 3;
 /** Days without a reviewed coaching touchpoint before an on-track SE gets a nudge. */
@@ -77,7 +80,7 @@ function overdueStepCount(plan: UserPlan | undefined, now: number) {
   return plan.steps.filter(
     (step) =>
       step.dueDate &&
-      new Date(step.dueDate).getTime() < now &&
+      isPastDue(step.dueDate, now) &&
       !["reviewed", "completed", "submitted", "under_review"].includes(step.status),
   ).length;
 }
@@ -147,10 +150,20 @@ export function buildTeamMember(input: {
   const low = lowestCompetency(input.competencySummary);
   const lowCompetency = low && low.score < AT_RISK_READINESS ? low : null;
 
+  const noPlan = !plan;
+  const overdueCount = overdueStepCount(plan, now);
+  const currentWeek = rampWeekFor(plan, now);
+  // Low readiness is expected while someone ramps: in the first 30 days of a plan, or a new
+  // starter still waiting for one, it doesn't make them at risk. Overdue work or stalling still does.
+  const joinedDays = ageInDays(profile.createdAt, now);
+  const isNewStarter =
+    (currentWeek !== null && currentWeek <= NEW_HIRE_WEEKS && overdueCount === 0) ||
+    (noPlan && joinedDays !== null && joinedDays <= NEW_HIRE_WEEKS * 7);
+
   const atRisk =
-    (readiness !== null && readiness < AT_RISK_READINESS) ||
-    coaching?.health === "at_risk" ||
-    coaching?.health === "stalled";
+    (!isNewStarter && readiness !== null && readiness < AT_RISK_READINESS) ||
+    overdueCount > 0 ||
+    (!isNewStarter && (coaching?.health === "at_risk" || coaching?.health === "stalled"));
 
   const status: TeamStatus = atRisk ? "at_risk" : openReviewCount > 0 ? "review_due" : "on_track";
 
@@ -160,19 +173,16 @@ export function buildTeamMember(input: {
         ? { kind: "sign_off", label: REVIEW_LABEL.cert }
         : { kind: "review", label: pending ? REVIEW_LABEL[pending.kind] : "Review" }
       : null;
-  const noPlan = !plan;
 
   let reason: string | null = null;
   let action: TeamAction | null = null;
 
   if (status === "at_risk") {
     const parts: string[] = [];
-    if (noPlan) parts.push("No ramp plan assigned");
     const idle = coaching?.lastActiveDays ?? null;
     if (idle !== null && idle >= 7) parts.push(`No activity in ${idle} days`);
     if (lowCompetency) parts.push(`${lowCompetency.name} at ${lowCompetency.score}`);
-    const overdue = overdueStepCount(plan, now);
-    if (overdue > 0) parts.push(`${plural(overdue, "step")} overdue`);
+    if (overdueCount > 0) parts.push(`${plural(overdueCount, "step")} overdue`);
     if (parts.length < 2 && coaching?.simTrendLabel && coaching.simTrendLabel.startsWith("Slipping")) {
       parts.push(coaching.simTrendLabel);
     }
@@ -189,12 +199,18 @@ export function buildTeamMember(input: {
   } else if (status === "review_due") {
     reason = pending ? pendingReason(pending) : `${plural(openReviewCount, "item")} waiting on you`;
     action = reviewAction;
+  } else if (noPlan && isNewStarter) {
+    reason = "New to the team, no ramp plan yet";
+    action = { kind: "assign_plan", label: "Assign a plan" };
+  } else if (isNewStarter && currentWeek !== null) {
+    reason = `Ramping, week ${currentWeek}`;
+    action = daysSinceCoaching === null ? { kind: "one_on_one", label: "Schedule a 1:1" } : null;
   } else if (daysSinceCoaching !== null && daysSinceCoaching > COACHING_CADENCE_DAYS) {
     reason = `No coaching in ${daysSinceCoaching} days`;
     action = { kind: "one_on_one", label: "Schedule a 1:1" };
   }
 
-  const rampWeek = rampWeekFor(plan, now);
+  const rampWeek = currentWeek;
 
   return {
     profileId: profile.id,

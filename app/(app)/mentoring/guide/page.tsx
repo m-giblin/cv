@@ -25,7 +25,8 @@ const CADENCE = [
   { when: "Weekly, 30 minutes", what: "A 1:1. Use Log a 1:1: the agenda is built from what is late, waiting and due this week. End with one or two next actions." },
   { when: "Within a day", what: "Debrief anything they submit. You get a notification when they do." },
   { when: "Before each gate", what: "Send the manager your recommendation: ready, or not yet and why. Do it before the manager reviews the gate." },
-  { when: "When a date stops fitting", what: "Propose a new date with a reason. The manager approves it; nothing moves until then." },
+  { when: "In your first meeting", what: "Agree the dates together, then use Set the schedule. The new hire and their manager are told what you set." },
+  { when: "When a date stops fitting", what: "Agree a new date with them and change it on the step. It applies at once and both are notified." },
 ];
 
 const STAGES = [
@@ -131,7 +132,7 @@ export default async function MentorGuidePage() {
           <h2 className="text-xl font-extrabold text-ink">What you can and cannot change</h2>
           <ul className="m-0 flex list-disc flex-col gap-2 pl-5 text-[15px] text-ink-2">
             <li>You can leave feedback on any step, log 1:1s, approve check-in requests, and recommend on gates.</li>
-            <li>You can propose a new due date. The manager approves it before it changes.</li>
+            <li>You set the due dates with the new hire. They are not fixed to 30 days; the stage ends on the latest one. The new hire and manager are notified.</li>
             <li>The manager writes the hiring brief, approves gates, and edits the program itself. You read the brief; you do not edit it.</li>
           </ul>
         </section>

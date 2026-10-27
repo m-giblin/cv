@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { DueDateProposalPanel, GateRecommendationPanel, StepFeedbackPanel } from "@/components/mentoring/mentor-step-actions";
+import { GateRecommendationPanel, MentorDueDatePanel, StepFeedbackPanel } from "@/components/mentoring/mentor-step-actions";
 import { StepEvidenceView } from "@/components/mentoring/step-evidence-view";
 import { Drawer } from "@/components/ui/drawer";
 import { StatusPill } from "@/components/ui/status-pill";
@@ -55,6 +55,7 @@ function approverText(step: PlanStep) {
 
 export function MentorStepWorkbench({
   step,
+  assignmentId,
   steps,
   menteeName,
   resources,
@@ -66,6 +67,8 @@ export function MentorStepWorkbench({
   onSelect,
 }: {
   step: PlanStep | null;
+  /** The assignment these steps belong to; the due date can only be set when it is known. */
+  assignmentId?: string;
   steps: PlanStep[];
   menteeName: string;
   resources: Record<string, StepResource>;
@@ -92,7 +95,6 @@ export function MentorStepWorkbench({
   const status = STATUS_PILL[step.status];
   const firstName = menteeName.split(" ")[0] ?? menteeName;
   const stepFeedback = records.feedback.filter((item) => item.assignmentStepId === step.assignmentStepId);
-  const stepProposals = records.proposals.filter((item) => item.assignmentStepId === step.assignmentStepId);
   const gateRecommendation = records.gateRecommendations.find((item) => item.assignmentStepId === step.assignmentStepId);
 
   return (
@@ -163,7 +165,14 @@ export function MentorStepWorkbench({
             <GateRecommendationPanel current={gateRecommendation} firstName={firstName} step={step} />
           ) : null}
           {!preview ? <StepFeedbackPanel feedback={stepFeedback} firstName={firstName} step={step} /> : null}
-          {!preview ? <DueDateProposalPanel proposals={stepProposals} step={step} /> : null}
+          {!preview ? (
+            <MentorDueDatePanel
+              assignmentId={assignmentId}
+              changes={records.scheduleChanges}
+              menteeName={menteeName}
+              step={step}
+            />
+          ) : null}
 
           <section className={CARD_CLS}>
             <h3 className={H3_CLS}>How to coach this step</h3>

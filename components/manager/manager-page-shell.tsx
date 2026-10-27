@@ -290,6 +290,7 @@ export function ManagerPageShell({
       {fullSnapshot ? (
         <ManagerSeDetailPanel
           challenges={challenges}
+          member={teamMembers.find((item) => item.profileId === fullSnapshot.profile.id)}
           mentors={mentors}
           onClose={closeProfile}
           plans={plans}

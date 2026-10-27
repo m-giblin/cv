@@ -4,6 +4,7 @@ import { currentQuarter } from "@/lib/development/plan-utils";
 import { profileLevelLabel } from "@/lib/utils/level-label";
 import type { CoachingCard, DevelopmentPlan, Profile, UserPlan } from "@/lib/types";
 import type { ReadinessCertRow } from "@/lib/data/get-manager-growth-data";
+import { parseDateOnly } from "@/lib/utils/date-only";
 
 export type SimScorePoint = {
   score: number;
@@ -224,7 +225,7 @@ export function buildQuarterlyAlert(developmentPlan?: DevelopmentPlan | null): Q
     };
   }
 
-  const dueLabel = earliestDue ? format(new Date(earliestDue), "EEE, MMM d") : "";
+  const dueLabel = earliestDue ? format(parseDateOnly(earliestDue), "EEE, MMM d") : "";
   const label = overdue
     ? `${quarter} ${year} quarterly review overdue (${pendingGoals} goal${pendingGoals === 1 ? "" : "s"})`
     : `${quarter} ${year} quarterly review due ${dueLabel} (${pendingGoals} pending)`;

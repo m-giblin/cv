@@ -11,6 +11,7 @@ import { HiringBriefEditor } from "@/components/manager/hiring-brief-editor";
 import { ManagerCoachingNotes } from "@/components/manager/manager-coaching-notes";
 import { ManagerPlanAssignPanel } from "@/components/manager/manager-plan-assign-panel";
 import { ManagerReassignMentor } from "@/components/manager/manager-reassign-mentor";
+import { ScheduleOneOnOne } from "@/components/manager/schedule-one-on-one";
 import { MentorNotesForManager } from "@/components/manager/mentor-notes-for-manager";
 import { SimTrendChart } from "@/components/manager/sim-trend-chart";
 import { Drawer } from "@/components/ui/drawer";
@@ -23,9 +24,9 @@ import type { AssignedWorkItem } from "@/lib/manager/assigned-work";
 import { stepKindLabel } from "@/lib/programs/step-kinds";
 import type { CertSummary, CohortBenchmark, QuarterlyAlert, SimTrend } from "@/lib/manager/growth-insights";
 import { managerSectionHref } from "@/lib/manager/manager-routes";
-import { downloadOneOnOneIcs } from "@/lib/manager/one-on-one-ics";
 import type { SeCoachingSummary } from "@/lib/manager/se-coaching-summary";
-import { READINESS_TARGET, buildGates, rampWeekFor } from "@/lib/manager/team-status";
+import { READINESS_TARGET, buildGates, rampWeekFor, type TeamMember } from "@/lib/manager/team-status";
+import { TeamStatusTag } from "@/components/manager/team-member-bits";
 import type {
   ActivityLog,
   Challenge,
@@ -38,6 +39,7 @@ import type {
   UserPlan,
 } from "@/lib/types";
 import { initials } from "@/lib/utils";
+import { isPastDue, parseDateOnly } from "@/lib/utils/date-only";
 
 export type SeManagerSnapshot = {
   profile: Profile;
@@ -66,7 +68,7 @@ function sentence(value: string) {
 }
 
 function shortDate(iso: string) {
-  return format(new Date(iso), "EEE, MMM d");
+  return format(parseDateOnly(iso), "EEE, MMM d");
 }
 
 /** "Today", "1 day", "4 days". */
@@ -205,9 +207,12 @@ export function ManagerSeDetailPanel({
   challenges,
   plans,
   mentors,
+  member,
   onClose,
 }: {
   snapshot: SeManagerSnapshot;
+  /** The same row the Today and Team lists show, so the status here matches theirs. */
+  member?: TeamMember;
   challenges: Challenge[];
   profiles: Profile[];
   plans: UserPlan[];
@@ -236,12 +241,12 @@ export function ManagerSeDetailPanel({
   } = snapshot;
 
   const [now] = useState(() => Date.now());
-  const firstName = profile.fullName.split(" ")[0] ?? profile.fullName;
+  const [schedulingOneOnOne, setSchedulingOneOnOne] = useState(false);
   const steps = [...(plan?.steps ?? [])].sort((a, b) => a.order - b.order);
   const gates = buildGates(certSummary);
   const isOverdue = (step: PlanStep) =>
     Boolean(step.dueDate) &&
-    differenceInCalendarDays(now, new Date(step.dueDate!)) > 0 &&
+    isPastDue(step.dueDate!, now) &&
     !["reviewed", "completed", "submitted", "under_review"].includes(step.status);
   const doneSteps = steps.filter((step) => STEP_DONE.has(step.status));
   const remainingSteps = steps.filter((step) => !STEP_DONE.has(step.status));
@@ -299,15 +304,7 @@ export function ManagerSeDetailPanel({
         <>
           <button
             className="btn-primary"
-            onClick={() => {
-              downloadOneOnOneIcs({
-                name: profile.fullName,
-                email: profile.email,
-                level: profile.level,
-                talkingPoints: coaching.talkingPoints.slice(0, 4),
-              });
-              toast.success(`1:1 invite for ${firstName} downloaded`);
-            }}
+            onClick={() => setSchedulingOneOnOne(true)}
             type="button"
           >
             Schedule 1:1
@@ -387,7 +384,7 @@ export function ManagerSeDetailPanel({
                               {step.dueDate ? (
                                 <span className={late ? "font-bold text-danger" : ""}>
                                   {" "}
-                                  · {late ? `${differenceInCalendarDays(now, new Date(step.dueDate))} days overdue` : `due ${shortDate(step.dueDate)}`}
+                                  · {late ? `${differenceInCalendarDays(now, parseDateOnly(step.dueDate))} days overdue` : `due ${shortDate(step.dueDate)}`}
                                 </span>
                               ) : null}
                             </span>
@@ -421,7 +418,6 @@ export function ManagerSeDetailPanel({
                   compact
                   defaultUserId={profile.id}
                   mentors={mentors}
-                  onAssigned={onClose}
                   plans={plans}
                 />
               </>
@@ -569,7 +565,12 @@ export function ManagerSeDetailPanel({
     >
       <>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-          <StatusPill tone={HEALTH_TONE[coaching.health]}>{coaching.healthLabel}</StatusPill>
+          {member ? (
+            <TeamStatusTag status={member.status} />
+          ) : (
+            <StatusPill tone={HEALTH_TONE[coaching.health]}>{coaching.healthLabel}</StatusPill>
+          )}
+          {member?.reason ? <span className="text-[13px] text-ink-2">{member.reason}</span> : null}
           <span className="text-[13px] text-muted">{coaching.lastActiveLabel}</span>
           <a className="link min-w-0 truncate text-[13px]" href={`mailto:${profile.email}`}>
             {profile.email}
@@ -608,6 +609,15 @@ export function ManagerSeDetailPanel({
             </button>
           ) : null}
         </div>
+
+        {schedulingOneOnOne ? (
+          <ScheduleOneOnOne
+            mentor={mentor}
+            onClose={() => setSchedulingOneOnOne(false)}
+            profile={profile}
+            talkingPoints={coaching.talkingPoints}
+          />
+        ) : null}
 
         {assigning ? (
           <AssignWorkWizard

@@ -13,6 +13,7 @@ import { StatusPill, type StatusTone } from "@/components/ui/status-pill";
 import { currentQuarter } from "@/lib/development/plan-utils";
 import type { DevelopmentPlan, GoalStatus, Profile } from "@/lib/types";
 import { cn, initials, uniqueProfiles } from "@/lib/utils";
+import { parseDateOnly } from "@/lib/utils/date-only";
 
 const GOAL_PILL: Record<GoalStatus, { label: string; tone: StatusTone }> = {
   not_started: { label: "Not started", tone: "neutral" },
@@ -240,7 +241,7 @@ export function ManagerDevelopmentPlansPanel({
                         <span className="min-w-0">
                           <span className="block text-sm font-bold text-ink">{goal.title}</span>
                           <span className="block text-[13px] text-muted">
-                            {review.quarter} check-in, due {format(new Date(review.dueDate), "MMM d")}
+                            {review.quarter} check-in, due {format(parseDateOnly(review.dueDate), "MMM d")}
                           </span>
                         </span>
                         <span className="flex shrink-0 items-center gap-3">
