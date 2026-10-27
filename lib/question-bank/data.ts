@@ -105,8 +105,24 @@ async function loadStats(admin: SupabaseClient, tenantId: string, questionIds: s
 export async function loadBank(tenantId: string) {
   const admin = db();
   if (!admin) return null;
+  // The API returns at most 1000 rows per request, so read the bank a page at a time.
+  const pages = (async () => {
+    const rows: Row[] = [];
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await admin
+        .from("question_bank")
+        .select(COLUMNS)
+        .eq("tenant_id", tenantId)
+        .order("created_at", { ascending: false })
+        .order("id")
+        .range(from, from + 999);
+      if (error) return { data: null, error };
+      rows.push(...((data ?? []) as Row[]));
+      if ((data ?? []).length < 1000) return { data: rows, error: null };
+    }
+  })();
   const [{ data, error }, playbooks] = await Promise.all([
-    admin.from("question_bank").select(COLUMNS).eq("tenant_id", tenantId).order("created_at", { ascending: false }),
+    pages,
     admin.from("capability_playbooks").select("id, title, chapter, status, slug").eq("tenant_id", tenantId).order("chapter"),
   ]);
   if (error) return null;
@@ -156,7 +172,9 @@ export async function loadBank(tenantId: string) {
 
   return {
     questions: withStats,
-    sources: [...sources.values()].sort((a, b) => b.drafts - a.drafts || a.title.localeCompare(b.title)),
+    sources: [...sources.values()]
+      .filter((source) => source.active > 0 || source.drafts > 0)
+      .sort((a, b) => b.drafts - a.drafts || a.title.localeCompare(b.title)),
     playbooks: playbookRows.filter((row) => row.status === "published").map((row) => ({ id: row.id, title: `Ch. ${row.chapter} ${row.title}`, chapter: row.chapter, slug: row.slug })),
   };
 }
