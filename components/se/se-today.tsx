@@ -9,6 +9,7 @@ import { Schedule } from "@/components/ui/schedule";
 import { StatusPill } from "@/components/ui/status-pill";
 import { planStepTypeLabel } from "@/lib/plans/step-labels";
 import type { GateRow } from "@/lib/se/gate-matrix";
+import type { TodayMentee } from "@/lib/mentoring/today-mentees";
 import {
   buildRampModel,
   dayAndMonth,
@@ -56,6 +57,36 @@ function heroCopy(model: RampModel | null, reviewerFirst: string | null): { acce
   };
 }
 
+/** People this SE mentors. Until the schedule is set, the next move is to read the brief and meet them. */
+function MenteesCard({ mentees }: { mentees: TodayMentee[] }) {
+  return (
+    <section className="rounded-[14px] border border-line bg-white p-5 shadow-[var(--shadow-card)]">
+      <h2 className="text-lg font-extrabold text-ink">You&apos;re mentoring</h2>
+      <ul className="mt-3 flex flex-col divide-y divide-divider">
+        {mentees.map((mentee) => (
+          <li className="flex flex-wrap items-center justify-between gap-3 py-3" key={`${mentee.menteeId}-${mentee.planName}`}>
+            <span className="min-w-0">
+              <span className="block font-bold text-ink">{mentee.name}</span>
+              <span className="block text-sm text-muted">
+                {mentee.planName}
+                {mentee.startDate ? `, started ${formatDay(mentee.startDate)}` : ""}
+              </span>
+              <span className="mt-1 block text-sm text-ink-2">
+                {mentee.scheduleSet
+                  ? `Schedule set. Last step due ${formatDay(mentee.targetCompletion) ?? "soon"}.`
+                  : `Next: read the hiring brief, meet ${mentee.name.split(" ")[0]}, then set the schedule together.`}
+              </span>
+            </span>
+            <Link className={mentee.scheduleSet ? "btn-secondary" : "btn-primary"} href="/mentoring">
+              {mentee.scheduleSet ? "Open mentoring" : "Set the schedule"}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 function scheduleMeta(step: PlanStep, model: RampModel, minutes: number | null): string {
   const segment = model.segments.find((item) => item.index === (step.segmentIndex ?? 0));
   if (step.isSegmentGate) return segment ? `Closes the ${segment.label.toLowerCase()} segment` : "Closes this segment";
@@ -70,12 +101,15 @@ export function SeToday({
   gateRows,
   calendarEnabled = false,
   playbookAssignments = [],
+  mentees = [],
 }: {
   data: DashboardData;
   gateRows: GateRow[];
   calendarEnabled?: boolean;
   /** Playbooks a manager assigned, with due dates and live progress. */
   playbookAssignments?: PlaybookAssignment[];
+  /** People this SE mentors, so a new mentee is the first thing they see. */
+  mentees?: TodayMentee[];
 }) {
   const user = data.currentUser;
   const firstName = user.fullName.split(" ")[0] ?? "there";
@@ -98,7 +132,10 @@ export function SeToday({
   ) : (
     `${user.level} SE`
   );
-  const hero = heroCopy(model, reviewerFirst);
+  const hero =
+    !model && mentees.length
+      ? { subtitle: `You're mentoring ${mentees.map((mentee) => mentee.name.split(" ")[0]).join(" and ")}.` }
+      : heroCopy(model, reviewerFirst);
 
   const scheduleRows = model
     ? model.upcoming.slice(0, 3).map((step) => {
@@ -130,7 +167,8 @@ export function SeToday({
       <PageBody>
         <div className="grid items-start gap-[var(--rail-gap)] xl:grid-cols-[minmax(0,1fr)_clamp(360px,40%,520px)]">
           <div className="flex min-w-0 flex-col gap-8">
-            {!plan || !model ? (
+            {mentees.length ? <MenteesCard mentees={mentees} /> : null}
+            {(!plan || !model) && mentees.length ? null : !plan || !model ? (
               <div className="rounded-[14px] border border-dashed border-line-strong p-7 text-[15px] text-muted">
                 <h2 className="text-lg font-extrabold text-ink">No ramp plan yet</h2>
                 <p className="mt-1">

@@ -9,6 +9,10 @@ import { loadPlatformSettings } from "@/lib/platform/settings";
 import { buildGateRows, toGateRecords } from "@/lib/se/gate-matrix";
 import { resolveTenantContext } from "@/lib/auth/tenant-context";
 import { loadAssignments } from "@/lib/playbooks/assignments";
+import { getTenantAdminClient } from "@/lib/data/tenant-scoped-query";
+import { loadTodayMentees } from "@/lib/mentoring/today-mentees";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/database.types";
 
 export default async function DashboardPage() {
   const { data, source, tier } = await requireDashboardPageAccess();
@@ -24,10 +28,12 @@ export default async function DashboardPage() {
   if (tier === "se") {
     const context = await resolveTenantContext();
     const tenantId = context?.tenantId ?? data.currentUser.tenantId ?? null;
-    const [userCerts, settings, playbookAssignments] = await Promise.all([
+    const admin = getTenantAdminClient() as unknown as SupabaseClient<Database> | null;
+    const [userCerts, settings, playbookAssignments, mentees] = await Promise.all([
       fetchCertificationsForUsers([data.currentUser.id]),
       loadPlatformSettings(data.currentUser.tenantId ?? undefined),
       tenantId ? loadAssignments(tenantId, { assigneeIds: [data.currentUser.id] }) : Promise.resolve([]),
+      admin ? loadTodayMentees(admin, data.currentUser.id).catch(() => []) : Promise.resolve([]),
     ]);
     const manager = data.profiles.find((profile) => profile.id === data.currentUser.managerId);
     const gateRows = buildGateRows({
@@ -46,6 +52,7 @@ export default async function DashboardPage() {
           calendarEnabled={isFeatureEnabled(settings.featureFlags, "plan-calendar")}
           data={data}
           gateRows={gateRows}
+          mentees={mentees}
           playbookAssignments={playbookAssignments}
         />
       </>
