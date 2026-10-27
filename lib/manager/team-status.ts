@@ -191,7 +191,7 @@ export function buildTeamMember(input: {
     reason = joinPhrases(parts.slice(0, 2)) || null;
     action =
       reviewAction ??
-      (noPlan
+      (noPlan && isNewStarter
         ? { kind: "assign_plan", label: "Assign a plan" }
         : lowCompetency
           ? { kind: "practice", label: "Assign practice" }
