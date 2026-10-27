@@ -21,6 +21,12 @@ const DONE = new Set(["completed", "reviewed"]);
  * After meeting the new hire, the mentor sets the dates for the stage in one go. There is no fixed
  * 30-day window: the stage ends on the latest date set here. The new hire and manager are told.
  */
+function isWeekend(iso: string) {
+  if (!iso) return false;
+  const day = new Date(`${iso}T12:00:00`).getDay();
+  return day === 0 || day === 6;
+}
+
 export function MentorScheduleEditor({
   open,
   onClose,
@@ -47,10 +53,14 @@ export function MentorScheduleEditor({
 
   const editable = steps.filter((step) => step.assignmentStepId && !DONE.has(step.status));
   const changed = editable.filter((step) => (dates[step.assignmentStepId!] ?? "") !== (step.dueDate ?? ""));
-  const invalid = changed.some((step) => {
+  const problems = changed.flatMap((step) => {
     const value = dates[step.assignmentStepId!] ?? "";
-    return !value || value < today;
+    if (!value) return [`${step.title} needs a date.`];
+    if (value < today) return [`${step.title} is set to a day that has passed. Pick today or later.`];
+    return [];
   });
+  const invalid = problems.length > 0;
+  const weekendDates = changed.filter((step) => isWeekend(dates[step.assignmentStepId!] ?? "")).map((step) => step.title);
   const effective = steps.map((step) => (step.assignmentStepId ? dates[step.assignmentStepId] || step.dueDate : step.dueDate) ?? null);
   const lastDue = latestDueDate(effective);
   const warnings = scheduleOrderWarnings(
@@ -101,6 +111,22 @@ export function MentorScheduleEditor({
             Agree these dates with {firstName} when you meet. They are not fixed to 30 days: set what is realistic, and the stage
             ends on the latest one.
           </p>
+          {problems.length ? (
+            <div className="flex flex-col gap-1 rounded-[12px] border border-danger bg-danger-soft p-3 text-sm text-ink-2" role="alert">
+              <p className="font-bold text-ink">Fix these dates to save</p>
+              {problems.slice(0, 5).map((problem) => (
+                <p className="m-0" key={problem}>
+                  {problem}
+                </p>
+              ))}
+            </div>
+          ) : null}
+          {weekendDates.length ? (
+            <p className="m-0 text-sm text-muted">
+              {weekendDates.length === 1 ? `${weekendDates[0]} falls` : `${weekendDates.length} of your new dates fall`} on a weekend. Fine if
+              that&apos;s what you agreed.
+            </p>
+          ) : null}
           {warnings.length ? (
             <div className="flex flex-col gap-1 rounded-[12px] border border-warning bg-warning-soft p-3 text-sm text-ink-2">
               <p className="font-bold text-ink">Check the order</p>
@@ -151,7 +177,7 @@ export function MentorScheduleEditor({
                 </span>
                 <span className="block text-[13px] text-muted">
                   {step.isSegmentGate ? "Gate · " : ""}
-                  {stepTypeLabel(step.type)}
+                  {stepTypeLabel(step.type, step.resourceUrl)}
                   {locked && DONE.has(step.status) ? " · done" : ""}
                 </span>
               </span>

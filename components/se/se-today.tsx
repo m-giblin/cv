@@ -10,6 +10,7 @@ import { StatusPill } from "@/components/ui/status-pill";
 import { planStepTypeLabel } from "@/lib/plans/step-labels";
 import type { GateRow } from "@/lib/se/gate-matrix";
 import type { TodayMentee } from "@/lib/mentoring/today-mentees";
+import { MenteesCard } from "@/components/mentoring/mentees-card";
 import type { MyMentor } from "@/lib/mentoring/my-mentor";
 import { MyMentorCard } from "@/components/se/my-mentor-card";
 import { MyTrainingCard } from "@/components/manager/my-training-card";
@@ -60,41 +61,6 @@ function heroCopy(model: RampModel | null, reviewerFirst: string | null): { acce
       ? `One validation stands between you and ${after.title}.`
       : `${word} is the last step on your ramp.`,
   };
-}
-
-/** People this SE mentors. Until the schedule is set, the next move is to read the brief and meet them. */
-function MenteesCard({ mentees }: { mentees: TodayMentee[] }) {
-  return (
-    <section className="rounded-[14px] border border-line bg-white p-5 shadow-[var(--shadow-card)]">
-      <h2 className="text-lg font-extrabold text-ink">You&apos;re mentoring</h2>
-      <ul className="mt-3 flex flex-col divide-y divide-divider">
-        {mentees.map((mentee) => (
-          <li className="flex flex-wrap items-center justify-between gap-3 py-3" key={`${mentee.menteeId}-${mentee.planName}`}>
-            <span className="min-w-0">
-              <span className="block font-bold text-ink">{mentee.name}</span>
-              <span className="block text-sm text-muted">
-                {mentee.planName}
-                {mentee.startDate ? `, started ${formatDay(mentee.startDate)}` : ""}
-              </span>
-              <span className="mt-1 block text-sm text-ink-2">
-                {mentee.waitingOnReview > 0
-                  ? `${mentee.waitingOnReview} ${mentee.waitingOnReview === 1 ? "step is" : "steps are"} waiting on your review.`
-                  : mentee.scheduleSet
-                    ? `Schedule set. Last step due ${formatDay(mentee.targetCompletion) ?? "soon"}.`
-                    : `Next: read the hiring brief, meet ${mentee.name.split(" ")[0]}, then set the schedule together.`}
-              </span>
-            </span>
-            <Link
-              className={mentee.waitingOnReview > 0 || !mentee.scheduleSet ? "btn-primary" : "btn-secondary"}
-              href="/mentoring"
-            >
-              {mentee.waitingOnReview > 0 ? "Review" : mentee.scheduleSet ? "Open mentoring" : "Set the schedule"}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
 }
 
 function scheduleMeta(step: PlanStep, model: RampModel, minutes: number | null): string {

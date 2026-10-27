@@ -72,6 +72,7 @@ function MenteeWorkbench({
   const orderedSteps = byOrder(plan.steps);
   const nextStep = orderedSteps.find((step) => step.status !== "reviewed" && step.status !== "completed");
   const attention = mentorAttention(plan.steps, records, today);
+  const scheduleSet = records.scheduleChanges.some((change) => change.assignmentId === plan.id);
 
   return (
     <Drawer
@@ -82,11 +83,11 @@ function MenteeWorkbench({
           <button className="btn-secondary" onClick={onNote} type="button">
             Note to manager
           </button>
-          <button className="btn-secondary" onClick={onCheckin} type="button">
+          <button className={scheduleSet ? "btn-primary" : "btn-secondary"} onClick={onCheckin} type="button">
             Log a 1:1
           </button>
-          <button className="btn-primary" onClick={onSchedule} type="button">
-            Set the schedule
+          <button className={scheduleSet ? "btn-secondary" : "btn-primary"} onClick={onSchedule} type="button">
+            {scheduleSet ? "Change dates" : "Set the schedule"}
           </button>
         </>
       }
@@ -106,6 +107,8 @@ function MenteeWorkbench({
       <div className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">
           <StatusPill tone={health.tone}>{health.label}</StatusPill>
+          {mentee.nextOneOnOne ? <Tag tone="blue">1:1 booked {mentee.nextOneOnOne.label}</Tag> : null}
+          {records.checkins[0] ? <Tag tone="neutral">Last 1:1 {shortDate(records.checkins[0].metOn)}</Tag> : null}
           {attention.map((item) => (
             <Tag key={item.text} tone={item.tone}>
               {item.text}
@@ -140,7 +143,7 @@ function MenteeWorkbench({
                   <span className="flex min-w-0 flex-col">
                     <span className="font-bold text-ink-2">{step.title}</span>
                     <span className="text-[13px] text-muted">
-                      {step.isSegmentGate ? "Stage gate" : stepTypeLabel(step.type)}
+                      {step.isSegmentGate ? "Stage gate" : stepTypeLabel(step.type, step.resourceUrl)}
                       {hasWork ? " · work to review" : ""}
                       {feedbackCount ? ` · ${feedbackCount} feedback` : ""}
                     </span>
@@ -164,10 +167,15 @@ type OpenStep = { assignmentId: string; stepId: string; stagePlanId?: string };
 
 export function ManagerMenteesPanel({
   mentees,
+  initialOpen,
 }: {
   mentees: MenteeAssignment[];
+  /** A program enrollment to open in its workbench on arrival (links from Today). */
+  initialOpen?: string;
 }) {
-  const [workbenchFor, setWorkbenchFor] = useState<string | null>(null);
+  const [workbenchFor, setWorkbenchFor] = useState<string | null>(
+    initialOpen && mentees.some((item) => item.plan.id === initialOpen) ? initialOpen : null,
+  );
   const [openStep, setOpenStep] = useState<OpenStep | null>(null);
   const [checkinFor, setCheckinFor] = useState<string | null>(null);
   const [noteFor, setNoteFor] = useState<string | null>(null);
@@ -232,6 +240,7 @@ export function ManagerMenteesPanel({
                 const summary = summaries[index]!;
                 const health = HEALTH_PILL[summary.health];
                 const attention = mentorAttention(plan.steps, records, today);
+                const scheduleSet = records.scheduleChanges.some((change) => change.assignmentId === plan.id);
 
                 return (
                   <li className="border-b border-divider last:border-b-0" key={plan.id}>
@@ -257,7 +266,7 @@ export function ManagerMenteesPanel({
                         <StatusPill tone="blue">Manager sign-off pending</StatusPill>
                       ) : null}
                       <button className="btn-secondary" onClick={() => setScheduleFor(plan.id)} type="button">
-                        Set the schedule
+                        {scheduleSet ? "Change dates" : "Set the schedule"}
                       </button>
                       <button className="btn-secondary" onClick={() => setCheckinFor(plan.id)} type="button">
                         Log a 1:1
@@ -269,8 +278,10 @@ export function ManagerMenteesPanel({
                         Open
                       </button>
                     </div>
-                    {attention.length ? (
+                    {attention.length || mentee.nextOneOnOne || records.checkins[0] ? (
                       <div className="flex flex-wrap gap-2 px-5 pb-3">
+                        {mentee.nextOneOnOne ? <Tag tone="blue">1:1 booked {mentee.nextOneOnOne.label}</Tag> : null}
+                        {records.checkins[0] ? <Tag tone="neutral">Last 1:1 {shortDate(records.checkins[0].metOn)}</Tag> : null}
                         {attention.map((item) => (
                           <Tag key={item.text} tone={item.tone}>
                             {item.text}

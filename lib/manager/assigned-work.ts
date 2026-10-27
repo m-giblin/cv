@@ -62,7 +62,7 @@ export async function loadAssignedWork(tenantId: string, assigneeIds: string[]):
     db.from("profiles").select("id, full_name").in("id", assigneeIds),
     db
       .from("simulation_assignments")
-      .select("id, assigned_to, template_id, persona, solution_focus, status, due_date, created_at")
+      .select("id, assigned_to, assigned_by, template_id, persona, solution_focus, status, due_date, created_at")
       .in("assigned_to", assigneeIds)
       .order("created_at", { ascending: false })
       .limit(200),
@@ -100,6 +100,7 @@ export async function loadAssignedWork(tenantId: string, assigneeIds: string[]):
   type SimRow = {
     id: string;
     assigned_to: string;
+    assigned_by: string | null;
     template_id: string | null;
     persona: string;
     solution_focus: string;
@@ -107,7 +108,8 @@ export async function loadAssignedWork(tenantId: string, assigneeIds: string[]):
     due_date: string | null;
     created_at: string;
   };
-  const simRows = (sims.data ?? []) as SimRow[];
+  // Practice someone started for themselves isn't assigned work.
+  const simRows = ((sims.data ?? []) as SimRow[]).filter((row) => row.assigned_by !== row.assigned_to);
   const templateIds = [...new Set(simRows.map((row) => row.template_id).filter((id): id is string => Boolean(id)))];
   const templates = templateIds.length
     ? await db.from("simulation_templates").select("id, name").in("id", templateIds)

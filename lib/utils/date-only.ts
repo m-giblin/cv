@@ -23,3 +23,15 @@ export function localToday(now: number | Date = Date.now()): string {
 export function isPastDue(dueDate: string, now: number | Date = Date.now()): boolean {
   return dueDate.slice(0, 10) < localToday(now);
 }
+
+/**
+ * Moves a calendar day off the weekend: Saturday to the Friday before, Sunday to the Monday after.
+ * Keeps a run of dates in order, so steps due on consecutive days never swap.
+ */
+export function nearestWeekday(iso: string): string {
+  const date = new Date(`${iso.slice(0, 10)}T12:00:00Z`);
+  const day = date.getUTCDay();
+  if (day === 6) date.setUTCDate(date.getUTCDate() - 1);
+  else if (day === 0) date.setUTCDate(date.getUTCDate() + 1);
+  return date.toISOString().slice(0, 10);
+}

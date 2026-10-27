@@ -100,7 +100,7 @@ export function MentorStepWorkbench({
 
   return (
     <Drawer
-      eyebrow={`${stageName ? `${stageName} · ` : ""}Step ${index + 1} of ${steps.length} · ${stepTypeLabel(step.type)}`}
+      eyebrow={`${stageName ? `${stageName} · ` : ""}Step ${index + 1} of ${steps.length} · ${stepTypeLabel(step.type, step.resourceUrl)}`}
       footer={
         <>
           {previewHref ? (
@@ -237,7 +237,7 @@ export function MentorStepWorkbench({
         <section className={CARD_CLS}>
           <div className="flex flex-col gap-1">
             <span className="label-caps">
-              {step.type === "knowledge_check" ? "The check is drawn from" : stepTypeLabel(step.type)}
+              {step.type === "knowledge_check" ? "The check is drawn from" : stepTypeLabel(step.type, step.resourceUrl)}
             </span>
             <h3 className={H3_CLS}>{resource.title}</h3>
           </div>

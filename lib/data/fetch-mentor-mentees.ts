@@ -5,6 +5,7 @@ import { fetchMenteeTrack, type MenteeTrack } from "@/lib/mentoring/fetch-mentee
 import { fetchStepEvidence } from "@/lib/mentoring/fetch-step-evidence";
 import { fetchStepResources } from "@/lib/mentoring/fetch-step-resources";
 import type { StepResource } from "@/lib/mentoring/mentor-guide";
+import { loadMentorInvites, type UpcomingOneOnOne } from "@/lib/manager/one-on-ones";
 import { loadMentorRecords } from "@/lib/mentoring/mentor-records";
 import { EMPTY_RECORDS, type MenteeRecords, type StepEvidence } from "@/lib/mentoring/mentor-records-model";
 import type { Profile, UserPlan } from "@/lib/types";
@@ -20,6 +21,8 @@ export type MenteeAssignment = {
   evidence: Record<string, StepEvidence[]>;
   records: MenteeRecords;
   track: MenteeTrack | null;
+  /** The next 1:1 the manager booked and invited this mentor to, if any. */
+  nextOneOnOne: UpcomingOneOnOne | null;
 };
 
 export async function fetchMenteeAssignments(
@@ -48,10 +51,11 @@ export async function fetchMenteeAssignments(
   const profileById = new Map(profiles.map((profile) => [profile.id, profile]));
   const assignmentIds = new Set(assignments.map((assignment) => assignment.id));
   const mentored = plans.filter((plan) => assignmentIds.has(plan.id));
-  const [records, tracks, evidence] = await Promise.all([
+  const [records, tracks, evidence, invites] = await Promise.all([
     loadMentorRecords(supabase, userIds),
     Promise.all(mentored.map((plan) => fetchMenteeTrack(supabase, plan))),
     Promise.all(mentored.map((plan) => fetchStepEvidence(supabase, plan.userId, plan.steps))),
+    loadMentorInvites(supabase, mentorId, userIds),
   ]);
   const trackSteps = tracks.flatMap((track) => track?.stages.flatMap((stage) => stage.steps) ?? []);
   const resources = await fetchStepResources(supabase, [...mentored.flatMap((plan) => plan.steps), ...trackSteps]);
@@ -77,6 +81,7 @@ export async function fetchMenteeAssignments(
         evidence: evidence[index] ?? {},
         records: records.get(plan.userId) ?? EMPTY_RECORDS,
         track: tracks[index] ?? null,
+        nextOneOnOne: invites.get(plan.userId) ?? null,
       };
     })
     .filter((item): item is MenteeAssignment => item !== null)

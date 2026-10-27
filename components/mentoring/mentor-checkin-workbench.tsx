@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Drawer } from "@/components/ui/drawer";
 import { agendaForCheckin, type AgendaItem, type MenteeRecords } from "@/lib/mentoring/mentor-records-model";
 import type { UserPlan } from "@/lib/types";
+import { localToday } from "@/lib/utils/date-only";
 
 const CARD_CLS = "flex flex-col gap-3 rounded-[14px] border border-line bg-white p-[18px]";
 
@@ -46,7 +47,7 @@ export function MentorCheckinWorkbench({
 }) {
   const router = useRouter();
   const ids = { date: useId(), notes: useId(), next: useId() };
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localToday();
   const agenda = useMemo(() => agendaForCheckin(plan.steps, records, today), [plan.steps, records, today]);
   const [covered, setCovered] = useState<Set<string>>(new Set());
   const [metOn, setMetOn] = useState(today);
@@ -66,6 +67,11 @@ export function MentorCheckinWorkbench({
   }
 
   async function save() {
+    // A 1:1 that hasn't happened yet can't be logged as held.
+    if (metOn > today) {
+      toast.error(`That date hasn't happened yet. Log the 1:1 once you've met ${firstName}.`);
+      return;
+    }
     setSaving(true);
     const response = await fetch("/api/mentor/checkins", {
       method: "POST",

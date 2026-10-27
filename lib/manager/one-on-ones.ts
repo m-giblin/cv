@@ -16,6 +16,7 @@ export type UpcomingOneOnOne = {
   scheduledById: string | null;
   scheduledByName: string;
   mentorInvited: boolean;
+  mentorId: string | null;
 };
 
 type OneOnOneMetadata = {
@@ -23,6 +24,7 @@ type OneOnOneMetadata = {
   minutes?: number;
   label?: string;
   mentor_invited?: boolean;
+  mentor_id?: string;
   scheduled_by_name?: string;
 };
 
@@ -48,6 +50,7 @@ export async function loadUpcomingOneOnOnes(admin: Db, userId: string, now = new
         scheduledById: row.actor_id,
         scheduledByName: meta.scheduled_by_name ?? "Your manager",
         mentorInvited: Boolean(meta.mentor_invited),
+        mentorId: meta.mentor_id ?? null,
       };
     })
     .filter((item): item is UpcomingOneOnOne => {
@@ -56,4 +59,16 @@ export async function loadUpcomingOneOnOnes(admin: Db, userId: string, now = new
       return end > now.getTime();
     })
     .sort((a, b) => a.start.localeCompare(b.start));
+}
+
+/** The next 1:1 this mentor was invited to with each mentee, keyed by mentee id. */
+export async function loadMentorInvites(admin: Db, mentorId: string, menteeIds: string[], now = new Date()) {
+  const entries = await Promise.all(
+    menteeIds.map(async (id) => {
+      const upcoming = await loadUpcomingOneOnOnes(admin, id, now).catch(() => []);
+      const invite = upcoming.find((item) => item.mentorInvited && item.mentorId === mentorId);
+      return [id, invite ?? null] as const;
+    }),
+  );
+  return new Map(entries.filter((entry): entry is readonly [string, UpcomingOneOnOne] => entry[1] !== null));
 }

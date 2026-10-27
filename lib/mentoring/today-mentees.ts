@@ -1,10 +1,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
+import { loadMentorInvites } from "@/lib/manager/one-on-ones";
 import { MENTOR_EVENT } from "@/lib/mentoring/mentor-records-model";
 
 type Db = SupabaseClient<Database>;
 
 export type TodayMentee = {
+  /** The program enrollment, so Today can open its schedule directly. */
+  assignmentId: string;
   menteeId: string;
   name: string;
   planName: string;
@@ -14,6 +17,8 @@ export type TodayMentee = {
   targetCompletion: string | null;
   /** Steps they've submitted that are waiting on a review. */
   waitingOnReview: number;
+  /** The next 1:1 the manager booked with this mentor invited, as the scheduler wrote it. */
+  nextOneOnOneLabel: string | null;
 };
 
 /** People the signed-in SE mentors, for the Today page: one row per active program, newest first. */
@@ -28,7 +33,7 @@ export async function loadTodayMentees(admin: Db, mentorId: string): Promise<Tod
   if (!assignments.length) return [];
 
   const menteeIds = [...new Set(assignments.map((row) => row.user_id))];
-  const [{ data: people }, { data: plans }, { data: events }, { data: submitted }] = await Promise.all([
+  const [{ data: people }, { data: plans }, { data: events }, { data: submitted }, invites] = await Promise.all([
     admin.from("profiles").select("id, full_name").in("id", menteeIds),
     admin.from("onboarding_plans").select("id, name").in("id", [...new Set(assignments.map((row) => row.plan_id))]),
     admin
@@ -42,6 +47,7 @@ export async function loadTodayMentees(admin: Db, mentorId: string): Promise<Tod
       .select("assignment_id")
       .in("assignment_id", assignments.map((row) => row.id))
       .eq("status", "submitted"),
+    loadMentorInvites(admin, mentorId, menteeIds),
   ]);
   const nameOf = new Map((people ?? []).map((row) => [row.id, row.full_name]));
   const planOf = new Map((plans ?? []).map((row) => [row.id, row.name]));
@@ -53,6 +59,7 @@ export async function loadTodayMentees(admin: Db, mentorId: string): Promise<Tod
   for (const row of submitted ?? []) waiting.set(row.assignment_id, (waiting.get(row.assignment_id) ?? 0) + 1);
 
   return assignments.map((row) => ({
+    assignmentId: row.id,
     menteeId: row.user_id,
     name: nameOf.get(row.user_id) ?? "Your mentee",
     planName: planOf.get(row.plan_id) ?? "Onboarding program",
@@ -60,5 +67,6 @@ export async function loadTodayMentees(admin: Db, mentorId: string): Promise<Tod
     scheduleSet: scheduled.has(row.id),
     targetCompletion: row.target_completion,
     waitingOnReview: waiting.get(row.id) ?? 0,
+    nextOneOnOneLabel: invites.get(row.user_id)?.label ?? null,
   }));
 }

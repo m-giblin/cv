@@ -110,7 +110,9 @@ export function mentorPreviewLabel(step: PlanStep): string {
   }
 }
 
-export function stepTypeLabel(type: PlanStepType): string {
+/** Pass the step's link too: a content step that opens pitch practice is a pitch, not reading. */
+export function stepTypeLabel(type: PlanStepType, resourceUrl?: string | null): string {
+  if (type === "content_review" && resourceUrl?.startsWith("/practice/pitch")) return "Pitch practice";
   switch (type) {
     case "content_review":
       return "Read or watch";

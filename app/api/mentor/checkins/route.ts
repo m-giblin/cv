@@ -23,6 +23,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Add notes or next actions before saving the check-in." }, { status: 400 });
   }
 
+  // UTC today runs ahead of US time, so this only refuses dates that are clearly in the future.
+  if (parsed.data.metOn > new Date().toISOString().slice(0, 10)) {
+    return NextResponse.json({ error: "That date hasn't happened yet. Log the 1:1 once you've met." }, { status: 400 });
+  }
+
   try {
     const assignment = await requireMentoredAssignment(session.admin, session.userId, parsed.data.assignmentId);
     const id = await recordMentorEvent(session.admin, {

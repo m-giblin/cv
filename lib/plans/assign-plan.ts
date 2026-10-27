@@ -2,6 +2,7 @@ import { SupabaseClient } from "@supabase/supabase-js";
 import { Database } from "@/lib/database.types";
 import { assertPriorStageApproved } from "@/lib/plans/stage-progression";
 import { DEFAULT_TENANT_ID } from "@/lib/tenant/types";
+import { nearestWeekday } from "@/lib/utils/date-only";
 
 type PlanStepRow = Database["public"]["Tables"]["plan_steps"]["Row"];
 
@@ -89,7 +90,8 @@ export async function assignPlanToUser(
       assignment_id: assignment.id,
       plan_step_id: step.id,
       status: "not_started" as const,
-      due_date: due.toISOString().slice(0, 10),
+      // Default dates land on working days; the mentor agrees the real ones with the new hire.
+      due_date: nearestWeekday(due.toISOString().slice(0, 10)),
     };
   });
 

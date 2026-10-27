@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { MyTrainingCard } from "@/components/manager/my-training-card";
+import { MenteesTodayCard } from "@/components/mentoring/mentees-today-card";
 import { HeaderStat, TeamActionLink, TeamStatusTag, initialsOf } from "@/components/manager/team-member-bits";
 import { DefinitionCard } from "@/components/ui/editorial";
 import { Drawer } from "@/components/ui/drawer";
@@ -169,6 +170,7 @@ export function ManagerToday({
         <MainWithRail
           rail={
             <>
+              <MenteesTodayCard />
               <MyTrainingCard />
               <DefinitionCard
                 inner={

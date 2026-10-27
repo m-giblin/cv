@@ -25,7 +25,12 @@ type ProfileRow = {
  * program(s), and the check-ins waiting on them. Reads with the admin client scoped to
  * mentor_id = the signed-in user, so it works without manager-level row access.
  */
-export default async function MentoringPage() {
+export default async function MentoringPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const open = (await searchParams).open;
   const { data } = await requireUserPageAccess("/mentoring");
   const admin = getTenantAdminClient();
   let mentees: Awaited<ReturnType<typeof fetchMenteeAssignments>> = [];
@@ -76,7 +81,7 @@ export default async function MentoringPage() {
         title="Mentoring."
       />
       <PageBody className="pb-7">
-        <ManagerMenteesPanel mentees={mentees} />
+        <ManagerMenteesPanel initialOpen={typeof open === "string" ? open : undefined} mentees={mentees} />
       </PageBody>
     </>
   );
