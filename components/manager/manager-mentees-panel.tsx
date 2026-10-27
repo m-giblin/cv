@@ -328,7 +328,13 @@ export function ManagerMenteesPanel({
           changes={scheduleMentee.records.scheduleChanges}
           key={scheduleMentee.plan.id}
           menteeName={scheduleMentee.profile.fullName}
+          metYet={scheduleMentee.records.checkins.some((item) => item.assignmentId === scheduleMentee.plan.id)}
+          nextOneOnOneLabel={scheduleMentee.nextOneOnOne?.label}
           onClose={() => setScheduleFor(null)}
+          onLogOneOnOne={() => {
+            setScheduleFor(null);
+            setCheckinFor(scheduleMentee.plan.id);
+          }}
           open
           plan={scheduleMentee.plan}
         />

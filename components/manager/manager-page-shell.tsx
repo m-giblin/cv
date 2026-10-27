@@ -162,6 +162,9 @@ export function ManagerPageShell({
 
   let content: ReactNode;
 
+  // Admins see everyone in the workspace; only call it "your team" when people report to the viewer.
+  const seesEveryone = Boolean(viewer) && !profiles.some((profile) => profile.managerId === viewer?.id);
+
   switch (section) {
     case "inbox":
       content = (
@@ -177,6 +180,7 @@ export function ManagerPageShell({
       content = (
         <ManagerTeamRoster
           members={teamMembers}
+          seesEveryone={seesEveryone}
           onSelectProfile={openProfile}
           readinessAvailable={readinessAvailable}
           tabs={<TeamTabs flags={featureFlags} />}
@@ -276,6 +280,7 @@ export function ManagerPageShell({
           readinessAvailable={readinessAvailable}
           reviewCount={reviewCount}
           reviewsOverSla={reviewsOverSla}
+          seesEveryone={seesEveryone}
         />
       );
       break;

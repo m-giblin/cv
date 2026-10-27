@@ -55,6 +55,7 @@ export function ManagerToday({
   cadenceRows,
   activity,
   onOpenProfile,
+  seesEveryone = false,
 }: {
   managerFirstName?: string;
   members: TeamMember[];
@@ -64,6 +65,8 @@ export function ManagerToday({
   cadenceRows: CoachingCadenceRow[];
   activity: ActivityLog[];
   onOpenProfile: (profileId: string) => void;
+  /** An admin with no direct reports sees everyone in the workspace, not a team of their own. */
+  seesEveryone?: boolean;
 }) {
   // Date and greeting depend on the viewer's clock, so they render after mount (no hydration mismatch).
   const router = useRouter();
@@ -172,39 +175,42 @@ export function ManagerToday({
             <>
               <MenteesTodayCard />
               <MyTrainingCard />
-              <DefinitionCard
-                inner={
-                  teamSize > 0 ? (
-                    <div aria-hidden className="flex gap-1">
-                      {cadenceRows.map((row, index) => (
-                        <span
-                          className={cn("h-2 flex-1 rounded-[2px]", index < coached ? "bg-signal" : "bg-[#2A3A63]")}
-                          key={row.profileId}
-                        />
-                      ))}
-                    </div>
-                  ) : null
-                }
-                link={
-                  <Link className="link text-[15px]" href={managerSectionHref("cadence")}>
-                    {coached < teamSize ? "Book the rest" : "See your cadence"}
-                  </Link>
-                }
-                partOfSpeech="noun, manager"
-                word="coaching"
-              >
-                Fifteen minutes a week per person beats an hour a month.{" "}
-                {teamSize > 0
-                  ? `In the last seven days you have coached ${coached} of ${teamSize} ${plural(teamSize, "person", "people")}.`
-                  : "Coaching shows up here once people report to you."}
-              </DefinitionCard>
+              {/* The coaching cadence is for people who report to you; an admin seeing everyone has none. */}
+              {seesEveryone ? null : (
+                <DefinitionCard
+                  inner={
+                    teamSize > 0 ? (
+                      <div aria-hidden className="flex gap-1">
+                        {cadenceRows.map((row, index) => (
+                          <span
+                            className={cn("h-2 flex-1 rounded-[2px]", index < coached ? "bg-signal" : "bg-[#2A3A63]")}
+                            key={row.profileId}
+                          />
+                        ))}
+                      </div>
+                    ) : null
+                  }
+                  link={
+                    <Link className="link text-[15px]" href={managerSectionHref("cadence")}>
+                      {coached < teamSize ? "Book the rest" : "See your cadence"}
+                    </Link>
+                  }
+                  partOfSpeech="noun, manager"
+                  word="coaching"
+                >
+                  Fifteen minutes a week per person beats an hour a month.{" "}
+                  {teamSize > 0
+                    ? `In the last seven days you have coached ${coached} of ${teamSize} ${plural(teamSize, "person", "people")}.`
+                    : "Coaching shows up here once people report to you."}
+                </DefinitionCard>
+              )}
             </>
           }
         >
           <section aria-labelledby="today-team" className="flex flex-col gap-3">
             <div className="flex items-baseline justify-between gap-4">
               <h2 className="text-xl font-extrabold text-ink" id="today-team">
-                Your team, most urgent first
+                {seesEveryone ? "Everyone in this workspace, most urgent first" : "Your team, most urgent first"}
               </h2>
               {members.length > shown.length ? (
                 <Link className="link text-sm" href={managerSectionHref("roster")}>
@@ -213,7 +219,7 @@ export function ManagerToday({
               ) : null}
             </div>
             <TableCard minWidth={720}>
-              <caption className="sr-only">Your team, most urgent first. Target readiness is {READINESS_TARGET}.</caption>
+              <caption className="sr-only">{seesEveryone ? "Everyone in this workspace" : "Your team"}, most urgent first. Target readiness is {READINESS_TARGET}.</caption>
               <thead>
                 <tr>
                   <th className={thCls} scope="col">

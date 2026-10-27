@@ -267,11 +267,14 @@ export function ManagerTeamRoster({
   onSelectProfile,
   readinessAvailable,
   tabs,
+  seesEveryone = false,
 }: {
   members: TeamMember[];
   onSelectProfile: (profileId: string) => void;
   readinessAvailable: boolean;
   tabs?: ReactNode;
+  /** An admin with no direct reports sees everyone in the workspace, not a team of their own. */
+  seesEveryone?: boolean;
 }) {
   const [view, setView] = useState<View>("status");
   const [assigning, setAssigning] = useState(false);
@@ -321,7 +324,8 @@ export function ManagerTeamRoster({
         }
         className="pb-[22px]"
         eyebrow="Team"
-        title="Your team."
+        subtitle={seesEveryone ? "No one reports to you, so as an admin you see everyone in this workspace." : undefined}
+        title={seesEveryone ? "Everyone." : "Your team."}
       />
       {tabs}
       <PageBody className="pb-7">

@@ -33,12 +33,19 @@ export function MentorScheduleEditor({
   plan,
   menteeName,
   changes,
+  metYet = true,
+  nextOneOnOneLabel,
+  onLogOneOnOne,
 }: {
   open: boolean;
   onClose: () => void;
   plan: UserPlan;
   menteeName: string;
   changes: ScheduleChange[];
+  /** Whether a 1:1 has been logged. The dates are meant to be agreed face to face, so nudge first. */
+  metYet?: boolean;
+  nextOneOnOneLabel?: string | null;
+  onLogOneOnOne?: () => void;
 }) {
   const router = useRouter();
   const noteId = useId();
@@ -107,6 +114,20 @@ export function MentorScheduleEditor({
       open={open}
       side={
         <section className="flex flex-col gap-3">
+          {metYet ? null : (
+            <div className="flex flex-col gap-1 rounded-[12px] border border-blue bg-blue-soft p-3 text-sm text-ink-2">
+              <p className="font-bold text-ink">You haven&apos;t logged a 1:1 with {firstName} yet</p>
+              <p className="m-0">
+                {nextOneOnOneLabel ? `Your 1:1 is booked for ${nextOneOnOneLabel}. ` : ""}
+                The dates work best agreed together. You can set them now and change them after you meet.
+              </p>
+              {onLogOneOnOne ? (
+                <button className="link self-start text-sm" onClick={onLogOneOnOne} type="button">
+                  Log a 1:1 first
+                </button>
+              ) : null}
+            </div>
+          )}
           <p className="text-[15px] text-ink-2">
             Agree these dates with {firstName} when you meet. They are not fixed to 30 days: set what is realistic, and the stage
             ends on the latest one.
