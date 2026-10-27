@@ -211,7 +211,8 @@ function buildSparkline(current: number, trend: "up" | "flat" | "down", mode: Re
 function rampCell(planProgress: number, tenureDays: number, firstName: string): ReadinessMapCell {
   const expected = expectedRampPct(tenureDays);
   const gap = expected - planProgress;
-  const level = statusLevelForScore(planProgress);
+  // Ramp is judged against where they should be by now, not against 100%: on day 1, 0% is on pace.
+  const level: ReadinessStatusLevel = gap > 20 ? "critical" : gap > 8 ? "risk" : "good";
   let status = "On pace";
   let insight = `${firstName} is at ${planProgress}% on day ${tenureDays} — expected pace is ~${expected}%.`;
   if (gap > 20) {

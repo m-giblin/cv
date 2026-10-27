@@ -141,7 +141,8 @@ export function ManagerPlanAssignPanel({
  router.refresh();
  }
 
- const assignStep = !selectedTemplateId ? 1 : !userId ? 2 : 3;
+ // The mentor is optional, but step 2 only counts as done once one is chosen.
+ const assignStep = !selectedTemplateId ? 1 : !userId || !mentorId ? 2 : 3;
 
  if (isLoading) {
  return (
@@ -161,7 +162,7 @@ export function ManagerPlanAssignPanel({
  {compact ? "Assign onboarding plan" : "Onboarding plans"}
  </h3>
  <p className="mt-1 text-sm text-muted">
- Pick a week template, choose the SE and mentor, then confirm dates.
+ Pick a template, choose the SE and mentor, then confirm the start date. The mentor agrees the due dates with the new hire.
  </p>
  <ol className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
  {[
@@ -296,7 +297,9 @@ export function ManagerPlanAssignPanel({
  <span className="block">Target completion</span>
  <div className="flex items-center gap-2 rounded-[10px] bg-surface-2 px-3 py-2 text-[15px] font-normal text-ink-2">
  <span>{displayDate(targetCompletion)}</span>
- <span className="text-[13px] text-muted">Set from the template</span>
+ <span className="text-[13px] text-muted">
+ {mentorId ? "Starting point. The mentor agrees the final dates with them." : "From the template"}
+ </span>
  </div>
  </div>
  </div>

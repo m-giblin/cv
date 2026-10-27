@@ -72,6 +72,18 @@ export async function POST(request: Request) {
  actionUrl: "/dashboard",
  });
 
+ // The mentor agrees the schedule with the new hire, so they need to know they've been chosen.
+ if (parsed.data.mentorId && parsed.data.mentorId !== session.user.id) {
+ const { data: plan } = await session.supabase.from("onboarding_plans").select("name").eq("id", parsed.data.planId).maybeSingle();
+ const name = assignee?.full_name ?? "A new team member";
+ await createNotification(session.supabase, {
+ userId: parsed.data.mentorId,
+ title: `You're mentoring ${name}`,
+ body: `${plan?.name ?? "An onboarding plan"} starts ${parsed.data.startDate}. Read the hiring brief, meet ${name.split(" ")[0]}, then set the schedule together.`,
+ actionUrl: "/mentoring",
+ });
+ }
+
  await logAuditEvent(session.user.id, {
  action: "plan.assigned",
  targetType: "plan_assignment",
