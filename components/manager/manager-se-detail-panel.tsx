@@ -287,15 +287,20 @@ export function ManagerSeDetailPanel({
     attention.push(`No activity in the platform for ${coaching.lastActiveDays} days.`);
   }
   if (overdue) attention.push(`${overdue} assigned item${overdue === 1 ? " is" : "s are"} past due.`);
+  // The counters cover everything on their plate: onboarding steps plus work assigned on top of them.
+  const stepsDueThisWeek = remainingSteps.filter((step) => step.dueDate && !isOverdue(step) && step.dueDate <= weekAhead).length;
+  const overdueTotal = overdue + overdueSteps.length;
   const stats: Array<{ label: string; value: ReactNode; tone: string }> = [
-    { label: "Open", value: work ? open.length : "…", tone: "text-blue" },
-    { label: "Done", value: work ? work.length - open.length : "…", tone: "text-success" },
+    { label: "Open", value: work ? open.length + remainingSteps.length : "…", tone: "text-blue" },
+    { label: "Done", value: work ? work.length - open.length + doneSteps.length : "…", tone: "text-success" },
     {
       label: "Due this week",
-      value: work ? open.filter((item) => item.state !== "overdue" && item.dueDate && item.dueDate <= weekAhead).length : "…",
+      value: work
+        ? open.filter((item) => item.state !== "overdue" && item.dueDate && item.dueDate <= weekAhead).length + stepsDueThisWeek
+        : "…",
       tone: "text-blue",
     },
-    { label: "Overdue", value: work ? overdue : "…", tone: overdue ? "text-danger" : "text-blue" },
+    { label: "Overdue", value: work ? overdueTotal : "…", tone: overdueTotal ? "text-danger" : "text-blue" },
   ];
 
   return (
@@ -334,7 +339,7 @@ export function ManagerSeDetailPanel({
               <ManagerReassignMentor
                 assignmentId={plan.id}
                 currentMentorId={plan.mentorId}
-                mentors={mentors}
+                mentors={mentors.filter((candidate) => candidate.id !== profile.id)}
                 seName={profile.fullName}
               />
             ) : null}
