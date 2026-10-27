@@ -75,13 +75,18 @@ function MenteesCard({ mentees }: { mentees: TodayMentee[] }) {
                 {mentee.startDate ? `, started ${formatDay(mentee.startDate)}` : ""}
               </span>
               <span className="mt-1 block text-sm text-ink-2">
-                {mentee.scheduleSet
-                  ? `Schedule set. Last step due ${formatDay(mentee.targetCompletion) ?? "soon"}.`
-                  : `Next: read the hiring brief, meet ${mentee.name.split(" ")[0]}, then set the schedule together.`}
+                {mentee.waitingOnReview > 0
+                  ? `${mentee.waitingOnReview} ${mentee.waitingOnReview === 1 ? "step is" : "steps are"} waiting on your review.`
+                  : mentee.scheduleSet
+                    ? `Schedule set. Last step due ${formatDay(mentee.targetCompletion) ?? "soon"}.`
+                    : `Next: read the hiring brief, meet ${mentee.name.split(" ")[0]}, then set the schedule together.`}
               </span>
             </span>
-            <Link className={mentee.scheduleSet ? "btn-secondary" : "btn-primary"} href="/mentoring">
-              {mentee.scheduleSet ? "Open mentoring" : "Set the schedule"}
+            <Link
+              className={mentee.waitingOnReview > 0 || !mentee.scheduleSet ? "btn-primary" : "btn-secondary"}
+              href="/mentoring"
+            >
+              {mentee.waitingOnReview > 0 ? "Review" : mentee.scheduleSet ? "Open mentoring" : "Set the schedule"}
             </Link>
           </li>
         ))}
