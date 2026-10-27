@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { enrollmentMentors } from "@/lib/manager/eligible-mentors";
+import { eligibleMentorsForEnrollment, enrollmentMentors } from "@/lib/manager/eligible-mentors";
 import type { Profile } from "@/lib/types";
 
 function profile(id: string, role: Profile["role"], fullName = id): Profile {
@@ -30,5 +30,17 @@ describe("enrollmentMentors", () => {
 
     expect(mentors).toHaveLength(1);
     expect(mentors[0]?.id).toBe("matt");
+  });
+});
+
+describe("super admins as mentors", () => {
+  const people = [
+    { id: "sa-team", fullName: "On Team", role: "super_admin" },
+    { id: "sa-other", fullName: "Elsewhere", role: "super_admin" },
+  ] as unknown as Profile[];
+
+  it("offers a super admin only when they are on the manager's team", () => {
+    const ids = eligibleMentorsForEnrollment(people, new Set(["sa-team"])).map((person) => person.id);
+    expect(ids).toEqual(["sa-team"]);
   });
 });

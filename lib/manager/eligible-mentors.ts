@@ -10,7 +10,6 @@ export function eligibleMentorsForOrg(
     .filter((profile) => {
       if (!orgUserIds.has(profile.id)) return false;
       if (excludeUserId && profile.id === excludeUserId) return false;
-      if (profile.role === "super_admin") return false;
       return true;
     })
     .sort((a, b) => a.fullName.localeCompare(b.fullName));
@@ -33,7 +32,8 @@ const MENTOR_CAPABLE_ROLES = new Set<string>([
 export function eligibleMentorsForEnrollment(profiles: Profile[], orgUserIds: Set<string>): Profile[] {
   return profiles
     .filter((profile) => {
-      if (profile.role === "super_admin") return false;
+      // A super admin only counts when they sit on this manager's team (their home workspace).
+      if (profile.role === "super_admin") return orgUserIds.has(profile.id);
       return orgUserIds.has(profile.id) || MENTOR_CAPABLE_ROLES.has(profile.role);
     })
     .sort((a, b) => a.fullName.localeCompare(b.fullName));
