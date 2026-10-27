@@ -236,6 +236,9 @@ export function buildSeCoachingSummary(params: {
   if (cohortBenchmark && cohortBenchmark.simDelta !== null && cohortBenchmark.simDelta <= -5) {
     talkingPoints.push(cohortBenchmark.simComparisonLabel);
   }
+  if (!hasEvidence && !plan) {
+    talkingPoints.push("Getting started: write the hiring brief, choose a mentor and assign the onboarding plan.");
+  }
   if (!hasEvidence && plan) {
     talkingPoints.push(
       currentStep
