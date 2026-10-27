@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import { ManagerMenteesPanel } from "@/components/manager/manager-mentees-panel";
 import { PageBody, PageHeader } from "@/components/ui/page-header";
-import { requireAppAccess } from "@/lib/auth/require-access";
+import { requireUserPageAccess } from "@/lib/auth/require-access";
 import { fetchMenteeAssignments } from "@/lib/data/fetch-mentor-mentees";
 import { getTenantAdminClient } from "@/lib/data/tenant-scoped-query";
 import type { Database } from "@/lib/database.types";
@@ -26,7 +26,7 @@ type ProfileRow = {
  * mentor_id = the signed-in user, so it works without manager-level row access.
  */
 export default async function MentoringPage() {
-  const { data } = await requireAppAccess("/mentoring");
+  const { data } = await requireUserPageAccess("/mentoring");
   const admin = getTenantAdminClient();
   let mentees: Awaited<ReturnType<typeof fetchMenteeAssignments>> = [];
   if (admin) {

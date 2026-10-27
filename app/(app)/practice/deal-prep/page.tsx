@@ -1,5 +1,5 @@
 import { DealPrepShell } from "@/components/deal-prep/deal-prep-shell";
-import { requireAppAccess } from "@/lib/auth/require-access";
+import { requireUserPageAccess } from "@/lib/auth/require-access";
 import { profileLevelLabel } from "@/lib/utils/level-label";
 
 type DealPrepPageProps = {
@@ -9,7 +9,7 @@ type DealPrepPageProps = {
 export const metadata = { title: "Deal prep · Practice" };
 
 export default async function DealPrepPage({ searchParams }: DealPrepPageProps) {
-  const { data, tier } = await requireAppAccess("/prep");
+  const { data, tier } = await requireUserPageAccess("/prep");
   const params = await searchParams;
   const testMode = tier === "admin" && params.test === "1";
 

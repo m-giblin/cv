@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { PageBody, PageHeader } from "@/components/ui/page-header";
-import { requireAppAccess } from "@/lib/auth/require-access";
+import { requireUserPageAccess } from "@/lib/auth/require-access";
 
 export const metadata = { title: "Mentor guide · Mentoring" };
 
@@ -61,7 +61,7 @@ const HABITS = [
 ];
 
 export default async function MentorGuidePage() {
-  await requireAppAccess("/mentoring/guide");
+  await requireUserPageAccess("/mentoring/guide");
   return (
     <>
       <PageHeader

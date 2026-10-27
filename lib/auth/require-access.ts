@@ -9,7 +9,9 @@ import {
   getChallengesPageData,
   getChallengesPageDataForTier,
 } from "@/lib/data/get-challenges-page-data";
-import { getDashboardData } from "@/lib/data/get-dashboard-data";
+import { getAuthenticatedUser } from "@/lib/data/get-authenticated-user";
+import { getDashboardData, mapProfile } from "@/lib/data/get-dashboard-data";
+import { createClient } from "@/lib/supabase/server";
 import { getDashboardPageData } from "@/lib/data/get-dashboard-page-data";
 import { getManagerPageData } from "@/lib/data/get-manager-page-data";
 import { getLabPageData } from "@/lib/data/get-lab-page-data";
@@ -72,6 +74,32 @@ export async function requireAppAccess(pathname: string) {
   }
 
   return { data, source, tier, role: data.currentUser.role as ProfileRole };
+}
+
+/**
+ * Access check for pages that only need who is signed in. requireAppAccess loads the whole team
+ * data set (profiles, plans, challenges, coaching); this reads one profile row.
+ */
+export async function requireUserPageAccess(pathname: string): Promise<{
+  data: { currentUser: DashboardData["currentUser"] };
+  source: DataSource;
+  tier: AccessTier;
+  role: ProfileRole;
+}> {
+  const [user, supabase] = await Promise.all([getAuthenticatedUser(), createClient()]);
+  if (!user || !supabase) redirect(AUTH_ROUTES.login);
+  const { data: row } = await supabase
+    .from("profiles")
+    .select("id, email, full_name, role, level, manager_id, avatar_url, created_at, tenant_id")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (!row) redirect(AUTH_ROUTES.login);
+  const currentUser = mapProfile(row);
+  const tier = await resolvePageTier(currentUser.role, currentUser.tenantId ?? null);
+  if (!canAccessRoute(tier, pathname)) {
+    redirect(getHomeRoute(tier));
+  }
+  return { data: { currentUser }, source: "supabase", tier, role: currentUser.role as ProfileRole };
 }
 
 export async function requireAdminPageAccess() {
