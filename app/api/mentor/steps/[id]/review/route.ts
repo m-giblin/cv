@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { recordMentorEvent } from "@/lib/mentoring/mentor-records";
+import { MENTOR_EVENT } from "@/lib/mentoring/mentor-records-model";
 import { mentorErrorResponse, mentorSession } from "@/lib/mentoring/mentor-session";
 import { createNotification } from "@/lib/notifications/create-notification";
 import { approveAssignmentStep, rejectAssignmentStep } from "@/lib/plans/complete-step";
@@ -31,7 +33,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     .maybeSingle();
   if (!step) return NextResponse.json({ error: "Step not found." }, { status: 404 });
   const [{ data: assignment }, { data: planStep }, { data: mentor }] = await Promise.all([
-    admin.from("plan_assignments").select("user_id, mentor_id").eq("id", step.assignment_id).maybeSingle(),
+    admin.from("plan_assignments").select("user_id, mentor_id, tenant_id").eq("id", step.assignment_id).maybeSingle(),
     admin.from("plan_steps").select("title, step_type, metadata, sort_order").eq("id", step.plan_step_id).maybeSingle(),
     admin.from("profiles").select("full_name").eq("id", userId).maybeSingle(),
   ]);
@@ -53,6 +55,17 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       await approveAssignmentStep(admin, { assignmentStepId: id, reviewerId: userId, feedback });
     } else {
       await rejectAssignmentStep(admin, { assignmentStepId: id, reviewerId: userId, feedback: feedback! });
+    }
+    // The note shows on the step for both of them, alongside any other feedback on it.
+    if (feedback) {
+      await recordMentorEvent(admin, {
+        menteeId: assignment.user_id,
+        actorId: userId,
+        tenantId: assignment.tenant_id,
+        type: MENTOR_EVENT.feedback,
+        title: `Mentor feedback on ${planStep.title}`,
+        metadata: { assignment_step_id: id, assignment_id: step.assignment_id, body: feedback },
+      });
     }
     const first = mentor?.full_name.split(" ")[0] ?? "Your mentor";
     await createNotification(admin, {

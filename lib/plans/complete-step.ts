@@ -217,10 +217,10 @@ export async function endorseAssignmentStep(
 
   const { error } = await supabase
     .from("plan_assignment_steps")
+    // notes keeps what the SE submitted for the manager's sign-off; the endorsement goes to the log.
     .update({
       status: "under_review",
       completed_at: null,
-      notes: params.feedback ?? step.notes,
     })
     .eq("id", params.assignmentStepId);
 
@@ -251,6 +251,7 @@ export async function endorseAssignmentStep(
       assignment_step_id: params.assignmentStepId,
       plan_step_id: step.plan_step_id,
       validation_status: "under_review",
+      feedback: params.feedback ?? null,
     },
   });
 
@@ -333,10 +334,10 @@ export async function approveAssignmentStep(
 
   const { error } = await supabase
     .from("plan_assignment_steps")
+    // notes keeps what the SE submitted; the reviewer's words go to the activity log below.
     .update({
       status: "reviewed",
       completed_at: new Date().toISOString(),
-      notes: params.feedback ?? step.notes,
     })
     .eq("id", params.assignmentStepId);
 
@@ -358,6 +359,7 @@ export async function approveAssignmentStep(
       assignment_step_id: params.assignmentStepId,
       plan_step_id: step.plan_step_id,
       validation_status: "reviewed",
+      feedback: params.feedback ?? null,
     },
   });
 
@@ -415,10 +417,10 @@ export async function rejectAssignmentStep(
 
   const { error } = await supabase
     .from("plan_assignment_steps")
+    // notes keeps what the SE submitted so they can build on it; the reason goes to the activity log.
     .update({
       status: "in_progress",
       completed_at: null,
-      notes: params.feedback,
     })
     .eq("id", params.assignmentStepId);
 
@@ -437,6 +439,7 @@ export async function rejectAssignmentStep(
       assignment_step_id: params.assignmentStepId,
       plan_step_id: step.plan_step_id,
       validation_status: "rejected",
+      feedback: params.feedback,
     },
   });
 
