@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Bell, ChevronDown, Loader2 } from "lucide-react";
+import { Bell, ChevronRight, Loader2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { LINE_CARD_CLS } from "@/components/se/form-classes";
 import { Chip } from "@/components/ui/chip";
+import { Drawer } from "@/components/ui/drawer";
 import { Stat } from "@/components/ui/stat";
 import { StatusPill } from "@/components/ui/status-pill";
 import { Tag } from "@/components/ui/tag";
@@ -370,15 +371,14 @@ export function FeedbackInbox({ data }: { data: DashboardData }) {
  <li key={itemKey}>
  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-5 gap-y-2 px-5 py-3.5 sm:grid-cols-[minmax(0,1fr)_96px_110px]">
  <button
- aria-controls={detailId}
- aria-expanded={isOpen}
+ aria-haspopup="dialog"
  className="col-span-2 flex min-w-0 items-start gap-2 text-left sm:col-span-1"
  onClick={() => toggleExpanded(itemKey)}
  type="button"
  >
- <ChevronDown
+ <ChevronRight
  aria-hidden
- className={cn("mt-1 h-4 w-4 shrink-0 text-muted transition-transform", isOpen ? "rotate-180" : "")}
+ className="mt-1 h-4 w-4 shrink-0 text-muted"
  />
  <span className="flex min-w-0 flex-col gap-1.5">
  <span className="text-[15px] font-semibold text-ink">{row.title}</span>
@@ -387,7 +387,7 @@ export function FeedbackInbox({ data }: { data: DashboardData }) {
  <StatusPill tone={tag.tone}>{tag.text}</StatusPill>
  </span>
  {row.feedback ? (
- <span className={cn("text-sm leading-[1.5] text-ink-2", isOpen ? "" : "line-clamp-2")}>
+ <span className="line-clamp-2 text-sm leading-[1.5] text-ink-2">
  &ldquo;{row.feedback}&rdquo;
  </span>
  ) : null}
@@ -418,11 +418,21 @@ export function FeedbackInbox({ data }: { data: DashboardData }) {
  </span>
  </div>
 
- <div
- className="border-t border-divider bg-bg px-5 py-4 sm:pl-11"
- hidden={!isOpen}
- id={detailId}
+ {isOpen ? (
+ <Drawer
+ eyebrow={row.kind === "challenge" ? "Challenge feedback" : "Simulation feedback"}
+ onClose={() => toggleExpanded(itemKey)}
+ open
+ size="form"
+ subtitle={tone ? `${row.grade} of 5 · ${tone.label}` : row.awaiting ? "Waiting on your manager" : "No grade yet"}
+ title={row.title}
  >
+ <div className="flex flex-col gap-4" id={detailId}>
+ {row.feedback ? (
+ <blockquote className="m-0 rounded-[12px] border border-line bg-white p-4 text-[15px] leading-[1.6] text-ink-2">
+ &ldquo;{row.feedback}&rdquo;
+ </blockquote>
+ ) : null}
  {row.awaiting ? (
  <div className="flex flex-col gap-3">
  <p className="text-sm text-ink-2">
@@ -470,6 +480,8 @@ export function FeedbackInbox({ data }: { data: DashboardData }) {
  </div>
  )}
  </div>
+ </Drawer>
+ ) : null}
  </li>
  );
  })}
