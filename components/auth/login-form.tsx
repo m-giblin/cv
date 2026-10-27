@@ -6,6 +6,7 @@ import { useId, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { allowedEmailError } from "@/lib/auth/email-domain";
 import { mapAuthErrorMessage } from "@/lib/auth/errors";
+import { isMfaExempt } from "@/lib/auth/mfa";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
 import { createClient } from "@/lib/supabase/client";
 
@@ -104,7 +105,7 @@ export function LoginForm({ initialError }: { initialError?: string | null }) {
     }
 
     let destination: (typeof AUTH_ROUTES)[keyof typeof AUTH_ROUTES] = AUTH_ROUTES.mfaEnroll;
-    if (aal?.currentLevel === "aal2") {
+    if (aal?.currentLevel === "aal2" || (await isMfaExempt(supabase))) {
       destination = AUTH_ROUTES.dashboard;
     } else if (aal?.nextLevel === "aal2") {
       destination = AUTH_ROUTES.mfaVerify;

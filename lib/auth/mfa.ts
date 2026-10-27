@@ -33,11 +33,22 @@ export async function getMfaStatus(
     return { state: "aal2" };
   }
 
+  // Named test accounts may skip MFA while the platform is in testing (see mfa_exemptions).
+  if (await isMfaExempt(supabase)) {
+    return { state: "aal2" };
+  }
+
   if (aal.nextLevel === "aal2") {
     return { state: "needs_verification" };
   }
 
   return { state: "needs_enrollment" };
+}
+
+/** Whether the signed-in person has a current MFA exemption. Any error counts as not exempt. */
+export async function isMfaExempt(supabase: SupabaseClient<Database>): Promise<boolean> {
+  const { data, error } = await (supabase as unknown as SupabaseClient).rpc("is_mfa_exempt");
+  return !error && data === true;
 }
 
 export function mfaRedirectPath(status: MfaStatus): string | null {
