@@ -11,8 +11,9 @@ import { isDraftSimulationPrompt } from "@/lib/admin/practice-library";
 import { loadBank } from "@/lib/question-bank/data";
 
 /**
- * Backs the Assign work wizard. GET lists what can be assigned and to whom. POST assigns pitches
- * and ramp tasks; playbooks and simulations go through their own assignment routes.
+ * Backs the Assign work wizard. GET lists what can be assigned and to whom. POST assigns pitches,
+ * knowledge checks, Learn library items and ramp tasks; playbooks and simulations go through their
+ * own assignment routes.
  */
 
 export async function GET() {
@@ -21,7 +22,7 @@ export async function GET() {
   const admin = getTenantAdminClient() as unknown as SupabaseClient | null;
   if (!admin) return NextResponse.json({ error: "Service unavailable." }, { status: 503 });
 
-  const [people, playbooks, simulations, pitches, plans] = await Promise.all([
+  const [people, playbooks, simulations, pitches, plans, library] = await Promise.all([
     loadAssignablePeople(session.tenantId, session.user.id, session.role),
     admin
       .from("capability_playbooks")
@@ -40,6 +41,8 @@ export async function GET() {
       .eq("active", true)
       .order("sort_order"),
     admin.from("plan_assignments").select("user_id").eq("tenant_id", session.tenantId),
+    // Learn library: what the manager sees in Learn (tenant-scoped by RLS), current versions only.
+    session.supabase.from("content_assets").select("id, title, description").is("superseded_by", null).order("title"),
   ]);
 
   // Knowledge checks: every question-bank source with enough approved questions to run a check.
@@ -59,6 +62,11 @@ export async function GET() {
     }),
     pitches: pitches.data ?? [],
     checks,
+    library: ((library.data ?? []) as { id: string; title: string; description: string | null }[]).map((row) => ({
+      id: row.id,
+      title: row.title,
+      category: row.description ?? "reference",
+    })),
   });
 }
 
@@ -77,6 +85,13 @@ const postSchema = z.discriminatedUnion("kind", [
     dueDate: dateSchema,
     sourceKeys: z.array(z.string().min(3).max(200)).min(1).max(20),
     passScore: z.number().int().min(1).max(100).default(80),
+    note: z.string().trim().max(500).optional(),
+  }),
+  z.object({
+    kind: z.literal("content"),
+    assigneeIds: z.array(z.string().uuid()).min(1).max(200),
+    dueDate: dateSchema,
+    assetIds: z.array(z.string().uuid()).min(1).max(20),
     note: z.string().trim().max(500).optional(),
   }),
   z.object({
@@ -187,6 +202,48 @@ export async function POST(request: Request) {
           `Knowledge check assigned, due ${due}`,
           `Pass ${what} with ${input.passScore}% or more.${input.note ? ` Note: ${input.note}` : ""}`,
           sources.length === 1 ? `/learn/knowledge-checks?source=${encodeURIComponent(sources[0]!.key)}` : "/learn/knowledge-checks",
+        ),
+      ),
+    );
+    return NextResponse.json({ created: inserts.length, updated: updates.length });
+  }
+
+  if (input.kind === "content") {
+    // Only items the manager can see in their own Learn library.
+    const { data: assets } = await session.supabase.from("content_assets").select("id, title").in("id", input.assetIds);
+    const found = (assets ?? []) as { id: string; title: string }[];
+    if (found.length !== new Set(input.assetIds).size) return NextResponse.json({ error: "Pick items from the Learn library." }, { status: 400 });
+    const { data: openRows, error: openError } = await admin
+      .from("content_assignments")
+      .select("id, asset_id, assigned_to")
+      .eq("status", "assigned")
+      .in("asset_id", input.assetIds)
+      .in("assigned_to", input.assigneeIds);
+    if (openError) return NextResponse.json({ error: "Apply the library assignments migration first." }, { status: 500 });
+    const open = new Map(((openRows ?? []) as { id: string; asset_id: string; assigned_to: string }[]).map((row) => [`${row.asset_id}:${row.assigned_to}`, row.id]));
+    const fields = { due_date: input.dueDate, note: input.note || null, assigned_by: session.user.id, updated_at: new Date().toISOString() };
+    const inserts = [];
+    const updates: string[] = [];
+    for (const asset of found) {
+      for (const assigneeId of input.assigneeIds) {
+        const existing = open.get(`${asset.id}:${assigneeId}`);
+        if (existing) updates.push(existing);
+        else inserts.push({ ...fields, tenant_id: session.tenantId, asset_id: asset.id, assigned_to: assigneeId });
+      }
+    }
+    if (inserts.length) {
+      const { error } = await admin.from("content_assignments").insert(inserts);
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    if (updates.length) await admin.from("content_assignments").update(fields).in("id", updates);
+    const what = found.length === 1 ? `"${found[0]!.title}"` : `${found.length} library items`;
+    await Promise.all(
+      input.assigneeIds.map((userId) =>
+        notify(
+          userId,
+          `Learning assigned, due ${due}`,
+          `Work through ${what}, then mark it done.${input.note ? ` Note: ${input.note}` : ""}`,
+          "/dashboard",
         ),
       ),
     );

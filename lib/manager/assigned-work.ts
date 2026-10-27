@@ -4,11 +4,12 @@ import { quizAttemptScores } from "@/lib/question-bank/model";
 import { daysBetween, dueLabel, loadAssignments, todayIso, type AssignmentState } from "@/lib/playbooks/assignments";
 
 /**
- * Everything a manager has assigned, in one list: playbooks, simulations, pitches and ramp tasks,
+ * Everything a manager has assigned, in one list: playbooks, simulations, pitches, knowledge checks,
+ * Learn library items and ramp tasks,
  * each with a due date and a plain status. Uses the service role; callers check who may see whom.
  */
 
-export type AssignedWorkKind = "playbook" | "simulation" | "pitch" | "ramp_task" | "quiz";
+export type AssignedWorkKind = "playbook" | "simulation" | "pitch" | "ramp_task" | "quiz" | "content";
 
 export type AssignedWorkItem = {
   id: string;
@@ -181,6 +182,7 @@ export async function loadAssignedWork(tenantId: string, assigneeIds: string[]):
   }
 
   await addQuizItems(db, tenantId, assigneeIds, nameOf, today, items);
+  await addContentItems(db, tenantId, assigneeIds, nameOf, today, items);
 
   const planOwner = new Map(((plans.data ?? []) as { id: string; user_id: string }[]).map((row) => [row.id, row.user_id]));
   if (planOwner.size) {
@@ -215,6 +217,57 @@ export async function loadAssignedWork(tenantId: string, assigneeIds: string[]):
     if (!aDone) return (a.dueDate ?? "9999").localeCompare(b.dueDate ?? "9999");
     return b.createdAt.localeCompare(a.createdAt);
   });
+}
+
+type ContentRow = {
+  id: string;
+  asset_id: string;
+  assigned_to: string;
+  due_date: string | null;
+  note: string | null;
+  status: string;
+  created_at: string;
+};
+
+/** Learn library items a manager assigned: done when the assignee marks them done. */
+async function addContentItems(
+  db: SupabaseClient,
+  tenantId: string,
+  assigneeIds: string[],
+  nameOf: (id: string) => string,
+  today: string,
+  items: AssignedWorkItem[],
+) {
+  const { data, error } = await db
+    .from("content_assignments")
+    .select("id, asset_id, assigned_to, due_date, note, status, created_at")
+    .eq("tenant_id", tenantId)
+    .in("assigned_to", assigneeIds)
+    .neq("status", "cancelled");
+  // Before the table exists (migration not yet run) there is simply nothing to show.
+  if (error || !data?.length) return;
+  const rows = data as ContentRow[];
+  const { data: assets } = await db.from("content_assets").select("id, title, storage_path").in("id", [...new Set(rows.map((row) => row.asset_id))]);
+  const assetOf = new Map(((assets ?? []) as { id: string; title: string; storage_path: string }[]).map((row) => [row.id, row]));
+  for (const row of rows) {
+    const done = row.status === "completed";
+    const state = stateFor(done, false, row.due_date, today);
+    items.push({
+      id: row.id,
+      kind: "content",
+      title: assetOf.get(row.asset_id)?.title ?? "Library item",
+      detail: done ? "Marked done" : row.note ? `Note: ${row.note}` : "Open it from Learn and mark it done",
+      assigneeId: row.assigned_to,
+      assigneeName: nameOf(row.assigned_to),
+      dueDate: row.due_date,
+      state,
+      dueText: dueTextFor(state, row.due_date, today),
+      createdAt: row.created_at,
+      cancellable: !done,
+      // Opens the document or video itself.
+      href: assetOf.get(row.asset_id)?.storage_path || "/learn",
+    });
+  }
 }
 
 type QuizRow = {

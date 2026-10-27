@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import { AssignWorkWizard } from "@/components/manager/assign-work-wizard";
 import { TeamActionLink, TeamStatusTag, initialsOf } from "@/components/manager/team-member-bits";
 import { PageBody, PageHeader } from "@/components/ui/page-header";
 import { SegmentedToggle } from "@/components/ui/segmented-toggle";
@@ -266,6 +268,8 @@ export function ManagerTeamRoster({
   tabs?: ReactNode;
 }) {
   const [view, setView] = useState<View>("status");
+  const [assigning, setAssigning] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     try {
@@ -291,15 +295,23 @@ export function ManagerTeamRoster({
       <PageHeader
         accent={rosterAccent(members.length)}
         actions={
-          <SegmentedToggle
-            label="Roster view"
-            onChange={changeView}
-            options={[
-              { id: "table", label: "Table" },
-              { id: "status", label: "By status" },
-            ]}
-            value={view}
-          />
+          <div className="flex flex-wrap items-center gap-3">
+            {members.length ? (
+              // Training for several people at once: new features, refreshers, a reading for everyone.
+              <button className="btn-primary" onClick={() => setAssigning(true)} type="button">
+                Assign work
+              </button>
+            ) : null}
+            <SegmentedToggle
+              label="Roster view"
+              onChange={changeView}
+              options={[
+                { id: "table", label: "Table" },
+                { id: "status", label: "By status" },
+              ]}
+              value={view}
+            />
+          </div>
         }
         className="pb-[22px]"
         eyebrow="Team"
@@ -316,6 +328,15 @@ export function ManagerTeamRoster({
         ) : (
           <StatusColumns members={members} onOpenProfile={onSelectProfile} readinessAvailable={readinessAvailable} />
         )}
+        {assigning ? (
+          <AssignWorkWizard
+            onAssigned={() => {
+              setAssigning(false);
+              router.refresh();
+            }}
+            onCancel={() => setAssigning(false)}
+          />
+        ) : null}
       </PageBody>
     </>
   );

@@ -13,6 +13,7 @@ export const KIND_LABEL: Record<AssignedWorkKind, string> = {
   pitch: "Pitch",
   ramp_task: "Ramp task",
   quiz: "Knowledge check",
+  content: "Library item",
 };
 
 const STATE_PILL: Record<AssignmentState, { tone: StatusTone; label: string }> = {

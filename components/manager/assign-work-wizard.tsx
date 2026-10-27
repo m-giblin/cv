@@ -1,9 +1,10 @@
 "use client";
 
-import { BookOpen, ClipboardCheck, ListChecks, Loader2, MessagesSquare, Mic } from "lucide-react";
+import { BookOpen, ClipboardCheck, FileText, ListChecks, Loader2, MessagesSquare, Mic } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { KIND_LABEL } from "@/components/manager/assigned-work-list";
+import { Drawer } from "@/components/ui/drawer";
 import type { AssignedWorkKind } from "@/lib/manager/assigned-work";
 
 type Person = { id: string; name: string; role: string; hasRampPlan: boolean };
@@ -13,6 +14,7 @@ type Options = {
   simulations: { id: string; name: string; persona: string; vertical: string; solution_focus: string; difficulty: string }[];
   pitches: { id: string; label: string; track: string; max_duration_sec: number }[];
   checks?: { key: string; title: string; solution: string | null; questions: number; kind: string }[];
+  library?: { id: string; title: string; category: string }[];
 };
 
 const KINDS: { kind: AssignedWorkKind; icon: ReactNode; blurb: string }[] = [
@@ -20,6 +22,7 @@ const KINDS: { kind: AssignedWorkKind; icon: ReactNode; blurb: string }[] = [
   { kind: "simulation", icon: <MessagesSquare aria-hidden size={20} />, blurb: "An AI roleplay call, scored and reviewed" },
   { kind: "pitch", icon: <Mic aria-hidden size={20} />, blurb: "Record a pitch in Pitch Studio for your review" },
   { kind: "quiz", icon: <ListChecks aria-hidden size={20} />, blurb: "A scored quiz; you see every answer they gave" },
+  { kind: "content", icon: <FileText aria-hidden size={20} />, blurb: "A document, video or link from the Learn library; they mark it done" },
   { kind: "ramp_task", icon: <ClipboardCheck aria-hidden size={20} />, blurb: "A one-off task added to their ramp plan" },
 ];
 
@@ -66,25 +69,34 @@ function OptionRow({
   );
 }
 
-/** Step by step: what kind of work, which item, then who and by when. */
+/**
+ * Step by step in a workbench: what kind of work, which item, then who and by when. Opened from a
+ * person's profile (that person preselected), from Team (nobody preselected) or from a Learn library
+ * item (the item preselected, so it starts at "Who and when").
+ */
 export function AssignWorkWizard({
   defaultPersonId,
+  defaultKind,
+  defaultPicked,
   onCancel,
   onAssigned,
 }: {
-  defaultPersonId: string;
+  defaultPersonId?: string;
+  defaultKind?: AssignedWorkKind;
+  defaultPicked?: string[];
   onCancel: () => void;
   onAssigned: () => void;
 }) {
+  const preselected = Boolean(defaultKind && defaultPicked?.length);
   const [options, setOptions] = useState<Options | null>(null);
-  const [step, setStep] = useState(0);
-  const [kind, setKind] = useState<AssignedWorkKind | null>(null);
+  const [step, setStep] = useState(preselected ? 2 : 0);
+  const [kind, setKind] = useState<AssignedWorkKind | null>(defaultKind ?? null);
   const [passScore, setPassScore] = useState(80);
-  const [picked, setPicked] = useState<string[]>([]);
+  const [picked, setPicked] = useState<string[]>(defaultPicked ?? []);
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDescription, setTaskDescription] = useState("");
   const [search, setSearch] = useState("");
-  const [people, setPeople] = useState<string[]>([defaultPersonId]);
+  const [people, setPeople] = useState<string[]>(defaultPersonId ? [defaultPersonId] : []);
   const [dueDate, setDueDate] = useState(inDays(7));
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
@@ -102,7 +114,7 @@ export function AssignWorkWizard({
     };
   }, []);
 
-  const multiPick = kind === "playbook" || kind === "pitch" || kind === "quiz";
+  const multiPick = kind === "playbook" || kind === "pitch" || kind === "quiz" || kind === "content";
   const allChoices = useMemo(() => {
     if (!options || !kind) return [];
     return (
@@ -124,7 +136,9 @@ export function AssignWorkWizard({
                   detail: `${c.kind === "playbook" ? "Playbook chapter" : (c.solution ?? "Product knowledge")} · ${c.questions} questions`,
                   tryHref: `/learn/knowledge-checks?source=${encodeURIComponent(c.key)}`,
                 }))
-              : []
+              : kind === "content"
+                ? (options.library ?? []).map((item) => ({ id: item.id, title: item.title, detail: item.category, tryHref: undefined as string | undefined }))
+                : []
     );
   }, [options, kind]);
   const query = search.trim().toLowerCase();
@@ -186,6 +200,12 @@ export function AssignWorkWizard({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ kind: "quiz", sourceKeys: picked, assigneeIds: people, dueDate, passScore, note: note || undefined }),
       });
+    } else if (kind === "content") {
+      response = await fetch("/api/manager/assign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "content", assetIds: picked, assigneeIds: people, dueDate, note: note || undefined }),
+      });
     } else {
       response = await fetch("/api/manager/assign", {
         method: "POST",
@@ -210,14 +230,32 @@ export function AssignWorkWizard({
     onAssigned();
   }
 
+  // A workbench of its own, so it stacks over a profile and opens the same way from Team and Learn.
   return (
-    <section aria-label="Assign work" className="flex flex-col gap-5 rounded-[14px] border border-line bg-white p-5 shadow-[var(--shadow-card)]">
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="text-[18px] font-extrabold text-ink">Assign work</h3>
-        <button className="link text-sm" onClick={onCancel} type="button">
-          Close
-        </button>
-      </div>
+    <Drawer
+      eyebrow="Assign work"
+      footer={
+        <>
+          {step < STEPS.length - 1 ? (
+            <button className="btn-primary" disabled={!options} onClick={next} type="button">
+              Next
+            </button>
+          ) : (
+            <button className="btn-primary" disabled={saving} onClick={() => void assign()} type="button">
+              {saving ? "Assigning" : "Assign"}
+            </button>
+          )}
+          <button className="btn-secondary" disabled={step === 0 || (preselected && step === 2)} onClick={() => setStep((value) => value - 1)} type="button">
+            Back
+          </button>
+        </>
+      }
+      onClose={onCancel}
+      open
+      size="form"
+      title={step === 0 ? "What kind of work?" : step === 1 ? "Pick it" : "Who and when"}
+    >
+    <div className="flex flex-col gap-5">
 
       <ol className="flex flex-wrap gap-2 text-sm">
         {STEPS.map((label, index) => (
@@ -312,10 +350,12 @@ export function AssignWorkWizard({
               <h4 className="text-sm font-semibold text-ink">Who</h4>
               <button
                 className="link text-sm"
-                onClick={() => setPeople(people.length === options.people.length ? [defaultPersonId] : options.people.map((person) => person.id))}
+                onClick={() =>
+                  setPeople(people.length === options.people.length ? (defaultPersonId ? [defaultPersonId] : []) : options.people.map((person) => person.id))
+                }
                 type="button"
               >
-                {people.length === options.people.length ? "Just this person" : "Select everyone"}
+                {people.length === options.people.length ? (defaultPersonId ? "Just this person" : "Clear") : "Select everyone"}
               </button>
             </div>
             <div className="max-h-[220px] overflow-y-auto rounded-[12px] border border-line">
@@ -342,7 +382,7 @@ export function AssignWorkWizard({
                 <input className={INPUT_CLASS} max={100} min={1} onChange={(event) => setPassScore(Number(event.target.value) || 80)} type="number" value={passScore} />
               </label>
             ) : null}
-            {kind === "playbook" || kind === "pitch" || kind === "quiz" ? (
+            {kind === "playbook" || kind === "pitch" || kind === "quiz" || kind === "content" ? (
               <label className="flex flex-col gap-1.5 text-sm font-semibold text-ink">
                 Note (optional)
                 <input className={INPUT_CLASS} onChange={(event) => setNote(event.target.value)} placeholder="Ahead of the county RFP" value={note} />
@@ -352,7 +392,7 @@ export function AssignWorkWizard({
           <div className="rounded-[12px] bg-bg px-4 py-3 text-sm text-ink">
             <span className="font-bold">{KIND_LABEL[kind!]}:</span> {pickedTitles.join(", ")}
             <br />
-            <span className="font-bold">For:</span> {people.length === 1 ? nameOf(people[0]!) : `${people.length} people`}
+            <span className="font-bold">For:</span> {people.length === 0 ? "Nobody yet" : people.length === 1 ? nameOf(people[0]!) : `${people.length} people`}
             {noPlan.length ? <span className="text-muted"> ({noPlan.length} without a ramp plan skipped)</span> : null}
             <br />
             <span className="font-bold">Due:</span>{" "}
@@ -362,21 +402,7 @@ export function AssignWorkWizard({
       )}
 
       {error ? <p className="text-sm text-danger">{error}</p> : null}
-
-      <div className="flex items-center justify-between gap-3 border-t border-divider pt-4">
-        <button className="btn-secondary" disabled={step === 0} onClick={() => setStep((value) => value - 1)} type="button">
-          Back
-        </button>
-        {step < STEPS.length - 1 ? (
-          <button className="btn-primary" disabled={!options} onClick={next} type="button">
-            Next
-          </button>
-        ) : (
-          <button className="btn-primary" disabled={saving} onClick={() => void assign()} type="button">
-            {saving ? "Assigning" : "Assign"}
-          </button>
-        )}
-      </div>
-    </section>
+    </div>
+    </Drawer>
   );
 }

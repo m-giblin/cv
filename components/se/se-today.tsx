@@ -12,6 +12,7 @@ import type { GateRow } from "@/lib/se/gate-matrix";
 import type { TodayMentee } from "@/lib/mentoring/today-mentees";
 import type { MyMentor } from "@/lib/mentoring/my-mentor";
 import { MyMentorCard } from "@/components/se/my-mentor-card";
+import { MyTrainingCard } from "@/components/manager/my-training-card";
 import type { UpcomingOneOnOne } from "@/lib/manager/one-on-ones";
 import { stepReviewer } from "@/lib/plans/step-reviewer";
 import {
@@ -281,6 +282,7 @@ export function SeToday({
 
           <aside aria-label="Ramp and gates" className="flex min-w-0 flex-col gap-6">
             {oneOnOnes.length ? <UpcomingOneOnOnesCard meetings={oneOnOnes} /> : null}
+            <MyTrainingCard forManager={false} />
             {myMentor ? <MyMentorCard mentor={myMentor} /> : null}
             <RampDefinitionCard model={model} />
             {gateRows.length > 0 ? <GateStampsCard level={user.level} rows={gateRows} /> : null}

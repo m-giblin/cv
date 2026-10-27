@@ -1,6 +1,7 @@
 import { LearnLibrary } from "@/components/learn/learn-library";
 import { PageBody, PageHeader } from "@/components/ui/page-header";
 import { requireAppAccess } from "@/lib/auth/require-access";
+import { resolveTenantContext } from "@/lib/auth/tenant-context";
 import { getUserReleaseProjectTags } from "@/lib/corpus/user-release-tags";
 import { GENAI_VS_AGENTIC_MODULES } from "@/lib/learn/agentic-curriculum";
 import { isFeatureEnabled } from "@/lib/platform/feature-flags";
@@ -13,7 +14,9 @@ export const metadata = { title: "Learn" };
 const AGENTIC_TRACK_MODULE_IDS = new Set(["agentic-ai", "ais-positioning", "customer-discovery"]);
 
 export default async function LearnPage() {
-  const { data } = await requireAppAccess("/learn");
+  const [{ data }, context] = await Promise.all([requireAppAccess("/learn"), resolveTenantContext()]);
+  // Managers, admins and operators can assign library items to their team.
+  const canAssign = Boolean(context?.tenantId && ["manager", "admin", "super_admin"].includes(context.tier));
   const settings = await loadPlatformSettings(data.currentUser.tenantId ?? undefined);
   const agenticTrackEnabled = isFeatureEnabled(settings.featureFlags, "agentic-ai-track");
   const labEnabled = isFeatureEnabled(settings.featureFlags, "isc-lab");
@@ -34,6 +37,7 @@ export default async function LearnPage() {
       <PageHeader accent="Find it in a minute." eyebrow="Learn" title="Learn." />
       <PageBody className="pb-7">
         <LearnLibrary
+          canAssign={canAssign}
           labEnabled={labEnabled}
           modules={modules}
           pathName="GenAI vs Agentic AI"

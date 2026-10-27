@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { CorpusFeedbackWidget } from "@/components/corpus/corpus-feedback-widget";
+import { AssignWorkWizard } from "@/components/manager/assign-work-wizard";
 import { Flag } from "lucide-react";
 import { Chip } from "@/components/ui/chip";
 import { Drawer } from "@/components/ui/drawer";
@@ -75,6 +76,7 @@ export function LearnLibrary({
   releaseProjectTags = [],
   labEnabled,
   rampPicks = 0,
+  canAssign = false,
 }: {
   modules: LearnModule[];
   /** Library items linked to the SE's open ramp steps. */
@@ -82,6 +84,8 @@ export function LearnLibrary({
   pathName: string;
   releaseProjectTags?: string[];
   labEnabled: boolean;
+  /** Managers can assign any library item to people on their team. */
+  canAssign?: boolean;
 }) {
   const searchId = useId();
   const searchRef = useRef<HTMLInputElement>(null);
@@ -94,6 +98,7 @@ export function LearnLibrary({
   const [openModule, setOpenModule] = useState<LearnModule | null>(null);
   const [saving, setSaving] = useState(false);
   const [feedbackAssetId, setFeedbackAssetId] = useState<string | null>(null);
+  const [assignAssetId, setAssignAssetId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -327,6 +332,17 @@ export function LearnLibrary({
                             )}
                             {item.subline ? <span className="truncate text-[13px] text-muted">{item.subline}</span> : null}
                           </span>
+                          {item.kind === "asset" && canAssign ? (
+                            <button
+                              aria-haspopup="dialog"
+                              aria-label={`Assign ${item.title} to your team`}
+                              className="link mt-0.5 shrink-0 text-[13px]"
+                              onClick={() => setAssignAssetId(item.id)}
+                              type="button"
+                            >
+                              Assign
+                            </button>
+                          ) : null}
                           {item.kind === "asset" ? (
                             <button
                               aria-haspopup="dialog"
@@ -434,6 +450,15 @@ export function LearnLibrary({
       >
         {feedbackAsset ? <CorpusFeedbackWidget assetTitle={feedbackAsset.title} contentAssetId={feedbackAsset.id} /> : null}
       </Drawer>
+
+      {assignAssetId ? (
+        <AssignWorkWizard
+          defaultKind="content"
+          defaultPicked={[assignAssetId]}
+          onAssigned={() => setAssignAssetId(null)}
+          onCancel={() => setAssignAssetId(null)}
+        />
+      ) : null}
     </div>
   );
 }

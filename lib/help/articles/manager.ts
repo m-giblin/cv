@@ -100,7 +100,7 @@ export const MANAGER_ARTICLES: HelpArticle[] = [
     summary: "See one SE's ramp, gates and activity, schedule a 1:1, keep private notes, assign a simulation or change their mentor.",
     audience: ["manager"],
     category: "Team",
-    keywords: ["se detail", "profile", "drawer", "schedule 1:1", "one on one", "talking points", "private coaching notes", "assign simulation", "reassign mentor", "ics"],
+    keywords: ["se detail", "profile", "drawer", "schedule 1:1", "one on one", "talking points", "private coaching notes", "assign simulation", "assign work", "assign training", "library", "reassign mentor", "ics"],
     overview: [
       "Click a person's name on Today, Roster or other team pages to open their workbench. It has two columns: \"Overview\" and \"Coach\".",
       "Overview covers their ramp plan, certification gates, development goals, simulation trend, recent activity and anything \"Sent back for changes\". Coach holds \"Mentor and notes\", \"Assign a simulation\", \"Field activity\" and \"Recent activity\".",
@@ -111,7 +111,7 @@ export const MANAGER_ARTICLES: HelpArticle[] = [
       { title: "Schedule a 1:1", body: "Click \"Schedule 1:1\", pick the date, time and length, and choose whether the mentor joins. The 1:1 is saved: it shows as \"Next 1:1\" on the profile and under \"Coming up\" on their Today page, and they (and the mentor, if invited) get a notification. A calendar invite (.ics) also downloads with up to four talking points; open it to send it from your calendar." },
       { title: "Copy talking points", body: "Click \"Copy talking points\" to put the full list on your clipboard for your 1:1 doc." },
       { title: "Keep private notes", body: "Under \"Private coaching notes\", type observations and commitments, then click \"Save notes\"." },
-      { title: "Assign a simulation", body: "Under \"Assign a simulation\", search and pick a prompt template, set the details, and assign it. The SE starts it from Simulations." },
+      { title: "Assign work", body: "Click \"Assign work\" and pick what kind: a playbook chapter, simulation, pitch, knowledge check, Learn library item or ramp task. Pick the items, then who (this person, several people or everyone) and the due date. To assign to several people without opening a profile, use \"Assign work\" on Team, or \"Assign\" next to any item in Coaching › Library." },
       { title: "Change their mentor", body: "Under \"Assigned mentor\", choose a mentor (or \"No mentor assigned\") and click \"Save mentor\". This only appears when the SE has a ramp plan." },
     ],
     links: [{ label: "Open Roster", href: "/manager/team" }],

@@ -19,7 +19,7 @@ export async function GET(request: Request) {
 }
 
 const patchSchema = z.object({
-  kind: z.enum(["simulation", "pitch", "ramp_task", "quiz"]),
+  kind: z.enum(["simulation", "pitch", "ramp_task", "quiz", "content"]),
   id: z.string().uuid(),
   dueDate: z
     .string()
@@ -38,8 +38,8 @@ export async function PATCH(request: Request) {
   if (input.dueDate && input.dueDate < todayIso()) {
     return NextResponse.json({ error: "Pick a due date from today onward." }, { status: 400 });
   }
-  if (input.cancel && input.kind !== "pitch" && input.kind !== "quiz") {
-    return NextResponse.json({ error: "Only pitch and knowledge check assignments can be cancelled here." }, { status: 400 });
+  if (input.cancel && input.kind !== "pitch" && input.kind !== "quiz" && input.kind !== "content") {
+    return NextResponse.json({ error: "Only pitch, knowledge check and library assignments can be cancelled here." }, { status: 400 });
   }
 
   const admin = getTenantAdminClient() as unknown as SupabaseClient | null;
@@ -50,8 +50,9 @@ export async function PATCH(request: Request) {
   if (input.kind === "simulation") {
     const { data } = await admin.from("simulation_assignments").select("assigned_to").eq("id", input.id).maybeSingle();
     ownerId = (data as { assigned_to: string } | null)?.assigned_to ?? null;
-  } else if (input.kind === "pitch" || input.kind === "quiz") {
-    const { data } = await admin.from(input.kind === "pitch" ? "pitch_assignments" : "quiz_assignments").select("assigned_to").eq("id", input.id).maybeSingle();
+  } else if (input.kind === "pitch" || input.kind === "quiz" || input.kind === "content") {
+    const source = input.kind === "pitch" ? "pitch_assignments" : input.kind === "quiz" ? "quiz_assignments" : "content_assignments";
+    const { data } = await admin.from(source).select("assigned_to").eq("id", input.id).maybeSingle();
     ownerId = (data as { assigned_to: string } | null)?.assigned_to ?? null;
   } else {
     const { data } = await admin.from("plan_ad_hoc_steps").select("assignment_id").eq("id", input.id).maybeSingle();
@@ -73,7 +74,9 @@ export async function PATCH(request: Request) {
         ? "pitch_assignments"
         : input.kind === "quiz"
           ? "quiz_assignments"
-          : "plan_ad_hoc_steps";
+          : input.kind === "content"
+            ? "content_assignments"
+            : "plan_ad_hoc_steps";
   const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (input.dueDate) update.due_date = input.dueDate;
   if (input.cancel) update.status = "cancelled";

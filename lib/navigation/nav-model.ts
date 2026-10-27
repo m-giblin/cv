@@ -95,6 +95,7 @@ export const NAV: Record<WorkspaceHat, NavItem[]> = {
         { id: "history", label: "Review history", href: "/manager/coaching/history" },
         { id: "development", label: "Development", href: "/manager/coaching/development" },
         { id: "playbooks", label: "Playbooks", href: "/learn/playbooks" },
+        { id: "library", label: "Library", href: "/learn" },
       ],
     },
     {
