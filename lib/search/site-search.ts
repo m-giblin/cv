@@ -16,6 +16,7 @@ import {
 } from "@/lib/search/playbook-chapters";
 import { rankMatches } from "@/lib/search/match";
 import type { ProfileRole } from "@/lib/types";
+import { roleLabel } from "@/lib/auth/role-label";
 
 export type SearchGroupId = "playbooks" | "checks" | "simulations" | "pitch" | "library" | "ramp" | "people";
 
@@ -236,17 +237,6 @@ async function searchRamp(viewer: Viewer, query: string): Promise<SearchResult[]
   }));
 }
 
-const ROLE_LABEL: Record<ProfileRole, string> = {
-  basic_se: "SE",
-  senior_se: "Senior SE",
-  advisory_solutions_consultant: "Advisory Solutions Consultant",
-  mentor: "Mentor",
-  manager: "Manager",
-  director: "Director",
-  admin: "Admin",
-  super_admin: "Admin",
-};
-
 export type PersonRelation = "manager" | "mentor" | "mentee" | "report" | "team";
 
 /** Someone the viewer works with, and how. */
@@ -341,7 +331,7 @@ export function personHref(person: WorkingPerson, canOpenTeam: boolean): string 
 /** "Your mentor, Manager": the closest relation first, then their role. */
 export function personDetail(person: WorkingPerson): string {
   const relation = (["manager", "mentor", "mentee", "report"] as const).find((item) => person.relations.includes(item));
-  const role = ROLE_LABEL[person.role] ?? person.role.replaceAll("_", " ");
+  const role = roleLabel(person.role);
   return relation ? `${RELATION_LABEL[relation]}, ${role}` : role;
 }
 
@@ -352,7 +342,7 @@ export function rankPeople(query: string, people: WorkingPerson[], canOpenTeam: 
     people,
     (person) => ({
       title: person.name,
-      fields: [ROLE_LABEL[person.role], ...person.relations.map((relation) => RELATION_LABEL[relation]).filter(Boolean)],
+      fields: [roleLabel(person.role), ...person.relations.map((relation) => RELATION_LABEL[relation]).filter(Boolean)],
       keywords: ["people", "person", ...person.relations],
     }),
     SEARCH_LIMIT,

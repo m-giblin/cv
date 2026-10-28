@@ -6,11 +6,13 @@ import { toast } from "sonner";
 import { KIND_LABEL } from "@/components/manager/assigned-work-list";
 import { Drawer } from "@/components/ui/drawer";
 import type { AssignedWorkKind } from "@/lib/manager/assigned-work";
+import { roleLabel } from "@/lib/auth/role-label";
+import { normalizeSearchText, searchTokens } from "@/lib/search/match";
 
 type Person = { id: string; name: string; role: string; hasRampPlan: boolean };
 type Options = {
   people: Person[];
-  playbooks: { id: string; title: string; chapter: number; slug: string }[];
+  playbooks: { id: string; title: string; chapter: number; slug: string; subtitle?: string | null }[];
   simulations: { id: string; name: string; persona: string; vertical: string; solution_focus: string; difficulty: string }[];
   pitches: { id: string; label: string; track: string; max_duration_sec: number }[];
   checks?: { key: string; title: string; solution: string | null; questions: number; kind: string }[];
@@ -119,7 +121,7 @@ export function AssignWorkWizard({
     if (!options || !kind) return [];
     return (
       kind === "playbook"
-        ? options.playbooks.map((p) => ({ id: p.id, title: `Ch. ${p.chapter} ${p.title}`, detail: undefined as string | undefined, tryHref: `/learn/playbooks?playbook=${p.slug}` }))
+        ? options.playbooks.map((p) => ({ id: p.id, title: `Ch. ${p.chapter} ${p.title}`, detail: p.subtitle ?? undefined, tryHref: `/learn/playbooks?playbook=${p.slug}` }))
         : kind === "simulation"
           ? options.simulations.map((s) => ({
               id: s.id,
@@ -141,8 +143,15 @@ export function AssignWorkWizard({
                 : []
     );
   }, [options, kind]);
-  const query = search.trim().toLowerCase();
-  const choices = query ? allChoices.filter((item) => `${item.title} ${item.detail ?? ""}`.toLowerCase().includes(query)) : allChoices;
+  // Every word has to appear somewhere, in any order: "credential management" finds the chapter
+  // titled "Credentials and Secrets" whose subtitle names Credentials Management.
+  const words = searchTokens(search);
+  const choices = words.length
+    ? allChoices.filter((item) => {
+        const text = normalizeSearchText(`${item.title} ${item.detail ?? ""}`);
+        return words.every((word) => text.includes(word));
+      })
+    : allChoices;
 
   const nameOf = (id: string) => options?.people.find((person) => person.id === id)?.name ?? "this person";
   const pickedTitles =
@@ -321,7 +330,11 @@ export function AssignWorkWizard({
             <input aria-label="Search" className={INPUT_CLASS} onChange={(event) => setSearch(event.target.value)} placeholder="Search" value={search} />
             {choices.length === 0 ? (
               <p className="text-sm text-muted">
-                {kind === "playbook" ? "No published playbooks yet." : search ? "Nothing matches that search." : "Nothing to assign yet."}
+                {search.trim()
+                  ? "Nothing matches that search. Try one word, such as a product name."
+                  : kind === "playbook"
+                    ? "No published playbooks yet."
+                    : "Nothing to assign yet."}
               </p>
             ) : (
               <div className="max-h-[320px] overflow-y-auto rounded-[12px] border border-line">
@@ -363,7 +376,7 @@ export function AssignWorkWizard({
               {options.people.map((person) => (
                 <OptionRow
                   checked={people.includes(person.id)}
-                  detail={kind === "ramp_task" && !person.hasRampPlan ? "No ramp plan yet, will be skipped" : (["manager", "director"].includes(person.role) ? "Manager, assign them their own training" : person.role.replaceAll("_", " "))}
+                  detail={kind === "ramp_task" && !person.hasRampPlan ? "No ramp plan yet, will be skipped" : (["manager", "director"].includes(person.role) ? "Manager, assign them their own training" : roleLabel(person.role))}
                   key={person.id}
                   onToggle={() => setPeople((current) => (current.includes(person.id) ? current.filter((id) => id !== person.id) : [...current, person.id]))}
                   title={person.name}

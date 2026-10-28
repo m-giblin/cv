@@ -425,7 +425,7 @@ export function LearnLibrary({
                 compact
                 numeral={startHere.numeral ? pad2(startHere.numeral) : "→"}
                 numeralCaption={startHere.numeral ? "Chapter" : "Ramp"}
-                stubLabel={startHere.numeral ? "Playbook" : "Your ramp"}
+                stubLabel={startHere.numeral ? "Read" : "Your ramp"}
               >
                 <h3 className="text-lg leading-[1.2] font-extrabold text-ink">{startHere.title}</h3>
                 <span className="text-[13px] text-muted">{startHere.caption}</span>

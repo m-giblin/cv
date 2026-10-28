@@ -1,5 +1,6 @@
 import dynamic from "next/dynamic";
 import { ONE_ON_ONE_EVENT } from "@/lib/manager/one-on-ones";
+import { canMentorApproveStep } from "@/lib/plans/review-policy";
 import { Suspense } from "react";
 import type { ManagerSection } from "@/components/manager/manager-page-shell";
 import { MANAGER_SECTION_PATHS } from "@/lib/manager/manager-routes";
@@ -84,7 +85,18 @@ export async function ManagerSectionPage({ section }: { section: ManagerSection 
  return userPlan.steps
  .filter(
  (step) =>
- (step.status === "submitted" || step.status === "under_review") && step.assignmentStepId,
+ (step.status === "submitted" || step.status === "under_review") &&
+ step.assignmentStepId &&
+ // An everyday step with a mentor is the mentor's to review; it reaches the manager once endorsed.
+ !(
+ step.status === "submitted" &&
+ canMentorApproveStep({
+ reviewerId: userPlan.mentorId ?? "",
+ mentorId: userPlan.mentorId ?? null,
+ stepType: step.type,
+ isSegmentGate: step.isSegmentGate,
+ })
+ ),
  )
  .map((step) => ({
  assignmentStepId: step.assignmentStepId!,

@@ -85,7 +85,7 @@ export async function loadAssignedWork(tenantId: string, assigneeIds: string[]):
       id: assignment.id,
       kind: "playbook",
       title: `Ch. ${assignment.chapter} ${assignment.playbookTitle}`,
-      detail: `${done} of ${assignment.progress.parts.length} parts done: ${assignment.progress.parts.map((part) => part.label.toLowerCase()).join(", ")}`,
+      detail: `${done} of ${assignment.progress.parts.length} parts done: ${assignment.progress.parts.map((part) => part.label.toLowerCase()).join(", ")}${assignment.note ? ` · Note: ${assignment.note}` : ""}`,
       assigneeId: assignment.assignedTo,
       assigneeName: assignment.assigneeName,
       dueDate: assignment.dueDate,

@@ -70,11 +70,11 @@ export async function POST(request: Request) {
 
   const { data: playbookRows } = await admin
     .from("capability_playbooks")
-    .select("id, title")
+    .select("id, title, slug")
     .eq("tenant_id", session.tenantId)
     .eq("status", "published")
     .in("id", input.playbookIds);
-  const playbooks = (playbookRows ?? []) as { id: string; title: string }[];
+  const playbooks = (playbookRows ?? []) as { id: string; title: string; slug: string }[];
   if (playbooks.length !== new Set(input.playbookIds).size) {
     return NextResponse.json({ error: "Only published playbooks can be assigned." }, { status: 400 });
   }
@@ -128,13 +128,16 @@ export async function POST(request: Request) {
 
   const due = new Date(`${input.dueDate}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
   const what = playbooks.length === 1 ? `the ${playbooks[0]!.title} playbook` : `${playbooks.length} playbooks`;
+  const { data: assigner } = await admin.from("profiles").select("full_name").eq("id", session.user.id).maybeSingle();
+  const assignerFirst = (assigner as { full_name?: string | null } | null)?.full_name?.split(" ")[0] || "Your manager";
+  // Say who asked and open the chapter itself, not the list of every playbook.
   await Promise.all(
     input.assigneeIds.map((userId) =>
       createNotification(admin as unknown as SupabaseClient<Database>, {
         userId,
-        title: `Playbook assigned, due ${due}`,
-        body: `You've been asked to work through ${what}.${input.note ? ` Note: ${input.note}` : ""}`,
-        actionUrl: "/learn/playbooks",
+        title: `${assignerFirst} assigned ${playbooks.length === 1 ? playbooks[0]!.title : what}, due ${due}`,
+        body: `You've been asked to work through ${what}.${input.note ? ` ${assignerFirst}'s note: ${input.note}` : ""}`,
+        actionUrl: playbooks.length === 1 ? `/learn/playbooks?playbook=${playbooks[0]!.slug}` : "/learn/playbooks",
       }).catch(() => undefined),
     ),
   );

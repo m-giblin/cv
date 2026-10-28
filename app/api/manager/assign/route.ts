@@ -26,7 +26,7 @@ export async function GET() {
     loadAssignablePeople(session.tenantId, session.user.id, session.role),
     admin
       .from("capability_playbooks")
-      .select("id, title, chapter, slug")
+      .select("id, title, chapter, slug, subtitle:body->>subtitle")
       .eq("tenant_id", session.tenantId)
       .eq("status", "published")
       .order("chapter"),

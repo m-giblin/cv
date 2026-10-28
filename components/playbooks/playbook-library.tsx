@@ -259,7 +259,7 @@ export function PlaybookLibrary({
           }
           footerNote={
             openAssignment
-              ? `Assigned to you · ${dueLabel(openAssignment.progress, openAssignment.dueDate)}`
+              ? `Assigned to you${openAssignment.assignedByName ? ` by ${openAssignment.assignedByName}` : ""} · ${dueLabel(openAssignment.progress, openAssignment.dueDate)}`
               : read.has(open.id) || reachedEnd
                 ? "Mark it read when you've worked through it."
                 : "Read to the end of the chapter to mark it read."
