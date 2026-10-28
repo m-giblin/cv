@@ -258,7 +258,9 @@ async function linkProgram(admin, planIds) {
     if (updateError) throw new Error(updateError.message);
   }
 
-  const rows = planIds.map((planId, index) => ({ program_id: programId, segment_index: index + 1, plan_id: planId }));
+  // tenant_id matters: stage links are read through RLS when a manager signs off a gate, and a row
+  // without one is invisible to them, so the next stage silently never opens.
+  const rows = planIds.map((planId, index) => ({ program_id: programId, segment_index: index + 1, plan_id: planId, tenant_id: TENANT_ID }));
   const { error: upsertError } = await admin.from("enablement_program_segments").upsert(rows, { onConflict: "program_id,segment_index" });
   if (upsertError) throw new Error(upsertError.message);
 }
