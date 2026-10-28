@@ -30,7 +30,7 @@ export default async function MentoringPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { open, step } = await searchParams;
+  const { open, step, shared } = await searchParams;
   const { data } = await requireUserPageAccess("/mentoring");
   const admin = getTenantAdminClient();
   let mentees: Awaited<ReturnType<typeof fetchMenteeAssignments>> = [];
@@ -83,6 +83,7 @@ export default async function MentoringPage({
       <PageBody className="pb-7">
         <ManagerMenteesPanel
           initialOpen={typeof open === "string" ? open : undefined}
+          initialShared={typeof shared === "string" ? shared : undefined}
           initialStep={typeof step === "string" ? step : undefined}
           mentees={mentees}
         />

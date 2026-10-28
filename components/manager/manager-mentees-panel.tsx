@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { MentorReviewPanel } from "@/components/manager/mentor-review-panel";
 import { MentorCoachingNotesEditor } from "@/components/manager/mentor-coaching-notes-editor";
+import { SharedPracticeSection } from "@/components/mentoring/shared-practice-section";
 import { HiringBriefCard } from "@/components/mentoring/hiring-brief-card";
 import { MenteeTrackView } from "@/components/mentoring/mentee-track-view";
 import { MentorCheckinWorkbench } from "@/components/mentoring/mentor-checkin-workbench";
@@ -56,8 +57,11 @@ function MenteeWorkbench({
   onSchedule,
   onCheckin,
   onNote,
+  initialShared,
 }: {
   mentee: MenteeAssignment;
+  /** A shared practice item to open on arrival (?shared= from the mentor's notification). */
+  initialShared?: string;
   today: string;
   onClose: () => void;
   onOpenStep: (step: PlanStep, stagePlanId?: string) => void;
@@ -157,6 +161,7 @@ function MenteeWorkbench({
             );
           })}
         </ul>
+        <SharedPracticeSection assignmentId={plan.id} firstName={firstName} initialRef={initialShared} />
       </div>
     </Drawer>
   );
@@ -174,12 +179,15 @@ export function ManagerMenteesPanel({
   mentees,
   initialOpen,
   initialStep,
+  initialShared,
 }: {
   mentees: MenteeAssignment[];
   /** A program enrollment to open in its workbench on arrival (links from Today). */
   initialOpen?: string;
   /** Also open one step on top: this plan step (from a notification), or with "review" the first one waiting on the mentor. */
   initialStep?: string;
+  /** With initialOpen: a shared practice item to open on top ("sim:<id>" or "pitch:<id>"). */
+  initialShared?: string;
 }) {
   const arriving = initialOpen ? mentees.find((item) => item.plan.id === initialOpen) : undefined;
   const [workbenchFor, setWorkbenchFor] = useState<string | null>(arriving ? arriving.plan.id : null);
@@ -305,6 +313,7 @@ export function ManagerMenteesPanel({
       )}
       {workbenchMentee ? (
         <MenteeWorkbench
+          initialShared={workbenchMentee.plan.id === arriving?.plan.id ? initialShared : undefined}
           mentee={workbenchMentee}
           onCheckin={() => setCheckinFor(workbenchMentee.plan.id)}
           onClose={() => setWorkbenchFor(null)}

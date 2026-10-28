@@ -51,6 +51,14 @@ export function sharedPracticeNotice(input: {
   };
 }
 
+/** "&shared=sim:<card>" or "&shared=pitch:<session>", so the notification opens the item itself. */
+function sharedLink(params: { metadata?: Record<string, string | number | boolean | null> }) {
+  const meta = params.metadata ?? {};
+  if (typeof meta.coachingCardId === "string") return `&shared=sim:${meta.coachingCardId}`;
+  if (typeof meta.practiceSessionId === "string") return `&shared=pitch:${meta.practiceSessionId}`;
+  return "";
+}
+
 /**
  * Send the SE's mentor a practice result (a free-practice pitch today; simulations can call this too).
  * The mentee's session can't write to the mentor's notifications, so this takes the service client.
@@ -86,7 +94,7 @@ export async function shareWithMentor(
     userId: mentor.mentorId,
     title: notice.title,
     body: notice.body,
-    actionUrl: params.actionUrl ?? `/mentoring?open=${mentor.assignmentId}`,
+    actionUrl: params.actionUrl ?? `/mentoring?open=${mentor.assignmentId}${sharedLink(params)}`,
   });
   await admin.from("activity_logs").insert({
     user_id: params.menteeId,
