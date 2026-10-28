@@ -85,6 +85,8 @@ export function PlaybookLibrary({
   const openAssignment = open
     ? myAssignments.find((item) => item.playbookId === open.id && item.status === "active") ?? null
     : null;
+  const finishedAssignment =
+    open && !openAssignment ? myAssignments.find((item) => item.playbookId === open.id && item.status === "completed") ?? null : null;
 
   useEffect(() => {
     const target = endRef.current;
@@ -277,7 +279,7 @@ export function PlaybookLibrary({
         >
           <div className="flex flex-col gap-8">
             {finished && finished.playbookTitle === open.title ? <AssignmentDoneNote finished={finished} /> : null}
-            <PracticeStrip assignment={openAssignment} pitchDrills={pitchDrills[open.id] ?? []} playbook={open} />
+            <PracticeStrip assignment={openAssignment} finished={finishedAssignment} pitchDrills={pitchDrills[open.id] ?? []} playbook={open} />
             <PlaybookView body={open.body} />
             <div aria-hidden ref={endRef} />
           </div>
@@ -304,11 +306,14 @@ function PracticeStrip({
   playbook,
   pitchDrills,
   assignment,
+  finished = null,
 }: {
   playbook: CapabilityPlaybook;
   pitchDrills: { id: string; label: string }[];
   /** The reader's open assignment for this chapter: then the drills and check count toward it. */
   assignment: PlaybookAssignment | null;
+  /** A finished assignment for this chapter: its results are in, and practice here is private again. */
+  finished?: PlaybookAssignment | null;
 }) {
   const router = useRouter();
   const [starting, setStarting] = useState(false);
@@ -366,7 +371,10 @@ function PracticeStrip({
           </p>
         ) : (
           <p className="m-0 text-[13px] text-muted">
-            Private practice: say it on video, by voice or typed, and the AI scores it against this playbook. Check what stuck with a quick{" "}
+            {finished?.completedAt
+              ? `You finished ${finished.assignedByName ?? "your manager"}'s assignment for this chapter on ${new Date(finished.completedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/New_York" })}, and those results are in. From here it's private practice: `
+              : "Private practice: "}
+            say it on video, by voice or typed, and the AI scores it against this playbook. Check what stuck with a quick{" "}
             {QUIZ_LENGTH}-question quiz. Your manager isn&apos;t notified.
           </p>
         )}

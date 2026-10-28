@@ -55,7 +55,7 @@ describe("pitch drills", () => {
       source_version: 4,
     });
     expect(rows[0]!.reference_text).toMatch(/^Auditors do not accept/);
-    expect(rows[0]!.prompt).toContain('Open with the problem the guide calls "Certification Fatigue Produces Rubber-Stamping", then the outcome.');
+    expect(rows[0]!.prompt).toContain('Open with the angle "Certification Fatigue Produces Rubber-Stamping", then the outcome.');
     // Chapters get renumbered, so the stored text names the chapter rather than its number.
     expect(rows[0]!.description).toBe(
       "From the SLED Field Guide playbook: Continuous Compliance and Audit Mastery. Your answer is compared with the guide's pitch.",
@@ -75,6 +75,9 @@ describe("pitch drills", () => {
     );
     expect(rows.map((row) => row.slug)).toEqual(["pb-0f8b6a52-pitch-1", "pb-0f8b6a52-pitch-2", "pb-0f8b6a52-hook"]);
     expect(rows[1]!.label).toBe("Continuous Compliance and Audit Mastery: The Debt Problem");
+    // Each pitch opens on its own angle, not the chapter's shared problem heading.
+    expect(rows[0]!.prompt).toContain('Open with the angle "The Shadow AI Problem"');
+    expect(rows[1]!.prompt).toContain('Open with the angle "The Debt Problem"');
     expect(rows[2]).toMatchObject({ max_duration_sec: 90, reference_text: "How many AI tools are running?\n\nWait. Let them answer." });
   });
 

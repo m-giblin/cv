@@ -62,10 +62,10 @@ function shortLabel(title: string, suffix?: string) {
 export function buildPitchDrillRows(playbook: CapabilityPlaybook, guideTitle: string): PitchDrillRow[] {
   const body = playbook.body;
   const key = playbook.id.slice(0, 8);
-  // The guide's problem is a heading ("Secrets Escape Vaults"), so quote it rather than splice it into a sentence.
-  const lead = body.problem.title
-    ? `Open with the problem the guide calls "${body.problem.title}", then the outcome. Don't lead with the product.`
-    : "Lead with their problem, not the product.";
+  // Each pitch has its own angle ("The Exposed Secret You Do Not Know About"); a lone pitch falls back to
+  // the chapter's problem heading. Quote the heading rather than splice it into a sentence.
+  const lead = (angle: string) =>
+    angle ? `Open with the angle "${angle}", then the outcome. Don't lead with the product.` : "Lead with their problem, not the product.";
   // No chapter number: chapters get renumbered, and the stored text would go stale.
   const source = `From the ${guideTitle} playbook: ${playbook.title}. Your answer is compared with the guide's pitch.`;
   const common = {
@@ -90,7 +90,7 @@ export function buildPitchDrillRows(playbook: CapabilityPlaybook, guideTitle: st
         short_label: shortLabel(playbook.title, named ? `Pitch ${index + 1}` : undefined),
         label: named ? `${playbook.title}: ${pitch.title}` : `${playbook.title} elevator pitch`,
         prompt_label: "Your elevator pitch",
-        prompt: `In under ${limit} seconds, pitch ${playbook.title} to a busy executive. ${lead}`,
+        prompt: `In under ${limit} seconds, pitch ${playbook.title} to a busy executive. ${lead((named && pitch.title.trim()) || body.problem.title)}`,
         description: source,
         reference_text: pitch.text,
         max_duration_sec: limit,

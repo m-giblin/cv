@@ -26,7 +26,7 @@ export type PitchEvidence = {
 };
 export type ObjectionEvidence = { at: string; score: number | null; persona: string; debrief: string | null; transcript: { speaker: string; message: string }[] };
 
-/** ?id= (a chapter assignment): every pitch and objection drill since it was assigned, with what was said. */
+/** ?id= (a chapter assignment): every pitch and objection drill while it was open, with what was said. */
 export async function GET(request: Request) {
   const session = await requireManagerSession();
   if (session instanceof NextResponse) return session;
@@ -36,11 +36,11 @@ export async function GET(request: Request) {
 
   const { data } = await admin
     .from("playbook_assignments")
-    .select("playbook_id, assigned_to, created_at")
+    .select("playbook_id, assigned_to, created_at, completed_at")
     .eq("tenant_id", session.tenantId)
     .eq("id", id)
     .maybeSingle();
-  const assignment = data as { playbook_id: string; assigned_to: string; created_at: string } | null;
+  const assignment = data as { playbook_id: string; assigned_to: string; created_at: string; completed_at: string | null } | null;
   const people = assignment ? await loadAssignablePeople(session.tenantId, session.user.id, session.role) : [];
   if (!assignment || !people.some((person) => person.id === assignment.assigned_to)) return NextResponse.json({ error: "Not found." }, { status: 404 });
 
@@ -51,7 +51,8 @@ export async function GET(request: Request) {
     .eq("user_id", assignment.assigned_to)
     .gte("created_at", assignment.created_at)
     .order("created_at", { ascending: false });
-  const rows = (resultRows ?? []) as DrillRow[];
+  // Practice after the assignment finished is private again, as the chapter tells the SE.
+  const rows = ((resultRows ?? []) as DrillRow[]).filter((row) => !assignment.completed_at || row.created_at <= assignment.completed_at);
 
   const scenarioIds = [...new Set(rows.map((row) => row.scenario_id).filter((value): value is string => Boolean(value)))];
   const simulationIds = [...new Set(rows.map((row) => row.simulation_assignment_id).filter((value): value is string => Boolean(value)))];

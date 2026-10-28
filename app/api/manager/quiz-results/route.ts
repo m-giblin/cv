@@ -17,16 +17,23 @@ export async function GET(request: Request) {
   const admin = getTenantAdminClient() as unknown as SupabaseClient | null;
   if (!admin) return NextResponse.json({ error: "Service unavailable." }, { status: 503 });
 
-  let row: { source_key: string; assigned_to: string; pass_score: number; created_at: string } | null = null;
+  let row: { source_key: string; assigned_to: string; pass_score: number; created_at: string; completed_at?: string | null } | null = null;
   if (chapterId) {
     // A chapter assignment: its knowledge check is the chapter's own question bank.
     const { data } = await admin.from("playbook_assignments").select("*").eq("tenant_id", session.tenantId).eq("id", chapterId).maybeSingle();
-    const chapter = data as { playbook_id: string; assigned_to: string; quiz_pass_score?: number; created_at: string } | null;
-    if (chapter) row = { source_key: `playbook:${chapter.playbook_id}`, assigned_to: chapter.assigned_to, pass_score: chapter.quiz_pass_score ?? 80, created_at: chapter.created_at };
+    const chapter = data as { playbook_id: string; assigned_to: string; quiz_pass_score?: number; created_at: string; completed_at: string | null } | null;
+    if (chapter)
+      row = {
+        source_key: `playbook:${chapter.playbook_id}`,
+        assigned_to: chapter.assigned_to,
+        pass_score: chapter.quiz_pass_score ?? 80,
+        created_at: chapter.created_at,
+        completed_at: chapter.completed_at,
+      };
   } else {
     const { data } = await admin
       .from("quiz_assignments")
-      .select("id, source_key, assigned_to, pass_score, created_at")
+      .select("id, source_key, assigned_to, pass_score, created_at, completed_at")
       .eq("tenant_id", session.tenantId)
       .eq("id", id)
       .maybeSingle();
@@ -42,7 +49,9 @@ export async function GET(request: Request) {
     .eq("user_id", row.assigned_to)
     .gte("created_at", row.created_at)
     .order("created_at");
-  const attempts = (attemptRows ?? []) as Attempt[];
+  // Sittings after the assignment finished are private practice again.
+  const finishedAt = row.completed_at ?? null;
+  const attempts = ((attemptRows ?? []) as Attempt[]).filter((attempt) => !finishedAt || attempt.created_at <= finishedAt);
   const ids = [...new Set(attempts.map((attempt) => attempt.question_id))];
   const { data: questionRows } = ids.length
     ? await admin.from("question_bank").select("id, source_kind, playbook_id, topic, stem, choices, correct_index, explanation").in("id", ids)
