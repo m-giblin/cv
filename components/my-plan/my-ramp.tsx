@@ -417,6 +417,7 @@ export function RampStepDetail({
   mentor?: Profile;
 }) {
   const due = formatDay(step.dueDate);
+  const feedbackFirst = !step.locked && !isStepWithReviewer(step.status) && !isStepValidated(step.status);
   return (
     <RampStepWorkbench
       eyebrow={`My ramp / Step ${number} of ${total}`}
@@ -424,6 +425,8 @@ export function RampStepDetail({
       title={step.title}
     >
       <div className="flex flex-col gap-6">
+        {/* While they're working on it (including after a send-back), the mentor's note is what to act on, so it leads. */}
+        {feedbackFirst ? <MentorFeedbackForStep assignmentStepId={step.assignmentStepId} leading /> : null}
         {step.locked ? (
           <Note title="Locked">
             This step is in a later segment. Clear the current segment gate and get your manager&apos;s approval to
@@ -434,7 +437,7 @@ export function RampStepDetail({
           /* PlanStepActions renders the step brief, "Done when" criteria, evidence and the submit action. */
           <PlanStepActions mentorName={mentor?.fullName} step={step} />
         )}
-        <MentorFeedbackForStep assignmentStepId={step.assignmentStepId} />
+        {feedbackFirst ? null : <MentorFeedbackForStep assignmentStepId={step.assignmentStepId} />}
       </div>
     </RampStepWorkbench>
   );

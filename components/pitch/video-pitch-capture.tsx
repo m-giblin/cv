@@ -110,6 +110,7 @@ export function VideoPitchCapture({
   const [reflection, setReflection] = useState("");
   const [queue, setQueue] = useState<PitchQueueSlot[]>([]);
   const [practiceScenarios, setPracticeScenarios] = useState<ScenarioView[]>(fallbackScenarios());
+  const [scenariosLoaded, setScenariosLoaded] = useState(false);
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(initialScenarioId ?? null);
   const [selectedQueueSlotId, setSelectedQueueSlotId] = useState<string | null>(null);
   const [loadingQueue, setLoadingQueue] = useState(true);
@@ -146,6 +147,8 @@ export function VideoPitchCapture({
     activeScenarioList[0] ??
     fallbackScenarios()[0]!;
   const isDrill = Boolean(scenario.referenceText);
+  // A link names a scenario: until the real list arrives, don't show a placeholder prompt in its place.
+  const loadingNamedScenario = Boolean(initialScenarioId) && !scenariosLoaded && scenario.id !== initialScenarioId;
   const pitchText = responseMode === "text" ? typedPitch.trim() : transcript.trim();
 
   const loadQueue = useCallback(async (opts?: { reselectFirst?: boolean }) => {
@@ -166,11 +169,15 @@ export function VideoPitchCapture({
   }, []);
 
   const loadPracticeScenarios = useCallback(async () => {
-    const response = await fetch("/api/pitch/scenarios");
-    if (!response.ok) return;
-    const body = (await response.json()) as { scenarios: PitchScenarioRow[] };
-    if (body.scenarios.length === 0) return;
-    setPracticeScenarios(body.scenarios.map(mapScenarioRow));
+    try {
+      const response = await fetch("/api/pitch/scenarios");
+      if (!response.ok) return;
+      const body = (await response.json()) as { scenarios: PitchScenarioRow[] };
+      if (body.scenarios.length === 0) return;
+      setPracticeScenarios(body.scenarios.map(mapScenarioRow));
+    } finally {
+      setScenariosLoaded(true);
+    }
   }, []);
 
   useEffect(() => {
@@ -675,6 +682,14 @@ export function VideoPitchCapture({
             ))}
           </div>
         ) : (
+          rampStep ? (
+            // The ramp step fixes the scenario; picking another would submit the wrong pitch to the step.
+            <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-divider px-4 py-3 sm:px-5">
+              <span className="text-sm font-bold text-ink">Scenario</span>
+              <span className="text-[15px] font-bold text-ink">{loadingNamedScenario ? "Loading…" : scenario.label || scenario.shortLabel}</span>
+              <span className="text-[13px] text-muted">Set by your ramp step</span>
+            </div>
+          ) : (
           // One compact picker instead of a wall of chips; the chosen scenario stays front and centre.
           <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-divider px-4 py-3 sm:px-5">
             <label className="text-sm font-bold text-ink" htmlFor={`${typedId}-scenario`}>
@@ -703,13 +718,23 @@ export function VideoPitchCapture({
             </select>
             <span className="text-[13px] text-muted">{practiceScenarios.length} to choose from</span>
           </div>
+          )
         )}
 
         <div className="flex shrink-0 flex-wrap items-start gap-3 border-b border-divider bg-white px-4 py-3 sm:px-5">
           <div className="min-w-0 flex-1">
+            {loadingNamedScenario ? (
+              <p className="flex items-center gap-2 text-sm text-muted" role="status">
+                <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
+                Loading the scenario…
+              </p>
+            ) : (
+              <>
             <p className="label-caps label-caps--blue">{scenario.promptLabel}</p>
             <p className="mt-1 text-[15px] leading-[1.5] text-ink">&ldquo;{scenario.prompt}&rdquo;</p>
             {isDrill ? <p className="mt-1 text-[13px] text-muted">{scenario.description}</p> : null}
+              </>
+            )}
           </div>
           {scenario.responseModes.length > 1 ? (
             <SegmentedToggle
