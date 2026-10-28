@@ -73,7 +73,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       title:
         parsed.data.decision === "approve" ? `${first} approved ${planStep.title}` : `${first} sent back ${planStep.title}`,
       body: feedback ?? (parsed.data.decision === "approve" ? "On to the next step." : "Open the step to see what to change."),
-      actionUrl: parsed.data.decision === "approve" ? "/dashboard" : `/my-plan?step=${id}`,
+      // With a note, open the step so they can read it in context; a bare approval goes to what's next.
+      actionUrl: parsed.data.decision === "approve" && !feedback ? "/dashboard" : `/my-plan?step=${id}`,
     });
     return NextResponse.json({ success: true });
   } catch (error) {

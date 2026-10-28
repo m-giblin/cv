@@ -16,6 +16,9 @@ export function StepApprovalPanel({ step, firstName }: { step: PlanStep; firstNa
   const [note, setNote] = useState("");
   useUnsavedChanges(note.trim().length > 0);
   const [busy, setBusy] = useState<"approve" | "reject" | null>(null);
+  // Shown until the refreshed step arrives, so the form doesn't sit there looking undecided.
+  const [decided, setDecided] = useState<{ decision: "approve" | "reject"; note: string } | null>(null);
+  const canSendBack = note.trim().length >= 3;
 
   async function decide(decision: "approve" | "reject") {
     if (!step.assignmentStepId) return;
@@ -36,8 +39,23 @@ export function StepApprovalPanel({ step, firstName }: { step: PlanStep; firstNa
       return;
     }
     toast.success(decision === "approve" ? `Approved. ${firstName} has been told.` : `Sent back to ${firstName}.`);
+    setDecided({ decision, note: note.trim() });
     setNote("");
     router.refresh();
+  }
+
+  if (decided) {
+    return (
+      <section className={`${CARD_CLS} border-success`} role="status">
+        <h3 className="text-[17px] font-extrabold text-ink">{decided.decision === "approve" ? "Approved" : `Sent back to ${firstName}`}</h3>
+        <p className="text-[15px] text-ink-2">
+          {decided.decision === "approve"
+            ? `${firstName} has been told${decided.note ? ", with your note" : ""}. It counts toward their progress.`
+            : `${firstName} has your note and the step is open again. It comes back to you when they resubmit.`}
+        </p>
+        {decided.note ? <p className="whitespace-pre-wrap rounded-[10px] bg-bg p-3 text-[15px] text-ink-2">{decided.note}</p> : null}
+      </section>
+    );
   }
 
   return (
@@ -61,11 +79,18 @@ export function StepApprovalPanel({ step, firstName }: { step: PlanStep; firstNa
           {busy === "approve" ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
           Approve
         </button>
-        <button className="btn-secondary inline-flex items-center gap-2" disabled={busy !== null} onClick={() => void decide("reject")} type="button">
+        <button
+          className="btn-secondary inline-flex items-center gap-2"
+          disabled={busy !== null || !canSendBack}
+          onClick={() => void decide("reject")}
+          title={canSendBack ? undefined : `Add a note so ${firstName} knows what to change`}
+          type="button"
+        >
           {busy === "reject" ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
           Send back
         </button>
       </div>
+      {canSendBack ? null : <p className="text-[13px] text-muted">Send back needs a note so {firstName} knows what to change.</p>}
     </section>
   );
 }

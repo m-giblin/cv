@@ -101,7 +101,7 @@ function MenteeWorkbench({
         </div>
       }
       sideLabel="Brief and notes"
-      subtitle={`${plan.name} · ${summary.done}/${summary.total} steps · ${formatPercent(plan.progress)}`}
+      subtitle={`${plan.name} · ${summary.done}/${summary.total} steps · ${formatPercent(summary.total ? (summary.done / summary.total) * 100 : 0)}`}
       title={profile.fullName}
     >
       <div className="space-y-4">
@@ -253,7 +253,7 @@ export function ManagerMenteesPanel({
                         <PersonCell
                           initials={initials(profile.fullName)}
                           name={profile.fullName}
-                          subline={`${plan.name} · ${summary.done}/${summary.total} steps · ${formatPercent(plan.progress)}`}
+                          subline={`${plan.name} · ${summary.done}/${summary.total} steps · ${formatPercent(summary.total ? (summary.done / summary.total) * 100 : 0)}`}
                         />
                       </button>
                       <StatusPill tone={health.tone}>{health.label}</StatusPill>

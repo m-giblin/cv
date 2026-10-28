@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import type { StepEvidence } from "@/lib/mentoring/mentor-records-model";
+import { parseDateOnly } from "@/lib/utils/date-only";
 
 const CARD_CLS = "flex flex-col gap-3 rounded-[14px] border border-line bg-white p-[18px]";
 
 function shortDate(iso: string | undefined) {
   if (!iso) return null;
-  return new Date(`${iso.slice(0, 10)}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  // A timestamp is shown on the reader's calendar day; slicing it first gave the UTC date (a day late in the evening).
+  return parseDateOnly(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 function Transcript({ lines }: { lines: { speaker: string; message: string }[] }) {
@@ -32,12 +34,25 @@ function Transcript({ lines }: { lines: { speaker: string; message: string }[] }
 }
 
 /** What the mentee produced for a step: scores, write-ups, transcripts. */
-export function StepEvidenceView({ evidence, firstName }: { evidence: StepEvidence[]; firstName: string }) {
+export function StepEvidenceView({
+  evidence,
+  firstName,
+  hasWrittenAnswer = false,
+}: {
+  evidence: StepEvidence[];
+  firstName: string;
+  /** They submitted a written answer, shown beside the review; don't call that "nothing yet". */
+  hasWrittenAnswer?: boolean;
+}) {
   if (evidence.length === 0) {
     return (
       <section className={CARD_CLS}>
         <h3 className="text-lg font-extrabold text-ink">What {firstName} did</h3>
-        <p className="text-[15px] text-muted">Nothing yet. Their work shows up here as soon as they start.</p>
+        <p className="text-[15px] text-muted">
+          {hasWrittenAnswer
+            ? `${firstName}'s written answer is under "What ${firstName} submitted", next to your review. Scores, pitches and transcripts show here when the step has them.`
+            : "Nothing yet. Their work shows up here as soon as they start."}
+        </p>
       </section>
     );
   }

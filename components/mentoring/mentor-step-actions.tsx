@@ -16,12 +16,14 @@ import {
 } from "@/lib/mentoring/mentor-records-model";
 import type { PlanStep } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { parseDateOnly } from "@/lib/utils/date-only";
 
 const CARD_CLS = "flex flex-col gap-3 rounded-[14px] border border-line bg-white p-[18px]";
 
 function shortDate(iso: string | null | undefined) {
   if (!iso) return "no date";
-  return new Date(`${iso.slice(0, 10)}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  // A timestamp is shown on the reader's calendar day; slicing it first gave the UTC date (a day late in the evening).
+  return parseDateOnly(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 async function post(url: string, body: unknown): Promise<boolean> {
@@ -77,7 +79,8 @@ export function StepFeedbackPanel({
           ))}
         </ul>
       ) : null}
-      {step.assignmentStepId ? (
+      {/* While the step waits on a review, the note goes in "Your review"; one box, not two. */}
+      {step.assignmentStepId && step.status !== "submitted" ? (
         <>
           <Field hint={`${firstName} sees this on the step and gets a notification.`} htmlFor={id} label="Add feedback">
             <TextArea
@@ -153,7 +156,7 @@ export function MentorDueDatePanel({
       <p className="text-[15px] text-ink-2">
         Due dates are agreed between you and {firstName}. Due{" "}
         <span className="font-bold text-ink">{step.dueDate ? formatDueDate(step.dueDate) : "no date yet"}</span>
-        {latest ? ` · set by ${latest.change.setByName} on ${formatDueDate(latest.change.createdAt.slice(0, 10))}` : ""}.
+        {latest ? ` · set by ${latest.change.setByName} on ${shortDate(latest.change.createdAt)}` : ""}.
       </p>
       {open ? (
         <>

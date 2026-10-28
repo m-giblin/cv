@@ -251,7 +251,7 @@ export function MentorStepWorkbench({
         </section>
       ) : null}
 
-      {preview ? null : <StepEvidenceView evidence={evidence[step.id] ?? []} firstName={firstName} />}
+      {preview ? null : <StepEvidenceView evidence={evidence[step.id] ?? []} firstName={firstName} hasWrittenAnswer={Boolean(step.submissionNotes)} />}
     </Drawer>
   );
 }

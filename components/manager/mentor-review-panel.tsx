@@ -1,6 +1,5 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -55,28 +54,14 @@ export function MentorReviewPanel() {
  void load();
  }
 
- if (isLoading) {
- return (
- <div className="flex justify-center py-8" role="status">
- <Loader2 aria-hidden className="h-6 w-6 animate-spin text-blue" />
- <span className="sr-only">Loading mentor reviews…</span>
- </div>
- );
- }
-
- if (requests.length === 0) {
- return (
- <section className="rounded-[14px] border border-line bg-white p-5">
- <h3 className="text-xl font-extrabold text-ink">Mentor reviews</h3>
- <p className="mt-1 text-sm text-muted">No pending mentor review requests from your mentees.</p>
- </section>
- );
- }
+ // Only check-in requests live here; submitted steps are counted in "Waiting on your review" and
+ // listed on each mentee. An empty "no requests" box under a non-zero count read as a contradiction.
+ if (isLoading || requests.length === 0) return null;
 
  return (
  <section className="space-y-3">
  <div>
- <h3 className="text-xl font-extrabold text-ink">Mentor reviews <span className="num text-muted">{requests.length}</span></h3>
+ <h3 className="text-xl font-extrabold text-ink">Check-in requests <span className="num text-muted">{requests.length}</span></h3>
  <p className="mt-1 text-sm text-muted">Respond to mentee check-in requests from onboarding plans.</p>
  </div>
  <ul className="overflow-hidden rounded-[14px] border border-line bg-white">
