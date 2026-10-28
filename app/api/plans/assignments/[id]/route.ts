@@ -91,7 +91,7 @@ async function notifyMentorChange(
       createNotification(supabase, {
         userId: before.user_id,
         title: `${nameOf(mentorId) || "A mentor"} is your mentor`,
-        body: `${mentorFirst} will set up a 1:1 with you, where you agree your due dates together.`,
+        body: `You'll agree your due dates with ${mentorFirst} at your first 1:1. Any 1:1 that's booked shows on your Today page.`,
         actionUrl: "/dashboard",
       }),
     );

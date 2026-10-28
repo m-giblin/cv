@@ -109,7 +109,7 @@ export function SimulationCatalogue({ catalogue, testMode }: { catalogue: Catalo
           </h2>
           <p className="mt-0.5 text-sm text-muted">
             {hasOwnWork
-              ? "Try anything else here. Practice rounds are never scored; only what you submit reaches your manager."
+              ? "Try anything else here. Practice rounds are never scored; only what you submit reaches your mentor or manager."
               : "Nothing is assigned yet. Start with a foundational scenario. Practice rounds are never scored."}
           </p>
         </div>

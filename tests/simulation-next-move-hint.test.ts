@@ -68,11 +68,44 @@ describe("nextMoveHint", () => {
       nextMoveHint([...messages, { speaker: "se", message: "Does their old access stay after the transfer?" }], goals).source,
     ).toBe("done");
   });
+
+  it("moves past a goal the learner covered in their own words", () => {
+    const goals = [
+      { label: "Open by asking for a count of service accounts and pause for the answer", description: "" },
+      { label: "Find out who owns the account the case-management system uses to reach payroll and what happens when an owner leaves", description: "" },
+      { label: "Learn whether retired integrations and old passwords are cleaned up", description: "" },
+      { label: "Explain discovery, grouping, and human ownership only after those gaps are on the table", description: "" },
+    ];
+    const messages: Entry[] = [
+      opening,
+      { speaker: "se", message: "How many service accounts do you have in Active Directory today?" },
+      { speaker: "persona", message: "Honestly, no idea." },
+    ];
+    expect(nextMoveHint(messages, goals).text).toMatch(/^Next goal: Find out who owns the account the case-management system uses.*\(1 of 4 goals touched\)$/);
+    const further: Entry[] = [
+      ...messages,
+      { speaker: "se", message: "Who owns the payroll account the case-management system uses, and what happens when that owner leaves?" },
+      { speaker: "persona", message: "It just keeps running." },
+      { speaker: "se", message: "When an integration is retired, are its accounts and old passwords cleaned up?" },
+      { speaker: "persona", message: "Not really." },
+    ];
+    expect(nextMoveHint(further, goals).text).toMatch(/^Next goal: Explain discovery, grouping, and human ownership.*\(3 of 4 goals touched\)$/);
+    const all: Entry[] = [
+      ...further,
+      { speaker: "se", message: "We can discover those accounts, group them by application, and give each a human owner." },
+    ];
+    expect(nextMoveHint(all, goals)).toMatchObject({ source: "done", text: expect.stringMatching(/End & get feedback/) });
+  });
 });
 
 describe("goalTouched", () => {
   it("matches on shared key words, not exact phrasing", () => {
     expect(goalTouched("Uncover that old access stays after a transfer", "so the old access just stays when they transfer?")).toBe(true);
     expect(goalTouched("Uncover that old access stays after a transfer", "tell me about your budget")).toBe(false);
+  });
+
+  it("ignores how the goal says to work and reads \"how many\" as a count", () => {
+    expect(goalTouched("Open by asking for a count of service accounts and pause for the answer", "How many service accounts are there?")).toBe(true);
+    expect(goalTouched("Open by asking for a count of service accounts and pause for the answer", "Please pause and let me answer")).toBe(false);
   });
 });

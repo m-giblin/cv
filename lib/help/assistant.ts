@@ -1,4 +1,4 @@
-import { articleAsText, searchHelp, tokenize } from "@/lib/help/search";
+import { articleAsText, relevantHelpArticles, tokenize } from "@/lib/help/search";
 import type { HelpArticle } from "@/lib/help/types";
 
 /** Cost guardrails for the in-app assistant. */
@@ -37,7 +37,8 @@ export function isClearlyOffTopic(question: string): boolean {
 
 export function pickContextArticles(articles: HelpArticle[], question: string): HelpArticle[] {
   if (tokenize(question).length === 0) return [];
-  return searchHelp(articles, question, ASSISTANT_LIMITS.contextArticles);
+  // Only articles that clear the relevance bar, so "From the Help Center" never lists filler.
+  return relevantHelpArticles(articles, question, ASSISTANT_LIMITS.contextArticles);
 }
 
 /** "required" when the question names a SailPoint product; "available" lets the model decide. */

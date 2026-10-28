@@ -91,7 +91,9 @@ export function CommandPalette({
   function go(entry: PaletteItem | undefined) {
     if (!entry) return;
     onClose();
-    if (entry.external) window.open(entry.href, "_blank", "noopener,noreferrer");
+    // People without an in-app page open an email to them.
+    if (entry.href.startsWith("mailto:")) window.location.href = entry.href;
+    else if (entry.external) window.open(entry.href, "_blank", "noopener,noreferrer");
     else router.push(entry.href);
   }
 

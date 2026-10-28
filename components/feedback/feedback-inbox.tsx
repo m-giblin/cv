@@ -11,10 +11,12 @@ import { Drawer } from "@/components/ui/drawer";
 import { Stat } from "@/components/ui/stat";
 import { StatusPill } from "@/components/ui/status-pill";
 import { Tag } from "@/components/ui/tag";
+import type { MentorStepReviews, MentorStepReviewStatus } from "@/lib/mentoring/mentor-step-reviews";
 import { DashboardData } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type FeedbackKind = "challenge" | "coaching";
+type FeedbackKind = "challenge" | "coaching" | "step";
+type NudgeKind = Exclude<FeedbackKind, "step">;
 
 type NudgeStatus = {
   canNudge: boolean;
@@ -31,6 +33,9 @@ type FeedbackRow = {
  feedback: string | null;
  date: string | null;
  status: string;
+ /** Who reviews it, for ramp steps: the mentor's first name or "mentor". */
+ reviewer?: string;
+ href?: string;
 };
 
 type FeedbackFilter = "all" | "action" | "awaiting" | "reviewed";
@@ -39,6 +44,16 @@ type ListItem = FeedbackRow & { awaiting: boolean };
 
 const REVISION_STATUSES = new Set(["needs_revision", "redo", "in_progress"]);
 const APPROVED_STATUSES = new Set(["reviewed", "approved"]);
+
+/** Mentor step reviews in the inbox's status words: an outstanding send-back is a redo. */
+const STEP_STATUS: Record<MentorStepReviewStatus, string> = {
+ awaiting: "pending",
+ approved: "approved",
+ sent_back: "redo",
+ sent_back_resolved: "sent_back",
+ endorsed: "endorsed",
+ note: "note",
+};
 
 function capitalize(text: string) {
  return text.charAt(0).toUpperCase() + text.slice(1);
@@ -49,8 +64,15 @@ function statusLabel(status: string) {
 }
 
 /** Status tag: symbol + text so meaning never relies on colour alone. */
-function statusTag(status: string, awaiting: boolean) {
- if (awaiting) return { tone: "blue" as const, text: "Awaiting manager" };
+function statusTag(row: FeedbackRow, awaiting: boolean) {
+ const { status } = row;
+ if (awaiting) return { tone: "blue" as const, text: `Awaiting ${row.reviewer ?? "manager"}` };
+ if (row.kind === "step") {
+ if (status === "redo") return { tone: "danger" as const, text: "Sent back" };
+ if (status === "sent_back") return { tone: "neutral" as const, text: "Sent back, since redone" };
+ if (status === "endorsed") return { tone: "blue" as const, text: "Endorsed for manager sign-off" };
+ if (status === "note") return { tone: "neutral" as const, text: "Mentor note" };
+ }
  if (status === "needs_revision") return { tone: "danger" as const, text: "Needs revision" };
  if (REVISION_STATUSES.has(status)) return { tone: "danger" as const, text: "Redo requested" };
  if (APPROVED_STATUSES.has(status)) return { tone: "success" as const, text: capitalize(statusLabel(status)) };
@@ -68,8 +90,17 @@ function gradeTone(grade: number) {
 const EMPTY_CLS =
  "rounded-[14px] border border-dashed border-line-strong p-7 text-center text-[15px] text-muted";
 
-export function FeedbackInbox({ data }: { data: DashboardData }) {
+export function FeedbackInbox({
+ data,
+ mentorReviews = null,
+}: {
+ data: DashboardData;
+ /** The mentor's reviews of the SE's ramp steps; null when they have no mentor. */
+ mentorReviews?: MentorStepReviews | null;
+}) {
  const userId = data.currentUser.id;
+ const hasMentor = Boolean(mentorReviews);
+ const mentorLabel = mentorReviews?.mentorFirstName ?? "mentor";
  const [acknowledged, setAcknowledged] = useState<Set<string>>(new Set());
  const [nudgeStatus, setNudgeStatus] = useState<Record<string, NudgeStatus>>({});
  const [nudgingKey, setNudgingKey] = useState<string | null>(null);
@@ -115,9 +146,40 @@ export function FeedbackInbox({ data }: { data: DashboardData }) {
  date: card.reviewedAt,
  status: card.managerReviewStatus,
  })),
+ ...(mentorReviews?.items ?? [])
+ .filter((item) => item.status !== "awaiting")
+ .map((item) => ({
+ id: item.id,
+ kind: "step" as const,
+ title: item.title,
+ grade: null,
+ feedback: item.feedback,
+ date: item.date,
+ status: STEP_STATUS[item.status],
+ reviewer: item.reviewerName ?? "your mentor",
+ href: `/my-plan?step=${item.assignmentStepId}`,
+ })),
  ];
  return rows.sort((a, b) => new Date(b.date ?? 0).getTime() - new Date(a.date ?? 0).getTime());
- }, [data, userId]);
+ }, [data, userId, mentorReviews]);
+
+ const awaitingMentorRows: FeedbackRow[] = useMemo(
+ () =>
+ (mentorReviews?.items ?? [])
+ .filter((item) => item.status === "awaiting")
+ .map((item) => ({
+ id: item.id,
+ kind: "step" as const,
+ title: item.title,
+ grade: null,
+ feedback: null,
+ date: item.date,
+ status: "pending",
+ reviewer: mentorLabel,
+ href: `/my-plan?step=${item.assignmentStepId}`,
+ })),
+ [mentorReviews, mentorLabel],
+ );
 
  const awaitingManagerRows: FeedbackRow[] = useMemo(() => {
  const rows: FeedbackRow[] = [
@@ -163,6 +225,7 @@ export function FeedbackInbox({ data }: { data: DashboardData }) {
  return;
  }
 
+ // Only manager reviews have reminders; mentor steps are nudged in person.
  const items = awaitingManagerRows.map((row) => `${row.kind}:${row.id}`).join(",");
  void fetch(`/api/reviews/remind?items=${encodeURIComponent(items)}`, { credentials: "same-origin" })
  .then((res) => (res.ok ? res.json() : null))
@@ -207,7 +270,7 @@ export function FeedbackInbox({ data }: { data: DashboardData }) {
  toast.success("Acknowledged");
  }
 
- async function nudgeManager(kind: FeedbackKind, id: string) {
+ async function nudgeManager(kind: NudgeKind, id: string) {
  const key = `${kind}-${id}`;
  setNudgingKey(key);
  try {
@@ -252,6 +315,9 @@ export function FeedbackInbox({ data }: { data: DashboardData }) {
  }
 
  function ctaForRow(row: FeedbackRow) {
+ if (row.kind === "step") {
+ return { label: row.status === "redo" ? "Open the step to redo it" : "Open the step", href: row.href ?? "/my-plan" };
+ }
  if (row.status === "redo" || row.status === "in_progress") {
  return { label: "Resubmit challenge", href: "/practice/challenges?focus=challenge" };
  }
@@ -265,10 +331,14 @@ export function FeedbackInbox({ data }: { data: DashboardData }) {
  }
 
  const reviewedRows = historyRows.filter((row) => APPROVED_STATUSES.has(row.status));
- const redoCount = revisionSubmissions.length + revisionCards.length;
+ const sentBackSteps = historyRows.filter((row) => row.kind === "step" && row.status === "redo");
+ const redoCount = revisionSubmissions.length + revisionCards.length + sentBackSteps.length;
+ const awaitingRows = [...awaitingMentorRows, ...awaitingManagerRows];
+ // With a mentor, some work waits on them rather than the manager.
+ const awaitingLabel = hasMentor ? "Awaiting review" : "Awaiting manager";
 
  const allItems: ListItem[] = [
- ...awaitingManagerRows.map((row) => ({ ...row, awaiting: true })),
+ ...awaitingRows.map((row) => ({ ...row, awaiting: true })),
  ...historyRows.map((row) => ({ ...row, awaiting: false })),
  ];
  const pendingKeys = new Set(pendingRows.map((row) => `${row.kind}-${row.id}`));
@@ -276,7 +346,7 @@ export function FeedbackInbox({ data }: { data: DashboardData }) {
  const filters: Array<{ id: FeedbackFilter; label: string; count: number }> = [
  { id: "all", label: "All", count: allItems.length },
  { id: "action", label: "Needs action", count: pendingRows.length },
- { id: "awaiting", label: "Awaiting manager", count: awaitingManagerRows.length },
+ { id: "awaiting", label: awaitingLabel, count: awaitingRows.length },
  { id: "reviewed", label: "Approved", count: reviewedRows.length },
  ];
 
@@ -299,18 +369,23 @@ export function FeedbackInbox({ data }: { data: DashboardData }) {
  return (
  <div className="flex flex-col gap-6">
  <p className="text-[15px] leading-[1.5] text-ink-2">
- The evidence behind each score: manager grades and comments on your challenges and simulations.
+ {hasMentor
+ ? "The evidence behind each score: manager grades and comments on your challenges and simulations, and your mentor's reviews of your ramp steps."
+ : "The evidence behind each score: manager grades and comments on your challenges and simulations."}
  </p>
 
  <dl className={cn(LINE_CARD_CLS, "grid grid-cols-2 gap-x-6 gap-y-5 px-5 py-[18px] sm:grid-cols-3 lg:grid-cols-5")}>
  {[
- { label: "Awaiting manager", value: String(awaitingManagerRows.length) },
+ { label: awaitingLabel, value: String(awaitingRows.length) },
  { label: "Needs action", value: String(pendingRows.length), danger: pendingRows.length > 0 },
  {
  label: "Redo requested",
  value: String(redoCount),
  danger: redoCount > 0,
- note: redoCount > 0 ? (revisionCards[0]?.simulationContext?.persona ?? "Awaiting revision") : undefined,
+ note:
+ redoCount > 0
+ ? (revisionCards[0]?.simulationContext?.persona ?? sentBackSteps[0]?.title ?? "Awaiting revision")
+ : undefined,
  },
  { label: "Approved this month", value: String(approvedThisMonth) },
  { label: "Avg grade", value: avgGrade === "—" ? "–" : `${avgGrade}`, note: avgGrade === "—" ? undefined : "out of 5" },
@@ -348,7 +423,9 @@ export function FeedbackInbox({ data }: { data: DashboardData }) {
 
  {allItems.length === 0 ? (
  <p className={EMPTY_CLS}>
- Submit a challenge or simulation. Manager feedback shows up here after review.
+ {hasMentor
+ ? "Submit a ramp step, challenge or simulation. Feedback from your mentor and manager shows up here after review."
+ : "Submit a challenge or simulation. Manager feedback shows up here after review."}
  </p>
  ) : visibleItems.length === 0 ? (
  <p className={EMPTY_CLS}>Nothing in this view right now.</p>
@@ -359,10 +436,10 @@ export function FeedbackInbox({ data }: { data: DashboardData }) {
  const itemKey = `${row.awaiting ? "awaiting" : "hist"}-${key}`;
  const detailId = `feedback-detail-${itemKey}`;
  const isOpen = expanded.has(itemKey);
- const tag = statusTag(row.status, row.awaiting);
+ const tag = statusTag(row, row.awaiting);
  const showGrade = !row.awaiting && row.grade !== null && row.grade !== undefined;
  const tone = showGrade ? gradeTone(row.grade as number) : null;
- const nudge = row.awaiting ? nudgeStatus[key] : undefined;
+ const nudge = row.awaiting && row.kind !== "step" ? nudgeStatus[key] : undefined;
  const isNudging = nudgingKey === key;
  const needsAction = !row.awaiting && pendingKeys.has(key);
  const cta = ctaForRow(row);
@@ -383,7 +460,7 @@ export function FeedbackInbox({ data }: { data: DashboardData }) {
  <span className="flex min-w-0 flex-col gap-1.5">
  <span className="text-[15px] font-semibold text-ink">{row.title}</span>
  <span className="flex flex-wrap items-center gap-1.5">
- <Tag>{row.kind === "challenge" ? "Challenge" : "Simulation"}</Tag>
+ <Tag>{row.kind === "challenge" ? "Challenge" : row.kind === "step" ? "Ramp step" : "Simulation"}</Tag>
  <StatusPill tone={tag.tone}>{tag.text}</StatusPill>
  </span>
  {row.feedback ? (
@@ -408,7 +485,7 @@ export function FeedbackInbox({ data }: { data: DashboardData }) {
  </>
  ) : (
  <span className="text-[13px] text-muted">
- No grade yet
+ {row.kind === "step" ? "Not graded" : "No grade yet"}
  </span>
  )}
  </div>
@@ -420,11 +497,23 @@ export function FeedbackInbox({ data }: { data: DashboardData }) {
 
  {isOpen ? (
  <Drawer
- eyebrow={row.kind === "challenge" ? "Challenge feedback" : "Simulation feedback"}
+ eyebrow={
+ row.kind === "challenge" ? "Challenge feedback" : row.kind === "step" ? "Ramp step review" : "Simulation feedback"
+ }
  onClose={() => toggleExpanded(itemKey)}
  open
  size="form"
- subtitle={tone ? `${row.grade} of 5 · ${tone.label}` : row.awaiting ? "Waiting on your manager" : "No grade yet"}
+ subtitle={
+ tone
+ ? `${row.grade} of 5 · ${tone.label}`
+ : row.awaiting
+ ? row.kind === "step"
+ ? `Waiting on ${row.reviewer === "mentor" ? "your mentor" : row.reviewer}`
+ : "Waiting on your manager"
+ : row.kind === "step"
+ ? tag.text
+ : "No grade yet"
+ }
  title={row.title}
  >
  <div className="flex flex-col gap-4" id={detailId}>
@@ -433,7 +522,18 @@ export function FeedbackInbox({ data }: { data: DashboardData }) {
  &ldquo;{row.feedback}&rdquo;
  </blockquote>
  ) : null}
- {row.awaiting ? (
+ {row.awaiting && row.kind === "step" ? (
+ <div className="flex flex-col gap-3">
+ <p className="text-sm text-ink-2">
+ Submitted{" "}
+ {row.date ? formatDistanceToNow(new Date(row.date), { addSuffix: true }) : "recently"}, and it is with{" "}
+ {row.reviewer === "mentor" ? "your mentor" : row.reviewer}. They approve it or send it back with a note.
+ </p>
+ <Link className="btn-secondary self-start no-underline" href={cta.href}>
+ {cta.label}
+ </Link>
+ </div>
+ ) : row.awaiting && row.kind !== "step" ? (
  <div className="flex flex-col gap-3">
  <p className="text-sm text-ink-2">
  Submitted{" "}
@@ -446,7 +546,7 @@ export function FeedbackInbox({ data }: { data: DashboardData }) {
  <button
  className="btn-secondary inline-flex items-center gap-2 self-start disabled:cursor-not-allowed disabled:border-line-strong disabled:text-muted disabled:hover:bg-white"
  disabled={!nudge?.canNudge || isNudging}
- onClick={() => void nudgeManager(row.kind, row.id)}
+ onClick={() => void nudgeManager(row.kind as NudgeKind, row.id)}
  title={nudge?.canNudge ? "Send your manager a reminder email" : nudge?.reason ?? "Loading…"}
  type="button"
  >
@@ -461,11 +561,13 @@ export function FeedbackInbox({ data }: { data: DashboardData }) {
  ) : (
  <div className="flex flex-col gap-3">
  <p className="text-[13px] text-muted">
- From your manager,{" "}
+ From {row.kind === "step" ? row.reviewer : "your manager"},{" "}
  {row.date ? formatDistanceToNow(new Date(row.date), { addSuffix: true }) : "recently"}
  </p>
  {row.feedback ? null : (
- <p className="text-sm text-muted">No written comment, just a grade.</p>
+ <p className="text-sm text-muted">
+ {row.kind === "step" ? "No written note." : "No written comment, just a grade."}
+ </p>
  )}
  <div className="flex flex-wrap items-center gap-4">
  <Link className="btn-secondary no-underline" href={cta.href}>

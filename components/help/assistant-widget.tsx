@@ -5,6 +5,7 @@ import { Send, Sparkles, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { WorkspaceHat } from "@/lib/auth/workspace";
 import { ASSISTANT_LIMITS } from "@/lib/help/assistant";
+import { shortDocUrl } from "@/lib/help/sailpoint-docs";
 import { cn } from "@/lib/utils";
 
 type Message = {
@@ -156,7 +157,7 @@ export function AssistantWidget({ workspace }: { workspace: WorkspaceHat }) {
                       <span className="text-[11px] font-bold tracking-wide text-muted uppercase">From the Help Center</span>
                       {message.sources.map((source) => (
                         <Link
-                          className="link text-[13px]"
+                          className="link text-[13px] break-words"
                           href={`/help?article=${source.id}`}
                           key={source.id}
                           onClick={() => setOpen(false)}
@@ -170,8 +171,16 @@ export function AssistantWidget({ workspace }: { workspace: WorkspaceHat }) {
                     <span className="mt-2 flex flex-col gap-1 border-t border-divider pt-2">
                       <span className="text-[11px] font-bold tracking-wide text-muted uppercase">From SailPoint docs</span>
                       {message.docs.map((doc) => (
-                        <a className="link text-[13px]" href={doc.url} key={doc.url} rel="noopener noreferrer" target="_blank">
+                        <a
+                          className="link flex min-w-0 flex-col text-[13px] break-words [overflow-wrap:anywhere]"
+                          href={doc.url}
+                          key={doc.url}
+                          rel="noopener noreferrer"
+                          target="_blank"
+                          title={doc.url}
+                        >
                           {doc.title}
+                          <span className="truncate text-[11px] text-muted no-underline">{shortDocUrl(doc.url)}</span>
                         </a>
                       ))}
                     </span>

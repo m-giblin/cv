@@ -1,17 +1,6 @@
 import type { CalMilestone, CalWeek } from "@/components/se/plan-calendar/types";
+import { planStepTypeLabel } from "@/lib/plans/step-labels";
 import type { AssignmentStatus, PlanStep, PlanStepType, UserPlan } from "@/lib/types";
-
-const TYPE_LABEL: Record<PlanStepType, string> = {
-  content_review: "Learn",
-  challenge: "Challenge",
-  simulation: "Sim",
-  shadow_meeting_log: "Lab",
-  mentor_review: "1:1",
-  deal_prep: "Deal Prep",
-  knowledge_check: "Check",
-  playbook: "Playbook",
-  custom: "Task",
-};
 
 const TYPE_ICON: Record<PlanStepType, string> = {
   content_review: "📚",
@@ -87,7 +76,8 @@ export function stepToCalMilestone(step: PlanStep, today = new Date()): CalMiles
     return null;
   }
 
-  const type = step.isSegmentGate ? "Gate" : TYPE_LABEL[step.type];
+  // Same names as My ramp and Today, so a step is called one thing everywhere.
+  const type = step.isSegmentGate ? "Gate" : planStepTypeLabel(step.type, step.resourceUrl);
   const icon = step.isSegmentGate ? "🚧" : TYPE_ICON[step.type];
 
   return {
@@ -97,6 +87,7 @@ export function stepToCalMilestone(step: PlanStep, today = new Date()): CalMiles
     status: milestoneStatusForStep(step, today),
     icon,
     date: step.dueDate,
+    href: step.assignmentStepId ? `/my-plan?step=${step.assignmentStepId}` : undefined,
     managerNote: step.type === "mentor_review" && step.description ? step.description : undefined,
   };
 }

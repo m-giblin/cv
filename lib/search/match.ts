@@ -50,6 +50,9 @@ export function scoreMatch(query: string, item: Searchable): number | null {
   if (title === phrase) score += 40;
   else if (title.startsWith(phrase)) score += 25;
   else if (title.includes(phrase)) score += 15;
+  // Several words found together ("access profile") beat the same words scattered through the text.
+  else if (tokens.length > 1 && fields.includes(phrase)) score += 6;
+  else if (tokens.length > 1 && keywords.includes(phrase)) score += 3;
   return score;
 }
 

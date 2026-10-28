@@ -32,4 +32,14 @@ describe("search matching", () => {
     const all = rankMatches("joiner", items, (item) => item, 10).map((item) => item.title);
     expect(all).toEqual(["Joiner", "Joiner basics", "Foundation: Joiner, mover, and leaver"]);
   });
+
+  it("ranks a chapter that covers a phrase above one that only has its words scattered", () => {
+    const chapters = [
+      { title: "Lifecycle Management", coverage: "Profile every identity source and grant access on day one" },
+      { title: "Role-Based Governance", coverage: "Where an access profile sits between entitlements and roles" },
+    ];
+    const ranked = rankMatches("access profile", chapters, (row) => ({ title: row.title, keywords: [row.coverage] }));
+    expect(ranked.map((row) => row.title)).toEqual(["Role-Based Governance", "Lifecycle Management"]);
+  });
 });
+

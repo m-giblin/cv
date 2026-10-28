@@ -214,7 +214,7 @@ const simulations = [
       "Sam thinks identity means employees and contractors. Sam has never counted the accounts that are not people. Your job is to introduce that idea and learn whether those accounts have an owner. Do not pitch.",
     facts: [
       "Sam can list the employee process and believes that is the whole identity program.",
-      "The student-information integration, a nightly script, and two vendor connections each use a service account.",
+      "The case-management system's connection to payroll, a nightly script, and two vendor connections each use a service account.",
       "Sam cannot say how many service accounts exist.",
       "The person who created several of those accounts left last year. Sam is not sure who owns them now.",
       "Sam does not remember the last time those passwords were changed.",
@@ -233,17 +233,17 @@ const simulations = [
     solution: "Machine Identity Security",
     playbookId: PLAYBOOKS.machine,
     situation:
-      "Sam now accepts that service accounts exist, but still cannot say how many there are or who owns them. Discover the ownership gap. Only after Sam admits the unknown should you explain, in one or two sentences, that the accounts can be discovered, grouped by application, and given a human owner.",
+      "Sam runs operations at a state agency. Sam knows some systems sign in with accounts that are not people, such as the one the case-management system uses to reach payroll, but cannot say how many of those service accounts there are or who owns them. Discover the ownership gap. Only after Sam admits the unknown should you explain, in one or two sentences, that the accounts can be discovered, grouped by application, and given a human owner.",
     facts: [
       "Sam cannot answer how many service accounts are in Active Directory.",
       "When a vendor integration is retired, there is no routine step to remove its service account.",
-      "The student-information service account has no current owner written down.",
+      "The service account the case-management system uses to reach payroll has no current owner written down.",
       "Sam cannot remember a service-account password being rotated in the last year.",
       "When the creator of an account leaves, the account keeps running.",
     ],
     success: [
       "Open by asking for a count of service accounts and pause for the answer",
-      "Find out who owns the student-information account and what happens when an owner leaves",
+      "Find out who owns the account the case-management system uses to reach payroll and what happens when an owner leaves",
       "Learn whether retired integrations and old passwords are cleaned up",
       "Explain discovery, grouping, and human ownership only after those gaps are on the table",
     ],

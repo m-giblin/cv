@@ -1,7 +1,15 @@
+import { stepsAwaitingMentor } from "@/lib/mentoring/mentor-step-reviews";
 import type { DashboardData } from "@/lib/types";
 
-/** Items in Readiness › Feedback: graded or commented work plus work waiting on the manager. */
-export function feedbackItemCount(data: Pick<DashboardData, "currentUser" | "submissions" | "coachingCards">): number {
+/**
+ * Items in Readiness › Feedback: graded or commented work plus work waiting on a reviewer. Without
+ * `mentorReviewCount` (loaded only on the Feedback tab) ramp steps waiting on the mentor are counted from
+ * the plan, so the other tabs don't need an extra query.
+ */
+export function feedbackItemCount(
+  data: Pick<DashboardData, "currentUser" | "submissions" | "coachingCards" | "plans">,
+  mentorReviewCount?: number,
+): number {
   const userId = data.currentUser.id;
   const challenges = data.submissions.filter(
     (submission) =>
@@ -17,5 +25,6 @@ export function feedbackItemCount(data: Pick<DashboardData, "currentUser" | "sub
       ((card.managerReviewStatus !== "pending" && (card.managerComments || card.managerGrade !== null)) ||
         (!card.isPractice && card.managerReviewStatus === "pending")),
   ).length;
-  return challenges + cards;
+  const steps = mentorReviewCount ?? stepsAwaitingMentor(data.plans, userId).length;
+  return challenges + cards + steps;
 }

@@ -8,8 +8,8 @@ export function ReadinessScoreCard({ breakdown, onRamp }: { breakdown: Readiness
   const parts = [
     { label: "Ramp steps validated", value: `${breakdown.planProgress}%` },
     {
-      label: "Scored simulations",
-      value: breakdown.simulationAvg === null ? "None yet (counts as half)" : `Average ${breakdown.simulationAvg}`,
+      label: "Submitted simulations",
+      value: breakdown.simulationAvg === null ? "None yet" : `Average ${breakdown.simulationAvg}`,
     },
     { label: "Stages unlocked", value: `${Math.round(breakdown.segmentProgress / 25)} of 4` },
     { label: "Certifications approved", value: `${Math.round(breakdown.certApprovedRatio * 100)}%` },
@@ -28,18 +28,25 @@ export function ReadinessScoreCard({ breakdown, onRamp }: { breakdown: Readiness
         </span>
         <span className="mt-1 max-w-[260px] text-sm text-muted">
           {onRamp
-            ? "Everyone starts low. It rises as you validate ramp steps, score simulations and clear stage gates."
+            ? "Everyone starts low. It rises as you validate ramp steps, submit simulations and clear stage gates."
             : "Your manager sees the same number."}
         </span>
       </div>
-      <dl className="grid min-w-[260px] flex-1 grid-cols-[minmax(0,1fr)_auto] gap-x-6 gap-y-1.5 text-sm">
-        {parts.map((part) => (
-          <div className="contents" key={part.label}>
-            <dt className="text-ink-2">{part.label}</dt>
-            <dd className="text-right font-bold text-ink">{part.value}</dd>
-          </div>
-        ))}
-      </dl>
+      <div className="flex min-w-[260px] flex-1 flex-col gap-2">
+        <dl className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-6 gap-y-1.5 text-sm">
+          {parts.map((part) => (
+            <div className="contents" key={part.label}>
+              <dt className="text-ink-2">{part.label}</dt>
+              <dd className="text-right font-bold text-ink">{part.value}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="text-xs text-muted">
+          {breakdown.simulationAvg === null
+            ? "Submitted simulations: none yet. Practice rounds don't count; submit one to count it. Until you do, simulations are scored as if you averaged about 50 (12 of their 25 points)."
+            : "Average of your last 10 submitted simulation rounds. Practice rounds don't count."}
+        </p>
+      </div>
     </section>
   );
 }

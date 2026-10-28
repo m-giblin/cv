@@ -100,7 +100,7 @@ describe("ramp model", () => {
 
   it("labels a content step that opens Pitch Studio as a pitch", () => {
     expect(planStepTypeLabel("content_review", "/practice/pitch?scenario=x")).toBe("Pitch");
-    expect(planStepTypeLabel("content_review", "https://documentation.sailpoint.com")).toBe("Content");
+    expect(planStepTypeLabel("content_review", "https://documentation.sailpoint.com")).toBe("Reading");
   });
 
   it("splits weeks with the remainder at the end", () => {

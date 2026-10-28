@@ -36,7 +36,7 @@ function buildRows(account: string, persona: string, tools: PreflightTool[]): Ro
     {
       tool: "simulations",
       title: `Simulation: ${audience}`,
-      sub: "Scored card goes to your manager",
+      sub: "Scored card goes to your mentor or manager",
       minutes: PREFLIGHT_MINUTES.simulations,
       href: "/practice/simulations",
     },

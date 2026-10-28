@@ -8,7 +8,12 @@ import { loadAssignablePeople } from "@/lib/playbooks/assignment-access";
 import type { PlatformFeatureFlags } from "@/lib/platform/settings-shared";
 import { SOURCE_LABEL, sourceKey } from "@/lib/question-bank/model";
 import type { QuestionSourceKind } from "@/lib/question-bank/model";
-import { loadPlaybookChapterSummaries, playbookChapterHref, type PlaybookChapterSummary } from "@/lib/search/playbook-chapters";
+import {
+  loadPlaybookChapterSearchRows,
+  playbookChapterHref,
+  type PlaybookChapterSearchRow,
+  type PlaybookChapterSummary,
+} from "@/lib/search/playbook-chapters";
 import { rankMatches } from "@/lib/search/match";
 import type { ProfileRole } from "@/lib/types";
 
@@ -26,7 +31,8 @@ export const SEARCH_GROUPS: { id: SearchGroupId; label: string; route: string }[
   { id: "simulations", label: "Simulations", route: "/practice/simulations" },
   { id: "pitch", label: "Pitch practice", route: "/practice/pitch" },
   { id: "library", label: "Library", route: "/learn" },
-  { id: "people", label: "People", route: "/manager/team" },
+  // Everyone sees the people they work with; managers and admins also find their reporting line.
+  { id: "people", label: "People", route: "/" },
 ];
 
 export const SEARCH_LIMIT = 5;
@@ -48,11 +54,8 @@ export async function searchSite(viewer: Viewer, query: string): Promise<SearchG
   const allowed = new Set(
     SEARCH_GROUPS.filter((group) => canAccessRoute(viewer.tier, group.route, viewer.flags)).map((group) => group.id),
   );
-  // People results are for managers and admins only.
-  if (!["manager", "admin", "super_admin"].includes(viewer.tier)) allowed.delete("people");
-
   const needChapters = allowed.has("playbooks") || allowed.has("checks");
-  const chapters = needChapters ? loadPlaybookChapterSummaries(viewer.tenantId) : Promise.resolve([]);
+  const chapters = needChapters ? loadPlaybookChapterSearchRows(viewer.tenantId) : Promise.resolve([]);
   const found = await Promise.all([
     allowed.has("ramp") ? searchRamp(viewer, query) : [],
     allowed.has("playbooks") ? chapters.then((rows) => searchPlaybooks(rows, query)) : [],
@@ -67,8 +70,14 @@ export async function searchSite(viewer: Viewer, query: string): Promise<SearchG
   );
 }
 
-function searchPlaybooks(chapters: PlaybookChapterSummary[], query: string): SearchResult[] {
-  return rankMatches(query, chapters, (row) => ({ title: row.title, fields: [row.summary], keywords: ["playbook", "chapter"] }), SEARCH_LIMIT).map(
+function searchPlaybooks(chapters: PlaybookChapterSearchRow[], query: string): SearchResult[] {
+  // What the chapter covers ranks below its title and subtitle, so "access profile" finds the chapter that teaches it.
+  return rankMatches(
+    query,
+    chapters,
+    (row) => ({ title: row.title, fields: [row.summary], keywords: ["playbook", "chapter", row.coverage] }),
+    SEARCH_LIMIT,
+  ).map(
     (row) => ({ id: row.id, title: row.title, detail: `Chapter ${row.chapter}`, href: playbookChapterHref(row.slug) }),
   );
 }
@@ -220,14 +229,145 @@ async function searchRamp(viewer: Viewer, query: string): Promise<SearchResult[]
   }));
 }
 
-async function searchPeople(viewer: Viewer, query: string): Promise<SearchResult[]> {
-  const people = await loadAssignablePeople(viewer.tenantId, viewer.userId, viewer.role);
-  return rankMatches(query, people, (person) => ({ title: person.name ?? "", fields: [person.role.replaceAll("_", " ")] }), SEARCH_LIMIT).map(
+const ROLE_LABEL: Record<ProfileRole, string> = {
+  basic_se: "SE",
+  senior_se: "Senior SE",
+  advisory_solutions_consultant: "Advisory Solutions Consultant",
+  mentor: "Mentor",
+  manager: "Manager",
+  director: "Director",
+  admin: "Admin",
+  super_admin: "Admin",
+};
+
+export type PersonRelation = "manager" | "mentor" | "mentee" | "report" | "team";
+
+/** Someone the viewer works with, and how. */
+export type WorkingPerson = {
+  id: string;
+  name: string;
+  role: ProfileRole;
+  email: string | null;
+  relations: PersonRelation[];
+  /** The mentee's active plan assignment, which /mentoring?open= opens. */
+  menteeAssignmentId?: string;
+};
+
+const RELATION_LABEL: Record<PersonRelation, string> = {
+  manager: "Your manager",
+  mentor: "Your mentor",
+  mentee: "Your mentee",
+  report: "Reports to you",
+  // Someone in the manager's reporting line or the admin's workspace: their role says enough.
+  team: "",
+};
+
+type ProfileLite = { id: string; full_name: string | null; role: ProfileRole; email: string | null; manager_id: string | null; tenant_id: string | null; home_tenant_id?: string | null; status?: string };
+
+/**
+ * The viewer's manager, mentor, mentees and direct reports, in their tenant. Two round trips: the
+ * viewer's assignments (both sides) and profile + reports together, then the profiles of anyone
+ * still missing.
+ */
+export async function loadPeopleYouWorkWith(viewer: Pick<Viewer, "userId" | "tenantId">): Promise<WorkingPerson[]> {
+  const admin = getTenantAdminClient();
+  if (!admin) return [];
+  const [assignmentsResult, profilesResult] = await Promise.all([
+    admin.from("plan_assignments").select("id, user_id, mentor_id, status").or(`user_id.eq.${viewer.userId},mentor_id.eq.${viewer.userId}`),
+    // "*" so this works whether or not the home_tenant_id column is there.
+    admin.from("profiles").select("*").or(`id.eq.${viewer.userId},manager_id.eq.${viewer.userId}`),
+  ]);
+  const assignments = (assignmentsResult.data ?? []) as { id: string; user_id: string; mentor_id: string | null; status: string }[];
+  const profiles = new Map(((profilesResult.data ?? []) as ProfileLite[]).map((row) => [row.id, row]));
+  const self = profiles.get(viewer.userId);
+
+  const relations = new Map<string, Set<PersonRelation>>();
+  const relate = (id: string | null | undefined, relation: PersonRelation) => {
+    if (!id || id === viewer.userId) return;
+    relations.set(id, (relations.get(id) ?? new Set()).add(relation));
+  };
+  relate(self?.manager_id, "manager");
+  for (const row of profiles.values()) if (row.manager_id === viewer.userId) relate(row.id, "report");
+  const menteeAssignment = new Map<string, string>();
+  for (const row of assignments) {
+    if (row.user_id === viewer.userId) relate(row.mentor_id, "mentor");
+    else if (row.mentor_id === viewer.userId && row.status !== "completed") {
+      relate(row.user_id, "mentee");
+      if (!menteeAssignment.has(row.user_id)) menteeAssignment.set(row.user_id, row.id);
+    }
+  }
+
+  const missing = [...relations.keys()].filter((id) => !profiles.has(id));
+  if (missing.length) {
+    const { data } = await admin.from("profiles").select("*").in("id", missing);
+    for (const row of (data ?? []) as ProfileLite[]) profiles.set(row.id, row);
+  }
+
+  return [...relations.entries()].flatMap(([id, set]) => {
+    const row = profiles.get(id);
+    // Tenant scoping: only people who belong to (or are homed in) the viewer's tenant, and still active.
+    if (!row || row.status === "inactive") return [];
+    if (row.tenant_id !== viewer.tenantId && row.home_tenant_id !== viewer.tenantId) return [];
+    return [
+      {
+        id,
+        name: row.full_name ?? "",
+        role: row.role,
+        email: row.email,
+        relations: [...set],
+        menteeAssignmentId: menteeAssignment.get(id),
+      },
+    ];
+  });
+}
+
+/** Where a person result goes: their mentee workbench, their roster card, or an email to them. */
+export function personHref(person: WorkingPerson, canOpenTeam: boolean): string {
+  if (person.menteeAssignmentId) return `/mentoring?open=${encodeURIComponent(person.menteeAssignmentId)}`;
+  if (canOpenTeam && (person.relations.includes("report") || person.relations.includes("team"))) {
+    return `/manager/team?profile=${encodeURIComponent(person.id)}`;
+  }
+  if (person.email) return `mailto:${person.email}`;
+  return canOpenTeam ? `/manager/team?profile=${encodeURIComponent(person.id)}` : "/";
+}
+
+/** "Your mentor, Manager": the closest relation first, then their role. */
+export function personDetail(person: WorkingPerson): string {
+  const relation = (["manager", "mentor", "mentee", "report"] as const).find((item) => person.relations.includes(item));
+  const role = ROLE_LABEL[person.role] ?? person.role.replaceAll("_", " ");
+  return relation ? `${RELATION_LABEL[relation]}, ${role}` : role;
+}
+
+/** People matching the query: everyone they work with, plus (for managers and admins) their reporting line or tenant. */
+export function rankPeople(query: string, people: WorkingPerson[], canOpenTeam: boolean): SearchResult[] {
+  return rankMatches(
+    query,
+    people,
     (person) => ({
-      id: person.id,
       title: person.name,
-      detail: person.role.replaceAll("_", " "),
-      href: `/manager/team?profile=${encodeURIComponent(person.id)}`,
+      fields: [ROLE_LABEL[person.role], ...person.relations.map((relation) => RELATION_LABEL[relation]).filter(Boolean)],
+      keywords: ["people", "person", ...person.relations],
     }),
-  );
+    SEARCH_LIMIT,
+  ).map((person) => ({
+    id: person.id,
+    title: person.name,
+    detail: personDetail(person),
+    href: personHref(person, canOpenTeam),
+    external: false,
+  }));
+}
+
+async function searchPeople(viewer: Viewer, query: string): Promise<SearchResult[]> {
+  const canOpenTeam = ["manager", "admin", "super_admin"].includes(viewer.tier) && canAccessRoute(viewer.tier, "/manager/team", viewer.flags);
+  const [close, wider] = await Promise.all([
+    loadPeopleYouWorkWith(viewer),
+    canOpenTeam ? loadAssignablePeople(viewer.tenantId, viewer.userId, viewer.role) : Promise.resolve([]),
+  ]);
+  const people = new Map(close.map((person) => [person.id, person]));
+  for (const person of wider) {
+    if (people.has(person.id)) continue;
+    people.set(person.id, { id: person.id, name: person.name, role: person.role, email: null, relations: ["team"] });
+  }
+  return rankPeople(query, [...people.values()], canOpenTeam);
 }

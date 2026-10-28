@@ -16,10 +16,13 @@ function scenarioLabel(assignment: SimulationAssignment) {
 
 export function SimulationsShell({
   assignment,
+  mentorName,
   testMode,
   userLevel,
 }: {
   assignment: SimulationAssignment;
+  /** Set for free practice by an SE with a mentor: the card is shared with them instead of the manager. */
+  mentorName?: string | null;
   tier: AccessTier;
   testMode: boolean;
   userLevel: "Basic" | "Senior" | "Advisory";
@@ -40,7 +43,7 @@ export function SimulationsShell({
       testMode={testMode}
       title="Simulations"
     >
-      <SimulationWorkspace assignment={assignment} onStepChange={setStep} userLevel={userLevel} />
+      <SimulationWorkspace assignment={assignment} mentorName={mentorName} onStepChange={setStep} userLevel={userLevel} />
     </PracticeToolPage>
   );
 }

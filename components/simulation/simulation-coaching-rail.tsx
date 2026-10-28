@@ -31,6 +31,7 @@ export function SimulationCoachingRail({
   belowPracticeRecommendation,
   practiceRoundsRecommended,
   practiceRemaining,
+  mentorName,
   onPracticeAgain,
   onSubmit,
 }: {
@@ -44,6 +45,8 @@ export function SimulationCoachingRail({
   belowPracticeRecommendation: boolean;
   practiceRoundsRecommended: number;
   practiceRemaining: number;
+  /** Set when this free practice goes to the SE's mentor rather than their manager. */
+  mentorName?: string | null;
   onPracticeAgain: () => void;
   onSubmit: () => void;
 }) {
@@ -99,7 +102,7 @@ export function SimulationCoachingRail({
             </div>
           </div>
           <div className="rounded-[14px] bg-surface-2 p-3.5">
-            <p className="label-caps">Manager summary</p>
+            <p className="label-caps">{mentorName ? "Summary for your mentor" : "Manager summary"}</p>
             <p className="mt-1 text-sm leading-[1.5] text-ink-2">{coachingCard.managerSummary}</p>
           </div>
 
@@ -118,14 +121,18 @@ export function SimulationCoachingRail({
               />
               {belowPracticeRecommendation ? (
                 <p className="text-[13px] leading-[1.45] text-muted">
-                  Manager recommends {practiceRoundsRecommended} practice round
-                  {practiceRoundsRecommended === 1 ? "" : "s"} — submit now or practice {practiceRemaining} more.
+                  {mentorName ? "Recommended:" : "Manager recommends"} {practiceRoundsRecommended} practice round
+                  {practiceRoundsRecommended === 1 ? "" : "s"} — {mentorName ? "share" : "submit"} now or practice{" "}
+                  {practiceRemaining} more.
                 </p>
               ) : null}
               <div className="flex flex-col gap-2">
                 <button className="btn-primary justify-center" disabled={isGenerating} onClick={onSubmit} type="button">
-                  Submit to manager
+                  {mentorName ? "Share with my mentor" : "Submit to manager"}
                 </button>
+                {mentorName ? (
+                  <p className="text-[13px] leading-[1.45] text-muted">{mentorName} gets your score and this summary.</p>
+                ) : null}
                 <button
                   className="btn-secondary inline-flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-50"
                   disabled={isGenerating}

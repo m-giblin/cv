@@ -32,7 +32,9 @@ export function docSourcesFrom(
     if (!source.url || !isSailPointDocUrl(source.url) || seen.has(source.url)) continue;
     seen.add(source.url);
     const title = source.title?.trim();
-    out.push({ title: title && !/^\[?\d+\]?$/.test(title) ? title : titleFromDocUrl(source.url), url: source.url });
+    // A bare number ("[1]") or the URL itself is no title: build a readable one from the path.
+    const usable = title && !/^\[?\d+\]?$/.test(title) && !/^https?:\/\//i.test(title);
+    out.push({ title: usable ? title : titleFromDocUrl(source.url), url: source.url });
     if (out.length >= limit) break;
   }
   return out;
@@ -57,4 +59,16 @@ export function stripCitations(text: string): string {
     .replace(/\s*\[\d+\](?!\()/g, "")
     .replace(/[ \t]+\n/g, "\n")
     .trim();
+}
+
+/** "https://documentation.sailpoint.com/saas/help/access/access-profiles.html" -> "documentation.sailpoint.com/…/access-profiles.html". */
+export function shortDocUrl(url: string): string {
+  try {
+    const { hostname, pathname } = new URL(url);
+    const parts = pathname.split("/").filter(Boolean);
+    if (parts.length === 0) return hostname;
+    return parts.length === 1 ? `${hostname}/${parts[0]}` : `${hostname}/…/${parts.at(-1)}`;
+  } catch {
+    return url;
+  }
 }

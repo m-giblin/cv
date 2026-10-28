@@ -3,6 +3,7 @@ import { SpacedReinforcementRedirect } from "@/components/practice/spaced-reinfo
 import { SimulationCatalogue } from "@/components/simulation/simulation-catalogue";
 import { SimulationsShell } from "@/components/simulation/simulations-shell";
 import { requireSimulationsPageAccess } from "@/lib/auth/require-access";
+import { findActiveMentor } from "@/lib/mentoring/share-with-mentor";
 import { buildSimulationCatalogue, loadSimulationCatalogueInputs } from "@/lib/simulations/catalogue";
 import { assignmentForSession } from "@/lib/simulations/persona-card";
 import { resolveSimulationAssignment } from "@/lib/simulations/resolve-assignment";
@@ -11,6 +12,7 @@ import {
   reusableAssignmentId,
   templateIdForPlanStep,
 } from "@/lib/simulations/start-linked-simulation";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { profileLevelLabel } from "@/lib/utils/level-label";
 
@@ -26,6 +28,35 @@ type SimulationsPageProps = {
 };
 
 export const metadata = { title: "Simulations · Practice" };
+
+/**
+ * The SE's mentor, when this is free practice they can share with them. A simulation on their own
+ * ramp is submitted to the step instead, so it returns null there (and when they have no mentor).
+ */
+async function mentorForFreePractice(
+  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
+  userId: string,
+  templateId: string | null | undefined,
+) {
+  const admin = createAdminClient();
+  if (!admin) return null;
+  const [mentor, { data: plans }] = await Promise.all([
+    findActiveMentor(admin, userId),
+    templateId
+      ? supabase.from("plan_assignments").select("plan_id").eq("user_id", userId).neq("status", "completed")
+      : Promise.resolve({ data: [] as Array<{ plan_id: string }> }),
+  ]);
+  if (!mentor) return null;
+  if (templateId && plans?.length) {
+    const { count } = await supabase
+      .from("plan_steps")
+      .select("id", { count: "exact", head: true })
+      .in("plan_id", plans.map((plan) => plan.plan_id))
+      .eq("simulation_template_id", templateId);
+    if (count) return null;
+  }
+  return mentor.mentorName;
+}
 
 export default async function SimulationsPage({ searchParams }: SimulationsPageProps) {
   const { data, tier } = await requireSimulationsPageAccess();
@@ -109,6 +140,10 @@ export default async function SimulationsPage({ searchParams }: SimulationsPageP
     resolved.assignment,
     Array.isArray(stored?.transcript) ? (stored.transcript as unknown as typeof resolved.assignment.transcript) : null,
   );
+  const mentorName =
+    supabase && assignment.assignedTo === data.currentUser.id
+      ? await mentorForFreePractice(supabase, data.currentUser.id, assignment.templateId)
+      : null;
 
   return (
     <>
@@ -116,6 +151,7 @@ export default async function SimulationsPage({ searchParams }: SimulationsPageP
       <SimulationsShell
         assignment={assignment}
         key={assignment.id}
+        mentorName={mentorName}
         testMode={testMode}
         tier={tier}
         userLevel={profileLevelLabel(data.currentUser)}

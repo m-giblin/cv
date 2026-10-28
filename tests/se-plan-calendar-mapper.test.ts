@@ -38,3 +38,15 @@ describe("plan-calendar-mapper", () => {
     expect(monthMeta.monthLabel).toContain("2026");
   });
 });
+
+describe("buildMonthGrid", () => {
+  it("puts a calendar day on that day and leaves other months out", async () => {
+    const { buildMonthGrid } = await import("@/components/se/plan-calendar/utils/calendarGrid");
+    const milestone = (date: string, title: string) => ({ day: "", title, type: "Pitch", status: "UPCOMING" as const, icon: "", date });
+    const days = buildMonthGrid(2026, 11, [milestone("2026-11-02", "Pitch"), milestone("2026-10-29", "October step")]);
+    const byDay = (day: number) => days.find((cell) => cell.day === day)?.events.map((event) => event.title) ?? [];
+    expect(byDay(2)).toEqual(["Pitch"]);
+    expect(byDay(1)).toEqual([]);
+    expect(byDay(29)).toEqual([]);
+  });
+});

@@ -264,7 +264,9 @@ export function SeToday({
           <aside aria-label="Ramp and gates" className="flex min-w-0 flex-col gap-6">
             {oneOnOnes.length ? <UpcomingOneOnOnesCard meetings={oneOnOnes} /> : null}
             <MyTrainingCard forManager={false} />
-            {myMentor ? <MyMentorCard mentor={myMentor} /> : null}
+            {myMentor ? (
+              <MyMentorCard firstMeeting={oneOnOnes.find((meeting) => meeting.mentorInvited)?.label ?? null} mentor={myMentor} />
+            ) : null}
             <RampDefinitionCard model={model} planName={plan?.name} />
             {/* Career gates are for after the ramp; on day one they're noise next to the onboarding stage gates. */}
             {gateRows.length > 0 && (!plan || plan.status === "completed") ? <GateStampsCard level={user.level} rows={gateRows} /> : null}

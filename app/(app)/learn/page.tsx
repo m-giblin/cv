@@ -1,4 +1,4 @@
-import { LearnLibrary } from "@/components/learn/learn-library";
+import { LearnLibrary, type StartHerePick } from "@/components/learn/learn-library";
 import { PageBody, PageHeader } from "@/components/ui/page-header";
 import { requireAppAccess } from "@/lib/auth/require-access";
 import { resolveTenantContext } from "@/lib/auth/tenant-context";
@@ -6,8 +6,8 @@ import { getUserReleaseProjectTags } from "@/lib/corpus/user-release-tags";
 import { GENAI_VS_AGENTIC_MODULES } from "@/lib/learn/agentic-curriculum";
 import { isFeatureEnabled } from "@/lib/platform/feature-flags";
 import { loadPlatformSettings } from "@/lib/platform/settings";
-import { loadPlaybookChapterSummaries } from "@/lib/search/playbook-chapters";
-import { isStepValidated } from "@/lib/se/ramp-model";
+import { loadPlaybookChapterSummaries, playbookChapterHref } from "@/lib/search/playbook-chapters";
+import { isStepValidated, sortSteps } from "@/lib/se/ramp-model";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Learn" };
@@ -33,9 +33,52 @@ export default async function LearnPage() {
     : GENAI_VS_AGENTIC_MODULES.filter((module) => !AGENTIC_TRACK_MODULE_IDS.has(module.id));
 
   const plan = data.plans.find((item) => item.userId === data.currentUser.id);
-  const rampPicks = (plan?.steps ?? []).filter(
-    (step) => !step.locked && !isStepValidated(step.status) && Boolean(step.contentAssetId || step.resourceUrl),
-  ).length;
+  const openSteps = sortSteps(plan?.steps ?? []).filter((step) => !step.locked && !isStepValidated(step.status));
+  const rampPicks = openSteps.filter((step) => Boolean(step.contentAssetId || step.resourceUrl)).length;
+
+  // Someone on an active ramp starts with what their current step links to, then the playbook's
+  // first chapter; the module path only leads for people without a ramp.
+  let startHere: StartHerePick | null = null;
+  if (plan && plan.status !== "completed") {
+    const step = openSteps.find((item) => Boolean(item.contentAssetId || item.resourceUrl || item.playbookSlug));
+    const stepHref = step?.assignmentStepId ? `/my-plan?step=${encodeURIComponent(step.assignmentStepId)}` : "/my-plan";
+    if (step?.contentAssetId || step?.resourceUrl) {
+      const { data: asset } =
+        step.contentAssetId && supabase
+          ? await supabase.from("content_assets").select("title, storage_path").eq("id", step.contentAssetId).maybeSingle()
+          : { data: null };
+      const href = (asset as { storage_path: string | null } | null)?.storage_path ?? step.resourceUrl;
+      if (href) {
+        startHere = {
+          title: (asset as { title: string | null } | null)?.title ?? step.title,
+          caption: `For your ramp step: ${step.title}`,
+          href,
+          external: true,
+          stepHref,
+        };
+      }
+    } else if (step?.playbookSlug) {
+      const chapter = playbooks.find((item) => item.slug === step.playbookSlug);
+      startHere = {
+        title: chapter?.title ?? step.title,
+        caption: `For your ramp step: ${step.title}`,
+        numeral: chapter?.chapter,
+        href: playbookChapterHref(step.playbookSlug),
+        external: false,
+        stepHref,
+      };
+    }
+    const firstChapter = playbooks.find((item) => item.chapter === 1) ?? playbooks[0];
+    if (!startHere && firstChapter) {
+      startHere = {
+        title: firstChapter.title,
+        caption: firstChapter.summary || "Where the playbook begins",
+        numeral: firstChapter.chapter,
+        href: playbookChapterHref(firstChapter.slug),
+        external: false,
+      };
+    }
+  }
 
   return (
     <>
@@ -49,6 +92,7 @@ export default async function LearnPage() {
           playbooks={playbooks}
           rampPicks={rampPicks}
           releaseProjectTags={releaseProjectTags}
+          startHere={startHere}
         />
       </PageBody>
     </>

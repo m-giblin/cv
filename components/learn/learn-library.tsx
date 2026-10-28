@@ -31,7 +31,7 @@ type ContentAsset = {
   updatedAt?: string | null;
 };
 
-type FilterId = "all" | "modules" | "battle" | "demo" | "one" | "playbook" | "lab";
+type FilterId = "all" | "modules" | "battle" | "demo" | "one" | "playbook" | "lab" | "other";
 
 const FILTERS: { id: FilterId; label: string }[] = [
   { id: "all", label: "All" },
@@ -41,7 +41,21 @@ const FILTERS: { id: FilterId; label: string }[] = [
   { id: "one", label: "One-pagers" },
   { id: "playbook", label: "Playbooks" },
   { id: "lab", label: "ISC Lab" },
+  // Everything without a type of its own (reference docs and the like), so All adds up.
+  { id: "other", label: "Other" },
 ];
+
+/** What "Start here" points at for someone on an active ramp: what their current step links to, or the playbook's first chapter. */
+export type StartHerePick = {
+  title: string;
+  caption: string;
+  href: string;
+  external: boolean;
+  /** Chapter number, shown in the strip's numeral. */
+  numeral?: number;
+  /** The ramp step this item belongs to. */
+  stepHref?: string;
+};
 
 type LibraryItem = {
   id: string;
@@ -54,18 +68,18 @@ type LibraryItem = {
   done?: boolean;
   href: string;
   external: boolean;
-  filter: FilterId | null;
+  filter: FilterId;
   module?: LearnModule;
 };
 
-function typeForCategory(category: string): { label: string; filter: FilterId | null } {
+function typeForCategory(category: string): { label: string; filter: FilterId } {
   const key = category.toLowerCase();
   if (key.includes("battle")) return { label: "Battle card", filter: "battle" };
   if (key.includes("demo")) return { label: "Demo guide", filter: "demo" };
   if (key.includes("one")) return { label: "One-pager", filter: "one" };
   if (key.includes("playbook")) return { label: "Playbook", filter: "playbook" };
   if (key.includes("lab")) return { label: "ISC Lab", filter: "lab" };
-  return { label: category.replaceAll("_", " "), filter: null };
+  return { label: category.replaceAll("_", " "), filter: "other" };
 }
 
 /**
@@ -81,6 +95,7 @@ export function LearnLibrary({
   labEnabled,
   rampPicks = 0,
   canAssign = false,
+  startHere = null,
 }: {
   modules: LearnModule[];
   /** Published playbook chapters; they open in Learn > Playbooks. */
@@ -92,6 +107,8 @@ export function LearnLibrary({
   labEnabled: boolean;
   /** Managers can assign any library item to people on their team. */
   canAssign?: boolean;
+  /** Set for people on an active ramp; leads the rail instead of the module path. */
+  startHere?: StartHerePick | null;
 }) {
   const searchId = useId();
   const searchRef = useRef<HTMLInputElement>(null);
@@ -190,11 +207,12 @@ export function LearnLibrary({
         updated: formatShortDate(asset.updatedAt) ?? "–",
         href: asset.url,
         external: true,
-        filter: type.filter,
+        // ISC Lab items count as Other while the Lab (and its chip) is switched off.
+        filter: type.filter === "lab" && !labEnabled ? "other" : type.filter,
       };
     });
     return [...moduleItems, ...playbookItems, ...assetItems];
-  }, [assets, completed, modules, pathName, playbooks, search]);
+  }, [assets, completed, labEnabled, modules, pathName, playbooks, search]);
   const items = useMemo(
     () => allItems.filter((item) => filter === "all" || item.filter === filter),
     [allItems, filter],
@@ -224,10 +242,10 @@ export function LearnLibrary({
   }
 
   const counts = useMemo(() => {
-    const result: Record<FilterId, number> = { all: 0, modules: 0, battle: 0, demo: 0, one: 0, playbook: 0, lab: 0 };
+    const result: Record<FilterId, number> = { all: 0, modules: 0, battle: 0, demo: 0, one: 0, playbook: 0, lab: 0, other: 0 };
     for (const item of allItems) {
       result.all += 1;
-      if (item.filter) result[item.filter] += 1;
+      result[item.filter] += 1;
     }
     return result;
   }, [allItems]);
@@ -279,7 +297,7 @@ export function LearnLibrary({
           ) : null}
 
           <div aria-label="Filter by type" className="flex flex-wrap items-center gap-2" role="group">
-            {FILTERS.filter((item) => item.id !== "lab" || labEnabled).map((item) => (
+            {FILTERS.filter((item) => (item.id !== "lab" || labEnabled) && (item.id !== "other" || counts.other > 0 || filter === "other")).map((item) => (
               <Chip active={filter === item.id} count={counts[item.id]} key={item.id} onClick={() => setFilter(item.id)}>
                 {item.label}
               </Chip>
@@ -400,7 +418,37 @@ export function LearnLibrary({
         </div>
 
         <aside aria-label="Your learning" className="flex min-w-0 flex-col gap-3.5">
-          {modules.length > 0 ? (
+          {startHere ? (
+            <>
+              <h2 className="label-caps">Start here</h2>
+              <FlightStrip
+                compact
+                numeral={startHere.numeral ? pad2(startHere.numeral) : "→"}
+                numeralCaption={startHere.numeral ? "Chapter" : "Ramp"}
+                stubLabel={startHere.numeral ? "Playbook" : "Your ramp"}
+              >
+                <h3 className="text-lg leading-[1.2] font-extrabold text-ink">{startHere.title}</h3>
+                <span className="text-[13px] text-muted">{startHere.caption}</span>
+                <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                  {startHere.external ? (
+                    <a className="link self-start text-sm" href={startHere.href} rel="noreferrer" target="_blank">
+                      Open
+                      <span className="sr-only"> {startHere.title} (opens in a new tab)</span>
+                    </a>
+                  ) : (
+                    <Link className="link self-start text-sm" href={startHere.href}>
+                      Start
+                    </Link>
+                  )}
+                  {startHere.stepHref ? (
+                    <Link className="link self-start text-sm" href={startHere.stepHref}>
+                      Go to the step
+                    </Link>
+                  ) : null}
+                </span>
+              </FlightStrip>
+            </>
+          ) : modules.length > 0 ? (
             <>
               <h2 className="label-caps">
                 {/* Only "continue" once the person has actually finished a module. */}

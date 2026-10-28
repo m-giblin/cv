@@ -6,7 +6,14 @@ function day(iso: string | null): string | null {
 }
 
 /** Who mentors the new hire and what they've agreed so far, so the relationship is visible from day one. */
-export function MyMentorCard({ mentor }: { mentor: MyMentor }) {
+export function MyMentorCard({
+  mentor,
+  firstMeeting = null,
+}: {
+  mentor: MyMentor;
+  /** The next booked 1:1 the mentor is invited to, as the scheduler wrote it, so the card doesn't promise one. */
+  firstMeeting?: string | null;
+}) {
   const first = mentor.profile.fullName.split(" ")[0] ?? mentor.profile.fullName;
   const scheduled = day(mentor.scheduleSetAt);
   const lastMet = day(mentor.lastCheckinAt);
@@ -18,10 +25,18 @@ export function MyMentorCard({ mentor }: { mentor: MyMentor }) {
         {mentor.profile.email}
       </a>
       <ul className="m-0 mt-1 flex list-none flex-col gap-1 p-0 text-sm text-ink-2">
-        <li>{lastMet ? `Last 1:1 ${lastMet}.` : `${first} will set up your first 1:1.`}</li>
+        <li>
+          {lastMet
+            ? `Last 1:1 ${lastMet}.`
+            : firstMeeting
+              ? `Your first 1:1 with ${first} is ${firstMeeting}.`
+              : `${first} will set up your first 1:1.`}
+        </li>
         <li>
           {scheduled
-            ? `${first} set your schedule ${scheduled}. The due dates on your ramp are the ones you agreed.`
+            ? lastMet
+              ? `${first} set your schedule ${scheduled}. The due dates on your ramp are the ones you agreed.`
+              : `${first} drafted your due dates ${scheduled}. You'll confirm them together at your first 1:1.`
             : `You'll agree your due dates with ${first} at your first 1:1.`}
         </li>
         <li>{first} reviews your steps and runs your test-outs. Your manager signs off each stage gate.</li>

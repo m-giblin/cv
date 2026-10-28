@@ -6,6 +6,8 @@ export interface CalMilestone {
   icon: string;
   managerNote?: string;
   date?: string;
+  /** Opens the step on My ramp. Absent for demo data. */
+  href?: string;
 }
 
 export interface CalWeek {

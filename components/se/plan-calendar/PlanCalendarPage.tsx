@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { TABLE_HEAD_CLS } from "@/components/se/form-classes";
 import { SegmentedToggle } from "@/components/ui/segmented-toggle";
@@ -100,7 +101,13 @@ function ListView({ weeks }: { weeks: CalWeek[] }) {
                     <div className="text-sm text-ink-2">{ms.day}</div>
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-[15px] font-semibold text-ink">{ms.title}</span>
+                        {ms.href ? (
+                          <Link className="text-[15px] font-semibold text-ink hover:underline" href={ms.href}>
+                            {ms.title}
+                          </Link>
+                        ) : (
+                          <span className="text-[15px] font-semibold text-ink">{ms.title}</span>
+                        )}
                         {gate ? <Tag tone="blue">Gate</Tag> : null}
                       </div>
                       {!gate ? (
@@ -126,12 +133,43 @@ function ListView({ weeks }: { weeks: CalWeek[] }) {
   );
 }
 
+/** "2026-11" for a calendar day or a year and month. */
+function monthKey(year: number, month: number) {
+  return `${year}-${String(month).padStart(2, "0")}`;
+}
+
 function GridView({ weeks, year, month }: { weeks: CalWeek[]; year: number; month: number }) {
   const allMilestones = weeks.flatMap((w) => w.milestones).filter((ms): ms is CalMilestone & { date: string } => Boolean(ms.date));
-  const days = buildMonthGrid(year, month, allMilestones);
+  // Every month the plan touches, so the ramp can be paged from first step to the gate.
+  const months = [...new Set(allMilestones.map((ms) => ms.date.slice(0, 7)))].sort();
+  const now = new Date();
+  const thisMonth = monthKey(now.getFullYear(), now.getMonth() + 1);
+  const [shown, setShown] = useState(() =>
+    months.includes(thisMonth) ? thisMonth : months.includes(monthKey(year, month)) ? monthKey(year, month) : (months[0] ?? monthKey(year, month)),
+  );
+  const index = months.indexOf(shown);
+  const [shownYear, shownMonth] = shown.split("-").map(Number) as [number, number];
+  const days = buildMonthGrid(shownYear, shownMonth, allMilestones);
+  const label = new Date(shownYear, shownMonth - 1, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" });
 
   return (
     <div className="flex flex-col gap-3">
+      <div className="flex items-center justify-between gap-3">
+        <button className="btn-secondary" disabled={index <= 0} onClick={() => setShown(months[index - 1]!)} type="button">
+          Previous month
+        </button>
+        <h2 className="text-[17px] font-extrabold text-ink" aria-live="polite">
+          {label}
+        </h2>
+        <button
+          className="btn-secondary"
+          disabled={index < 0 || index >= months.length - 1}
+          onClick={() => setShown(months[index + 1]!)}
+          type="button"
+        >
+          Next month
+        </button>
+      </div>
       <div className="overflow-x-auto rounded-[14px] border border-line bg-white">
         <div className="min-w-[760px]">
           <div className={cn("grid grid-cols-7", TABLE_HEAD_CLS)}>
@@ -174,7 +212,13 @@ function GridView({ weeks, year, month }: { weeks: CalWeek[]; year: number; mont
                         key={`${ev.title}-${ev.type}`}
                         title={`${ev.title}: ${STATUS_TAG[status].label}`}
                       >
-                        <div className="truncate text-xs font-semibold leading-snug">{ev.title}</div>
+                        {ev.href ? (
+                          <Link className="block truncate text-xs font-semibold leading-snug hover:underline" href={ev.href}>
+                            {ev.title}
+                          </Link>
+                        ) : (
+                          <div className="truncate text-xs font-semibold leading-snug">{ev.title}</div>
+                        )}
                         <div className="truncate text-xs">
                           {gate ? "Gate" : ev.type}, {STATUS_TAG[status].label.toLowerCase()}
                         </div>
@@ -207,11 +251,11 @@ export function PlanCalendarPage({
   weeks = DEMO_CALENDAR_WEEKS,
   year = 2026,
   month = 7,
-  monthLabel = "July 2026",
 }: {
   weeks?: CalWeek[];
   year?: number;
   month?: number;
+  /** Kept for callers; the month view now labels the month it shows. */
   monthLabel?: string;
 }) {
   const [view, setView] = useState<"list" | "grid">("list");
@@ -228,11 +272,10 @@ export function PlanCalendarPage({
           ]}
           value={view}
         />
-        <span className="text-sm font-semibold text-ink-2">{monthLabel}</span>
       </div>
 
       <p className="text-[13px] text-muted">
-        Read only. Your manager sets milestone dates; to change one, message them in coaching notes.
+        Your mentor sets these dates with you. To move one, raise it with them at your next 1:1. Click a step to open it.
       </p>
 
       {view === "list" ? <ListView weeks={weeks} /> : <GridView month={month} weeks={weeks} year={year} />}

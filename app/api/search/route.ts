@@ -4,7 +4,7 @@ import { resolveTenantContext } from "@/lib/auth/tenant-context";
 import { loadPlatformSettings } from "@/lib/platform/settings";
 import { searchSite } from "@/lib/search/site-search";
 
-/** Top-bar search: playbooks, checks, practice, library, the person's ramp and (for managers) people, in the viewer's tenant. */
+/** Top-bar search: playbooks, checks, practice, library, the person's ramp and the people they work with, in the viewer's tenant. */
 export async function GET(request: Request) {
   const session = await requireAuthenticatedSession();
   if (session instanceof NextResponse) return session;

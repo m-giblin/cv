@@ -2,10 +2,18 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { verifyCoachingAttestation } from "@/lib/ai/coaching-attestation";
 import { coachingCardSchema } from "@/lib/ai/schemas";
+import { shareWithMentor } from "@/lib/mentoring/share-with-mentor";
 import { createNotification } from "@/lib/notifications/create-notification";
 import { submitSimulationPlanSteps } from "@/lib/plans/complete-step";
 import { resolveProfileTenantId } from "@/lib/tenant/resolve-profile-tenant";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+
+/** The coaching summary as the mentor's notification quotes it: the first 25 words. */
+function summarySnippet(summary: string) {
+ const words = summary.trim().split(/\s+/);
+ return words.length > 25 ? `${words.slice(0, 25).join(" ")}…` : summary.trim();
+}
 
 const schema = z.object({
  simulationAssignmentId: z.string().uuid().optional(),
@@ -22,6 +30,8 @@ const schema = z.object({
  })
  .optional(),
  attestationToken: z.string().min(20).optional(),
+ /** "Share with my mentor" on free practice: the card is submitted as usual, and the mentor is told instead of the manager. */
+ shareWithMentor: z.boolean().optional(),
 });
 
 export async function POST(request: Request) {
@@ -180,6 +190,36 @@ export async function POST(request: Request) {
  metadata: { coachingCardId: data.id, simulationAssignmentId: parsed.data.simulationAssignmentId ?? null },
  });
 
+ if (parsed.data.shareWithMentor) {
+ const admin = createAdminClient();
+ const { data: simulation } = parsed.data.simulationAssignmentId
+ ? await supabase
+ .from("simulation_assignments")
+ .select("persona, template_id")
+ .eq("id", parsed.data.simulationAssignmentId)
+ .eq("assigned_to", user.id)
+ .maybeSingle()
+ : { data: null };
+ const { data: template } = simulation?.template_id
+ ? await supabase.from("simulation_templates").select("name").eq("id", simulation.template_id).maybeSingle()
+ : { data: null };
+ const mentor = admin
+ ? await shareWithMentor(admin, {
+ menteeId: user.id,
+ kind: "simulation",
+ title: template?.name ?? simulation?.persona ?? parsed.data.simulationContext?.persona ?? "Simulation",
+ score: parsed.data.structuredOutput.score,
+ snippet: summarySnippet(parsed.data.structuredOutput.managerSummary),
+ eventType: "simulation_shared_with_mentor",
+ metadata: { coachingCardId: data.id, simulationAssignmentId: parsed.data.simulationAssignmentId ?? null },
+ })
+ : null;
+ // No mentor on an active plan any more: fall back to the manager, as a plain submit would.
+ if (mentor) {
+ return NextResponse.json({ id: data.id, isPractice: false, practiceRoundsCompleted, linkedPlanStep, sharedWith: mentor.mentorName });
+ }
+ }
+
  const { data: profile } = await supabase
  .from("profiles")
  .select("manager_id")
@@ -195,5 +235,5 @@ export async function POST(request: Request) {
  });
  }
 
- return NextResponse.json({ id: data.id, isPractice: false, practiceRoundsCompleted, linkedPlanStep });
+ return NextResponse.json({ id: data.id, isPractice: false, practiceRoundsCompleted, linkedPlanStep, sharedWith: null });
 }

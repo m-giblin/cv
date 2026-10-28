@@ -55,8 +55,18 @@ const STOPWORDS = new Set(
   "about after again also before being from have into just learner more only over plain language product than that their them then they this until what when where which while with without would your".split(" "),
 );
 
+/**
+ * How a goal tells the learner to work ("Open by asking… and pause for the answer"), not what it is about.
+ * Left in, they outnumber the topic words and a goal the learner clearly covered never counts as touched.
+ */
+const INSTRUCTION_WORDS = new Set(
+  "open opens asking asks pause answer answers find learn whether explain those uncover stop once sees wait talk tell show table".split(" "),
+);
+
 function keywords(text: string): string[] {
-  return [...new Set(text.toLowerCase().match(/[a-z][a-z'-]{3,}/g) ?? [])].filter((word) => !STOPWORDS.has(word));
+  return [...new Set(text.toLowerCase().match(/[a-z][a-z'-]{3,}/g) ?? [])].filter(
+    (word) => !STOPWORDS.has(word) && !INSTRUCTION_WORDS.has(word),
+  );
 }
 
 /** A goal counts as touched when the learner used at least half of its key words (matched on their first five letters). */
@@ -64,6 +74,8 @@ export function goalTouched(goal: string, learnerText: string): boolean {
   const words = keywords(goal);
   if (!words.length) return false;
   const said = new Set(keywords(learnerText).map((word) => word.slice(0, 5)));
+  // "How many service accounts…" is asking for a count.
+  if (/\b(how many|number of)\b/i.test(learnerText)) said.add("count");
   const hits = words.filter((word) => said.has(word.slice(0, 5))).length;
   return hits >= Math.ceil(words.length / 2);
 }

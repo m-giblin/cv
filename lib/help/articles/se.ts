@@ -107,7 +107,7 @@ export const SE_ARTICLES: HelpArticle[] = [
     category: "Practice",
     keywords: ["practice", "pre-flight", "preflight", "call prep", "rehearse", "assigned practice", "checklist"],
     overview: [
-      "Practice rounds are never scored. Only an attempt you submit reaches your manager.",
+      "Practice rounds are never scored. Only an attempt you submit or share reaches your mentor or manager.",
       "Pre-flight's plan has four parts: a Market Pulse refresher, a deal prep brief for the account, a simulation with your chosen audience, and a Flight Check.",
     ],
     steps: [
@@ -122,20 +122,20 @@ export const SE_ARTICLES: HelpArticle[] = [
   {
     id: "se-simulations",
     title: "Run an AI buyer simulation",
-    summary: "Role-play a call with an AI buyer, get a scored coaching card, then practice again or submit it to your manager.",
+    summary: "Role-play a call with an AI buyer, get a scored coaching card, then practice again, share it with your mentor or submit it to your manager.",
     audience: ["se", "manager"],
     category: "Practice",
     keywords: ["simulation", "role play", "roleplay", "mock call", "ai buyer", "persona", "coaching card", "score", "objection"],
     overview: [
       "The AI plays a buyer persona and starts the conversation as soon as the page opens. The scenario brief lists what you'll be scored on, for example \"Discovery\", \"Objection handling\", \"Executive storyline\" and \"Next step\".",
-      "When you end the role-play, the AI writes a coaching report with a score out of 100, a strength, something to improve, a suggested next practice and a summary for your manager. Practice rounds stay private. Your manager only sees cards you submit.",
+      "When you end the role-play, the AI writes a coaching report with a score out of 100, a strength, something to improve, a suggested next practice and a summary for your reviewer. Practice rounds stay private. Your mentor or manager only sees cards you share or submit.",
     ],
     steps: [
       { title: "Open Simulations", body: "Go to Practice, then \"Simulations\", or click \"Start simulation\" on a ramp step. Wait for the persona to open the conversation." },
       { title: "Hold the conversation", body: "Type your replies, or click \"Use microphone\" to speak them. The \"Live coaching\" rail suggests a next move after each reply.", tip: "Start a message with HINT: to ask for coaching mid-call." },
       { title: "End and get feedback", body: "Click \"End & get feedback\". The \"AI coaching report\" shows your score out of 100 and coaching notes." },
       { title: "Add a reflection", body: "Write at least a sentence in \"Your reflection\". You need a reflection before you can save or submit." },
-      { title: "Practice again or submit", body: "Click \"Practice again\" to save this as a practice round, or \"Submit to manager\" to send the card for review." },
+      { title: "Practice again or submit", body: "Click \"Practice again\" to save this as a practice round, \"Share with my mentor\" if you have a mentor, or \"Submit to manager\" to send the card for review." },
     ],
     links: [{ label: "Open Simulations", href: "/practice/simulations" }],
     related: ["se-practice-preflight", "se-feedback", "se-competencies"],

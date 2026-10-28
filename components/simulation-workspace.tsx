@@ -48,11 +48,14 @@ export function SimulationWorkspace({
   assignment,
   userLevel = "Basic",
   variant = "full",
+  mentorName = null,
   onClose,
   onStepChange,
 }: {
   assignment: SimulationAssignment;
   userLevel?: "Basic" | "Senior" | "Advisory";
+  /** Free practice by an SE with a mentor: "Share with my mentor" replaces "Submit to manager". */
+  mentorName?: string | null;
   variant?: "full" | "embedded";
   onClose?: () => void;
   onStepChange?: (step: 1 | 2 | 3) => void;
@@ -313,7 +316,7 @@ export function SimulationWorkspace({
     await startSimulation();
   }
 
-  async function saveCoachingCard(mode: "practice" | "submit") {
+  async function saveCoachingCard(mode: "practice" | "submit" | "share") {
     if (!coachingCard) {
       return;
     }
@@ -335,7 +338,8 @@ export function SimulationWorkspace({
           seReflection: seReflection.trim(),
           transcript,
           isPractice: mode === "practice",
-          attestationToken: mode === "submit" ? attestationToken : undefined,
+          attestationToken: mode === "practice" ? undefined : attestationToken,
+          shareWithMentor: mode === "share" || undefined,
           simulationContext: {
             persona: assignment.persona,
             vertical: assignment.vertical,
@@ -350,7 +354,7 @@ export function SimulationWorkspace({
         return;
       }
 
-      const body = (await saveResponse.json()) as { practiceRoundsCompleted?: number };
+      const body = (await saveResponse.json()) as { practiceRoundsCompleted?: number; sharedWith?: string | null };
 
       if (mode === "practice") {
         const completed = body.practiceRoundsCompleted ?? practiceRoundsCompleted + 1;
@@ -361,7 +365,7 @@ export function SimulationWorkspace({
         return;
       }
 
-      toast.success("Submitted for manager review.");
+      toast.success(body.sharedWith ? `Shared with ${body.sharedWith}.` : "Submitted for manager review.");
       setShowReflectionPrompt(false);
     } catch (error) {
       toast.error("Could not save coaching card", {
@@ -373,7 +377,7 @@ export function SimulationWorkspace({
   }
 
   const roleplayEndedForInput = roleplayEnded && aiRoleplay && !isElevatorPitch;
-  // One primary per view: once the coaching report asks for a reflection, "Submit to manager" in the rail is primary.
+  // One primary per view: once the coaching report asks for a reflection, the rail's submit (or share) is primary.
   const sendIsPrimary = isEmbedded || !(coachingCard && showReflectionPrompt);
 
   const chatMessages = (
@@ -564,7 +568,8 @@ export function SimulationWorkspace({
           context={scoredScenario?.context}
           criteria={rubricCriteria}
           objective={scoredScenario?.objective}
-          turnCount={messages.length}
+          // The learner's own replies to the buyer; HINT: requests are not turns.
+          turnCount={messages.filter((message) => message.speaker === "se" && !/^\s*HINT\s*:/i.test(message.message)).length}
         />
 
         <section
@@ -578,8 +583,9 @@ export function SimulationWorkspace({
                 {aiRoleplay ? "AI persona" : "Guided roleplay"}, {difficultyToPromptLabel(assignment.difficulty).toLowerCase()}
               </p>
             </div>
-            <StatusPill tone={roleplayEndedForInput ? "success" : "warning"}>
-              {roleplayEndedForInput ? "Roleplay complete" : "Live session"}
+            {/* Ending for feedback ends the session even when the buyer never closed the roleplay. */}
+            <StatusPill tone={roleplayEndedForInput ? "success" : coachingCard ? "neutral" : "warning"}>
+              {roleplayEndedForInput ? "Roleplay complete" : coachingCard ? "Ended" : "Live session"}
             </StatusPill>
           </header>
           {chatMessages}
@@ -591,10 +597,11 @@ export function SimulationWorkspace({
           coachingCard={coachingCard}
           criteria={rubricCriteria}
           isGenerating={isGenerating}
+          mentorName={mentorName}
           messages={messages}
           onPracticeAgain={() => void saveCoachingCard("practice")}
           onReflectionChange={setSeReflection}
-          onSubmit={() => void saveCoachingCard("submit")}
+          onSubmit={() => void saveCoachingCard(mentorName ? "share" : "submit")}
           practiceRemaining={practiceRemaining}
           practiceRoundsRecommended={practiceRoundsRecommended}
           seReflection={seReflection}

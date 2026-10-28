@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ASSISTANT_REFUSAL, BOSUN_DEFINITION, assistantSystemPrompt, isClearlyOffTopic, pickContextArticles } from "@/lib/help/assistant";
-import { docSourcesFrom, isSailPointDocUrl, stripCitations, titleFromDocUrl, wantsDocsSearch } from "@/lib/help/sailpoint-docs";
-import { articleAsText, searchHelp } from "@/lib/help/search";
+import { docSourcesFrom, isSailPointDocUrl, shortDocUrl, stripCitations, titleFromDocUrl, wantsDocsSearch } from "@/lib/help/sailpoint-docs";
+import { articleAsText, helpRelevance, searchHelp } from "@/lib/help/search";
 import type { HelpArticle } from "@/lib/help/types";
 
 const article = (id: string, title: string, extra: Partial<HelpArticle> = {}): HelpArticle => ({
@@ -116,4 +116,37 @@ describe("SailPoint docs sources", () => {
       "Entro finds secrets. It scores risk.",
     );
   });
+
+  it("titles a source that is only its URL, and shortens long doc URLs", () => {
+    const url = "https://documentation.sailpoint.com/saas/help/access/access-profiles/managing-access-profiles.html";
+    expect(docSourcesFrom([{ sourceType: "url", url, title: url }])[0]!.title).toBe("Saas: Managing access profiles");
+    expect(shortDocUrl(url)).toBe("documentation.sailpoint.com/…/managing-access-profiles.html");
+    expect(shortDocUrl("https://developer.sailpoint.com/")).toBe("developer.sailpoint.com");
+  });
 });
+
+describe("help article relevance for Bosun", () => {
+  const HELP = [
+    article("sim", "Run an AI buyer simulation", { keywords: ["roleplay", "practice"], steps: [{ title: "Pick", body: "Choose a position and sit in the buyer's seat." }] }),
+    article("account", "View your account and change your password", { keywords: ["profile", "password"] }),
+    article("bosun", "Meet Bosun", { keywords: ["assistant", "ask"], steps: [{ title: "Ask", body: "Bosun answers access questions." }] }),
+    article("brief", "Build a deal prep brief", { keywords: ["deal", "brief", "account"] }),
+  ];
+
+  it("cites nothing for a SailPoint concept question the articles don't cover", () => {
+    const question = "Where does an access profile sit between an entitlement and a role?";
+    expect(pickContextArticles(HELP, question)).toEqual([]);
+    for (const item of HELP) expect(helpRelevance(item, question)).toBe(0);
+  });
+
+  it("matches whole words, so 'role' no longer finds 'roleplay'", () => {
+    expect(helpRelevance(HELP[0]!, "role")).toBe(0);
+    expect(helpRelevance(HELP[0]!, "roleplay")).toBeGreaterThan(0);
+  });
+
+  it("still finds the article a how-to question is about, and drops weak side hits", () => {
+    expect(pickContextArticles(HELP, "How do I change my password?").map((item) => item.id)).toEqual(["account"]);
+    expect(pickContextArticles(HELP, "How do I run a buyer simulation?").map((item) => item.id)).toEqual(["sim"]);
+  });
+});
+

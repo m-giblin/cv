@@ -1,7 +1,7 @@
 import type { PlanStepType } from "@/lib/types";
 
 const STEP_TYPE_LABELS: Record<PlanStepType, string> = {
-  content_review: "Content",
+  content_review: "Reading",
   challenge: "Challenge",
   simulation: "Practice",
   shadow_meeting_log: "Shadow",

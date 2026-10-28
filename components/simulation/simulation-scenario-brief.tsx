@@ -70,7 +70,7 @@ export function SimulationScenarioBrief({
           <p className="text-[13px] leading-[1.45] text-ink-2">{assignment.solutionFocus}</p>
           <div className="text-right">
             <p className="num text-[22px] font-extrabold leading-none tracking-[-0.03em] text-blue">{turnCount}</p>
-            <p className="text-[13px] text-muted">Turns</p>
+            <p className="text-[13px] text-muted">Your turns</p>
           </div>
         </div>
       </div>
