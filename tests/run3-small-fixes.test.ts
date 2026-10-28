@@ -47,3 +47,26 @@ describe("applyNotificationsRead", () => {
     expect(applyNotificationsRead(items, { all: true }).every((row) => row.readAt)).toBe(true);
   });
 });
+
+describe("nextPartIndex", () => {
+  it("opens the next part the stage uses, not current + 1", async () => {
+    const { nextPartIndex } = await import("@/lib/plans/segment-gate-logic");
+    expect(nextPartIndex([1, 1, 3, 3, 1], 1)).toBe(3);
+    expect(nextPartIndex([1, 4], 1)).toBe(4);
+    expect(nextPartIndex([1, 2], 1)).toBe(2);
+    expect(nextPartIndex([1, 3], 3)).toBeNull();
+    expect(nextPartIndex([1, null, undefined], 1)).toBeNull();
+  });
+});
+
+describe("firstFreeOneOnOneStart", () => {
+  it("skips half hours already booked", async () => {
+    const { firstFreeOneOnOneStart } = await import("@/lib/manager/one-on-one-ics");
+    const now = new Date(2026, 9, 28, 9, 0); // Wed Oct 28, local time
+    const at = (h: number, m: number) => new Date(2026, 9, 29, h, m).toISOString();
+    const free = firstFreeOneOnOneStart([{ start: at(10, 0), minutes: 30 }, { start: at(10, 30), minutes: 60 }], 30, now);
+    expect([free.getDate(), free.getHours(), free.getMinutes()]).toEqual([29, 11, 30]);
+    const open = firstFreeOneOnOneStart([], 30, now);
+    expect([open.getDate(), open.getHours(), open.getMinutes()]).toEqual([29, 10, 0]);
+  });
+});

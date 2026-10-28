@@ -7,6 +7,35 @@ export function defaultOneOnOneStart(now = new Date()): Date {
   return start;
 }
 
+/**
+ * The first free half hour from the default start (next business day, 10:00) through 16:30, then the
+ * following business days. `busy` holds 1:1s the manager or mentor are already in. Pure, so it is tested.
+ */
+export function firstFreeOneOnOneStart(
+  busy: Array<{ start: string; minutes: number }>,
+  minutes = 30,
+  now = new Date(),
+): Date {
+  const overlaps = (from: Date) => {
+    const a = from.getTime();
+    const b = a + minutes * 60_000;
+    return busy.some((item) => {
+      const s = new Date(item.start).getTime();
+      return s < b && s + item.minutes * 60_000 > a;
+    });
+  };
+  let day = defaultOneOnOneStart(now);
+  for (let days = 0; days < 10; days += 1) {
+    for (let slot = 0; slot < 14; slot += 1) {
+      const candidate = new Date(day);
+      candidate.setHours(10, slot * 30, 0, 0);
+      if (!overlaps(candidate)) return candidate;
+    }
+    day = defaultOneOnOneStart(day);
+  }
+  return defaultOneOnOneStart(now);
+}
+
 /** Builds a tentative 1:1 invite. Without a start it uses the next business day at 10:00, 30 minutes. */
 export function buildOneOnOneIcs(input: {
   name: string;

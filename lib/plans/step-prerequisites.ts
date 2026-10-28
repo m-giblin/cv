@@ -66,7 +66,7 @@ export async function assertStepAccessible(
     // Typed so callers map this to 403 like every other segment-lock path. Throwing a bare
     // Error here made the same condition surface as 400 from PATCH /api/plans/steps/[id],
     // which the client cannot distinguish from a malformed request.
-    throw new StepSegmentLockedError(segmentIndex ?? 0, assignment.unlocked_segment_max ?? 1);
+    throw new StepSegmentLockedError();
   }
 
   const blocked = await isAssignmentStepBlockedByPrerequisites(supabase, assignmentStepId);

@@ -14,13 +14,21 @@ export async function issueSegmentCertificate(
     validMonths?: number;
     /** What the certificate is for, e.g. the stage name; shown in the new hire's notice. */
     label?: string | null;
+    /** The stage's place in its program (Days 61–90 is 3), so codes don't restart at 1 every stage. */
+    stageNumber?: number | null;
+    /** True when the stage has more than one part, so the code also names the part. */
+    multiPart?: boolean;
   },
 ) {
   const validMonths = input.validMonths ?? 12;
   const expiresAt = new Date();
   expiresAt.setMonth(expiresAt.getMonth() + validMonths);
 
-  const code = `ISC-S${input.segmentIndex}-${input.userId.slice(0, 8)}-${Date.now().toString(36).toUpperCase()}`;
+  // ISC-S3 is stage 3 of the program; ISC-S3P2 is its second part. Plans outside a program keep ISC-S<part>.
+  const stagePart = input.stageNumber
+    ? `S${input.stageNumber}${input.multiPart ? `P${input.segmentIndex}` : ""}`
+    : `S${input.segmentIndex}`;
+  const code = `ISC-${stagePart}-${input.userId.slice(0, 8)}-${Date.now().toString(36).toUpperCase()}`;
   // Certificates are issued by the platform once a gate is signed off; segment_certificates has no
   // insert policy, so the manager's session cannot write the row itself.
   const writer = (createAdminClient() as SupabaseClient<Database> | null) ?? supabase;

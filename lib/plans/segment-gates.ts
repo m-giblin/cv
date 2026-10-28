@@ -2,9 +2,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { parsePlanStepMetadata } from "@/lib/corpus/parse-step-metadata";
 import { createNotification } from "@/lib/notifications/create-notification";
-import { shouldUnlockNextSegment } from "@/lib/plans/segment-gate-logic";
+import { nextPartIndex, shouldUnlockNextSegment } from "@/lib/plans/segment-gate-logic";
 import { issueSegmentCertificate } from "@/lib/plans/segment-certificates";
 import { RAMP_SEGMENT_NAMES } from "@/lib/se/ramp-model";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function maybeUnlockNextSegment(
   supabase: SupabaseClient<Database>,
@@ -76,12 +77,14 @@ export async function maybeUnlockNextSegment(
     return;
   }
 
-  const nextSegment = Math.min(4, segmentIndex + 1);
   // A stage (one plan) has one or more parts; only a gate before another part opens something here.
   // The last part's gate closes the stage, and the next stage's own notice says what comes next.
-  const hasNextPart =
-    nextSegment > segmentIndex &&
-    (segmentSteps ?? []).some((step) => parsePlanStepMetadata(step.metadata, 0).segmentIndex === nextSegment);
+  const followingPart = nextPartIndex(
+    (segmentSteps ?? []).map((step) => parsePlanStepMetadata(step.metadata, 0).segmentIndex),
+    segmentIndex,
+  );
+  const hasNextPart = followingPart !== null;
+  const nextSegment = followingPart ?? Math.min(4, segmentIndex + 1);
   const multiPart = hasNextPart || segmentIndex > 1;
 
   await supabase
@@ -89,7 +92,15 @@ export async function maybeUnlockNextSegment(
     .update({ unlocked_segment_max: nextSegment })
     .eq("id", assignmentId);
 
-  const { data: plan } = await supabase.from("onboarding_plans").select("name").eq("id", assignment.plan_id).maybeSingle();
+  const [{ data: plan }, { data: stageLinks }] = await Promise.all([
+    supabase.from("onboarding_plans").select("name").eq("id", assignment.plan_id).maybeSingle(),
+    // Program setup, read like advance-program does: the manager's session may not see the links.
+    ((createAdminClient() as SupabaseClient<Database> | null) ?? supabase)
+      .from("enablement_program_segments")
+      .select("segment_index")
+      .eq("plan_id", assignment.plan_id)
+      .limit(1),
+  ]);
   const partName = (index: number) => RAMP_SEGMENT_NAMES[index - 1] ?? `part ${index}`;
 
   await issueSegmentCertificate(supabase, {
@@ -98,6 +109,8 @@ export async function maybeUnlockNextSegment(
     segmentIndex,
     programId: null,
     label: plan?.name ? (multiPart ? `${plan.name}, ${partName(segmentIndex)}` : plan.name) : null,
+    stageNumber: stageLinks?.[0]?.segment_index ?? null,
+    multiPart,
   });
 
   if (hasNextPart) {

@@ -1,10 +1,10 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { toast } from "sonner";
 import { Drawer } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
-import { defaultOneOnOneStart, downloadOneOnOneIcs } from "@/lib/manager/one-on-one-ics";
+import { defaultOneOnOneStart, downloadOneOnOneIcs, firstFreeOneOnOneStart } from "@/lib/manager/one-on-one-ics";
 import type { Profile } from "@/lib/types";
 
 function pad(value: number) {
@@ -43,6 +43,23 @@ export function ScheduleOneOnOne({
   // Set when the time overlaps another 1:1 the manager or mentor is in; the next click keeps the time.
   const [clash, setClash] = useState<string | null>(null);
   const firstName = profile.fullName.split(" ")[0] ?? profile.fullName;
+
+  // Start on the first half hour neither you nor the mentor is already in a 1:1.
+  useEffect(() => {
+    let cancelled = false;
+    void fetch(`/api/manager/one-on-ones?userId=${profile.id}`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body: { busy?: { start: string; minutes: number }[] } | null) => {
+        if (cancelled || !body?.busy?.length) return;
+        const free = firstFreeOneOnOneStart(body.busy, 30);
+        setDate(`${free.getFullYear()}-${pad(free.getMonth() + 1)}-${pad(free.getDate())}`);
+        setTime(`${pad(free.getHours())}:${pad(free.getMinutes())}`);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [profile.id]);
 
   async function schedule() {
     const start = new Date(`${date}T${time}:00`);

@@ -66,6 +66,13 @@ export async function GET() {
       if (change.setById !== userId) changes.push({ ...change, menteeName: nameOf.get(menteeId) ?? "Team member" });
     }
   }
-  changes.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  return NextResponse.json({ changes: changes.slice(0, 20) });
+  // Only the stage each person is on now: dates set for a finished stage no longer mean anything.
+  const assignmentIds = [...new Set(changes.map((change) => change.assignmentId).filter(Boolean))];
+  const { data: open } = assignmentIds.length
+    ? await admin.from("plan_assignments").select("id").in("id", assignmentIds).neq("status", "completed")
+    : { data: [] };
+  const current = new Set((open ?? []).map((row) => row.id));
+  const live = changes.filter((change) => change.assignmentId && current.has(change.assignmentId));
+  live.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return NextResponse.json({ changes: live.slice(0, 20) });
 }

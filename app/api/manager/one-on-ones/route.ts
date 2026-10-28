@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireManagerSession } from "@/lib/auth/require-manager";
 import type { Database } from "@/lib/database.types";
-import { ONE_ON_ONE_EVENT, loadUpcomingOneOnOnes, oneOnOneClash } from "@/lib/manager/one-on-ones";
+import { ONE_ON_ONE_EVENT, bookedOneOnOnes, loadUpcomingOneOnOnes, oneOnOneClash } from "@/lib/manager/one-on-ones";
 import { createNotification } from "@/lib/notifications/create-notification";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -50,7 +50,18 @@ export async function GET(request: Request) {
   if (!(await personYouManage(admin, session.user.id, session.role, session.tenantId, userId))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
-  return NextResponse.json({ upcoming: await loadUpcomingOneOnOnes(admin, userId) });
+  // The scheduler's and the mentor's other 1:1s, so the form can start on a free slot.
+  const { data: assignment } = await admin
+    .from("plan_assignments")
+    .select("mentor_id")
+    .eq("user_id", userId)
+    .neq("status", "completed")
+    .not("mentor_id", "is", null)
+    .limit(1)
+    .maybeSingle();
+  const people = [session.user.id, assignment?.mentor_id].filter((id): id is string => Boolean(id));
+  const [upcoming, booked] = await Promise.all([loadUpcomingOneOnOnes(admin, userId), bookedOneOnOnes(admin, people, userId)]);
+  return NextResponse.json({ upcoming, busy: booked.map(({ start, minutes }) => ({ start, minutes })) });
 }
 
 /** Records a scheduled 1:1 so it shows on the person's profile and Today page, and tells them (and the mentor). */

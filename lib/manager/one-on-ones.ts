@@ -91,11 +91,9 @@ export function firstOverlap(booked: BookedOneOnOne[], start: string, minutes: n
  * 1:1s with other people that the scheduler or the invited mentor are already in at that time.
  * Returns a sentence for the scheduler, or null when the time is free.
  */
-export async function oneOnOneClash(
-  admin: Db,
-  params: { schedulerId: string; mentorId: string | null; mentorName: string | null; userId: string; start: string; minutes: number },
-): Promise<string | null> {
-  const people = [params.schedulerId, params.mentorId].filter((id): id is string => Boolean(id));
+/** Upcoming 1:1s with other people that any of these people run or are invited to as mentor. */
+export async function bookedOneOnOnes(admin: Db, people: string[], excludeUserId: string): Promise<BookedOneOnOne[]> {
+  if (!people.length) return [];
   const filters = people.flatMap((id) => [`actor_id.eq.${id}`, `metadata->>mentor_id.eq.${id}`]).join(",");
   // 1:1s are booked days or weeks ahead; anything booked in the last 90 days may still be upcoming.
   const since = new Date(Date.now() - 90 * 86_400_000).toISOString();
@@ -103,15 +101,23 @@ export async function oneOnOneClash(
     .from("activity_logs")
     .select("user_id, actor_id, metadata")
     .eq("event_type", ONE_ON_ONE_EVENT)
-    .neq("user_id", params.userId)
+    .neq("user_id", excludeUserId)
     .gte("created_at", since)
     .or(filters);
-  const booked: BookedOneOnOne[] = (data ?? []).flatMap((row) => {
+  return (data ?? []).flatMap((row) => {
     const meta = (row.metadata ?? {}) as OneOnOneMetadata;
     return meta.start
       ? [{ userId: row.user_id, actorId: row.actor_id, start: meta.start, minutes: meta.minutes ?? 30, label: meta.label ?? meta.start, mentorId: meta.mentor_id ?? null }]
       : [];
   });
+}
+
+export async function oneOnOneClash(
+  admin: Db,
+  params: { schedulerId: string; mentorId: string | null; mentorName: string | null; userId: string; start: string; minutes: number },
+): Promise<string | null> {
+  const people = [params.schedulerId, params.mentorId].filter((id): id is string => Boolean(id));
+  const booked = await bookedOneOnOnes(admin, people, params.userId);
   const clash = firstOverlap(booked, params.start, params.minutes);
   if (!clash) return null;
   const { data: other } = await admin.from("profiles").select("full_name").eq("id", clash.userId).maybeSingle();

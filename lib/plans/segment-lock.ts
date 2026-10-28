@@ -3,9 +3,9 @@ import type { Database } from "@/lib/database.types";
 import { isStepLockedForSegment, parsePlanStepMetadata } from "@/lib/corpus/parse-step-metadata";
 
 export class StepSegmentLockedError extends Error {
-  constructor(segmentIndex: number, unlockedSegmentMax: number) {
+  constructor() {
     super(
-      `This step is in a later part of the stage. It opens when your manager signs off the gate before it (part ${segmentIndex - 1} of the stage; you are on part ${unlockedSegmentMax}).`,
+      "This step is in a later part of the stage. It opens when your manager signs off the gate before it.",
     );
     this.name = "StepSegmentLockedError";
   }
@@ -49,6 +49,6 @@ export async function assertAssignmentStepNotLocked(
   const unlockedSegmentMax = assignment.unlocked_segment_max ?? 1;
 
   if (isStepLockedForSegment(segmentIndex, unlockedSegmentMax, isSegmentGate)) {
-    throw new StepSegmentLockedError(segmentIndex ?? 0, unlockedSegmentMax);
+    throw new StepSegmentLockedError();
   }
 }
