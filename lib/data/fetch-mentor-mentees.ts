@@ -69,8 +69,9 @@ export async function fetchMenteeAssignments(
       const pendingMentorReviews = plan.steps.filter(
         (step) => step.type === "mentor_review" && awaitsMentor(step, menteeRecords),
       ).length;
+      // Endorsed steps, plus gates the mentor has recommended on, are with the manager.
       const awaitingManagerSignoff = plan.steps.filter(
-        (step) => step.status === "under_review",
+        (step) => step.status === "under_review" || (step.status === "submitted" && !awaitsMentor(step, menteeRecords)),
       ).length;
 
       return {
