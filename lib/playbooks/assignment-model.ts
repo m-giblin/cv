@@ -50,7 +50,30 @@ export type AssignmentSignals = {
   quizScores?: number[] | null;
 };
 
-export type AssignmentPart = { key: "read" | "pitch" | "objections" | "quiz"; label: string; done: boolean; detail: string };
+export type AssignmentPart = {
+  key: "read" | "pitch" | "objections" | "quiz";
+  label: string;
+  done: boolean;
+  detail: string;
+  /** Best score so far, when the part is scored. */
+  score?: number | null;
+  /** The pass mark, when the part has one. */
+  pass?: number;
+  /** Tried at least once (scored or not). */
+  tried?: boolean;
+};
+
+const PART_NAME: Record<AssignmentPart["key"], string> = { read: "read", pitch: "pitch", objections: "objections", quiz: "check" };
+
+/** One part's result: "Pitch 78 (70+)", "Objections 83%", "Check not tried (80%+)". Lower-case and without pass marks for short use. */
+export function partResult(part: AssignmentPart, short = false) {
+  const name = short ? PART_NAME[part.key] : PART_NAME[part.key][0]!.toUpperCase() + PART_NAME[part.key].slice(1);
+  if (part.key === "read") return part.done ? name : `${short ? "not read" : "Not read"}`;
+  const unit = part.key === "pitch" ? "" : "%";
+  const result = typeof part.score === "number" ? `${part.score}${unit}` : part.tried ? "done" : "not tried";
+  const pass = !short && part.pass !== undefined ? ` (${part.pass}${unit}+)` : "";
+  return `${name} ${result}${pass}`;
+}
 
 export type AssignmentProgress = {
   parts: AssignmentPart[];
@@ -66,12 +89,12 @@ export function daysBetween(from: string, to: string) {
   return Math.round((end - start) / 86_400_000);
 }
 
-/** The assigner's notification: "Susan Left finished all 4 parts, 7 days early. Read the playbook: Read; …." */
-export function completionSummary(assignment: PlaybookAssignment, today: string) {
+/** The assigner's notification: "Susan Left finished Credentials and Secrets 7 days early: read, pitch 78, objections 83%, check 80%." */
+export function completionSummary(assignment: Pick<PlaybookAssignment, "assigneeName" | "playbookTitle" | "dueDate" | "progress">, today: string) {
   const days = daysBetween(today, assignment.dueDate);
   const timing = days > 0 ? `${days} day${days === 1 ? "" : "s"} early` : days === 0 ? "on the due date" : `${-days} day${days === -1 ? "" : "s"} late`;
-  const parts = assignment.progress.parts.map((part) => `${part.label}: ${part.detail}`).join("; ");
-  return `${assignment.assigneeName} finished all ${assignment.progress.parts.length} parts, ${timing}. ${parts}.`;
+  const results = assignment.progress.parts.map((part) => partResult(part, true)).join(", ");
+  return `${assignment.assigneeName} finished ${assignment.playbookTitle} ${timing}: ${results}.`;
 }
 
 /** Finished in the last three days: Today keeps it on show as "Done" so finishing one is visible. */
@@ -99,7 +122,7 @@ export function computeAssignmentProgress(
 
   const parts: AssignmentPart[] = [];
   if (assignment.requireRead) {
-    parts.push({ key: "read", label: "Read the playbook", done: Boolean(signals.readAt), detail: signals.readAt ? "Read" : "Not yet" });
+    parts.push({ key: "read", label: "Read the playbook", done: Boolean(signals.readAt), detail: signals.readAt ? "Read" : "Not yet", tried: Boolean(signals.readAt) });
   }
   if (assignment.requirePitch) {
     parts.push({
@@ -107,6 +130,9 @@ export function computeAssignmentProgress(
       label: `Pitch drill, ${assignment.pitchPassScore}+`,
       done: bestPitch !== null && bestPitch >= assignment.pitchPassScore,
       detail: bestPitch === null ? "Not tried" : `Best ${bestPitch}`,
+      score: bestPitch,
+      pass: assignment.pitchPassScore,
+      tried: bestPitch !== null,
     });
   }
   if (assignment.requireObjections) {
@@ -115,6 +141,8 @@ export function computeAssignmentProgress(
       label: "Objection drill",
       done: objectionRuns > 0,
       detail: objectionRuns === 0 ? "Not tried" : bestObjections === null ? "Completed" : `Completed, ${bestObjections}%`,
+      score: bestObjections,
+      tried: objectionRuns > 0,
     });
   }
 
@@ -122,7 +150,15 @@ export function computeAssignmentProgress(
   if (assignment.requireQuiz !== false && quizScores) {
     const pass = assignment.quizPassScore ?? 80;
     const best = quizScores.length ? Math.max(...quizScores) : null;
-    parts.push({ key: "quiz", label: `Knowledge check, ${pass}%+`, done: best !== null && best >= pass, detail: best === null ? "Not tried" : `Best ${best}%` });
+    parts.push({
+      key: "quiz",
+      label: `Knowledge check, ${pass}%+`,
+      done: best !== null && best >= pass,
+      detail: best === null ? "Not tried" : `Best ${best}%`,
+      score: best,
+      pass,
+      tried: best !== null,
+    });
   }
 
   const daysLeft = daysBetween(today, assignment.dueDate);

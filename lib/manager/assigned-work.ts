@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getTenantAdminClient } from "@/lib/data/tenant-scoped-query";
 import { quizAttemptScores } from "@/lib/question-bank/model";
-import { daysBetween, dueLabel, loadAssignments, todayIso, type AssignmentState } from "@/lib/playbooks/assignments";
+import { daysBetween, dueLabel, loadAssignments, partResult, todayIso, type AssignmentState } from "@/lib/playbooks/assignments";
 
 /**
  * Everything a manager has assigned, in one list: playbooks, simulations, pitches, knowledge checks,
@@ -21,13 +21,15 @@ export type AssignedWorkItem = {
   assigneeName: string;
   dueDate: string | null;
   state: AssignmentState;
-  /** "Due in 3 days", "2 days overdue", "Done". */
+  /** "Due in 3 days", "2 days overdue", "Finished Oct 27"; empty when done with no date (the status pill says it). */
   dueText: string;
   createdAt: string;
   /** Whether the manager can cancel it from the list (simulations and ramp tasks can only be re-dated). */
   cancellable: boolean;
   /** A chapter assignment whose knowledge check counts; the manager can open the answers. */
   hasQuiz?: boolean;
+  /** A chapter assignment with pitch or objection drills: the manager can read what was said. */
+  hasDrills?: boolean;
   /** Where the assignee does it, when that's a specific page (knowledge checks). */
   href?: string;
   /** The manager's note, on its own line so the progress line can't push it out of view. */
@@ -48,7 +50,7 @@ function stateFor(done: boolean, started: boolean, dueDate: string | null, today
 }
 
 function dueTextFor(state: AssignmentState, dueDate: string | null, today: string) {
-  if (state === "done") return "Done";
+  if (state === "done") return "";
   if (!dueDate) return "No due date";
   return dueLabel({ state, parts: [], daysLeft: daysBetween(today, dueDate) }, dueDate);
 }
@@ -87,16 +89,19 @@ export async function loadAssignedWork(tenantId: string, assigneeIds: string[]):
       id: assignment.id,
       kind: "playbook",
       title: `Ch. ${assignment.chapter} ${assignment.playbookTitle}`,
-      detail: `${done} of ${assignment.progress.parts.length} parts done: ${assignment.progress.parts.map((part) => part.label.toLowerCase()).join(", ")}`,
+      detail: `${done} of ${assignment.progress.parts.length} done · ${assignment.progress.parts.map((part) => partResult(part)).join(" · ")}`,
       note: assignment.note,
       assigneeId: assignment.assignedTo,
       assigneeName: assignment.assigneeName,
       dueDate: assignment.dueDate,
       state: assignment.progress.state,
-      dueText: dueTextFor(assignment.progress.state, assignment.dueDate, today),
+      dueText: assignment.completedAt
+        ? `Finished ${new Date(assignment.completedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/New_York" })}`
+        : dueTextFor(assignment.progress.state, assignment.dueDate, today),
       createdAt: assignment.createdAt,
       cancellable: assignment.status === "active",
       hasQuiz: assignment.progress.parts.some((part) => part.key === "quiz"),
+      hasDrills: assignment.progress.parts.some((part) => (part.key === "pitch" || part.key === "objections") && part.tried),
     });
   }
 

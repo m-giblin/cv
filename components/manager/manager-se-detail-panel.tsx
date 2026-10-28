@@ -213,6 +213,7 @@ export function ManagerSeDetailPanel({
   mentors,
   member,
   focus,
+  openWorkId = null,
   onClose,
 }: {
   snapshot: SeManagerSnapshot;
@@ -227,6 +228,8 @@ export function ManagerSeDetailPanel({
   /** Must be stable (useCallback): the drawer re-runs its focus trap when it changes. */
   onClose: () => void;
   focus?: ProfileFocus;
+  /** An assignment to open on arrival, from a notification link (?work=). */
+  openWorkId?: string | null;
 }) {
   const {
     profile,
@@ -680,7 +683,7 @@ export function ManagerSeDetailPanel({
         ) : null}
 
         <Section title="Assigned work">
-          <AssignedWorkList items={work} onChanged={reloadWork} />
+          <AssignedWorkList initialOpenId={openWorkId} items={work} onChanged={reloadWork} />
         </Section>
 
         {openReviewCount > 0 ? (

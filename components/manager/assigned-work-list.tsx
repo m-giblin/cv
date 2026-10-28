@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Drawer } from "@/components/ui/drawer";
 import { StatusPill, type StatusTone } from "@/components/ui/status-pill";
+import type { ObjectionEvidence, PitchEvidence } from "@/app/api/manager/playbook-evidence/route";
 import type { AssignedWorkItem, AssignedWorkKind } from "@/lib/manager/assigned-work";
+import { splitCoachMessage } from "@/lib/simulations/coach-message";
 import type { AssignmentState } from "@/lib/playbooks/assignment-model";
 
 export const KIND_LABEL: Record<AssignedWorkKind, string> = {
@@ -73,20 +75,130 @@ function QuizAnswers({ id, chapter }: { id: string; chapter?: boolean }) {
   );
 }
 
+const shortDate = (at: string) => new Date(at).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
+/** A chapter assignment's pitch and objection drills: scores, what was said, and the coach's notes. */
+function DrillEvidence({ id }: { id: string }) {
+  const [evidence, setEvidence] = useState<{ pitches: PitchEvidence[]; objections: ObjectionEvidence[] } | null>(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    void fetch(`/api/manager/playbook-evidence?id=${id}`)
+      .then(async (response) => {
+        const body = (await response.json().catch(() => null)) as { pitches?: PitchEvidence[]; objections?: ObjectionEvidence[]; error?: string } | null;
+        if (!response.ok || !body?.pitches) throw new Error(body?.error ?? "Couldn't load the drills.");
+        setEvidence({ pitches: body.pitches, objections: body.objections ?? [] });
+      })
+      .catch((caught: Error) => setError(caught.message));
+  }, [id]);
+  if (error) return <p className="text-sm text-danger">{error}</p>;
+  if (!evidence) return <p className="text-sm text-muted">Loading drills</p>;
+  return (
+    <div className="flex flex-col gap-5">
+      {evidence.objections.length ? (
+        <div>
+          <p className="label-caps mb-2">Objection drill</p>
+          <div className="flex flex-col gap-3">
+            {evidence.objections.map((run) => (
+              <div className="rounded-[10px] border border-line bg-white" key={run.at}>
+                <p className="m-0 flex items-center justify-between gap-3 border-b border-divider px-3 py-2 text-sm">
+                  <span className="font-bold text-ink">
+                    {shortDate(run.at)} · {run.score === null ? "Finished" : `${run.score}%`}
+                  </span>
+                  <span className="text-[13px] text-muted">with {run.persona}</span>
+                </p>
+                {run.debrief ? (
+                  <p className="m-0 border-b border-divider bg-blue-soft/40 px-3 py-2 text-[13px] whitespace-pre-line text-ink">{run.debrief}</p>
+                ) : null}
+                <ol className="m-0 flex list-none flex-col gap-2 px-3 py-3">
+                  {run.transcript.map((entry, index) => {
+                    if (entry.speaker === "se") {
+                      return (
+                        <li className="text-sm" key={index}>
+                          <span className="font-semibold text-blue">They said: </span>
+                          <span className="text-ink">{entry.message}</span>
+                        </li>
+                      );
+                    }
+                    const parts = splitCoachMessage(entry.message);
+                    return (
+                      <li className="text-sm" key={index}>
+                        <span className="font-semibold text-ink-2">Buyer: </span>
+                        <span className="text-ink-2">{parts.reply}</span>
+                        {parts.note ? (
+                          <span className="mt-0.5 block text-[13px] text-muted">
+                            Coach{parts.score ? ` ${parts.score.value}/${parts.score.outOf}` : ""}: {parts.note}
+                          </span>
+                        ) : null}
+                        {parts.nextObjection ? <span className="mt-0.5 block text-ink-2">{parts.nextObjection}</span> : null}
+                      </li>
+                    );
+                  })}
+                </ol>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      {evidence.pitches.length ? (
+        <div>
+          <p className="label-caps mb-2">Pitch drills</p>
+          <div className="flex flex-col gap-3">
+            {evidence.pitches.map((pitch) => (
+              <div className="rounded-[10px] border border-line bg-white px-3 py-2 text-sm" key={pitch.at}>
+                <p className="m-0 flex items-center justify-between gap-3">
+                  <span className="font-bold text-ink">
+                    {shortDate(pitch.at)} · {pitch.score ?? "Not scored"}
+                  </span>
+                  <span className="text-[13px] text-muted">{pitch.label}</span>
+                </p>
+                {pitch.scores.length ? (
+                  <p className="m-0 mt-1 text-[13px] text-muted">{pitch.scores.map((row) => `${row.label} ${row.score}`).join(" · ")}</p>
+                ) : null}
+                {pitch.text ? (
+                  <p className="m-0 mt-2 text-ink">“{pitch.text}”</p>
+                ) : (
+                  <p className="m-0 mt-2 text-[13px] text-muted">Score only: what they said wasn&apos;t saved with this attempt.</p>
+                )}
+                {pitch.missed.length ? <p className="m-0 mt-1 text-[13px] text-ink-2">Left out: {pitch.missed.join("; ")}</p> : null}
+                {pitch.tips[0] ? <p className="m-0 mt-1 text-[13px] text-ink-2">Coach: {pitch.tips[0]}</p> : null}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 const INPUT_CLASS = "rounded-[10px] border border-line-strong bg-white px-3 py-1.5 text-[15px] text-ink";
 
 /** One row per assignment; a click opens it in a workbench to see the answers, move the due date or cancel. */
 export function AssignedWorkList({
   items,
   onChanged,
+  initialOpenId,
 }: {
   items: AssignedWorkItem[] | null;
   onChanged: () => void;
+  /** Open this assignment's workbench once the list loads (a notification link). */
+  initialOpenId?: string | null;
 }) {
   const [filter, setFilter] = useState<Filter>("open");
   const [editing, setEditing] = useState<string | null>(null);
   const [dueDate, setDueDate] = useState("");
   const [saving, setSaving] = useState(false);
+  const [openedInitial, setOpenedInitial] = useState(false);
+
+  // Adjusting state during render, on the first load that contains the linked item.
+  if (!openedInitial && initialOpenId && items) {
+    const target = items.find((item) => item.id === initialOpenId);
+    setOpenedInitial(true);
+    if (target) {
+      setFilter(target.state === "done" ? "done" : "open");
+      setEditing(`${target.kind}:${target.id}`);
+      setDueDate(target.dueDate ?? "");
+    }
+  }
 
   if (items === null) return <p className="text-sm text-muted">Loading assigned work</p>;
 
@@ -169,7 +281,7 @@ export function AssignedWorkList({
                   </span>
                   <span className="flex flex-col items-end gap-1">
                     <StatusPill tone={pill.tone}>{pill.label}</StatusPill>
-                    <span className="text-[13px] whitespace-nowrap text-muted">{item.dueText}</span>
+                    {item.dueText ? <span className="text-[13px] whitespace-nowrap text-muted">{item.dueText}</span> : null}
                   </span>
                 </button>
               </li>
@@ -223,10 +335,11 @@ export function AssignedWorkList({
             {active.note ? <p className="m-0 text-sm text-ink-2">Your note: “{active.note}”</p> : null}
             {active.kind === "quiz" || active.hasQuiz ? (
               <div>
-                <p className="label-caps mb-2">Their answers</p>
+                <p className="label-caps mb-2">{active.kind === "playbook" ? "Knowledge check" : "Their answers"}</p>
                 <QuizAnswers chapter={active.kind === "playbook"} id={active.id} />
               </div>
             ) : null}
+            {active.kind === "playbook" && active.hasDrills ? <DrillEvidence id={active.id} /> : null}
             {active.state !== "done" ? (
               <label className="flex flex-col gap-1 self-start text-[13px] font-semibold text-ink">
                 Due date

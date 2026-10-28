@@ -63,11 +63,19 @@ describe("assignment completion", () => {
   it("summarises a finished assignment for the person who assigned it", async () => {
     const { completionSummary } = await import("@/lib/playbooks/assignment-model");
     const progress = computeAssignmentProgress(base, { readAt: "x", pitchScores: [78], objectionScores: [83] }, "2026-10-13");
-    const assignment = { assigneeName: "Susan Left", dueDate: "2026-10-20", progress } as Parameters<typeof completionSummary>[0];
-    expect(completionSummary(assignment, "2026-10-13")).toBe(
-      "Susan Left finished all 3 parts, 7 days early. Read the playbook: Read; Pitch drill, 70+: Best 78; Objection drill: Completed, 83%.",
-    );
+    const assignment = { assigneeName: "Susan Left", playbookTitle: "Credentials and Secrets", dueDate: "2026-10-20", progress };
+    expect(completionSummary(assignment, "2026-10-13")).toBe("Susan Left finished Credentials and Secrets 7 days early: read, pitch 78, objections 83%.");
     expect(completionSummary(assignment, "2026-10-21")).toContain("1 day late");
+  });
+
+  it("states each part's result with its pass mark", async () => {
+    const { partResult } = await import("@/lib/playbooks/assignment-model");
+    const progress = computeAssignmentProgress(
+      { ...base, requireQuiz: true, quizPassScore: 80 },
+      { readAt: null, pitchScores: [78], objectionScores: [null], quizScores: [] },
+      "2026-10-13",
+    );
+    expect(progress.parts.map((part) => partResult(part))).toEqual(["Not read", "Pitch 78 (70+)", "Objections done", "Check not tried (80%+)"]);
   });
 
   it("keeps a just-finished assignment on Today for three days", async () => {

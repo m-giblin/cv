@@ -15,6 +15,9 @@ export * from "@/lib/playbooks/assignment-model";
 
 /** Loading and recording for playbook assignments (service role). */
 
+/** The pitch coach's feedback, kept with the attempt. */
+export type DrillFeedback = { tips?: string[]; missed?: string[]; scores?: { label: string; score: number }[] };
+
 type AssignmentRow = {
   id: string;
   playbook_id: string;
@@ -176,7 +179,7 @@ export async function loadAssignments(
           userId: assignment.assignedBy,
           title: `Playbook finished: ${assignment.playbookTitle}`,
           body: completionSummary(assignment, today),
-          actionUrl: `/manager?profile=${assignment.assignedTo}`,
+          actionUrl: `/manager?profile=${assignment.assignedTo}&work=${assignment.id}`,
         }).catch(() => undefined);
       }
     }
@@ -215,10 +218,13 @@ export async function recordDrillResult(input: {
   score: number | null;
   scenarioId?: string | null;
   simulationAssignmentId?: string | null;
+  /** What the person said (pitch drills), and the coach's feedback, for whoever assigned the chapter. */
+  responseText?: string | null;
+  feedback?: DrillFeedback | null;
 }) {
   const admin = getTenantAdminClient();
   if (!admin) return null;
-  await admin.from("playbook_drill_results").insert({
+  const row = {
     tenant_id: input.tenantId,
     playbook_id: input.playbookId,
     user_id: input.userId,
@@ -226,6 +232,11 @@ export async function recordDrillResult(input: {
     score: input.score,
     scenario_id: input.scenarioId ?? null,
     simulation_assignment_id: input.simulationAssignmentId ?? null,
-  });
+  };
+  const { error } = await admin
+    .from("playbook_drill_results")
+    .insert({ ...row, response_text: input.responseText ?? null, feedback: input.feedback ?? null } as never);
+  // Before migration 20261028030000 the evidence columns don't exist: keep the score regardless.
+  if (error) await admin.from("playbook_drill_results").insert(row);
   return settleAssignment({ tenantId: input.tenantId, userId: input.userId, playbookId: input.playbookId }).catch(() => null);
 }

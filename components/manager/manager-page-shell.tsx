@@ -64,6 +64,8 @@ function setProfileParam(pathname: string, profileId: string | null, focus?: Pro
   else params.delete("profile");
   if (profileId && focus) params.set("focus", focus);
   else params.delete("focus");
+  // ?work= opens one assignment on arrival from a notification; any profile change drops it.
+  params.delete("work");
   const query = params.toString();
   window.history.pushState(null, "", query ? `${pathname}?${query}` : pathname);
 }
@@ -301,6 +303,7 @@ export function ManagerPageShell({
           focus={searchParams.get("focus") === "plan" || searchParams.get("focus") === "one_on_one" ? (searchParams.get("focus") as ProfileFocus) : undefined}
           mentors={mentors}
           onClose={closeProfile}
+          openWorkId={searchParams.get("work")}
           plans={plans}
           profiles={profiles}
           snapshot={fullSnapshot}

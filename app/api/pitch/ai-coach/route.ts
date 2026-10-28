@@ -112,6 +112,12 @@ export async function POST(request: Request) {
           kind: "pitch",
           score: average,
           scenarioId: input.scenarioId,
+          responseText: delivered || null,
+          feedback: {
+            tips: result.object.tips,
+            missed: result.object.missed,
+            scores: pitchDrillScoreRows(result.object.scores).map((row) => ({ label: row.label, score: row.score })),
+          },
         });
       }
       return NextResponse.json({
