@@ -7,7 +7,7 @@ import { GENAI_VS_AGENTIC_MODULES } from "@/lib/learn/agentic-curriculum";
 import { isFeatureEnabled } from "@/lib/platform/feature-flags";
 import { loadPlatformSettings } from "@/lib/platform/settings";
 import { loadPlaybookChapterSummaries, playbookChapterHref } from "@/lib/search/playbook-chapters";
-import { isStepValidated, sortSteps } from "@/lib/se/ramp-model";
+import { isStepValidated, isStepWithReviewer, sortSteps } from "@/lib/se/ramp-model";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Learn" };
@@ -40,7 +40,10 @@ export default async function LearnPage() {
   // first chapter; the module path only leads for people without a ramp.
   let startHere: StartHerePick | null = null;
   if (plan && plan.status !== "completed") {
-    const step = openSteps.find((item) => Boolean(item.contentAssetId || item.resourceUrl || item.playbookSlug));
+    // Skip steps already with a reviewer: the reading for the step they can work on now comes first.
+    const step = openSteps.find(
+      (item) => !isStepWithReviewer(item.status) && Boolean(item.contentAssetId || item.resourceUrl || item.playbookSlug),
+    );
     const stepHref = step?.assignmentStepId ? `/my-plan?step=${encodeURIComponent(step.assignmentStepId)}` : "/my-plan";
     if (step?.contentAssetId || step?.resourceUrl) {
       const { data: asset } =

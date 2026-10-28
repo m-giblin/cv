@@ -65,9 +65,16 @@ export async function searchSite(viewer: Viewer, query: string): Promise<SearchG
     allowed.has("library") ? searchLibrary(viewer.tenantId, query) : [],
     allowed.has("people") ? searchPeople(viewer, query) : [],
   ]);
-  return SEARCH_GROUPS.map((group, index) => ({ id: group.id, label: group.label, results: found[index] ?? [] })).filter(
+  const groups = SEARCH_GROUPS.map((group, index) => ({ id: group.id, label: group.label, results: found[index] ?? [] })).filter(
     (group) => group.results.length > 0,
   );
+  // Typing someone's name means you want them, not chapters that happen to contain the letters.
+  const needle = query.trim().toLowerCase();
+  const people = groups.find((group) => group.id === "people");
+  const namedSomeone = people?.results.some((result) =>
+    result.title.toLowerCase().split(/\s+/).some((word) => word.startsWith(needle)),
+  );
+  return people && namedSomeone ? [people, ...groups.filter((group) => group !== people)] : groups;
 }
 
 function searchPlaybooks(chapters: PlaybookChapterSearchRow[], query: string): SearchResult[] {
