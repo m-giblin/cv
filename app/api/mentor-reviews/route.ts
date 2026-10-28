@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { approveAssignmentStep, rejectAssignmentStep, submitAssignmentStep } from "@/lib/plans/complete-step";
+import { parsePlanStepMetadata } from "@/lib/corpus/parse-step-metadata";
 import { createNotification } from "@/lib/notifications/create-notification";
 import { createClient } from "@/lib/supabase/server";
 
@@ -20,7 +21,7 @@ export async function GET() {
 
  const { data, error } = await supabase
  .from("mentor_review_requests")
- .select("id, user_id, topic, se_notes, status, created_at")
+ .select("id, user_id, topic, se_notes, status, created_at, assignment_step_id")
  .or(`mentor_id.eq.${user.id},mentor_id.is.null`)
  .order("created_at", { ascending: false });
 
@@ -28,7 +29,14 @@ export async function GET() {
  return NextResponse.json({ error: error.message }, { status: 500 });
  }
 
- const userIds = [...new Set((data ?? []).map((row) => row.user_id))];
+ // Stage gates go to the manager; the mentor adds a recommendation on the gate step instead of approving here.
+ const gateStepIds = await gateAssignmentStepIds(
+ supabase,
+ (data ?? []).map((row) => row.assignment_step_id).filter((id): id is string => Boolean(id)),
+ );
+ const rows = (data ?? []).filter((row) => !row.assignment_step_id || !gateStepIds.has(row.assignment_step_id));
+
+ const userIds = [...new Set(rows.map((row) => row.user_id))];
  const { data: profiles } =
  userIds.length > 0
  ? await supabase.from("profiles").select("id, full_name").in("id", userIds)
@@ -37,7 +45,7 @@ export async function GET() {
  const nameById = new Map((profiles ?? []).map((profile) => [profile.id, profile.full_name]));
 
  return NextResponse.json({
- requests: (data ?? []).map((row) => ({
+ requests: rows.map((row) => ({
  id: row.id,
  userId: row.user_id,
  topic: row.topic,
@@ -47,6 +55,19 @@ export async function GET() {
  seName: nameById.get(row.user_id),
  })),
  });
+}
+
+async function gateAssignmentStepIds(supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>, ids: string[]) {
+ if (!ids.length) return new Set<string>();
+ const { data: steps } = await supabase.from("plan_assignment_steps").select("id, plan_step_id").in("id", ids);
+ const planStepIds = [...new Set((steps ?? []).map((step) => step.plan_step_id))];
+ const { data: planSteps } = planStepIds.length
+ ? await supabase.from("plan_steps").select("id, metadata, sort_order").in("id", planStepIds)
+ : { data: [] };
+ const gates = new Set(
+ (planSteps ?? []).filter((step) => parsePlanStepMetadata(step.metadata, step.sort_order).isSegmentGate).map((step) => step.id),
+ );
+ return new Set((steps ?? []).filter((step) => gates.has(step.plan_step_id)).map((step) => step.id));
 }
 
 const schema = z.object({
