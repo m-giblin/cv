@@ -50,7 +50,7 @@ export function StepEvidenceView({
         <h3 className="text-lg font-extrabold text-ink">What {firstName} did</h3>
         <p className="text-[15px] text-muted">
           {hasWrittenAnswer
-            ? `${firstName}'s written answer is under "What ${firstName} submitted", next to your review. Scores, pitches and transcripts show here when the step has them.`
+            ? `${firstName}'s written answer is under "What ${firstName} submitted" in the coaching panel. Scores, pitches and transcripts show here when the step has them.`
             : "Nothing yet. Their work shows up here as soon as they start."}
         </p>
       </section>
