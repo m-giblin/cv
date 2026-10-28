@@ -33,7 +33,7 @@ export async function loadTodayMentees(admin: Db, mentorId: string): Promise<Tod
   if (!assignments.length) return [];
 
   const menteeIds = [...new Set(assignments.map((row) => row.user_id))];
-  const [{ data: people }, { data: plans }, { data: events }, { data: submitted }, invites] = await Promise.all([
+  const [{ data: people }, { data: plans }, { data: events }, { data: submitted }, invites, { data: recommended }] = await Promise.all([
     admin.from("profiles").select("id, full_name").in("id", menteeIds),
     admin.from("onboarding_plans").select("id, name").in("id", [...new Set(assignments.map((row) => row.plan_id))]),
     admin
@@ -44,10 +44,16 @@ export async function loadTodayMentees(admin: Db, mentorId: string): Promise<Tod
       .in("user_id", menteeIds),
     admin
       .from("plan_assignment_steps")
-      .select("assignment_id")
+      .select("id, assignment_id")
       .in("assignment_id", assignments.map((row) => row.id))
       .eq("status", "submitted"),
     loadMentorInvites(admin, mentorId, menteeIds),
+    admin
+      .from("activity_logs")
+      .select("metadata")
+      .eq("actor_id", mentorId)
+      .eq("event_type", MENTOR_EVENT.gateRecommendation)
+      .in("user_id", menteeIds),
   ]);
   const nameOf = new Map((people ?? []).map((row) => [row.id, row.full_name]));
   const planOf = new Map((plans ?? []).map((row) => [row.id, row.name]));
@@ -55,8 +61,15 @@ export async function loadTodayMentees(admin: Db, mentorId: string): Promise<Tod
     (events ?? []).map((row) => (row.metadata as { assignment_id?: string } | null)?.assignment_id).filter(Boolean),
   );
 
+  // A gate the mentor has already recommended on is with the manager, not waiting on the mentor.
+  const handedOn = new Set(
+    (recommended ?? []).map((row) => (row.metadata as { assignment_step_id?: string } | null)?.assignment_step_id).filter(Boolean),
+  );
   const waiting = new Map<string, number>();
-  for (const row of submitted ?? []) waiting.set(row.assignment_id, (waiting.get(row.assignment_id) ?? 0) + 1);
+  for (const row of submitted ?? []) {
+    if (handedOn.has(row.id)) continue;
+    waiting.set(row.assignment_id, (waiting.get(row.assignment_id) ?? 0) + 1);
+  }
 
   return assignments.map((row) => ({
     assignmentId: row.id,

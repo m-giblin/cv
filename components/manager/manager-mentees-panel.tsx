@@ -18,7 +18,7 @@ import { PersonCell } from "@/components/ui/table";
 import { Tag } from "@/components/ui/tag";
 import type { MenteeAssignment } from "@/lib/data/fetch-mentor-mentees";
 import { stepTypeLabel } from "@/lib/mentoring/mentor-guide";
-import { mentorAttention } from "@/lib/mentoring/mentor-records-model";
+import { awaitsMentor, mentorAttention } from "@/lib/mentoring/mentor-records-model";
 import { isStepOverdue, summarizeEnrollment, type EnrollmentHealth } from "@/lib/programs/program-model";
 import type { PlanStep } from "@/lib/types";
 import { initials } from "@/lib/utils";
@@ -196,7 +196,7 @@ export function ManagerMenteesPanel({
     // "review" opens the first everyday step to approve, else the first gate or check-in waiting on a recommendation.
     const first =
       initialStep === "review"
-        ? (steps.find(isWaitingOnMentor) ?? steps.find((step) => step.status === "submitted"))
+        ? (steps.find(isWaitingOnMentor) ?? steps.find((step) => awaitsMentor(step, arriving!.records)))
         : steps.find((step) => step.id === initialStep);
     return arriving && first ? { assignmentId: arriving.plan.id, stepId: first.id } : null;
   });

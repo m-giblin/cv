@@ -368,6 +368,12 @@ export function buildCheckinAgenda(steps: PlanStep[], records: MenteeRecords, to
   return items;
 }
 
+/** A submitted step still needs the mentor, unless it's a gate they've already recommended on (the manager has it). */
+export function awaitsMentor(step: PlanStep, records: MenteeRecords): boolean {
+  if (step.status !== "submitted") return false;
+  return !(step.isSegmentGate && records.gateRecommendations.some((item) => item.assignmentStepId === step.assignmentStepId));
+}
+
 /** Things a mentor should act on now, newest concerns first. */
 export type AttentionItem = { tone: "danger" | "warning" | "blue"; text: string };
 
@@ -377,7 +383,7 @@ export function mentorAttention(steps: PlanStep[], records: MenteeRecords, today
     (step) => step.dueDate && step.dueDate < today && step.status !== "reviewed" && step.status !== "completed",
   ).length;
   if (overdue > 0) items.push({ tone: "danger", text: `${overdue} step${overdue === 1 ? "" : "s"} overdue` });
-  const submitted = steps.filter((step) => step.status === "submitted").length;
+  const submitted = steps.filter((step) => awaitsMentor(step, records)).length;
   if (submitted > 0) items.push({ tone: "warning", text: `${submitted} submitted, worth a look` });
   const gate = steps.find(
     (step) =>

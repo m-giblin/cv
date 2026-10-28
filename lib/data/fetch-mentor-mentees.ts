@@ -7,7 +7,7 @@ import { fetchStepResources } from "@/lib/mentoring/fetch-step-resources";
 import type { StepResource } from "@/lib/mentoring/mentor-guide";
 import { loadMentorInvites, type UpcomingOneOnOne } from "@/lib/manager/one-on-ones";
 import { loadMentorRecords } from "@/lib/mentoring/mentor-records";
-import { EMPTY_RECORDS, type MenteeRecords, type StepEvidence } from "@/lib/mentoring/mentor-records-model";
+import { awaitsMentor, EMPTY_RECORDS, type MenteeRecords, type StepEvidence } from "@/lib/mentoring/mentor-records-model";
 import type { Profile, UserPlan } from "@/lib/types";
 
 export type MenteeAssignment = {
@@ -65,8 +65,9 @@ export async function fetchMenteeAssignments(
       const profile = profileById.get(plan.userId);
       if (!profile) return null;
 
+      const menteeRecords = records.get(plan.userId) ?? EMPTY_RECORDS;
       const pendingMentorReviews = plan.steps.filter(
-        (step) => step.type === "mentor_review" && step.status === "submitted",
+        (step) => step.type === "mentor_review" && awaitsMentor(step, menteeRecords),
       ).length;
       const awaitingManagerSignoff = plan.steps.filter(
         (step) => step.status === "under_review",
@@ -79,7 +80,7 @@ export async function fetchMenteeAssignments(
         awaitingManagerSignoff,
         resources,
         evidence: evidence[index] ?? {},
-        records: records.get(plan.userId) ?? EMPTY_RECORDS,
+        records: menteeRecords,
         track: tracks[index] ?? null,
         nextOneOnOne: invites.get(plan.userId) ?? null,
       };

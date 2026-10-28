@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   EMPTY_RECORDS,
   MENTOR_EVENT,
+  awaitsMentor,
   agendaForCheckin,
   buildCheckinAgenda,
   buildMenteeRecords,
@@ -117,5 +118,24 @@ describe("mentorAttention", () => {
 
   it("flags a missing 1:1", () => {
     expect(mentorAttention([], EMPTY_RECORDS, "2026-10-10").map((item) => item.text)).toEqual(["No 1:1 logged yet"]);
+  });
+});
+
+describe("awaitsMentor", () => {
+  const recommended = {
+    ...EMPTY_RECORDS,
+    gateRecommendations: [
+      { id: "r", assignmentStepId: "a-gate", recommendation: "ready" as const, rationale: "", authorName: "", createdAt: "" },
+    ],
+  };
+
+  it("hands a recommended gate on to the manager", () => {
+    expect(awaitsMentor(step({ id: "gate", isSegmentGate: true, status: "submitted" }), recommended)).toBe(false);
+    expect(awaitsMentor(step({ id: "gate", isSegmentGate: true, status: "submitted" }), EMPTY_RECORDS)).toBe(true);
+  });
+
+  it("keeps everyday submitted steps with the mentor", () => {
+    expect(awaitsMentor(step({ id: "one", status: "submitted" }), recommended)).toBe(true);
+    expect(awaitsMentor(step({ id: "one", status: "reviewed" }), recommended)).toBe(false);
   });
 });
