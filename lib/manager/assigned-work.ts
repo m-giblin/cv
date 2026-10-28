@@ -30,6 +30,8 @@ export type AssignedWorkItem = {
   hasQuiz?: boolean;
   /** Where the assignee does it, when that's a specific page (knowledge checks). */
   href?: string;
+  /** The manager's note, on its own line so the progress line can't push it out of view. */
+  note?: string | null;
 };
 
 const DONE_STATUSES = new Set(["submitted", "under_review", "reviewed", "completed"]);
@@ -85,7 +87,8 @@ export async function loadAssignedWork(tenantId: string, assigneeIds: string[]):
       id: assignment.id,
       kind: "playbook",
       title: `Ch. ${assignment.chapter} ${assignment.playbookTitle}`,
-      detail: `${done} of ${assignment.progress.parts.length} parts done: ${assignment.progress.parts.map((part) => part.label.toLowerCase()).join(", ")}${assignment.note ? ` · Note: ${assignment.note}` : ""}`,
+      detail: `${done} of ${assignment.progress.parts.length} parts done: ${assignment.progress.parts.map((part) => part.label.toLowerCase()).join(", ")}`,
+      note: assignment.note,
       assigneeId: assignment.assignedTo,
       assigneeName: assignment.assigneeName,
       dueDate: assignment.dueDate,

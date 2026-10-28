@@ -165,6 +165,7 @@ export function AssignedWorkList({
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-bold text-ink">{item.title}</span>
                     <span className="block truncate text-[13px] text-muted">{item.detail}</span>
+                    {item.note ? <span className="line-clamp-2 text-[13px] text-ink-2">“{item.note}”</span> : null}
                   </span>
                   <span className="flex flex-col items-end gap-1">
                     <StatusPill tone={pill.tone}>{pill.label}</StatusPill>
@@ -219,6 +220,7 @@ export function AssignedWorkList({
         >
           <div className="flex flex-col gap-5">
             {active.detail ? <p className="m-0 text-sm text-ink-2">{active.detail}</p> : null}
+            {active.note ? <p className="m-0 text-sm text-ink-2">Your note: “{active.note}”</p> : null}
             {active.kind === "quiz" || active.hasQuiz ? (
               <div>
                 <p className="label-caps mb-2">Their answers</p>
