@@ -193,7 +193,7 @@ export function PlanStepActions({
   const needsRevision = step.status === "in_progress" && Boolean(step.description);
   // Mentors approve everyday steps; the hiring manager signs off stage gates (see canMentorApproveStep).
   const reviewerNote = step.isSegmentGate
-    ? "Your manager signs off this gate after you submit. You can take it as soon as you're ready: once your manager signs off the stage's gates, any steps still open close as tested out and your next stage opens."
+    ? `${mentorName ? `${mentorName} adds a recommendation, then your` : "Your"} manager signs off this gate. You can take it as soon as you're ready: once your manager signs off the stage's gates, any steps still open close as tested out and your next stage opens.`
     : mentorName
       ? `${mentorName} reviews this step after you submit.`
       : "Your manager reviews this step after you submit.";
@@ -569,7 +569,11 @@ export function PlanStepActions({
                 setIsSaving(false);
                 return;
               }
-              toast.success("Submitted for mentor review.");
+              toast.success(
+                step.isSegmentGate
+                  ? `Submitted. ${mentorName ? `${mentorName} adds a recommendation, then your` : "Your"} manager signs it off.`
+                  : "Submitted for mentor review.",
+              );
               router.push("/my-plan");
               router.refresh();
           })());
@@ -592,11 +596,11 @@ export function PlanStepActions({
               />
             </div>
           </div>
-          <p className={NOTE_CLS}>{mentorName ? `${mentorName} reviews this step.` : reviewerNote}</p>
+          <p className={NOTE_CLS}>{mentorName && !step.isSegmentGate ? `${mentorName} reviews this step.` : reviewerNote}</p>
         </section>
         <div>
           <button className="btn-primary" disabled={isSaving} type="submit">
-            Submit for mentor review
+            {step.isSegmentGate ? "Submit for sign-off" : "Submit for mentor review"}
           </button>
         </div>
         {confirmDialog(DONE_WHEN.mentor_review!.length)}

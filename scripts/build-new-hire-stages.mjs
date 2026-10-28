@@ -300,7 +300,7 @@ async function updateFoundationGate(admin) {
     .from("onboarding_plans")
     .update({
       name: FOUNDATION,
-      description: "Days 1–30 for a new hire with little or no identity background. Manager approval of the day-30 gate assigns Days 31–60.",
+      description: "Days 1–30, where every new hire starts. Experienced hires can take the test-outs early; manager approval of the day-30 gate assigns Days 31–60.",
       updated_at: new Date().toISOString(),
     })
     .eq("id", plan.id);
