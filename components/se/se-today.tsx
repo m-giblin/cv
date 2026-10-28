@@ -309,7 +309,7 @@ function PlaybooksDue({ assignments }: { assignments: PlaybookAssignment[] }) {
     <section aria-labelledby="playbooks-due" className="flex flex-col">
       <div className="flex items-baseline justify-between gap-4 pb-3">
         <h2 className="text-xl font-extrabold text-ink" id="playbooks-due">
-          Playbooks due
+          {open.length ? "Playbooks due" : "Playbooks"}
         </h2>
         <Link className="link text-sm" href="/learn/playbooks">
           {open.length > shown.length ? `See all ${open.length}` : "Open playbooks"}
