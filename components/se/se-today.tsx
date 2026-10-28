@@ -65,8 +65,7 @@ function heroCopy(model: RampModel | null, reviewerFirst: string | null): { acce
 }
 
 function scheduleMeta(step: PlanStep, model: RampModel, minutes: number | null): string {
-  const segment = model.segments.find((item) => item.index === (step.segmentIndex ?? 0));
-  if (step.isSegmentGate) return segment ? `Closes the ${segment.label.toLowerCase()} segment` : "Closes this segment";
+  if (step.isSegmentGate) return "Stage gate, your manager signs off";
   if (step.locked) return "Unlocks when the current gate clears";
   const type = planStepTypeLabel(step.type, step.resourceUrl);
   return minutes ? `${type}, about ${minutes} min` : type;

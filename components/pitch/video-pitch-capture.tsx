@@ -107,7 +107,11 @@ export function VideoPitchCapture({
   const typedId = useId();
   const videoRef = useRef<HTMLVideoElement>(null);
   // A link from a playbook opens that drill in free practice.
-  const [studioMode, setStudioMode] = useState<StudioMode>(initialScenarioId || rampStep ? "practice" : "assigned");
+  // Everyone gets a standing queue of manager-reviewed slots; a new hire with a mentor starts on
+  // free practice instead, where pitches are scored against the guide and can go to the mentor.
+  const [studioMode, setStudioMode] = useState<StudioMode>(
+    initialScenarioId || rampStep || mentorName ? "practice" : "assigned",
+  );
   const [responseMode, setResponseMode] = useState<PitchResponseMode>("video");
   const [recording, setRecording] = useState(false);
   const [elapsed, setElapsed] = useState(0);
@@ -210,7 +214,7 @@ export function VideoPitchCapture({
       if (response.ok) {
         const body = (await response.json()) as { queue: PitchQueueSlot[] };
         setQueue(body.queue);
-        if (body.queue[0] && !initialScenarioId) {
+        if (body.queue[0] && !initialScenarioId && !mentorName) {
           setSelectedScenarioId(body.queue[0].scenario.id);
           setSelectedQueueSlotId(body.queue[0].id);
         } else if (!body.queue.length) {
@@ -221,7 +225,7 @@ export function VideoPitchCapture({
       setLoadingQueue(false);
       await loadPracticeScenarios();
     })();
-  }, [initialScenarioId, loadPracticeScenarios]);
+  }, [initialScenarioId, loadPracticeScenarios, mentorName]);
 
   useEffect(() => {
     return () => {

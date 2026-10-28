@@ -66,7 +66,7 @@ export const SE_ARTICLES: HelpArticle[] = [
     steps: [
       { title: "Open My ramp", body: "Click \"My ramp\" in the navigation. The header shows the current week, and the runway below it shows each phase and its weeks." },
       { title: "Find your current step", body: "In the current phase, the highlighted card marked \"Now\" is the step to work on. Click \"Start\" or \"Continue\", or \"Step details\" to read it first." },
-      { title: "Scan the rest of the stage", body: "The table lists the remaining steps with \"Type\" and \"Due\", and finished steps stay under \"Done\" so you can look back at them. Gate rows are labeled \"Closes this segment\". Locked rows show \"Unlocks after segment N\" and can't be opened yet." },
+      { title: "Scan the rest of the stage", body: "The table lists the remaining steps with \"Type\" and \"Due\", and finished steps stay under \"Done\" so you can look back at them. Gate rows are labeled \"Stage gate, your manager signs off\". Locked rows show \"Unlocks when the gate before it clears\" and can't be opened yet." },
       { title: "Switch to Calendar", body: "If your workspace has it turned on, use the \"List\" / \"Calendar\" toggle in the header to see your steps on their dates." },
       { title: "Review finished phases", body: "Completed phases collapse to show how many steps were validated. Click \"Show\" to expand one." },
     ],

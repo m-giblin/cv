@@ -169,6 +169,8 @@ Jordan Ellis: Before we go deep — why should we talk about ${parsed.data.promp
  });
 
  const speaker = classifySpeaker(result.text, userMessage);
+ // The transcript already names the persona; drop a markdown speaker label like "**Buyer:**".
+ const responseText = speaker === "persona" ? result.text.replace(/^\s*\*\*[^*\n]{1,40}:\*\*\s*/, "") : result.text;
 
  // Bookkeeping runs after the reply is sent.
  after(() =>
@@ -208,7 +210,7 @@ Jordan Ellis: Before we go deep — why should we talk about ${parsed.data.promp
  return NextResponse.json({
  provider,
  modelName,
- response: result.text,
+ response: responseText,
  speaker,
  roleplayEnded: ended,
  assignmentCompleted,

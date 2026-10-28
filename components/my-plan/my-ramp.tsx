@@ -119,9 +119,9 @@ function GateMarker() {
   );
 }
 
-function stepSubline(step: PlanStep, plan: UserPlan): string {
-  if (step.isSegmentGate) return "Closes this segment";
-  if (step.locked) return `Unlocks after segment ${plan.unlockedSegmentMax ?? 1}`;
+function stepSubline(step: PlanStep): string {
+  if (step.isSegmentGate) return "Stage gate, your manager signs off";
+  if (step.locked) return "Unlocks when the gate before it clears";
   if (step.status === "not_started") return step.description || "Not started";
   return stepStatusTag(step).label;
 }
@@ -129,12 +129,10 @@ function stepSubline(step: PlanStep, plan: UserPlan): string {
 function StepTable({
   steps,
   model,
-  plan,
   label,
 }: {
   steps: PlanStep[];
   model: RampModel;
-  plan: UserPlan;
   label: string;
 }) {
   const numberOf = (step: PlanStep) => model.steps.findIndex((item) => item.id === step.id) + 1;
@@ -191,7 +189,7 @@ function StepTable({
                       </Link>
                     )}
                   </span>
-                  <span className="text-[13px] leading-[1.45] text-muted">{stepSubline(step, plan)}</span>
+                  <span className="text-[13px] leading-[1.45] text-muted">{stepSubline(step)}</span>
                 </span>
               </th>
               <td className={cn(tdCls, "text-sm text-ink-2", index === 0 && "border-t-0")}>
@@ -224,7 +222,7 @@ function DoneSegment({ segment, model, plan }: { segment: RampSegment; model: Ra
         </span>
       </summary>
       <div className="pt-3">
-        <StepTable label={`${segment.label} steps`} model={model} plan={plan} steps={segment.steps} />
+        <StepTable label={`${segment.label} steps`} model={model} steps={segment.steps} />
       </div>
     </details>
   );
@@ -244,7 +242,7 @@ function UpcomingSegment({ segment, model, plan }: { segment: RampSegment; model
           {segment.locked ? `. Locked until the gate before it clears${gates.length ? ", except its test-out" : ""}` : ""}
         </span>
       </div>
-      {gates.length ? <StepTable label={`${segment.label} gate`} model={model} plan={plan} steps={gates} /> : null}
+      {gates.length ? <StepTable label={`${segment.label} gate`} model={model} steps={gates} /> : null}
     </div>
   );
 }
@@ -324,7 +322,7 @@ function CurrentSegment({
       ) : null}
 
       {rest.length > 0 ? (
-        <StepTable label={`${segment.label}, remaining steps`} model={model} plan={plan} steps={rest} />
+        <StepTable label={`${segment.label}, remaining steps`} model={model} steps={rest} />
       ) : null}
       {validatedHere.length > 0 ? (
         // Keep finished work in view so they can look back at what they submitted and what came back.
@@ -332,7 +330,7 @@ function CurrentSegment({
           <h3 className="pt-1 text-base font-extrabold text-ink">
             Done <span className="text-[15px] font-medium text-muted">{validatedHere.length} validated</span>
           </h3>
-          <StepTable label={`${segment.label}, done`} model={model} plan={plan} steps={validatedHere} />
+          <StepTable label={`${segment.label}, done`} model={model} steps={validatedHere} />
         </>
       ) : null}
     </section>
