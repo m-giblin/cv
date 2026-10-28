@@ -153,11 +153,23 @@ export function AssignWorkWizard({
   // Every word has to appear somewhere, in any order: "credential management" finds the chapter
   // titled "Credentials and Secrets" whose subtitle names Credentials Management.
   const words = searchTokens(search);
+  // Chapter content is searched too, so most chapters mention common words: rank title matches
+  // first, then chapters that use the exact phrase most, then the rest.
+  const phrase = normalizeSearchText(search).trim();
   const choices = words.length
-    ? allChoices.filter((item) => {
-        const text = normalizeSearchText(`${item.title} ${item.detail ?? ""} ${"keywords" in item ? (item.keywords ?? "") : ""}`);
-        return words.every((word) => text.includes(word));
-      })
+    ? allChoices
+        .map((item) => {
+          const heading = normalizeSearchText(`${item.title} ${item.detail ?? ""}`);
+          const body = normalizeSearchText("keywords" in item ? (item.keywords ?? "") : "");
+          const text = `${heading} ${body}`;
+          if (!words.every((word) => text.includes(word))) return null;
+          const inHeading = words.every((word) => heading.includes(word)) ? 1000 : 0;
+          const phraseHits = phrase ? text.split(phrase).length - 1 : 0;
+          return { item, rank: inHeading + phraseHits * 10 };
+        })
+        .filter((row): row is { item: (typeof allChoices)[number]; rank: number } => row !== null)
+        .sort((a, b) => b.rank - a.rank)
+        .map((row) => row.item)
     : allChoices;
 
   const nameOf = (id: string) => options?.people.find((person) => person.id === id)?.name ?? "this person";
