@@ -193,7 +193,7 @@ export function PlanStepActions({
   const needsRevision = step.status === "in_progress" && Boolean(step.description);
   // Mentors approve everyday steps; the hiring manager signs off stage gates (see canMentorApproveStep).
   const reviewerNote = step.isSegmentGate
-    ? "Your manager signs off this gate after you submit. It opens your next stage."
+    ? "Your manager signs off this gate after you submit. You can take it as soon as you're ready: once your manager signs off the stage's gates, any steps still open close as tested out and your next stage opens."
     : mentorName
       ? `${mentorName} reviews this step after you submit.`
       : "Your manager reviews this step after you submit.";

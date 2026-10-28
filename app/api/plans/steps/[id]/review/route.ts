@@ -86,7 +86,10 @@ export async function PATCH(
         parsed.data.decision === "approve"
           ? "Plan step approved"
           : "Plan step needs revision",
-      body: feedback,
+      body:
+        "testedOut" in result && result.testedOut
+          ? `${feedback ? `${feedback} ` : ""}That completes the stage: ${result.testedOut} remaining step${result.testedOut === 1 ? " was" : "s were"} closed as tested out.`
+          : feedback,
       actionUrl: parsed.data.decision === "approve" ? "/dashboard" : `/plan-steps/${id}`,
     });
 

@@ -3,6 +3,7 @@ import { Database } from "@/lib/database.types";
 import { parsePlanStepMetadata } from "@/lib/corpus/parse-step-metadata";
 import { enrollNextProgramStage } from "@/lib/plans/advance-program";
 import { maybeUnlockNextSegment } from "@/lib/plans/segment-gates";
+import { closeStageAfterGates } from "@/lib/plans/test-out";
 import { assertStepAccessible } from "@/lib/plans/step-prerequisites";
 import {
   canManagerSignOffStep,
@@ -346,6 +347,9 @@ export async function approveAssignmentStep(
     throw new Error(error.message);
   }
 
+  // Signing off a stage's last gate closes its other open steps: an experienced hire can test out early.
+  const testedOut = isSegmentGate ? await closeStageAfterGates(supabase, step.assignment_id, step.plan_step_id) : 0;
+
   await recalculatePlanProgress(supabase, step.assignment_id);
 
   await maybeUnlockNextSegment(supabase, step.assignment_id, step.plan_step_id);
@@ -365,10 +369,20 @@ export async function approveAssignmentStep(
       plan_step_id: step.plan_step_id,
       validation_status: "reviewed",
       feedback: params.feedback ?? null,
+      tested_out_steps: testedOut,
     },
   });
+  if (testedOut) {
+    await supabase.from("activity_logs").insert({
+      user_id: assignment.user_id,
+      actor_id: params.reviewerId,
+      event_type: "stage_tested_out",
+      title: `Tested out of ${testedOut} remaining step${testedOut === 1 ? "" : "s"} in the stage`,
+      metadata: { assignment_id: step.assignment_id, steps: testedOut },
+    });
+  }
 
-  return { assignmentId: step.assignment_id, userId: assignment.user_id };
+  return { assignmentId: step.assignment_id, userId: assignment.user_id, testedOut };
 }
 
 /** Manager or mentor sends back — SE must redo the activity. */

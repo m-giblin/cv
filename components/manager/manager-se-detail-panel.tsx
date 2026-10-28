@@ -251,15 +251,8 @@ export function ManagerSeDetailPanel({
 
   const [now] = useState(() => Date.now());
   const [schedulingOneOnOne, setSchedulingOneOnOne] = useState(focus === "one_on_one");
-  // "Assign a plan" lands on the plan form, not three screens above it.
-  useEffect(() => {
-    if (focus !== "plan") return;
-    const timer = window.setTimeout(
-      () => document.getElementById("profile-onboarding-steps")?.scrollIntoView({ behavior: "smooth", block: "start" }),
-      150,
-    );
-    return () => window.clearTimeout(timer);
-  }, [focus]);
+  // "Assign a plan" opens the plan form in its own workbench, so nothing has to be scrolled to.
+  const [assigningPlan, setAssigningPlan] = useState(focus === "plan");
   const steps = [...(plan?.steps ?? [])].sort((a, b) => a.order - b.order);
   const gates = buildGates(certSummary);
   const isOverdue = (step: PlanStep) =>
@@ -276,7 +269,7 @@ export function ManagerSeDetailPanel({
   const sentBackCards = coachingCards.filter((card) => card.managerReviewStatus === "needs_revision");
   const sentBackSubmissions = submissions.filter((item) => item.status === "in_progress" && item.managerFeedback);
   const rampWeek = rampWeekFor(plan, now);
-  const subline = rampWeek !== null ? `${profile.level}, week ${rampWeek}` : profile.level;
+  const subline = rampWeek !== null ? `${profile.level} new hire, week ${rampWeek}` : profile.level;
 
   const router = useRouter();
   const [assigning, setAssigning] = useState(false);
@@ -448,13 +441,9 @@ export function ManagerSeDetailPanel({
             ) : (
               <>
                 <p className="text-sm">No onboarding plan assigned yet.</p>
-                <ManagerPlanAssignPanel
-                  assignees={[profile]}
-                  compact
-                  defaultUserId={profile.id}
-                  mentors={mentors}
-                  plans={plans}
-                />
+                <button className="btn-primary self-start" onClick={() => setAssigningPlan(true)} type="button">
+                  Assign a plan
+                </button>
               </>
             )}
           </Section>
@@ -648,7 +637,7 @@ export function ManagerSeDetailPanel({
           {!plan && member?.action?.kind === "assign_plan" ? (
             <button
               className="btn-primary"
-              onClick={() => document.getElementById("profile-onboarding-steps")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              onClick={() => setAssigningPlan(true)}
               type="button"
             >
               Assign a plan
@@ -659,6 +648,25 @@ export function ManagerSeDetailPanel({
             </button>
           ) : null}
         </div>
+
+        {assigningPlan && !plan ? (
+          <Drawer
+            eyebrow={`Onboarding plan · ${profile.fullName}`}
+            onClose={() => setAssigningPlan(false)}
+            open
+            size="form"
+            title="Assign a plan"
+          >
+            <ManagerPlanAssignPanel
+              assignees={[profile]}
+              compact
+              defaultUserId={profile.id}
+              mentors={mentors}
+              onAssigned={() => setAssigningPlan(false)}
+              plans={plans}
+            />
+          </Drawer>
+        ) : null}
 
         {schedulingOneOnOne ? (
           <ScheduleOneOnOne

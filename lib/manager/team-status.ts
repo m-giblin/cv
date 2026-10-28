@@ -41,7 +41,7 @@ export type TeamMember = {
   level: string;
   /** Week of the current ramp (1-based), or null without an active plan. */
   rampWeek: number | null;
-  /** Second line under the name: "Basic, week 7" or just the level. */
+  /** Second line under the name: "Senior new hire, week 1" while ramping, or just the level. */
   subline: string;
   readiness: number | null;
   status: TeamStatus;
@@ -228,7 +228,7 @@ export function buildTeamMember(input: {
     email: profile.email,
     level: profile.level,
     rampWeek,
-    subline: rampWeek !== null ? `${profile.level}, week ${rampWeek}` : profile.level,
+    subline: rampWeek !== null ? `${profile.level} new hire, week ${rampWeek}` : profile.level,
     readiness,
     status,
     reason,

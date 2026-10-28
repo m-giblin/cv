@@ -15,6 +15,7 @@ type MilestoneStatus = CalMilestone["status"];
 
 const STATUS_TAG: Record<MilestoneStatus, { tone: "success" | "warning" | "danger" | "neutral"; label: string }> = {
   DONE: { tone: "success", label: "Done" },
+  "IN REVIEW": { tone: "neutral", label: "In review" },
   "DUE TODAY": { tone: "warning", label: "Due today" },
   OPEN: { tone: "danger", label: "Past due" },
   UPCOMING: { tone: "neutral", label: "Upcoming" },
@@ -23,6 +24,7 @@ const STATUS_TAG: Record<MilestoneStatus, { tone: "success" | "warning" | "dange
 /** Event chip styles in the month grid: done blue-soft, today signal-soft, past due danger-row, upcoming dashed. */
 const EVENT_CLS: Record<MilestoneStatus, string> = {
   DONE: "bg-blue-soft text-ink shadow-[inset_3px_0_0_var(--color-blue)]",
+  "IN REVIEW": "bg-blue-soft/50 text-ink border border-dashed border-blue",
   "DUE TODAY": "bg-signal-soft text-ink shadow-[inset_3px_0_0_var(--color-signal)]",
   OPEN: "bg-danger-row text-ink shadow-[inset_3px_0_0_var(--color-danger)]",
   UPCOMING: "bg-white text-ink border border-dashed border-line-strong",
@@ -232,7 +234,7 @@ function GridView({ weeks, year, month }: { weeks: CalWeek[]; year: number; mont
         </div>
       </div>
       <ul aria-label="Legend" className="flex flex-wrap gap-x-5 gap-y-2 text-[13px] text-ink-2">
-        {(["DONE", "DUE TODAY", "OPEN", "UPCOMING"] as const).map((status) => (
+        {(["DONE", "IN REVIEW", "DUE TODAY", "OPEN", "UPCOMING"] as const).map((status) => (
           <li className="flex items-center gap-2" key={status}>
             <span aria-hidden="true" className={cn("h-3 w-4 rounded-[3px]", EVENT_CLS[status])} />
             {STATUS_TAG[status].label}

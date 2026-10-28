@@ -52,7 +52,7 @@ export function buildMonthGrid(year: number, month: number, milestones: CalMiles
       type: ms.type,
       status: ms.status,
       color:
-        ms.status === "DONE"
+        ms.status === "DONE" || ms.status === "IN REVIEW"
           ? "#0033A1"
           : ms.status === "DUE TODAY"
             ? "#0A1A3F"
@@ -61,7 +61,7 @@ export function buildMonthGrid(year: number, month: number, milestones: CalMiles
               : "#B42318",
       done: ms.status === "DONE",
       evBg:
-        ms.status === "DONE"
+        ms.status === "DONE" || ms.status === "IN REVIEW"
           ? "#E5ECFA"
           : ms.status === "DUE TODAY"
             ? "#FFB81C"

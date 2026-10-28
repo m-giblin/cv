@@ -2,7 +2,7 @@ export interface CalMilestone {
   day: string;
   title: string;
   type: string;
-  status: "DONE" | "DUE TODAY" | "OPEN" | "UPCOMING";
+  status: "DONE" | "IN REVIEW" | "DUE TODAY" | "OPEN" | "UPCOMING";
   icon: string;
   managerNote?: string;
   date?: string;

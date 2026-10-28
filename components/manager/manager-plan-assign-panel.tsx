@@ -171,6 +171,10 @@ export function ManagerPlanAssignPanel({
  <p className="mt-1 text-sm text-muted">
  Pick a template, choose the SE and mentor, then confirm the start date. The mentor agrees the due dates with the new hire.
  </p>
+ <p className="mt-1 text-sm text-muted">
+ Experienced hire? Start them on Days 1–30 too. They can take the stage&apos;s test-outs straight away; when you sign off the
+ gates, the rest of the stage closes as tested out and the next stage opens.
+ </p>
  <ol className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
  {[
  { n: 1, label: "Template" },

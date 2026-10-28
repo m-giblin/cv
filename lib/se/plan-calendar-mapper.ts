@@ -50,6 +50,11 @@ export function milestoneStatusForStep(step: PlanStep, today = new Date()): CalM
     return "DONE";
   }
 
+  // Submitted work is with the reviewer: not the SE's to do, and not past due while it waits.
+  if (step.status === "submitted" || step.status === "under_review") {
+    return "IN REVIEW";
+  }
+
   if (!step.dueDate) {
     return "UPCOMING";
   }

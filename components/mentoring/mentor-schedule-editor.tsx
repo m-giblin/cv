@@ -14,6 +14,7 @@ import {
   type ScheduleChange,
 } from "@/lib/mentoring/mentor-records-model";
 import type { UserPlan } from "@/lib/types";
+import { holidayOn } from "@/lib/utils/date-only";
 
 const DONE = new Set(["completed", "reviewed"]);
 
@@ -21,10 +22,11 @@ const DONE = new Set(["completed", "reviewed"]);
  * After meeting the new hire, the mentor sets the dates for the stage in one go. There is no fixed
  * 30-day window: the stage ends on the latest date set here. The new hire and manager are told.
  */
-function isWeekend(iso: string) {
-  if (!iso) return false;
+/** "a weekend", a holiday's name, or null for an ordinary workday. */
+function offDay(iso: string) {
+  if (!iso) return null;
   const day = new Date(`${iso}T12:00:00`).getDay();
-  return day === 0 || day === 6;
+  return holidayOn(iso) ?? (day === 0 || day === 6 ? "a weekend" : null);
 }
 
 export function MentorScheduleEditor({
@@ -67,7 +69,10 @@ export function MentorScheduleEditor({
     return [];
   });
   const invalid = problems.length > 0;
-  const weekendDates = changed.filter((step) => isWeekend(dates[step.assignmentStepId!] ?? "")).map((step) => step.title);
+  const offDays = changed.flatMap((step) => {
+    const reason = offDay(dates[step.assignmentStepId!] ?? "");
+    return reason ? [{ title: step.title, reason }] : [];
+  });
   const effective = steps.map((step) => (step.assignmentStepId ? dates[step.assignmentStepId] || step.dueDate : step.dueDate) ?? null);
   const lastDue = latestDueDate(effective);
   const warnings = scheduleOrderWarnings(
@@ -142,10 +147,12 @@ export function MentorScheduleEditor({
               ))}
             </div>
           ) : null}
-          {weekendDates.length ? (
+          {offDays.length ? (
             <p className="m-0 text-sm text-muted">
-              {weekendDates.length === 1 ? `${weekendDates[0]} falls` : `${weekendDates.length} of your new dates fall`} on a weekend. Fine if
-              that&apos;s what you agreed.
+              {offDays.length === 1
+                ? `${offDays[0]!.title} falls on ${offDays[0]!.reason}.`
+                : `${offDays.length} of your new dates fall on a weekend or holiday (${[...new Set(offDays.map((day) => day.reason))].join(", ")}).`}{" "}
+              Fine if that&apos;s what you agreed.
             </p>
           ) : null}
           {warnings.length ? (

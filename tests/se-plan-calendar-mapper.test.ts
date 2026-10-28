@@ -50,3 +50,12 @@ describe("buildMonthGrid", () => {
     expect(byDay(29)).toEqual([]);
   });
 });
+
+describe("milestoneStatusForStep, work with the reviewer", () => {
+  it("shows submitted steps as In review, even once the due date passes", async () => {
+    const { milestoneStatusForStep: status } = await import("@/lib/se/plan-calendar-mapper");
+    const step = { status: "submitted", dueDate: "2026-10-29" } as Parameters<typeof status>[0];
+    expect(status(step, new Date("2026-10-28T12:00:00"))).toBe("IN REVIEW");
+    expect(status(step, new Date("2026-11-02T12:00:00"))).toBe("IN REVIEW");
+  });
+});
