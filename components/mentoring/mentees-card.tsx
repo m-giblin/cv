@@ -31,7 +31,7 @@ export function MenteesCard({ mentees }: { mentees: TodayMentee[] }) {
             </span>
             <Link
               className={mentee.waitingOnReview > 0 || !mentee.scheduleSet ? "btn-primary" : "btn-secondary"}
-              href={`/mentoring?open=${mentee.assignmentId}`}
+              href={`/mentoring?open=${mentee.assignmentId}${mentee.waitingOnReview > 0 ? "&step=review" : ""}`}
             >
               {mentee.waitingOnReview > 0 ? "Review" : mentee.scheduleSet ? "Open workbench" : "Read the brief"}
             </Link>

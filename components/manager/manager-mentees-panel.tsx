@@ -144,7 +144,7 @@ function MenteeWorkbench({
                     <span className="font-bold text-ink-2">{step.title}</span>
                     <span className="text-[13px] text-muted">
                       {step.isSegmentGate ? "Stage gate" : stepTypeLabel(step.type, step.resourceUrl)}
-                      {hasWork ? " · work to review" : ""}
+                      {step.status === "submitted" ? " · waiting on your review" : hasWork ? " · work attached" : ""}
                       {feedbackCount ? ` · ${feedbackCount} feedback` : ""}
                     </span>
                   </span>
@@ -165,30 +165,36 @@ function MenteeWorkbench({
 /** Which step is open, by id, so the workbench always reads the latest server data after a refresh. */
 type OpenStep = { assignmentId: string; stepId: string; stagePlanId?: string };
 
+/** Everyday steps the mentee submitted for the mentor to approve (check-ins are counted in pendingMentorReviews). */
+function isWaitingOnMentor(step: PlanStep) {
+  return step.status === "submitted" && !step.isSegmentGate && step.type !== "mentor_review";
+}
+
 export function ManagerMenteesPanel({
   mentees,
   initialOpen,
+  initialStep,
 }: {
   mentees: MenteeAssignment[];
   /** A program enrollment to open in its workbench on arrival (links from Today). */
   initialOpen?: string;
+  /** Also open one step on top: this plan step (from a notification), or with "review" the first one waiting on the mentor. */
+  initialStep?: string;
 }) {
-  const [workbenchFor, setWorkbenchFor] = useState<string | null>(
-    initialOpen && mentees.some((item) => item.plan.id === initialOpen) ? initialOpen : null,
-  );
-  const [openStep, setOpenStep] = useState<OpenStep | null>(null);
+  const arriving = initialOpen ? mentees.find((item) => item.plan.id === initialOpen) : undefined;
+  const [workbenchFor, setWorkbenchFor] = useState<string | null>(arriving ? arriving.plan.id : null);
+  const [openStep, setOpenStep] = useState<OpenStep | null>(() => {
+    const steps = arriving ? byOrder(arriving.plan.steps) : [];
+    const first = initialStep === "review" ? steps.find(isWaitingOnMentor) : steps.find((step) => step.id === initialStep);
+    return arriving && first ? { assignmentId: arriving.plan.id, stepId: first.id } : null;
+  });
   const [checkinFor, setCheckinFor] = useState<string | null>(null);
   const [noteFor, setNoteFor] = useState<string | null>(null);
   const [scheduleFor, setScheduleFor] = useState<string | null>(null);
   const summaries = mentees.map((item) => summarizeEnrollment(item.plan, item.profile));
   const behind = summaries.filter((item) => item.health === "at_risk").length;
   const overdueSteps = summaries.reduce((sum, item) => sum + item.overdue, 0);
-  // Everyday steps the mentor approves (check-ins are counted in pendingMentorReviews).
-  const waitingOnReview = mentees.reduce(
-    (sum, item) =>
-      sum + item.plan.steps.filter((step) => step.status === "submitted" && !step.isSegmentGate && step.type !== "mentor_review").length,
-    0,
-  );
+  const waitingOnReview = mentees.reduce((sum, item) => sum + item.plan.steps.filter(isWaitingOnMentor).length, 0);
   const today = new Date().toISOString().slice(0, 10);
 
   const openMentee = openStep ? mentees.find((item) => item.plan.id === openStep.assignmentId) : undefined;

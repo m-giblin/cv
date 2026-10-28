@@ -158,6 +158,7 @@ export async function submitAssignmentStep(
     await notifyMentorOfSubmission(supabase, {
       mentorId: assignment.mentor_id,
       menteeId: params.userId,
+      assignmentId: step.assignment_id,
       planStepId: step.plan_step_id,
     });
   }
@@ -167,7 +168,7 @@ export async function submitAssignmentStep(
 
 async function notifyMentorOfSubmission(
   supabase: SupabaseClient<Database>,
-  params: { mentorId: string; menteeId: string; planStepId: string },
+  params: { mentorId: string; menteeId: string; assignmentId: string; planStepId: string },
 ) {
   const [{ data: planStep }, { data: mentee }, { isSegmentGate }] = await Promise.all([
     supabase.from("plan_steps").select("title").eq("id", params.planStepId).maybeSingle(),
@@ -184,7 +185,7 @@ async function notifyMentorOfSubmission(
     body: isSegmentGate
       ? `${title} is ready for manager sign-off. Add your recommendation so the manager has your view.`
       : `${title} is waiting on review. Open it to see what they did.`,
-    actionUrl: "/mentoring",
+    actionUrl: `/mentoring?open=${params.assignmentId}&step=${params.planStepId}`,
   });
 }
 
