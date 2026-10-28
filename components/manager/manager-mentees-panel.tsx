@@ -193,7 +193,11 @@ export function ManagerMenteesPanel({
   const [workbenchFor, setWorkbenchFor] = useState<string | null>(arriving ? arriving.plan.id : null);
   const [openStep, setOpenStep] = useState<OpenStep | null>(() => {
     const steps = arriving ? byOrder(arriving.plan.steps) : [];
-    const first = initialStep === "review" ? steps.find(isWaitingOnMentor) : steps.find((step) => step.id === initialStep);
+    // "review" opens the first everyday step to approve, else the first gate or check-in waiting on a recommendation.
+    const first =
+      initialStep === "review"
+        ? (steps.find(isWaitingOnMentor) ?? steps.find((step) => step.status === "submitted"))
+        : steps.find((step) => step.id === initialStep);
     return arriving && first ? { assignmentId: arriving.plan.id, stepId: first.id } : null;
   });
   const [checkinFor, setCheckinFor] = useState<string | null>(null);
