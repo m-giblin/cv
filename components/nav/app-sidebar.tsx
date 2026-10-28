@@ -56,6 +56,9 @@ export function SidebarContent({
   const params = useSearchParams();
   const { itemId, childId } = resolveActive(workspace, pathname, params);
   const hasMentees = Boolean(counts?.mentoring);
+  // In the Platform Console, Mentoring first opens the mentees' tenant (it sets cookies, so no prefetch).
+  const hrefFor = (item: { id: string; href: string }) =>
+    item.id === "mentoring" && workspace === "platform" ? "/api/platform/mentoring" : item.href;
   // Mentoring only shows for people chosen as someone's mentor, in whichever workspace they're in.
   const items = visibleNav(workspace, flags).filter((item) => item.id !== "mentoring" || hasMentees);
   const mentoring = NAV.se.find((item) => item.id === "mentoring");
@@ -83,8 +86,9 @@ export function SidebarContent({
                     ? "bg-blue-soft font-bold text-blue shadow-[inset_3px_0_0_var(--color-blue)]"
                     : "font-medium text-ink hover:bg-bg",
                 )}
-                href={item.href}
+                href={hrefFor(item)}
                 onClick={onNavigate}
+                prefetch={hrefFor(item).startsWith("/api/") ? false : undefined}
               >
                 <span className="flex min-w-0 items-center gap-2">
                   <span className="truncate">{item.label}</span>

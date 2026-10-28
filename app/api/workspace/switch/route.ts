@@ -19,6 +19,7 @@ import {
   isWorkspaceHat,
   resolveSessionWorkspaceHats,
 } from "@/lib/auth/workspace";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { ProfileRole } from "@/lib/types";
 
@@ -64,6 +65,11 @@ export async function POST(request: Request) {
   });
 
   if (!hats.includes(parsed.data.hat)) {
+    // A platform operator who mentors gets the user workspace inside the mentees' tenant; the
+    // shell offers it, so send them through the route that enters that tenant.
+    if (parsed.data.hat === "se" && !enteredTenant && role === "super_admin" && (await hasMentees(user.id))) {
+      return NextResponse.json({ error: "Opening your mentees' workspace.", enter: "/api/platform/mentoring" }, { status: 409 });
+    }
     return NextResponse.json({ error: "You do not have that workspace." }, { status: 403 });
   }
 
@@ -112,4 +118,15 @@ export async function POST(request: Request) {
   }
 
   return response;
+}
+
+async function hasMentees(userId: string) {
+  const admin = createAdminClient();
+  if (!admin) return false;
+  const { count } = await admin
+    .from("plan_assignments")
+    .select("id", { count: "exact", head: true })
+    .eq("mentor_id", userId)
+    .neq("status", "completed");
+  return (count ?? 0) > 0;
 }

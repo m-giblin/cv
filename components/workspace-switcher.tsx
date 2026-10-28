@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { useEffect, useRef, useState } from "react";
 import {
   WORKSPACE_HAT_DESCRIPTIONS,
@@ -50,7 +51,16 @@ export function WorkspaceSwitcher({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ hat }),
       });
-      if (!response.ok) return;
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { error?: string; enter?: string } | null;
+        // Entering another tenant sets cookies on a redirect, so it's a full navigation.
+        if (body?.enter) {
+          window.location.assign(body.enter);
+          return;
+        }
+        toast.error(body?.error ?? "Couldn't switch workspace. Try again.");
+        return;
+      }
       setOpen(false);
       router.push(getWorkspaceHome(hat));
       router.refresh();
