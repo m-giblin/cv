@@ -311,7 +311,8 @@ export const DEFAULT_SESSION_IDLE_MINUTES = 15;
 export const MIN_SESSION_IDLE_MINUTES = 5;
 export const MAX_SESSION_IDLE_MINUTES = 1440;
 export const DEFAULT_AUDIT_LOG_RETENTION_DAYS = 365;
-export const DEFAULT_ACTIVITY_LOG_RETENTION_DAYS = 180;
+/** Two years, so a manager can look back over a full year of someone's Record and the one before it. */
+export const DEFAULT_ACTIVITY_LOG_RETENTION_DAYS = 730;
 export const DEFAULT_AI_USAGE_RETENTION_DAYS = 90;
 export const MIN_RETENTION_DAYS = 7;
 export const MAX_RETENTION_DAYS = 3650;

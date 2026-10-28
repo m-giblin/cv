@@ -720,7 +720,7 @@ export const ADMIN_ARTICLES: HelpArticle[] = [
     category: "Settings",
     keywords: ["retention", "purge", "delete logs", "audit log retention", "data", "privacy"],
     overview: [
-      "Defaults are 365 days for audit logs, 180 days for the activity feed and 90 days for AI usage logs. Each value must be between 7 and 3650 days. Purge jobs use these values.",
+      "Defaults are 365 days for audit logs, 730 days for the activity feed and 90 days for AI usage logs. Each value must be between 7 and 3650 days. Purge jobs use these values.",
     ],
     steps: [
       {

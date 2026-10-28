@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { MentorFeedbackForStep } from "@/components/my-plan/mentor-feedback-for-step";
+import { MyRecordButton } from "@/components/record/my-record-button";
 import { RampStepWorkbench } from "@/components/my-plan/ramp-step-workbench";
 import { PlanStepActions } from "@/components/plans/plan-step-actions";
 import { Note } from "@/components/ui/editorial";
@@ -58,25 +59,33 @@ export function RampHeader({
   model,
   view,
   calendarEnabled,
+  me,
 }: {
   plan: UserPlan | undefined;
   model?: RampModel | null;
   view: "list" | "calendar";
   calendarEnabled: boolean;
+  /** Shows "My record" for the signed-in person. */
+  me?: { id: string; name: string };
 }) {
   return (
     <PageHeader
       accent={rampAccent(model ?? null)}
       actions={
-        plan && calendarEnabled ? (
-          <SegmentedToggle
-            label="Ramp view"
-            options={[
-              { id: "list", label: "List", href: "/my-plan" },
-              { id: "calendar", label: "Calendar", href: "/my-plan?view=calendar" },
-            ]}
-            value={view}
-          />
+        (plan && calendarEnabled) || me ? (
+          <div className="flex flex-wrap items-center gap-3">
+            {me ? <MyRecordButton name={me.name} userId={me.id} /> : null}
+            {plan && calendarEnabled ? (
+              <SegmentedToggle
+                label="Ramp view"
+                options={[
+                  { id: "list", label: "List", href: "/my-plan" },
+                  { id: "calendar", label: "Calendar", href: "/my-plan?view=calendar" },
+                ]}
+                value={view}
+              />
+            ) : null}
+          </div>
         ) : undefined
       }
       eyebrow={model ? `${plan?.name ? `${plan.name} / ` : ""}Week ${model.currentWeek} of ${model.totalWeeks}` : plan?.name}

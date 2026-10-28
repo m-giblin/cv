@@ -30,7 +30,7 @@ type Filter = "open" | "done" | "all";
 type Sitting = { at: string; score: number; passed: boolean; answers: { stem: string; chosen: string; correctAnswer: string; correct: boolean; explanation: string }[] };
 
 /** A knowledge check's sittings since it was assigned: score, then each question with the answer picked. */
-function QuizAnswers({ id, chapter }: { id: string; chapter?: boolean }) {
+export function QuizAnswers({ id, chapter }: { id: string; chapter?: boolean }) {
   const [sittings, setSittings] = useState<Sitting[] | null>(null);
   const [error, setError] = useState("");
   useEffect(() => {
@@ -78,7 +78,7 @@ function QuizAnswers({ id, chapter }: { id: string; chapter?: boolean }) {
 const shortDate = (at: string) => new Date(at).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
 /** A chapter assignment's pitch and objection drills: scores, what was said, and the coach's notes. */
-function DrillEvidence({ id }: { id: string }) {
+export function DrillEvidence({ id }: { id: string }) {
   const [evidence, setEvidence] = useState<{ pitches: PitchEvidence[]; objections: ObjectionEvidence[] } | null>(null);
   const [error, setError] = useState("");
   useEffect(() => {

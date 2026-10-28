@@ -58,7 +58,13 @@ export default async function MyPlanPage({ searchParams }: MyPlanPageProps) {
   return (
     <>
       <DataSourceBanner source={source} />
-      <RampHeader calendarEnabled={calendarEnabled} model={model} plan={plan} view={view} />
+      <RampHeader
+        calendarEnabled={calendarEnabled}
+        me={{ id: data.currentUser.id, name: data.currentUser.fullName }}
+        model={model}
+        plan={plan}
+        view={view}
+      />
       {model ? (
         <PageBody className="pb-[22px]">
           <RampRunwayRow model={model} />

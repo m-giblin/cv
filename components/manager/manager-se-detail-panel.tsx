@@ -14,6 +14,7 @@ import { ManagerReassignMentor } from "@/components/manager/manager-reassign-men
 import { ScheduleOneOnOne } from "@/components/manager/schedule-one-on-one";
 import type { UpcomingOneOnOne } from "@/lib/manager/one-on-ones";
 import { MentorNotesForManager } from "@/components/manager/mentor-notes-for-manager";
+import { PersonRecordWorkbench } from "@/components/record/person-record-workbench";
 import { SimTrendChart } from "@/components/manager/sim-trend-chart";
 import { Drawer } from "@/components/ui/drawer";
 import { ScoreBar } from "@/components/ui/bars";
@@ -253,6 +254,8 @@ export function ManagerSeDetailPanel({
   const [schedulingOneOnOne, setSchedulingOneOnOne] = useState(focus === "one_on_one");
   // "Assign a plan" opens the plan form in its own workbench, so nothing has to be scrolled to.
   const [assigningPlan, setAssigningPlan] = useState(focus === "plan");
+  const [viewingRecord, setViewingRecord] = useState(false);
+  const closeRecord = useCallback(() => setViewingRecord(false), []);
   const steps = [...(plan?.steps ?? [])].sort((a, b) => a.order - b.order);
   const gates = buildGates(certSummary);
   const isOverdue = (step: PlanStep) =>
@@ -586,6 +589,9 @@ export function ManagerSeDetailPanel({
             <span className="text-[28px] leading-[1.1] font-extrabold tracking-[-0.02em] text-ink">{profile.fullName}</span>
             <span className="text-sm font-normal tracking-normal text-muted">{subline}</span>
           </span>
+          <button className="btn-secondary shrink-0 self-center" onClick={() => setViewingRecord(true)} type="button">
+            Record
+          </button>
         </span>
       }
     >
@@ -676,6 +682,10 @@ export function ManagerSeDetailPanel({
             profile={profile}
             talkingPoints={coaching.talkingPoints}
           />
+        ) : null}
+
+        {viewingRecord ? (
+          <PersonRecordWorkbench onClose={closeRecord} personName={profile.fullName} userId={profile.id} />
         ) : null}
 
         {assigning ? (
