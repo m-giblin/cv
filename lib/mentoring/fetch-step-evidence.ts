@@ -18,8 +18,12 @@ function record(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 }
 
+/**
+ * Keep the full timestamp: the reader's browser turns it into their own calendar day. Cutting it to
+ * a date here gave the UTC day, so evening work showed as tomorrow. Date-only values pass through.
+ */
 function short(iso: string | null | undefined) {
-  return iso ? iso.slice(0, 10) : undefined;
+  return iso ?? undefined;
 }
 
 function transcriptLines(value: unknown): { speaker: string; message: string }[] {
@@ -212,7 +216,7 @@ export async function fetchStepEvidence(admin: Db, userId: string, steps: PlanSt
 
     if (step.playbookId) {
       const read = ((readRows.data ?? []) as { playbook_id: string; read_at: string }[]).find((row) => row.playbook_id === step.playbookId);
-      if (read) add(step.id, { label: "Playbook read", at: short(read.read_at), facts: [{ label: "Finished reading", value: short(read.read_at) ?? "" }], lists: [], texts: [] });
+      if (read) add(step.id, { label: "Playbook read", at: short(read.read_at), facts: [{ label: "Finished reading", value: "Yes, marked read" }], lists: [], texts: [] });
     }
 
     if (step.type === "knowledge_check" && step.questionSource) {
@@ -226,7 +230,7 @@ export async function fetchStepEvidence(admin: Db, userId: string, steps: PlanSt
             { label: "Best score", value: `${best}%${step.passScore ? ` (pass ${step.passScore}%)` : ""}` },
             { label: "Attempts", value: String(sittings.length) },
           ],
-          lists: [{ label: "Each attempt", items: sittings.map((item) => `${short(item.at)}: ${item.score}%`) }],
+          lists: [{ label: "Each attempt", items: sittings.map((item, index) => `Attempt ${index + 1}: ${item.score}%`) }],
           texts: [],
         });
       }

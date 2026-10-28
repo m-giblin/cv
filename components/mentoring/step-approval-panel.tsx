@@ -83,7 +83,6 @@ export function StepApprovalPanel({ step, firstName }: { step: PlanStep; firstNa
           className="btn-secondary inline-flex items-center gap-2"
           disabled={busy !== null || !canSendBack}
           onClick={() => void decide("reject")}
-          title={canSendBack ? undefined : `Add a note so ${firstName} knows what to change`}
           type="button"
         >
           {busy === "reject" ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}

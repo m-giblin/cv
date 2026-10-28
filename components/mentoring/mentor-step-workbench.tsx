@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { GateRecommendationPanel, MentorDueDatePanel, StepFeedbackPanel } from "@/components/mentoring/mentor-step-actions";
+import { parseDateOnly } from "@/lib/utils/date-only";
 import { StepEvidenceView } from "@/components/mentoring/step-evidence-view";
 import { Drawer } from "@/components/ui/drawer";
 import { StepApprovalPanel } from "@/components/mentoring/step-approval-panel";
@@ -34,7 +35,7 @@ const STATUS_PILL: Record<AssignmentStatus, { tone: "success" | "danger" | "neut
 
 function longDate(iso: string | undefined) {
   if (!iso) return null;
-  return new Date(`${iso.slice(0, 10)}T12:00:00`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  return parseDateOnly(iso).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 }
 
 function BulletList({ items }: { items: string[] }) {
