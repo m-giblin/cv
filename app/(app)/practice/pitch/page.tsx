@@ -4,6 +4,7 @@ import { PitchStudioShell } from "@/components/pitch/pitch-studio-shell";
 import { PageBody, PageHeader } from "@/components/ui/page-header";
 import { requirePitchPageAccess } from "@/lib/auth/require-access";
 import { loadPitchStudioContext } from "@/lib/pitch/pitch-step-context";
+import { loadAssignedChapter, playbookForPitchScenario } from "@/lib/playbooks/assignment-context";
 import { createClient } from "@/lib/supabase/server";
 
 const loadingBlock = () => (
@@ -34,6 +35,11 @@ export default async function PitchPage({ searchParams }: PitchPageProps) {
   const studio = params.review
     ? { step: null, mentorName: null }
     : await loadPitchStudioContext(await createClient(), data.currentUser.id, params.step);
+  // A drill opened from a chapter someone assigned counts toward that assignment.
+  const assignedChapter =
+    params.review || studio.step || !params.scenario
+      ? null
+      : await loadAssignedChapter(data.currentUser.id, await playbookForPitchScenario(params.scenario));
 
   return (
     <>
@@ -60,6 +66,7 @@ export default async function PitchPage({ searchParams }: PitchPageProps) {
         </div>
       ) : (
         <PitchStudioShell
+          assignedChapter={assignedChapter}
           initialScenarioId={params.scenario}
           mentorName={studio.mentorName}
           peerPitches={data.peerPitches}

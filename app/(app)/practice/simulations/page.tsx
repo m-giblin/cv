@@ -15,6 +15,7 @@ import {
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { profileLevelLabel } from "@/lib/utils/level-label";
+import { loadAssignedChapter } from "@/lib/playbooks/assignment-context";
 
 type SimulationsPageProps = {
   searchParams: Promise<{
@@ -134,14 +135,20 @@ export default async function SimulationsPage({ searchParams }: SimulationsPageP
   // The transcript is read here so the first persona message can lose its printed card before it renders.
   const supabase = await createClient();
   const { data: stored } = supabase
-    ? await supabase.from("simulation_assignments").select("transcript").eq("id", resolved.assignment.id).maybeSingle()
+    ? await supabase.from("simulation_assignments").select("transcript, session_data").eq("id", resolved.assignment.id).maybeSingle()
     : { data: null };
   const assignment = assignmentForSession(
     resolved.assignment,
     Array.isArray(stored?.transcript) ? (stored.transcript as unknown as typeof resolved.assignment.transcript) : null,
   );
+  // An objection drill from a chapter someone assigned already counts toward it; it isn't the mentor's.
+  const sourcePlaybookId = (stored?.session_data as { sourcePlaybookId?: unknown } | null)?.sourcePlaybookId;
+  const assignedChapter =
+    assignment.assignedTo === data.currentUser.id && typeof sourcePlaybookId === "string"
+      ? await loadAssignedChapter(data.currentUser.id, sourcePlaybookId)
+      : null;
   const mentorName =
-    supabase && assignment.assignedTo === data.currentUser.id
+    supabase && !assignedChapter && assignment.assignedTo === data.currentUser.id
       ? await mentorForFreePractice(supabase, data.currentUser.id, assignment.templateId)
       : null;
 
@@ -151,6 +158,7 @@ export default async function SimulationsPage({ searchParams }: SimulationsPageP
       <SimulationsShell
         assignment={assignment}
         key={assignment.id}
+        assignedChapter={assignedChapter}
         mentorName={mentorName}
         testMode={testMode}
         tier={tier}

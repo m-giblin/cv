@@ -8,6 +8,7 @@ import { SimulationStepStrip } from "@/components/simulation/simulation-step-str
 import { SimulationWorkspace } from "@/components/simulation-workspace";
 import type { AccessTier } from "@/lib/auth/rbac";
 import type { SimulationAssignment } from "@/lib/types";
+import type { AssignedChapter } from "@/lib/playbooks/assignment-context";
 
 function scenarioLabel(assignment: SimulationAssignment) {
   const persona = assignment.persona.replace(/\s*\(.*\)\s*$/, "").trim();
@@ -17,12 +18,14 @@ function scenarioLabel(assignment: SimulationAssignment) {
 export function SimulationsShell({
   assignment,
   mentorName,
+  assignedChapter = null,
   testMode,
   userLevel,
 }: {
   assignment: SimulationAssignment;
   /** Set for free practice by an SE with a mentor: the card is shared with them instead of the manager. */
   mentorName?: string | null;
+  assignedChapter?: AssignedChapter | null;
   tier: AccessTier;
   testMode: boolean;
   userLevel: "Basic" | "Senior" | "Advisory";
@@ -43,7 +46,7 @@ export function SimulationsShell({
       testMode={testMode}
       title="Simulations"
     >
-      <SimulationWorkspace assignment={assignment} mentorName={mentorName} onStepChange={setStep} userLevel={userLevel} />
+      <SimulationWorkspace assignedChapter={assignedChapter} assignment={assignment} mentorName={mentorName} onStepChange={setStep} userLevel={userLevel} />
     </PracticeToolPage>
   );
 }

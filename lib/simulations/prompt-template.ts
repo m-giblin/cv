@@ -191,9 +191,12 @@ export function isElevatorPitchTemplate(promptBody: string): boolean {
   return promptBody.includes("PART 1 — IN CHARACTER");
 }
 
+/** The model doesn't always copy the marker exactly ("ROLEPLAY ENDS ---", "--- Roleplay ends"). */
+export const ROLEPLAY_END_MARKER = /-*\s*ROLEPLAY\s+ENDS\b\s*-*/i;
+
 export function roleplayEnded(text: string): boolean {
   return (
-    text.includes("--- ROLEPLAY ENDS ---") ||
+    ROLEPLAY_END_MARKER.test(text) ||
     text.includes("OUTCOME: WIN") ||
     text.includes("OUTCOME: DRAW") ||
     text.includes("OUTCOME: LOST") ||

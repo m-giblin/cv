@@ -263,7 +263,7 @@ export function SeToday({
 
           <aside aria-label="Ramp and gates" className="flex min-w-0 flex-col gap-6">
             {oneOnOnes.length ? <UpcomingOneOnOnesCard meetings={oneOnOnes} /> : null}
-            <MyTrainingCard forManager={false} />
+            <MyTrainingCard forManager={false} skipKinds={["playbook"]} />
             {myMentor ? (
               <MyMentorCard firstMeeting={oneOnOnes.find((meeting) => meeting.mentorInvited)?.label ?? null} mentor={myMentor} />
             ) : null}

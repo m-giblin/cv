@@ -23,6 +23,27 @@ describe("splitCoachMessage", () => {
   });
 
   it("leaves ordinary buyer messages alone", () => {
-    expect(splitCoachMessage("Hi, I'm Maria Lopez, CISO.")).toEqual({ reply: "Hi, I'm Maria Lopez, CISO.", note: null, score: null, nextObjection: null });
+    expect(splitCoachMessage("Hi, I'm Maria Lopez, CISO.")).toEqual({ reply: "Hi, I'm Maria Lopez, CISO.", note: null, score: null, nextObjection: null, debrief: null });
+  });
+});
+
+describe("splitCoachMessage, end of drill", () => {
+  it("reads a 'Score: 8/10' note and puts the debrief in its own slot", () => {
+    const parts = splitCoachMessage(
+      "Appreciate the direct answer.\n\nPART 2 — COACHING NOTE: Score: 3/10. Missed the Outpost.\n\nROLEPLAY ENDS ---\n\nDebrief:\n1. Objection 1 score: 8\nTOTAL: 24 / 40",
+    );
+    expect(parts.score).toEqual({ value: 3, outOf: 10 });
+    expect(parts.note).toBe("Missed the Outpost.");
+    expect(parts.nextObjection).toBeNull();
+    expect(parts.debrief).toContain("TOTAL: 24 / 40");
+  });
+});
+
+describe("roleplayEnded", () => {
+  it("accepts the marker without its leading dashes", async () => {
+    const { roleplayEnded } = await import("@/lib/simulations/prompt-template");
+    expect(roleplayEnded("ROLEPLAY ENDS ---\nDebrief")).toBe(true);
+    expect(roleplayEnded("--- ROLEPLAY ENDS ---")).toBe(true);
+    expect(roleplayEnded("The roleplay continues.")).toBe(false);
   });
 });

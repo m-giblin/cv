@@ -21,7 +21,14 @@ const OPEN_HREF: Record<AssignedWorkKind, string> = {
  * "Your training": what the signed-in person's manager assigned them, on Today for SEs and managers.
  * Library items are marked done here; everything else completes where it's done. Hidden when empty.
  */
-export function MyTrainingCard({ forManager = true }: { forManager?: boolean }) {
+export function MyTrainingCard({
+  forManager = true,
+  skipKinds = [],
+}: {
+  forManager?: boolean;
+  /** Kinds another card on the page already lists (SE Today shows chapters under "Playbooks due"). */
+  skipKinds?: AssignedWorkItem["kind"][];
+}) {
   const [items, setItems] = useState<AssignedWorkItem[] | null>(null);
   const [marking, setMarking] = useState<string | null>(null);
   const load = useCallback(() => {
@@ -50,7 +57,7 @@ export function MyTrainingCard({ forManager = true }: { forManager?: boolean }) 
     void load();
   }
 
-  const open = (items ?? []).filter((item) => item.state !== "done");
+  const open = (items ?? []).filter((item) => item.state !== "done" && !skipKinds.includes(item.kind));
   if (!open.length) return null;
   const overdue = open.filter((item) => item.state === "overdue").length;
 
@@ -100,7 +107,7 @@ export function MyTrainingCard({ forManager = true }: { forManager?: boolean }) 
       <p className="text-[13px] text-muted">
         {forManager
           ? "Assigned to you by your manager. It counts the same way it does for your SEs."
-          : "Assigned to you by your manager, on top of your ramp. Library items: open them, then mark them done here."}
+          : `Assigned to you by your manager, on top of your ramp.${open.some((item) => item.kind === "content") ? " Library items: open them, then mark them done here." : ""}`}
       </p>
     </section>
   );

@@ -13,6 +13,7 @@ import type { AssignablePerson } from "@/lib/playbooks/assignment-access";
 import { dueLabel, type PlaybookAssignment } from "@/lib/playbooks/assignment-model";
 import { Drawer } from "@/components/ui/drawer";
 import type { CapabilityPlaybook, PlaybookGuide } from "@/lib/playbooks/types";
+import { QUIZ_LENGTH } from "@/lib/question-bank/model";
 
 function matches(playbook: CapabilityPlaybook, query: string, leadWhen = "") {
   const words = query.toLowerCase().split(/\s+/).filter(Boolean);
@@ -271,7 +272,7 @@ export function PlaybookLibrary({
           title={open.title}
         >
           <div className="flex flex-col gap-8">
-            <PracticeStrip pitchDrills={pitchDrills[open.id] ?? []} playbook={open} />
+            <PracticeStrip assignment={openAssignment} pitchDrills={pitchDrills[open.id] ?? []} playbook={open} />
             <PlaybookView body={open.body} />
             <div aria-hidden ref={endRef} />
           </div>
@@ -285,13 +286,24 @@ export function PlaybookLibrary({
   );
 }
 
+/** "Pitch 1: The Exposed Secret…", matching the chapter's "Test yourself"; the cold open keeps its own name. */
+function pitchDrillButtonLabel(label: string, index: number, count: number) {
+  const name = label.split(": ").pop() || "";
+  if (count === 1) return "Practise the pitch";
+  if (/cold open/i.test(name)) return name;
+  return name ? `Pitch ${index + 1}: ${name}` : `Pitch ${index + 1}`;
+}
+
 /** Start practising straight from the playbook: pitch drills in Pitch Studio, objections as a simulation. */
 function PracticeStrip({
   playbook,
   pitchDrills,
+  assignment,
 }: {
   playbook: CapabilityPlaybook;
   pitchDrills: { id: string; label: string }[];
+  /** The reader's open assignment for this chapter: then the drills and check count toward it. */
+  assignment: PlaybookAssignment | null;
 }) {
   const router = useRouter();
   const [starting, setStarting] = useState(false);
@@ -333,10 +345,26 @@ function PracticeStrip({
     <section className="flex flex-col gap-3 rounded-[14px] border border-line-strong bg-white p-4 sm:p-5">
       <div className="flex flex-col gap-0.5">
         <h3 className="m-0 text-[16px] font-extrabold text-ink">Practise this</h3>
-        <p className="m-0 text-[13px] text-muted">
-          Private practice: say it on video, by voice or typed, and the AI scores it against this playbook. Check what stuck with a quick
-          five-question quiz. Your manager isn&apos;t notified.
-        </p>
+        {assignment ? (
+          <p className="m-0 text-[13px] text-ink-2">
+            {assignment.assignedByName ?? "Your manager"} assigned this chapter, so every scored attempt here counts toward it and{" "}
+            {assignment.assignedByName?.split(" ")[0] ?? "they"} sees your progress. To finish:{" "}
+            {[
+              "read to the end and mark it read",
+              assignment.requirePitch ? `score ${assignment.pitchPassScore}+ on any of the pitches` : null,
+              assignment.requireObjections ? "finish the objection drill" : null,
+              assignment.requireQuiz ? `get ${assignment.quizPassScore}% or more on the knowledge check` : null,
+            ]
+              .filter(Boolean)
+              .join(", ")}
+            .
+          </p>
+        ) : (
+          <p className="m-0 text-[13px] text-muted">
+            Private practice: say it on video, by voice or typed, and the AI scores it against this playbook. Check what stuck with a quick{" "}
+            {QUIZ_LENGTH}-question quiz. Your manager isn&apos;t notified.
+          </p>
+        )}
       </div>
       <div className="flex flex-wrap gap-2">
         {pitchDrills.map((drill, index) => (
@@ -346,14 +374,14 @@ function PracticeStrip({
             key={drill.id}
           >
             <Mic aria-hidden className="h-4 w-4" />
-            {pitchDrills.length === 1 ? "Practise the pitch" : drill.label.split(": ").pop() || `Pitch ${index + 1}`}
+            {pitchDrillButtonLabel(drill.label, index, pitchDrills.length)}
           </Link>
         ))}
         {check ? (
           <button aria-haspopup="dialog" className="btn-secondary" onClick={() => setQuizOpen(true)} type="button">
             <ListChecks aria-hidden className="h-4 w-4" />
             {check.lastScore === null
-              ? `Take the knowledge check (${check.questions} questions)`
+              ? `Take the knowledge check (${Math.min(QUIZ_LENGTH, check.questions)} questions)`
               : `Retake the knowledge check (last ${check.lastScore}%)`}
           </button>
         ) : null}
@@ -370,7 +398,11 @@ function PracticeStrip({
           onClose={() => setQuizOpen(false)}
           open={quizOpen}
           size="form"
-          subtitle={`${check.questions} questions. Private: your manager isn't notified.`}
+          subtitle={`${Math.min(QUIZ_LENGTH, check.questions)} questions, drawn from ${check.questions}. ${
+            assignment
+              ? `Counts toward ${assignment.assignedByName ?? "your manager"}'s assignment: ${assignment.quizPassScore}% to pass.`
+              : "Private: your manager isn't notified."
+          }`}
           title={playbook.title}
         >
           <QuizPlayer check={check} onDone={() => undefined} />

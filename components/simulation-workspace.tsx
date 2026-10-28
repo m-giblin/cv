@@ -18,6 +18,7 @@ import { SimulationAssignment } from "@/lib/types";
 import { splitCoachMessage } from "@/lib/simulations/coach-message";
 import { cn } from "@/lib/utils";
 import { stripPersonaCard } from "@/lib/simulations/persona-card";
+import type { AssignedChapter } from "@/lib/playbooks/assignment-context";
 
 const formSchema = z.object({
   message: z.string().min(1, "Add a response for the persona."),
@@ -49,6 +50,7 @@ export function SimulationWorkspace({
   userLevel = "Basic",
   variant = "full",
   mentorName = null,
+  assignedChapter = null,
   onClose,
   onStepChange,
 }: {
@@ -56,6 +58,8 @@ export function SimulationWorkspace({
   userLevel?: "Basic" | "Senior" | "Advisory";
   /** Free practice by an SE with a mentor: "Share with my mentor" replaces "Submit to manager". */
   mentorName?: string | null;
+  /** Set for an objection drill from a chapter someone assigned: the result already counts toward it. */
+  assignedChapter?: AssignedChapter | null;
   variant?: "full" | "embedded";
   onClose?: () => void;
   onStepChange?: (step: 1 | 2 | 3) => void;
@@ -404,12 +408,18 @@ export function SimulationWorkspace({
               ) : null}
               <span className="flex items-center gap-1.5 pl-1 text-[12px] text-muted">
                 <MessageSquareText aria-hidden className="h-3.5 w-3.5" />
-                Coach scored your reply {parts.score ? `${parts.score.value}/${parts.score.outOf}` : ""}. The note is in Live coaching.
+                {parts.score ? `Coach scored your reply ${parts.score.value}/${parts.score.outOf}.` : "Coach scored your reply."} The note is in Live coaching.
               </span>
               {parts.nextObjection ? (
                 <div className="mt-1 max-w-[85%] rounded-[14px] border border-line bg-white px-3.5 py-2.5 sm:max-w-[78%]">
                   <p className="label-caps mb-1">Next objection</p>
                   <p className="whitespace-pre-wrap text-[15px] leading-[1.5] text-ink">{parts.nextObjection}</p>
+                </div>
+              ) : null}
+              {parts.debrief ? (
+                <div className="mt-1 max-w-[85%] rounded-[14px] border border-blue bg-blue-soft px-3.5 py-2.5 sm:max-w-[78%]">
+                  <p className="label-caps mb-1">Drill over: your scores</p>
+                  <p className="whitespace-pre-wrap text-[15px] leading-[1.5] text-ink">{parts.debrief}</p>
                 </div>
               ) : null}
             </div>
@@ -597,6 +607,7 @@ export function SimulationWorkspace({
           coachingCard={coachingCard}
           criteria={rubricCriteria}
           isGenerating={isGenerating}
+          assignedChapter={assignedChapter}
           mentorName={mentorName}
           messages={messages}
           onPracticeAgain={() => void saveCoachingCard("practice")}

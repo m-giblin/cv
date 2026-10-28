@@ -9,7 +9,14 @@ import type { AssignedWorkKind } from "@/lib/manager/assigned-work";
 import { roleLabel } from "@/lib/auth/role-label";
 import { normalizeSearchText, searchTokens } from "@/lib/search/match";
 
-type Person = { id: string; name: string; role: string; hasRampPlan: boolean };
+type Person = { id: string; name: string; role: string; hasRampPlan: boolean; rampDue?: string[] };
+
+/** Monday of the week a calendar day falls in, as "YYYY-MM-DD". */
+function weekOf(iso: string) {
+  const date = new Date(`${iso.slice(0, 10)}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() - ((date.getUTCDay() + 6) % 7));
+  return date.toISOString().slice(0, 10);
+}
 type Options = {
   people: Person[];
   playbooks: { id: string; title: string; chapter: number; slug: string; subtitle?: string | null }[];
@@ -154,6 +161,14 @@ export function AssignWorkWizard({
     : allChoices;
 
   const nameOf = (id: string) => options?.people.find((person) => person.id === id)?.name ?? "this person";
+  // Ramp work already due the week this would be due, so the manager sees the doubled load.
+  const busyThatWeek = dueDate
+    ? people.flatMap((id) => {
+        const person = options?.people.find((item) => item.id === id);
+        const count = (person?.rampDue ?? []).filter((day) => weekOf(day) === weekOf(dueDate)).length;
+        return person && count ? [{ name: person.name, count }] : [];
+      })
+    : [];
   const pickedTitles =
     kind === "ramp_task"
       ? [taskTitle.trim()]
@@ -411,6 +426,13 @@ export function AssignWorkWizard({
             <br />
             <span className="font-bold">Due:</span>{" "}
             {dueDate ? new Date(`${dueDate}T12:00:00`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) : "Not set"}
+            {busyThatWeek.length ? (
+              <span className="mt-2 block text-[13px] text-warning">
+                Same week:{" "}
+                {busyThatWeek.map(({ name, count }) => `${name.split(" ")[0]} has ${count} ramp step${count === 1 ? "" : "s"} due`).join(", ")}. Consider a
+                later date.
+              </span>
+            ) : null}
           </div>
         </div>
       )}

@@ -40,7 +40,7 @@ export async function GET() {
       .eq("tenant_id", session.tenantId)
       .eq("active", true)
       .order("sort_order"),
-    admin.from("plan_assignments").select("user_id").eq("tenant_id", session.tenantId),
+    admin.from("plan_assignments").select("id, user_id, status").eq("tenant_id", session.tenantId),
     // Learn library: what the manager sees in Learn (tenant-scoped by RLS), current versions only.
     session.supabase.from("content_assets").select("id, title, description").is("superseded_by", null).order("title"),
   ]);
@@ -51,9 +51,26 @@ export async function GET() {
     .filter((source) => source.active >= 3)
     .map((source) => ({ key: source.key, title: source.title, solution: source.solution, questions: source.active, kind: source.kind }));
 
-  const withPlan = new Set(((plans.data ?? []) as { user_id: string }[]).map((row) => row.user_id));
+  const planRows = (plans.data ?? []) as { id: string; user_id: string; status: string }[];
+  const withPlan = new Set(planRows.map((row) => row.user_id));
+  // Open ramp steps still to come, so the wizard can say what else is due the week it picks.
+  const activePlans = planRows.filter((row) => row.status !== "completed" && people.some((person) => person.id === row.user_id));
+  const { data: dueRows } = activePlans.length
+    ? await admin
+        .from("plan_assignment_steps")
+        .select("assignment_id, due_date, status")
+        .in("assignment_id", activePlans.map((row) => row.id))
+        .gte("due_date", todayIso())
+        .not("status", "in", "(completed,reviewed)")
+    : { data: [] };
+  const ownerOf = new Map(activePlans.map((row) => [row.id, row.user_id]));
+  const rampDue = new Map<string, string[]>();
+  for (const row of (dueRows ?? []) as { assignment_id: string; due_date: string | null }[]) {
+    const owner = ownerOf.get(row.assignment_id);
+    if (owner && row.due_date) rampDue.set(owner, [...(rampDue.get(owner) ?? []), row.due_date.slice(0, 10)]);
+  }
   return NextResponse.json({
-    people: people.map((person) => ({ ...person, hasRampPlan: withPlan.has(person.id) })),
+    people: people.map((person) => ({ ...person, hasRampPlan: withPlan.has(person.id), rampDue: rampDue.get(person.id) ?? [] })),
     playbooks: playbooks.data ?? [],
     simulations: ((simulations.data ?? []) as { prompt_body?: string }[]).flatMap((row) => {
       if (isDraftSimulationPrompt(row.prompt_body ?? "")) return [];

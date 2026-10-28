@@ -6,6 +6,7 @@ import { VideoPitchCapture } from "@/components/pitch/video-pitch-capture";
 import { PracticeToolPage } from "@/components/practice/practice-tool-page";
 import type { AccessTier } from "@/lib/auth/rbac";
 import type { PeerPitch } from "@/lib/pitch/fetch-peer-pitches";
+import type { AssignedChapter } from "@/lib/playbooks/assignment-context";
 import type { PitchStepContext } from "@/lib/pitch/pitch-step";
 
 export function PitchStudioShell({
@@ -14,6 +15,7 @@ export function PitchStudioShell({
   peerPitches,
   rampStep = null,
   mentorName = null,
+  assignedChapter = null,
 }: {
   tier: AccessTier;
   testMode: boolean;
@@ -21,6 +23,7 @@ export function PitchStudioShell({
   peerPitches: PeerPitch[];
   rampStep?: PitchStepContext | null;
   mentorName?: string | null;
+  assignedChapter?: AssignedChapter | null;
 }) {
   const peerRef = useRef<HTMLDivElement>(null);
 
@@ -45,6 +48,7 @@ export function PitchStudioShell({
     >
       <VideoPitchCapture
         initialScenarioId={initialScenarioId}
+        assignedChapter={assignedChapter}
         mentorName={mentorName}
         rampStep={rampStep}
         peerLibrary={

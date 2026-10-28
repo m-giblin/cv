@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   MAX_DRILL_OBJECTIONS,
+  OBJECTION_DRILL_BUYER,
   OBJECTION_DRILL_PERSONA,
   OBJECTION_DRILL_START_MESSAGE,
   buildPitchDrillRows,
@@ -9,6 +10,8 @@ import {
   pitchTimeLimitSec,
 } from "@/lib/playbooks/drills";
 import { emptyPlaybookBody, type CapabilityPlaybook } from "@/lib/playbooks/types";
+import { UNSUPPORTED_PROOF_RULE, coachingCardPrompt } from "@/lib/ai/prompts";
+import { initials } from "@/lib/utils";
 import { pitchDrillPrompt, pitchDrillReviewSchema, pitchDrillScoreRows } from "@/lib/pitch/coach";
 import { isElevatorPitchTemplate, resolveSimulationStartMessage, roleplayEnded } from "@/lib/simulations/prompt-template";
 
@@ -53,6 +56,10 @@ describe("pitch drills", () => {
     });
     expect(rows[0]!.reference_text).toMatch(/^Auditors do not accept/);
     expect(rows[0]!.prompt).toContain("Certification Fatigue Produces Rubber-Stamping");
+    // Chapters get renumbered, so the stored text names the chapter rather than its number.
+    expect(rows[0]!.description).toBe(
+      "From the SLED Field Guide playbook: Continuous Compliance and Audit Mastery. Your answer is compared with the guide's pitch.",
+    );
   });
 
   it("names multiple pitches and adds the cold-open hook", () => {
@@ -98,6 +105,28 @@ describe("objection drill", () => {
     expect(isElevatorPitchTemplate(prompt)).toBe(false);
     expect(resolveSimulationStartMessage("Continuous Compliance: objection drill", prompt)).toBe(OBJECTION_DRILL_START_MESSAGE);
     expect(OBJECTION_DRILL_PERSONA.toLowerCase()).toContain("objection practice");
+  });
+
+  it("plays one named SLED buyer, in the persona label and the prompt", () => {
+    expect(OBJECTION_DRILL_PERSONA.startsWith(OBJECTION_DRILL_BUYER.name)).toBe(true);
+    expect(initials(OBJECTION_DRILL_PERSONA)).toBe("RC");
+    expect(prompt).toContain(`You are ${OBJECTION_DRILL_BUYER.name}, ${OBJECTION_DRILL_BUYER.title} at ${OBJECTION_DRILL_BUYER.org}`);
+    expect(prompt).toContain("never invent a different name, company or sector");
+  });
+
+  it("only credits proof points from the guide and deducts for invented ones", () => {
+    expect(prompt).toContain("Only credit proof points");
+    expect(prompt).toContain("is unsupported: name it as unsupported, deduct for it, and never praise it");
+    const withStories = objectionDrillPrompt(playbook({ stories: [{ segment: "state_local", text: "A state agency cut review time." }] }));
+    expect(withStories).toContain("CUSTOMER STORIES IN THE FIELD GUIDE");
+    expect(withStories).toContain("- A state agency cut review time.");
+  });
+
+  it("keeps invented proof out of the coaching card's strengths", () => {
+    const input = { persona: OBJECTION_DRILL_PERSONA, vertical: "SLED", solutionFocus: "Secrets", level: "Basic" as const, transcript: "transcript text" };
+    expect(UNSUPPORTED_PROOF_RULE).toContain("never list it as a strength");
+    expect(coachingCardPrompt(input)).toContain(UNSUPPORTED_PROOF_RULE);
+    expect(coachingCardPrompt({ ...input, sledDebrief: true })).toContain(UNSUPPORTED_PROOF_RULE);
   });
 });
 

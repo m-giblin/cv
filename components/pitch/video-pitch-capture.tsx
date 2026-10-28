@@ -15,6 +15,7 @@ import { overallPitchScore, type PitchStepContext } from "@/lib/pitch/pitch-step
 import type { PitchQueueSlot, PitchScenarioRow } from "@/lib/pitch/pitch-queue";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import type { AssignedChapter } from "@/lib/playbooks/assignment-context";
 
 type StudioMode = "assigned" | "practice";
 
@@ -84,6 +85,7 @@ export function VideoPitchCapture({
   peerLibrary,
   rampStep = null,
   mentorName = null,
+  assignedChapter = null,
 }: {
   initialScenarioId?: string;
   peerLibrary?: ReactNode;
@@ -91,6 +93,8 @@ export function VideoPitchCapture({
   rampStep?: PitchStepContext | null;
   /** The mentor on the SE's active plan; enables "Share with my mentor" in free practice. */
   mentorName?: string | null;
+  /** Opened from a chapter someone assigned: scored attempts at that chapter's pitch count toward it. */
+  assignedChapter?: AssignedChapter | null;
 }) {
   const reflectionId = useId();
   const typedId = useId();
@@ -121,6 +125,16 @@ export function VideoPitchCapture({
   const [overTime, setOverTime] = useState(false);
   const [showReference, setShowReference] = useState(false);
   const [coaching, setCoaching] = useState(false);
+  // Scoring can take half a minute; after a few seconds, say so rather than leave a bare spinner.
+  const [coachingSlow, setCoachingSlow] = useState(false);
+  useEffect(() => {
+    if (!coaching) {
+      setCoachingSlow(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setCoachingSlow(true), 6000);
+    return () => window.clearTimeout(timer);
+  }, [coaching]);
   const [savedPractice, setSavedPractice] = useState(false);
   const [savedSessionId, setSavedSessionId] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
@@ -651,7 +665,9 @@ export function VideoPitchCapture({
               <span className="ml-auto text-[13px] text-muted">
                 {studioMode === "assigned"
                   ? "Your manager reviews it when you submit."
-                  : mentorName
+                  : assignedChapter && selectedScenarioId === initialScenarioId
+                    ? `Counts toward ${assignedChapter.assignedByName ?? "your manager"}'s assignment, ${assignedChapter.playbookTitle}: score ${assignedChapter.pitchPassScore}+ to pass.`
+                    : mentorName
                     ? "Private unless you share it with your mentor."
                     : "Private. Your manager isn't notified."}
               </span>
@@ -888,6 +904,11 @@ export function VideoPitchCapture({
               {busy ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : null}
               {transcribing ? "Transcribing…" : isDrill ? "Score my pitch" : "Get AI coaching"}
             </button>
+            {coachingSlow ? (
+              <span className="text-[13px] text-muted" role="status">
+                Still scoring. Comparing it with the guide takes up to 30 seconds.
+              </span>
+            ) : null}
             {rampStep ? (
               stepSubmitted ? (
                 <span className="ml-auto inline-flex items-center gap-2 text-[14px] text-ink-2" role="status">

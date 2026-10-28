@@ -10,6 +10,7 @@ import { LABEL_CLS, TEXTAREA_CLS } from "@/components/se/form-classes";
 import { Drawer } from "@/components/ui/drawer";
 import { StatusPill } from "@/components/ui/status-pill";
 import type { SimulationAssignment } from "@/lib/types";
+import type { AssignedChapter } from "@/lib/playbooks/assignment-context";
 
 type TranscriptEntry = SimulationAssignment["transcript"][number];
 
@@ -32,6 +33,7 @@ export function SimulationCoachingRail({
   practiceRoundsRecommended,
   practiceRemaining,
   mentorName,
+  assignedChapter = null,
   onPracticeAgain,
   onSubmit,
 }: {
@@ -47,6 +49,8 @@ export function SimulationCoachingRail({
   practiceRemaining: number;
   /** Set when this free practice goes to the SE's mentor rather than their manager. */
   mentorName?: string | null;
+  /** An objection drill from an assigned chapter: its score already counts, so there's nothing to send. */
+  assignedChapter?: AssignedChapter | null;
   onPracticeAgain: () => void;
   onSubmit: () => void;
 }) {
@@ -102,11 +106,27 @@ export function SimulationCoachingRail({
             </div>
           </div>
           <div className="rounded-[14px] bg-surface-2 p-3.5">
-            <p className="label-caps">{mentorName ? "Summary for your mentor" : "Manager summary"}</p>
+            <p className="label-caps">{assignedChapter ? "Summary" : mentorName ? "Summary for your mentor" : "Manager summary"}</p>
             <p className="mt-1 text-sm leading-[1.5] text-ink-2">{coachingCard.managerSummary}</p>
           </div>
 
-          {showReflectionPrompt ? (
+          {assignedChapter ? (
+            <div className="space-y-2 border-t border-divider pt-3">
+              <p className="text-sm leading-[1.5] text-ink-2" role="status">
+                This drill counts toward {assignedChapter.assignedByName ?? "your manager"}&apos;s assignment, {assignedChapter.playbookTitle}. Your
+                score is already recorded; {assignedChapter.assignedByName?.split(" ")[0] ?? "they"} sees it with the rest of the chapter.
+              </p>
+              <button
+                className="btn-secondary inline-flex w-full items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={isGenerating}
+                onClick={onPracticeAgain}
+                type="button"
+              >
+                <RotateCcw aria-hidden="true" className="h-4 w-4" />
+                Practice again
+              </button>
+            </div>
+          ) : showReflectionPrompt ? (
             <div className="space-y-3 border-t border-divider pt-3">
               <label className={LABEL_CLS} htmlFor={reflectionId}>
                 Your reflection
