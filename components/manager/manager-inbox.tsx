@@ -200,9 +200,9 @@ function briefPayloadForItem(item: InboxItem) {
         ? [`Challenge submission for ${item.personName}`, item.reflectionText ? `SE reflection: ${item.reflectionText}` : null]
             .filter(Boolean)
             .join("\n")
-        : item.inboxType === "plan_step"
-          ? `Plan step: ${item.stepType}${item.mentorEndorsed ? " (mentor endorsed)" : ""}`
-          : undefined,
+        : undefined,
+    // Ramp steps: the route reads the submission, the mentor's recommendation and the criteria.
+    assignmentStepId: item.inboxType === "plan_step" ? item.assignmentStepId : undefined,
   };
 }
 
