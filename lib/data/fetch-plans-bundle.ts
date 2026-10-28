@@ -81,7 +81,7 @@ export async function fetchPlansForUsers(
     assignmentStepsByAssignment.set(step.assignment_id, existing);
   }
 
-  return assignments.map((assignment) => {
+  return assignments.sort(currentPlanFirst).map((assignment) => {
     const template = onboardingPlans.find((plan) => plan.id === assignment.plan_id);
     const templateSteps = planStepsByPlan.get(assignment.plan_id) ?? [];
     const progressSteps = assignmentStepsByAssignment.get(assignment.id) ?? [];
@@ -113,6 +113,19 @@ export async function fetchPlansForUsers(
       steps: [...steps, ...adHocSteps],
     };
   });
+}
+
+/**
+ * Callers take a person's plan with plans.find(userId), so the stage they're on must come first: once a
+ * stage is signed off the next one is assigned and the finished one stays, completed. Newest first after that.
+ */
+export function currentPlanFirst(
+  a: { status: string; start_date: string | null; created_at?: string | null },
+  b: { status: string; start_date: string | null; created_at?: string | null },
+) {
+  const done = Number(a.status === "completed") - Number(b.status === "completed");
+  if (done !== 0) return done;
+  return `${b.start_date ?? ""}${b.created_at ?? ""}`.localeCompare(`${a.start_date ?? ""}${a.created_at ?? ""}`);
 }
 
 /** A template step, merged with one person's progress on it when they have been assigned the plan. */
