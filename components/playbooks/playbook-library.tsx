@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AssignWorkbench, MyAssignments, TeamAssignments } from "@/components/playbooks/playbook-assignments";
+import { AssignmentDoneNote, type FinishedAssignment } from "@/components/playbooks/assignment-done-note";
 import { QuizPlayer, type Check as KnowledgeCheck } from "@/components/question-bank/knowledge-checks";
 import { GuideOverview } from "@/components/playbooks/guide-overview";
 import { PlaybookView } from "@/components/playbooks/playbook-view";
@@ -63,6 +64,7 @@ export function PlaybookLibrary({
   const [assigning, setAssigning] = useState<string[] | null>(null);
   const [read, setRead] = useState(() => new Set(readIds));
   const [marking, setMarking] = useState(false);
+  const [finished, setFinished] = useState<FinishedAssignment | null>(null);
   // "Read to the end" means it: Mark as read unlocks once the end of the chapter has been on screen.
   const [reachedEndOf, setReachedEndOf] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
@@ -100,6 +102,8 @@ export function PlaybookLibrary({
     const response = await fetch(`/api/playbooks/${playbookId}/read`, { method: "POST" }).catch(() => null);
     setMarking(false);
     if (response?.ok) {
+      const body = (await response.json().catch(() => null)) as { assignmentCompleted?: FinishedAssignment | null } | null;
+      if (body?.assignmentCompleted) setFinished(body.assignmentCompleted);
       setRead((set) => new Set(set).add(playbookId));
       router.refresh();
     }
@@ -272,6 +276,7 @@ export function PlaybookLibrary({
           title={open.title}
         >
           <div className="flex flex-col gap-8">
+            {finished && finished.playbookTitle === open.title ? <AssignmentDoneNote finished={finished} /> : null}
             <PracticeStrip assignment={openAssignment} pitchDrills={pitchDrills[open.id] ?? []} playbook={open} />
             <PlaybookView body={open.body} />
             <div aria-hidden ref={endRef} />
@@ -405,7 +410,11 @@ function PracticeStrip({
           }`}
           title={playbook.title}
         >
-          <QuizPlayer check={check} onDone={() => undefined} />
+          <QuizPlayer
+            check={check}
+            onDone={() => undefined}
+            passMark={assignment?.requireQuiz ? { score: assignment.quizPassScore, assignedByName: assignment.assignedByName } : undefined}
+          />
         </Drawer>
       ) : null}
       {error ? (

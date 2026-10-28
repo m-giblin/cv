@@ -1,11 +1,15 @@
 import { getTenantAdminClient } from "@/lib/data/tenant-scoped-query";
 import {
+  completionSummary,
   computeAssignmentProgress,
   todayIso,
   type AssignmentStatus,
   type PlaybookAssignment,
 } from "@/lib/playbooks/assignment-model";
+import { createNotification } from "@/lib/notifications/create-notification";
 import { quizAttemptScores } from "@/lib/question-bank/model";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/database.types";
 
 export * from "@/lib/playbooks/assignment-model";
 
@@ -32,7 +36,8 @@ type AssignmentRow = {
 /**
  * Loads assignments with names and live progress. Scope by assignee (one person's list) or by a
  * set of people (a manager's team). Uses the service role; callers decide who may see what.
- * Assignments whose parts are all done are marked completed as they're read.
+ * Assignments whose parts are all done are marked completed here, and their assigner is told.
+ * Recording paths call settleAssignment right away, so this is a backstop, not the usual trigger.
  */
 export async function loadAssignments(
   tenantId: string,
@@ -153,16 +158,53 @@ export async function loadAssignments(
 
   if (toComplete.length) {
     const now = new Date().toISOString();
-    await admin.from("playbook_assignments").update({ status: "completed", completed_at: now, updated_at: now }).in("id", toComplete);
+    // Only rows still active flip, so two loads racing each other notify once.
+    const { data: flipped } = await admin
+      .from("playbook_assignments")
+      .update({ status: "completed", completed_at: now, updated_at: now })
+      .in("id", toComplete)
+      .eq("status", "active")
+      .select("id");
+    const flippedIds = new Set(((flipped ?? []) as { id: string }[]).map((row) => row.id));
     for (const assignment of assignments) {
       if (toComplete.includes(assignment.id)) {
         assignment.status = "completed";
         assignment.completedAt = now;
       }
+      if (flippedIds.has(assignment.id) && assignment.assignedBy) {
+        await createNotification(admin as unknown as SupabaseClient<Database>, {
+          userId: assignment.assignedBy,
+          title: `Playbook finished: ${assignment.playbookTitle}`,
+          body: completionSummary(assignment, today),
+          actionUrl: `/manager?profile=${assignment.assignedTo}`,
+        }).catch(() => undefined);
+      }
     }
   }
   return assignments;
 }
+
+/**
+ * Re-checks one person's open assignment for a chapter right after they record a part, so it
+ * completes (and the assigner hears) at that moment. Returns the assignment if this finished it.
+ */
+export async function settleAssignment(input: { tenantId: string; userId: string; playbookId: string }) {
+  const admin = getTenantAdminClient();
+  if (!admin) return null;
+  const { data } = await admin
+    .from("playbook_assignments")
+    .select("id")
+    .eq("assigned_to", input.userId)
+    .eq("playbook_id", input.playbookId)
+    .eq("status", "active")
+    .limit(1);
+  if (!data?.length) return null;
+  const assignments = await loadAssignments(input.tenantId, { assigneeIds: [input.userId] });
+  const done = assignments.find((item) => item.playbookId === input.playbookId && item.status === "completed");
+  return done ? { playbookTitle: done.playbookTitle, assignedByName: done.assignedByName } : null;
+}
+
+export type SettledAssignment = Awaited<ReturnType<typeof settleAssignment>>;
 
 /** Records a scored drill attempt against the playbook it came from (service role). */
 export async function recordDrillResult(input: {
@@ -175,7 +217,7 @@ export async function recordDrillResult(input: {
   simulationAssignmentId?: string | null;
 }) {
   const admin = getTenantAdminClient();
-  if (!admin) return;
+  if (!admin) return null;
   await admin.from("playbook_drill_results").insert({
     tenant_id: input.tenantId,
     playbook_id: input.playbookId,
@@ -185,4 +227,5 @@ export async function recordDrillResult(input: {
     scenario_id: input.scenarioId ?? null,
     simulation_assignment_id: input.simulationAssignmentId ?? null,
   });
+  return settleAssignment({ tenantId: input.tenantId, userId: input.userId, playbookId: input.playbookId }).catch(() => null);
 }

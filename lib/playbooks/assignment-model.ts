@@ -66,6 +66,20 @@ export function daysBetween(from: string, to: string) {
   return Math.round((end - start) / 86_400_000);
 }
 
+/** The assigner's notification: "Susan Left finished all 4 parts, 7 days early. Read the playbook: Read; …." */
+export function completionSummary(assignment: PlaybookAssignment, today: string) {
+  const days = daysBetween(today, assignment.dueDate);
+  const timing = days > 0 ? `${days} day${days === 1 ? "" : "s"} early` : days === 0 ? "on the due date" : `${-days} day${days === -1 ? "" : "s"} late`;
+  const parts = assignment.progress.parts.map((part) => `${part.label}: ${part.detail}`).join("; ");
+  return `${assignment.assigneeName} finished all ${assignment.progress.parts.length} parts, ${timing}. ${parts}.`;
+}
+
+/** Finished in the last three days: Today keeps it on show as "Done" so finishing one is visible. */
+export function finishedRecently(assignment: Pick<PlaybookAssignment, "status" | "completedAt">, now = new Date()) {
+  if (assignment.status !== "completed" || !assignment.completedAt) return false;
+  return now.getTime() - new Date(assignment.completedAt).getTime() < 3 * 86_400_000;
+}
+
 export function todayIso(now = new Date()) {
   return now.toISOString().slice(0, 10);
 }

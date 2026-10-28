@@ -5,6 +5,7 @@ import { Check, Clock, Loader2, Mic, Send, Trash2, Video } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
+import { AssignmentDoneNote, type FinishedAssignment } from "@/components/playbooks/assignment-done-note";
 import { PitchCoachingRail, type PitchScoreRow } from "@/components/pitch/pitch-coaching-rail";
 import { CARD_CLS, LABEL_CLS, TEXTAREA_CLS } from "@/components/se/form-classes";
 import { Chip } from "@/components/ui/chip";
@@ -125,6 +126,7 @@ export function VideoPitchCapture({
   const [overTime, setOverTime] = useState(false);
   const [showReference, setShowReference] = useState(false);
   const [coaching, setCoaching] = useState(false);
+  const [finishedAssignment, setFinishedAssignment] = useState<FinishedAssignment | null>(null);
   // Scoring can take half a minute; after a few seconds, say so rather than leave a bare spinner.
   const [coachingSlow, setCoachingSlow] = useState(false);
   useEffect(() => {
@@ -389,7 +391,15 @@ export function VideoPitchCapture({
     }).catch(() => null);
     setCoaching(false);
     const body = (await response?.json().catch(() => null)) as
-      | { tips?: string[]; scores?: PitchScoreRow[]; missed?: string[]; overTime?: boolean; source?: "ai" | "rules"; error?: string }
+      | {
+          tips?: string[];
+          scores?: PitchScoreRow[];
+          missed?: string[];
+          overTime?: boolean;
+          source?: "ai" | "rules";
+          error?: string;
+          assignmentCompleted?: FinishedAssignment | null;
+        }
       | null;
     if (!response?.ok || !body?.tips) {
       toast.error(body?.error ?? "The AI review couldn't run just now.");
@@ -404,6 +414,7 @@ export function VideoPitchCapture({
     setSharedWithMentor(false);
     setMissed(body.missed ?? []);
     setOverTime(Boolean(body.overTime));
+    if (body.assignmentCompleted) setFinishedAssignment(body.assignmentCompleted);
     if (body.source === "rules") toast.message("AI isn't configured, so you got tips without scores.");
   }
 
@@ -997,6 +1008,7 @@ export function VideoPitchCapture({
         {isDrill && coachScores.length ? (
           <section className="flex flex-col gap-3 border-t border-divider px-5 py-4">
             <h3 className="label-caps">Compared with the guide</h3>
+            {finishedAssignment ? <AssignmentDoneNote finished={finishedAssignment} /> : null}
             {overTime ? (
               <p className="m-0 text-[14px] text-danger">
                 You ran over the {scenario.maxDurationSec}-second limit. Cut to the problem, the outcome and one proof point.

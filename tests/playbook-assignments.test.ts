@@ -58,3 +58,23 @@ describe("playbook assignment progress", () => {
     expect(parseDrillTotal("no total here")).toBeNull();
   });
 });
+
+describe("assignment completion", () => {
+  it("summarises a finished assignment for the person who assigned it", async () => {
+    const { completionSummary } = await import("@/lib/playbooks/assignment-model");
+    const progress = computeAssignmentProgress(base, { readAt: "x", pitchScores: [78], objectionScores: [83] }, "2026-10-13");
+    const assignment = { assigneeName: "Susan Left", dueDate: "2026-10-20", progress } as Parameters<typeof completionSummary>[0];
+    expect(completionSummary(assignment, "2026-10-13")).toBe(
+      "Susan Left finished all 3 parts, 7 days early. Read the playbook: Read; Pitch drill, 70+: Best 78; Objection drill: Completed, 83%.",
+    );
+    expect(completionSummary(assignment, "2026-10-21")).toContain("1 day late");
+  });
+
+  it("keeps a just-finished assignment on Today for three days", async () => {
+    const { finishedRecently } = await import("@/lib/playbooks/assignment-model");
+    const now = new Date("2026-10-28T12:00:00Z");
+    expect(finishedRecently({ status: "completed", completedAt: "2026-10-27T02:49:00Z" }, now)).toBe(true);
+    expect(finishedRecently({ status: "completed", completedAt: "2026-10-24T02:49:00Z" }, now)).toBe(false);
+    expect(finishedRecently({ status: "active", completedAt: null }, now)).toBe(false);
+  });
+});

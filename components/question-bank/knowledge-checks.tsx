@@ -2,6 +2,7 @@
 
 import { ExternalLink, Loader2, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { AssignmentDoneNote, type FinishedAssignment } from "@/components/playbooks/assignment-done-note";
 import { StatusPill } from "@/components/ui/status-pill";
 import type { QuizQuestion } from "@/lib/question-bank/data";
 import { SOURCE_LABEL, solutionOrder, type QuestionSourceKind } from "@/lib/question-bank/model";
@@ -26,11 +27,25 @@ type Result = {
 const LETTERS = ["A", "B", "C", "D", "E", "F"];
 
 /** Takes one quiz: questions in rotation, then the score with explanations. */
-export function QuizPlayer({ check, onDone }: { check: Check; onDone: () => void }) {
+export function QuizPlayer({
+  check,
+  onDone,
+  passMark,
+}: {
+  check: Check;
+  onDone: () => void;
+  /** Set when the check counts toward an assignment: the result then says whether it passes. */
+  passMark?: { score: number; assignedByName: string | null };
+}) {
   const [quiz, setQuiz] = useState<{ title: string; token: string; questions: QuizQuestion[] } | null>(null);
   const [error, setError] = useState("");
   const [answers, setAnswers] = useState<Record<string, number>>({});
-  const [graded, setGraded] = useState<{ score: number; results: Result[]; completedSteps?: string[] } | null>(null);
+  const [graded, setGraded] = useState<{
+    score: number;
+    results: Result[];
+    completedSteps?: string[];
+    assignmentCompleted?: FinishedAssignment | null;
+  } | null>(null);
   const [busy, setBusy] = useState(false);
 
   const start = useCallback(() => {
@@ -87,12 +102,20 @@ export function QuizPlayer({ check, onDone }: { check: Check; onDone: () => void
               {graded.score}%
             </span>{" "}
             {graded.results.filter((result) => result.correct).length} of {graded.results.length} right.
+            {passMark ? (
+              <span className={graded.score >= passMark.score ? "font-bold text-success" : "font-bold text-danger"}>
+                {" "}
+                {graded.score >= passMark.score ? "Passes" : "Below"} {passMark.assignedByName ?? "your manager"}&apos;s {passMark.score}% mark
+                {graded.score >= passMark.score ? "." : ". Take new questions to try again."}
+              </span>
+            ) : null}
           </p>
           <button className="btn-secondary inline-flex items-center gap-2" onClick={start} type="button">
             <RefreshCw aria-hidden size={16} /> New questions
           </button>
         </div>
       ) : null}
+      {graded?.assignmentCompleted ? <AssignmentDoneNote finished={graded.assignmentCompleted} /> : null}
       {graded?.completedSteps?.length ? (
         <p className="rounded-[12px] border border-success bg-success-soft px-4 py-3 text-sm text-ink" role="status">
           Passed. This completes your plan step{graded.completedSteps.length === 1 ? "" : "s"}: {graded.completedSteps.join(", ")}.

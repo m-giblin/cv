@@ -9,6 +9,7 @@ import { z } from "zod";
 import { coachingCardSchema, type CoachingCardOutput } from "@/lib/ai/schemas";
 import { difficultyToPromptLabel, isElevatorPitchTemplate } from "@/lib/simulations/prompt-template";
 import { scenarioFromScoring, simulationRubricCriteria } from "@/lib/simulations/session-rubric";
+import { AssignmentDoneNote, type FinishedAssignment } from "@/components/playbooks/assignment-done-note";
 import { SimulationCoachingRail } from "@/components/simulation/simulation-coaching-rail";
 import { SimulationScenarioBrief } from "@/components/simulation/simulation-scenario-brief";
 import { SimulationSpeechInput } from "@/components/simulation/speech-input";
@@ -71,6 +72,7 @@ export function SimulationWorkspace({
   const [isGenerating, setIsGenerating] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
   const [roleplayEnded, setRoleplayEnded] = useState(false);
+  const [finishedAssignment, setFinishedAssignment] = useState<FinishedAssignment | null>(null);
   const [practiceRoundsCompleted, setPracticeRoundsCompleted] = useState(
     assignment.practiceRoundsCompleted ?? 0,
   );
@@ -192,6 +194,7 @@ export function SimulationWorkspace({
       response: string;
       speaker: "persona" | "coach";
       roleplayEnded: boolean;
+      assignmentCompleted?: FinishedAssignment | null;
     }>;
   }
 
@@ -260,6 +263,7 @@ export function SimulationWorkspace({
       ];
       setMessages(nextMessages);
       setRoleplayEnded(payload.roleplayEnded);
+      if (payload.assignmentCompleted) setFinishedAssignment(payload.assignmentCompleted);
       await persistTranscript(
         assignment.id,
         nextMessages,
@@ -546,6 +550,7 @@ export function SimulationWorkspace({
       <div className={cn(CARD_CLS, "overflow-hidden")}>
         <div className="flex min-h-[min(50vh,28rem)] flex-col">
           {chatMessages}
+          {finishedAssignment ? <AssignmentDoneNote className="mx-4 mb-3 sm:mx-5" finished={finishedAssignment} /> : null}
           {chatInput}
         </div>
         {coachingCard ? (
@@ -599,6 +604,7 @@ export function SimulationWorkspace({
             </StatusPill>
           </header>
           {chatMessages}
+          {finishedAssignment ? <AssignmentDoneNote className="mx-4 mb-3 sm:mx-5" finished={finishedAssignment} /> : null}
           {chatInput}
         </section>
 
@@ -608,6 +614,7 @@ export function SimulationWorkspace({
           criteria={rubricCriteria}
           isGenerating={isGenerating}
           assignedChapter={assignedChapter}
+          assignmentFinished={Boolean(finishedAssignment)}
           mentorName={mentorName}
           messages={messages}
           onPracticeAgain={() => void saveCoachingCard("practice")}

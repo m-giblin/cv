@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getTenantAdminClient } from "@/lib/data/tenant-scoped-query";
+import { settleAssignment } from "@/lib/playbooks/assignments";
 import type { DraftQuestion } from "@/lib/question-bank/generate";
 import { completeKnowledgeCheckSteps } from "@/lib/question-bank/plan-completion";
 import { signQuiz, verifyQuiz } from "@/lib/question-bank/quiz-token";
@@ -424,7 +425,11 @@ export async function gradeQuiz(input: { tenantId: string; userId: string; token
     keys.size === 1
       ? await completeKnowledgeCheckSteps({ tenantId: input.tenantId, userId: input.userId, sourceKey: [...keys][0]!, score }).catch(() => [])
       : [];
-  return { score, results, completedSteps };
+  // A chapter quiz can finish that chapter's assignment.
+  const playbookIds = [...new Set(results.map((result) => byId.get(result.questionId)!.playbookId).filter((id): id is string => Boolean(id)))];
+  const assignmentCompleted =
+    playbookIds.length === 1 ? await settleAssignment({ tenantId: input.tenantId, userId: input.userId, playbookId: playbookIds[0]! }).catch(() => null) : null;
+  return { score, results, completedSteps, assignmentCompleted };
 }
 
 export async function loadQuestion(tenantId: string, id: string) {

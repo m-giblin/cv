@@ -8,7 +8,7 @@ import { requireUserFeature } from "@/lib/platform/require-feature";
 import { SIMULATION_START_MESSAGE, roleplayEnded } from "@/lib/simulations/prompt-template";
 import { createClient } from "@/lib/supabase/server";
 import { getTenantAdminClient } from "@/lib/data/tenant-scoped-query";
-import { parseDrillTotal, recordDrillResult } from "@/lib/playbooks/assignments";
+import { parseDrillTotal, recordDrillResult, type SettledAssignment } from "@/lib/playbooks/assignments";
 
 const transcriptEntrySchema = z.object({
  speaker: z.enum(["se", "persona", "coach"]),
@@ -174,6 +174,7 @@ Jordan Ellis: Before we go deep — why should we talk about ${parsed.data.promp
  });
 
  const ended = roleplayEnded(result.text);
+ let assignmentCompleted: SettledAssignment = null;
  if (ended && drillSource && parsed.data.assignmentId) {
  // Once per run: the debrief's "TOTAL: X / Y" becomes the drill's score.
  const admin = getTenantAdminClient();
@@ -185,7 +186,7 @@ Jordan Ellis: Before we go deep — why should we talk about ${parsed.data.promp
  .limit(1)
  : { data: [] };
  if (!existing?.length) {
- await recordDrillResult({
+ assignmentCompleted = await recordDrillResult({
  tenantId: drillSource.tenantId,
  playbookId: drillSource.playbookId,
  userId: user.id,
@@ -202,6 +203,7 @@ Jordan Ellis: Before we go deep — why should we talk about ${parsed.data.promp
  response: result.text,
  speaker,
  roleplayEnded: ended,
+ assignmentCompleted,
  usage: result.usage,
  });
  } catch (error) {

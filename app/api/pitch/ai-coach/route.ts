@@ -103,8 +103,9 @@ export async function POST(request: Request) {
       const { problem, substance, delivery } = result.object.scores;
       const average = Math.round((problem + substance + delivery) / 3);
       const tenantId = drill.playbookId ? await resolveEffectiveTenantId(session.supabase, session.user.id) : null;
+      let assignmentCompleted = null;
       if (drill.playbookId && tenantId) {
-        await recordDrillResult({
+        assignmentCompleted = await recordDrillResult({
           tenantId,
           playbookId: drill.playbookId,
           userId: session.user.id,
@@ -121,6 +122,7 @@ export async function POST(request: Request) {
         missed: result.object.missed,
         scores: pitchDrillScoreRows(result.object.scores),
         overTime: input.durationSec !== undefined && input.durationSec > drill.maxDurationSec + 3,
+        assignmentCompleted,
       });
     }
 

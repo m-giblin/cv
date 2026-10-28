@@ -34,6 +34,7 @@ export function SimulationCoachingRail({
   practiceRemaining,
   mentorName,
   assignedChapter = null,
+  assignmentFinished = false,
   onPracticeAgain,
   onSubmit,
 }: {
@@ -51,6 +52,8 @@ export function SimulationCoachingRail({
   mentorName?: string | null;
   /** An objection drill from an assigned chapter: its score already counts, so there's nothing to send. */
   assignedChapter?: AssignedChapter | null;
+  /** This drill was the chapter's last open part, so the assignment is now complete. */
+  assignmentFinished?: boolean;
   onPracticeAgain: () => void;
   onSubmit: () => void;
 }) {
@@ -113,8 +116,17 @@ export function SimulationCoachingRail({
           {assignedChapter ? (
             <div className="space-y-2 border-t border-divider pt-3">
               <p className="text-sm leading-[1.5] text-ink-2" role="status">
-                This drill counts toward {assignedChapter.assignedByName ?? "your manager"}&apos;s assignment, {assignedChapter.playbookTitle}. Your
-                score is already recorded; {assignedChapter.assignedByName?.split(" ")[0] ?? "they"} sees it with the rest of the chapter.
+                {assignmentFinished ? (
+                  <>
+                    Your score is recorded, and that finishes {assignedChapter.assignedByName ?? "your manager"}&apos;s assignment,{" "}
+                    {assignedChapter.playbookTitle}. {assignedChapter.assignedByName?.split(" ")[0] ?? "They"} has been notified.
+                  </>
+                ) : (
+                  <>
+                    This drill counts toward {assignedChapter.assignedByName ?? "your manager"}&apos;s assignment, {assignedChapter.playbookTitle}. Your
+                    score is already recorded; {assignedChapter.assignedByName?.split(" ")[0] ?? "they"} sees it with the rest of the chapter.
+                  </>
+                )}
               </p>
               <button
                 className="btn-secondary inline-flex w-full items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-50"

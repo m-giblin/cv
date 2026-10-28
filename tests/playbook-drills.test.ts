@@ -55,7 +55,7 @@ describe("pitch drills", () => {
       source_version: 4,
     });
     expect(rows[0]!.reference_text).toMatch(/^Auditors do not accept/);
-    expect(rows[0]!.prompt).toContain("Certification Fatigue Produces Rubber-Stamping");
+    expect(rows[0]!.prompt).toContain('Open with the problem the guide calls "Certification Fatigue Produces Rubber-Stamping", then the outcome.');
     // Chapters get renumbered, so the stored text names the chapter rather than its number.
     expect(rows[0]!.description).toBe(
       "From the SLED Field Guide playbook: Continuous Compliance and Audit Mastery. Your answer is compared with the guide's pitch.",

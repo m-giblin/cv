@@ -4,7 +4,7 @@ import { Greeting } from "@/components/se/greeting";
 import { RampDefinitionCard } from "@/components/se/ramp-definition-card";
 import { FlightStrip } from "@/components/ui/flight-strip";
 import { PageBody, PageHeader } from "@/components/ui/page-header";
-import { ASSIGNMENT_STATE_LABELS, dueLabel, type PlaybookAssignment } from "@/lib/playbooks/assignment-model";
+import { ASSIGNMENT_STATE_LABELS, dueLabel, finishedRecently, type PlaybookAssignment } from "@/lib/playbooks/assignment-model";
 import { Schedule } from "@/components/ui/schedule";
 import { StatusPill } from "@/components/ui/status-pill";
 import { planStepTypeLabel } from "@/lib/plans/step-labels";
@@ -296,12 +296,13 @@ function UpcomingOneOnOnesCard({ meetings }: { meetings: UpcomingOneOnOne[] }) {
   );
 }
 
-/** Open playbook assignments, soonest first, each linking straight to the playbook. */
+/** Open playbook assignments, soonest first, each linking straight to the playbook; then any just finished. */
 function PlaybooksDue({ assignments }: { assignments: PlaybookAssignment[] }) {
   const open = assignments
     .filter((item) => item.status === "active" && item.progress.state !== "done")
     .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
-  if (!open.length) return null;
+  const recentlyDone = assignments.filter((item) => finishedRecently(item));
+  if (!open.length && !recentlyDone.length) return null;
   const shown = open.slice(0, 4);
 
   return (
@@ -337,6 +338,22 @@ function PlaybooksDue({ assignments }: { assignments: PlaybookAssignment[] }) {
             </li>
           );
         })}
+        {recentlyDone.map((item) => (
+          <li key={item.id}>
+            <Link
+              className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 no-underline hover:bg-blue-soft/40"
+              href={`/learn/playbooks?playbook=${item.playbookSlug}`}
+            >
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="text-[15px] font-bold text-ink">{item.playbookTitle}</span>
+                <span className="text-[13px] text-muted">
+                  All {item.progress.parts.length} parts done{item.assignedByName ? ` · ${item.assignedByName.split(" ")[0]} has been notified` : ""}
+                </span>
+              </span>
+              <StatusPill tone="success">Done</StatusPill>
+            </Link>
+          </li>
+        ))}
       </ul>
     </section>
   );

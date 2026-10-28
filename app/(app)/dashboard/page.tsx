@@ -35,7 +35,7 @@ export default async function DashboardPage() {
     const [userCerts, settings, playbookAssignments, mentees, myMentor, oneOnOnes] = await Promise.all([
       fetchCertificationsForUsers([data.currentUser.id]),
       loadPlatformSettings(data.currentUser.tenantId ?? undefined),
-      tenantId ? loadAssignments(tenantId, { assigneeIds: [data.currentUser.id] }) : Promise.resolve([]),
+      tenantId ? loadAssignments(tenantId, { assigneeIds: [data.currentUser.id], includeClosed: true }) : Promise.resolve([]),
       admin ? loadTodayMentees(admin, data.currentUser.id).catch(() => []) : Promise.resolve([]),
       admin && myPlan?.mentorId ? loadMyMentor(admin, data.currentUser.id, myPlan.mentorId).catch(() => null) : Promise.resolve(null),
       admin ? loadUpcomingOneOnOnes(admin, data.currentUser.id).catch(() => []) : Promise.resolve([]),
