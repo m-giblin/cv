@@ -6,6 +6,16 @@ export const DEFAULT_AI_MODELS: Record<AiProviderName, string> = {
   openai: "gpt-4.1-mini",
 };
 
+/**
+ * Model for live roleplay turns, where the person waits on every reply. grok-4.3 reasons privately
+ * before answering: ~10s and ~900 output tokens a turn in Run 3, against ~1.7s and ~100 tokens for
+ * the non-reasoning model at the same list price. OpenAI's defaults don't reason, so they stay.
+ */
+export const LIVE_TURN_MODELS: Record<AiProviderName, string | null> = {
+  xai: "grok-4.20-0309-non-reasoning",
+  openai: null,
+};
+
 /** Models offered in Settings › AI, newest first. */
 export const AI_MODEL_OPTIONS: Record<AiProviderName, string[]> = {
   xai: ["grok-4.3", "grok-4.20-0309-non-reasoning", "grok-4.5", "grok-4.7"],

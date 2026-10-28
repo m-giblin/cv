@@ -10,6 +10,13 @@ import { isMfaExempt } from "@/lib/auth/mfa";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
 import { createClient } from "@/lib/supabase/client";
 
+/** Where the person was heading when sign-in interrupted them; same-site paths only. */
+function requestedPath(): string | null {
+  const next = new URLSearchParams(window.location.search).get("next");
+  if (!next || !next.startsWith("/") || next.startsWith("//") || next.startsWith("/\\") || next.startsWith("/login")) return null;
+  return next;
+}
+
 export function LoginForm({ initialError }: { initialError?: string | null }) {
   const emailId = useId();
   const passwordId = useId();
@@ -104,9 +111,10 @@ export function LoginForm({ initialError }: { initialError?: string | null }) {
       return;
     }
 
-    let destination: (typeof AUTH_ROUTES)[keyof typeof AUTH_ROUTES] = AUTH_ROUTES.mfaEnroll;
+    let destination: string = AUTH_ROUTES.mfaEnroll;
     if (aal?.currentLevel === "aal2" || (await isMfaExempt(supabase))) {
-      destination = AUTH_ROUTES.dashboard;
+      // Back to the page they asked for (a notification or email link), else their home.
+      destination = requestedPath() ?? AUTH_ROUTES.dashboard;
     } else if (aal?.nextLevel === "aal2") {
       destination = AUTH_ROUTES.mfaVerify;
     }

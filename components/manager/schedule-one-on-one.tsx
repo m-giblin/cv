@@ -40,6 +40,8 @@ export function ScheduleOneOnOne({
   const [minutes, setMinutes] = useState(30);
   const [inviteMentor, setInviteMentor] = useState(Boolean(mentor));
   const [saving, setSaving] = useState(false);
+  // Set when the time overlaps another 1:1 the manager or mentor is in; the next click keeps the time.
+  const [clash, setClash] = useState<string | null>(null);
   const firstName = profile.fullName.split(" ")[0] ?? profile.fullName;
 
   async function schedule() {
@@ -60,9 +62,21 @@ export function ScheduleOneOnOne({
     const response = await fetch("/api/manager/one-on-ones", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: profile.id, start: start.toISOString(), minutes, label, inviteMentor: inviteMentor && Boolean(mentor) }),
+      body: JSON.stringify({
+        userId: profile.id,
+        start: start.toISOString(),
+        minutes,
+        label,
+        inviteMentor: inviteMentor && Boolean(mentor),
+        allowClash: Boolean(clash),
+      }),
     }).catch(() => null);
     setSaving(false);
+    if (response?.status === 409) {
+      const body = (await response.json().catch(() => null)) as { clash?: string } | null;
+      setClash(body?.clash ?? "That time overlaps another 1:1.");
+      return;
+    }
     if (!response?.ok) {
       const body = (await response?.json().catch(() => null)) as { error?: string } | null;
       toast.error(body?.error ?? "Couldn't schedule the 1:1. Try again.");
@@ -88,7 +102,7 @@ export function ScheduleOneOnOne({
       footer={
         <>
           <button className="btn-primary" disabled={saving} onClick={() => void schedule()} type="button">
-            {saving ? "Scheduling…" : "Schedule and download invite"}
+            {saving ? "Scheduling…" : clash ? "Schedule anyway" : "Schedule and download invite"}
           </button>
           <button className="btn-secondary" onClick={onClose} type="button">
             Cancel
@@ -105,15 +119,36 @@ export function ScheduleOneOnOne({
         <div className="grid gap-4 sm:grid-cols-3">
           <label className="flex flex-col gap-1.5 text-sm font-semibold text-ink" htmlFor={ids.date}>
             Date
-            <Input id={ids.date} min={todayIso()} onChange={(event) => setDate(event.target.value)} type="date" value={date} />
+            <Input
+              id={ids.date}
+              min={todayIso()}
+              onChange={(event) => {
+                setDate(event.target.value);
+                setClash(null);
+              }}
+              type="date"
+              value={date}
+            />
           </label>
           <label className="flex flex-col gap-1.5 text-sm font-semibold text-ink" htmlFor={ids.time}>
             Time
-            <Input id={ids.time} onChange={(event) => setTime(event.target.value)} step={900} type="time" value={time} />
+            <Input
+              id={ids.time}
+              onChange={(event) => {
+                setTime(event.target.value);
+                setClash(null);
+              }}
+              step={900}
+              type="time"
+              value={time}
+            />
           </label>
           <label className="flex flex-col gap-1.5 text-sm font-semibold text-ink" htmlFor={ids.length}>
             Length
-            <select className="w-full rounded-[10px] border border-line-strong bg-white px-3.5 py-[11px] text-[15px] font-medium text-ink" id={ids.length} onChange={(event) => setMinutes(Number(event.target.value))} value={minutes}>
+            <select className="w-full rounded-[10px] border border-line-strong bg-white px-3.5 py-[11px] text-[15px] font-medium text-ink" id={ids.length} onChange={(event) => {
+                setMinutes(Number(event.target.value));
+                setClash(null);
+              }} value={minutes}>
               {[15, 30, 45, 60].map((value) => (
                 <option key={value} value={value}>
                   {value} minutes
@@ -124,9 +159,22 @@ export function ScheduleOneOnOne({
         </div>
         {mentor ? (
           <label className="flex items-center gap-2 text-sm text-ink" htmlFor={ids.mentor}>
-            <input checked={inviteMentor} id={ids.mentor} onChange={(event) => setInviteMentor(event.target.checked)} type="checkbox" />
+            <input
+              checked={inviteMentor}
+              id={ids.mentor}
+              onChange={(event) => {
+                setInviteMentor(event.target.checked);
+                setClash(null);
+              }}
+              type="checkbox"
+            />
             Invite {mentor.fullName} (mentor) too
           </label>
+        ) : null}
+        {clash ? (
+          <p className="m-0 rounded-[10px] border border-line bg-signal-soft px-4 py-3 text-sm text-ink" role="alert">
+            {clash} Pick another time, or schedule anyway.
+          </p>
         ) : null}
       </div>
     </Drawer>

@@ -15,6 +15,7 @@ import { resolveActiveWorkspace, type WorkspaceHat } from "@/lib/auth/workspace"
 import { pageTitle, paletteEntries } from "@/lib/navigation/nav-model";
 import type { TenantShellBranding } from "@/lib/tenant/shell-branding";
 import { PRODUCT_NAME } from "@/lib/tenant/shell-branding-shared";
+import { applyNotificationsRead, onNotificationsRead } from "@/lib/notifications/read-events";
 import { Notification, Profile } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -133,7 +134,14 @@ export function AppShellView({
     [workspace, flags, hasMentees],
   );
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);
-  const myNotifications = notifications.filter((item) => item.userId === currentUser.id);
+  // Reads made on the page update the bell and the sidebar badge straight away.
+  const [liveNotifications, setLiveNotifications] = useState(notifications);
+  useEffect(() => setLiveNotifications(notifications), [notifications]);
+  useEffect(() => onNotificationsRead((detail) => setLiveNotifications((current) => applyNotificationsRead(current, detail))), []);
+  const myNotifications = useMemo(
+    () => liveNotifications.filter((item) => item.userId === currentUser.id),
+    [liveNotifications, currentUser.id],
+  );
   const shellStyle = { "--tenant-primary": branding.primaryColor } as CSSProperties;
 
   useEffect(() => {

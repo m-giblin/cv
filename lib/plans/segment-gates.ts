@@ -4,6 +4,7 @@ import { parsePlanStepMetadata } from "@/lib/corpus/parse-step-metadata";
 import { createNotification } from "@/lib/notifications/create-notification";
 import { shouldUnlockNextSegment } from "@/lib/plans/segment-gate-logic";
 import { issueSegmentCertificate } from "@/lib/plans/segment-certificates";
+import { RAMP_SEGMENT_NAMES } from "@/lib/se/ramp-model";
 
 export async function maybeUnlockNextSegment(
   supabase: SupabaseClient<Database>,
@@ -76,23 +77,35 @@ export async function maybeUnlockNextSegment(
   }
 
   const nextSegment = Math.min(4, segmentIndex + 1);
+  // A stage (one plan) has one or more parts; only a gate before another part opens something here.
+  // The last part's gate closes the stage, and the next stage's own notice says what comes next.
+  const hasNextPart =
+    nextSegment > segmentIndex &&
+    (segmentSteps ?? []).some((step) => parsePlanStepMetadata(step.metadata, 0).segmentIndex === nextSegment);
+  const multiPart = hasNextPart || segmentIndex > 1;
 
   await supabase
     .from("plan_assignments")
     .update({ unlocked_segment_max: nextSegment })
     .eq("id", assignmentId);
 
+  const { data: plan } = await supabase.from("onboarding_plans").select("name").eq("id", assignment.plan_id).maybeSingle();
+  const partName = (index: number) => RAMP_SEGMENT_NAMES[index - 1] ?? `part ${index}`;
+
   await issueSegmentCertificate(supabase, {
     assignmentId,
     userId: assignment.user_id,
     segmentIndex,
     programId: null,
+    label: plan?.name ? (multiPart ? `${plan.name}, ${partName(segmentIndex)}` : plan.name) : null,
   });
 
-  await createNotification(supabase, {
-    userId: assignment.user_id,
-    title: `Segment ${segmentIndex} complete — Days ${segmentIndex * 30 + 1}–${nextSegment * 30} unlocked`,
-    body: "Your assessment gate was approved. The next 30-day mastery bucket is now available.",
-    actionUrl: "/my-plan",
-  });
+  if (hasNextPart) {
+    await createNotification(supabase, {
+      userId: assignment.user_id,
+      title: `${partName(nextSegment)} unlocked`,
+      body: `Your manager signed off the gate, so the next part of ${plan?.name ?? "your stage"} is open on My ramp.`,
+      actionUrl: "/my-plan",
+    });
+  }
 }

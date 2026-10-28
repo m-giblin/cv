@@ -80,12 +80,18 @@ export async function PATCH(
             feedback,
           });
 
+    const { data: reviewed } = await session.supabase
+      .from("plan_assignment_steps")
+      .select("plan_steps(title)")
+      .eq("id", id)
+      .maybeSingle();
+    const stepTitle = (reviewed as { plan_steps: { title: string } | null } | null)?.plan_steps?.title;
     await createNotification(session.supabase, {
       userId: result.userId,
       title:
         parsed.data.decision === "approve"
-          ? "Plan step approved"
-          : "Plan step needs revision",
+          ? stepTitle ? `Approved: ${stepTitle}` : "Plan step approved"
+          : stepTitle ? `Needs revision: ${stepTitle}` : "Plan step needs revision",
       body:
         "testedOut" in result && result.testedOut
           ? `${feedback ? `${feedback} ` : ""}That completes the stage: ${result.testedOut} remaining step${result.testedOut === 1 ? " was" : "s were"} closed as tested out.`

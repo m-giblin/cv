@@ -5,7 +5,7 @@ import { isStepLockedForSegment, parsePlanStepMetadata } from "@/lib/corpus/pars
 export class StepSegmentLockedError extends Error {
   constructor(segmentIndex: number, unlockedSegmentMax: number) {
     super(
-      `This step is locked until segment ${segmentIndex - 1} is complete. You are on segment ${unlockedSegmentMax}.`,
+      `This step is in a later part of the stage. It opens when your manager signs off the gate before it (part ${segmentIndex - 1} of the stage; you are on part ${unlockedSegmentMax}).`,
     );
     this.name = "StepSegmentLockedError";
   }

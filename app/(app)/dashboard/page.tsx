@@ -37,7 +37,7 @@ export default async function DashboardPage() {
       loadPlatformSettings(data.currentUser.tenantId ?? undefined),
       tenantId ? loadAssignments(tenantId, { assigneeIds: [data.currentUser.id], includeClosed: true }) : Promise.resolve([]),
       admin ? loadTodayMentees(admin, data.currentUser.id).catch(() => []) : Promise.resolve([]),
-      admin && myPlan?.mentorId ? loadMyMentor(admin, data.currentUser.id, myPlan.mentorId).catch(() => null) : Promise.resolve(null),
+      admin && myPlan?.mentorId ? loadMyMentor(admin, data.currentUser.id, myPlan.mentorId, myPlan.id).catch(() => null) : Promise.resolve(null),
       admin ? loadUpcomingOneOnOnes(admin, data.currentUser.id).catch(() => []) : Promise.resolve([]),
     ]);
     const manager = data.profiles.find((profile) => profile.id === data.currentUser.managerId);

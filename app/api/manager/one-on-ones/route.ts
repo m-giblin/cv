@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireManagerSession } from "@/lib/auth/require-manager";
 import type { Database } from "@/lib/database.types";
-import { ONE_ON_ONE_EVENT, loadUpcomingOneOnOnes } from "@/lib/manager/one-on-ones";
+import { ONE_ON_ONE_EVENT, loadUpcomingOneOnOnes, oneOnOneClash } from "@/lib/manager/one-on-ones";
 import { createNotification } from "@/lib/notifications/create-notification";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -15,6 +15,8 @@ const postSchema = z.object({
   minutes: z.number().int().min(15).max(120),
   label: z.string().trim().min(3).max(80),
   inviteMentor: z.boolean(),
+  /** Set after the scheduler has seen the clash warning and chosen to keep the time. */
+  allowClash: z.boolean().optional(),
 });
 
 type Person = { id: string; full_name: string; manager_id: string | null; tenant_id: string | null };
@@ -60,7 +62,7 @@ export async function POST(request: Request) {
 
   const parsed = postSchema.safeParse(await request.json().catch(() => ({})));
   if (!parsed.success) return NextResponse.json({ error: "Pick a date, time and length." }, { status: 400 });
-  const { userId, start, minutes, label, inviteMentor } = parsed.data;
+  const { userId, start, minutes, label, inviteMentor, allowClash } = parsed.data;
   if (new Date(start).getTime() < Date.now() - 5 * 60_000) {
     return NextResponse.json({ error: "Pick a time that hasn't passed." }, { status: 400 });
   }
@@ -81,6 +83,21 @@ export async function POST(request: Request) {
   ]);
   const managerName = me?.full_name ?? "Your manager";
   const mentorId = inviteMentor ? (assignment?.mentor_id ?? null) : null;
+
+  if (!allowClash) {
+    const { data: mentor } = mentorId
+      ? await admin.from("profiles").select("full_name").eq("id", mentorId).maybeSingle()
+      : { data: null };
+    const clash = await oneOnOneClash(admin, {
+      schedulerId: session.user.id,
+      mentorId,
+      mentorName: mentor?.full_name ?? null,
+      userId,
+      start,
+      minutes,
+    });
+    if (clash) return NextResponse.json({ clash }, { status: 409 });
+  }
 
   const { data: row, error } = await admin
     .from("activity_logs")

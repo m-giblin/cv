@@ -8,6 +8,7 @@ import {
   resolveSimulationStartMessage,
   withPrivatePersonaCard,
 } from "@/lib/simulations/prompt-template";
+import { isObjectionPractice, isOnOnboardingRamp, withNewHireEasyMode } from "@/lib/simulations/new-hire-practice";
 import type { SimulationAssignment } from "@/lib/types";
 
 const OPEN_STATUSES = ["not_started", "in_progress"] as const;
@@ -84,6 +85,9 @@ export async function ensureTemplateAssignment(
         }),
       )
     : templateBody;
+  // New hires get objection practice on easy (see new-hire-practice.ts).
+  const easy = isObjectionPractice(promptBody) && (await isOnOnboardingRamp(supabase, params.userId));
+  const snapshot = easy ? withNewHireEasyMode(promptBody) : promptBody;
 
   const { data: created, error } = await supabase
     .from("simulation_assignments")
@@ -94,15 +98,15 @@ export async function ensureTemplateAssignment(
       persona: template.persona,
       vertical: template.vertical,
       solution_focus: template.solution_focus,
-      difficulty: template.difficulty,
+      difficulty: easy ? "foundational" : template.difficulty,
       status: "not_started",
       transcript: [],
       tenant_id: template.tenant_id,
       session_data: {
-        promptSnapshot: promptBody,
+        promptSnapshot: snapshot,
         aiRoleplay: true,
         simulationKind: "ai_roleplay",
-        startMessage: resolveSimulationStartMessage(template.name, promptBody),
+        startMessage: resolveSimulationStartMessage(template.name, snapshot),
         practiceRoundsRequired: template.practice_rounds_before_submit ?? 1,
         practiceRoundsCompleted: 0,
       },

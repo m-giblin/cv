@@ -29,7 +29,7 @@ export default async function MyPlanPage({ searchParams }: MyPlanPageProps) {
   // The mentor is often outside the SE's visible profiles, so load them directly.
   const admin = getTenantAdminClient() as unknown as SupabaseClient<Database> | null;
   const myMentor =
-    plan?.mentorId && admin ? await loadMyMentor(admin, data.currentUser.id, plan.mentorId).catch(() => null) : null;
+    plan?.mentorId && admin ? await loadMyMentor(admin, data.currentUser.id, plan.mentorId, plan.id).catch(() => null) : null;
   const mentor = myMentor?.profile ?? (plan?.mentorId ? data.profiles.find((profile) => profile.id === plan.mentorId) : undefined);
   const manager = data.profiles.find((profile) => profile.id === data.currentUser.managerId);
   const model = plan ? buildRampModel(plan) : null;

@@ -64,19 +64,25 @@ export async function POST(request: Request) {
   if (rateLimited) return rateLimited;
 
   const fallback = templateBrief(parsed.data);
-  const { model, provider, modelName } = await resolveAiProviderForUser(session.supabase, session.user.id);
+  // The manager waits on this draft, so it uses the provider's fast model.
+  const ai = await resolveAiProviderForUser(session.supabase, session.user.id);
+  const { provider } = ai;
+  const model = ai.liveTurn?.model ?? ai.model;
+  const modelName = ai.liveTurn?.modelName ?? ai.modelName;
   if (!model) {
     return NextResponse.json(fallback);
   }
 
   const prompt = `You are preparing a sales engineering manager to coach ${parsed.data.personName}.
-Review type: ${parsed.data.reviewType}${parsed.data.isManagerGate ? " (segment gate — high stakes)" : ""}
+Review type: ${parsed.data.reviewType}${parsed.data.isManagerGate ? " (stage gate — high stakes)" : ""}
 Item: ${parsed.data.title}
 Brief: ${parsed.data.managerSummary ?? "n/a"}
 Strengths: ${(parsed.data.strengths ?? []).join("; ") || "n/a"}
 Gaps: ${(parsed.data.gaps ?? []).join("; ") || "n/a"}
 Coaching moments: ${(parsed.data.recommendedImprovements ?? []).join("; ") || "n/a"}
 ${parsed.data.context ? `Context:\n${parsed.data.context.slice(0, 2000)}` : ""}
+
+Use only what is written above. Never invent details about the work (slides, numbers, customers, wording) that the material doesn't state. If the material shows no gap, set suggestedGap to "None shown in the evidence; ask about it in the 1:1." The manager edits this draft, so leave out anything you can't point to above.
 
 Return JSON only with keys:
 brief (2-3 sentences on what happened and what to validate),

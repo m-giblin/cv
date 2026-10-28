@@ -72,3 +72,50 @@ export async function loadMentorInvites(admin: Db, mentorId: string, menteeIds: 
   );
   return new Map(entries.filter((entry): entry is readonly [string, UpcomingOneOnOne] => entry[1] !== null));
 }
+
+export type BookedOneOnOne = { userId: string; actorId: string | null; start: string; minutes: number; label: string; mentorId: string | null };
+
+/** The first booked 1:1 that overlaps [start, start + minutes), or null. Pure, so it is unit tested. */
+export function firstOverlap(booked: BookedOneOnOne[], start: string, minutes: number): BookedOneOnOne | null {
+  const from = new Date(start).getTime();
+  const to = from + minutes * 60_000;
+  return (
+    booked.find((item) => {
+      const itemFrom = new Date(item.start).getTime();
+      return itemFrom < to && itemFrom + item.minutes * 60_000 > from;
+    }) ?? null
+  );
+}
+
+/**
+ * 1:1s with other people that the scheduler or the invited mentor are already in at that time.
+ * Returns a sentence for the scheduler, or null when the time is free.
+ */
+export async function oneOnOneClash(
+  admin: Db,
+  params: { schedulerId: string; mentorId: string | null; mentorName: string | null; userId: string; start: string; minutes: number },
+): Promise<string | null> {
+  const people = [params.schedulerId, params.mentorId].filter((id): id is string => Boolean(id));
+  const filters = people.flatMap((id) => [`actor_id.eq.${id}`, `metadata->>mentor_id.eq.${id}`]).join(",");
+  // 1:1s are booked days or weeks ahead; anything booked in the last 90 days may still be upcoming.
+  const since = new Date(Date.now() - 90 * 86_400_000).toISOString();
+  const { data } = await admin
+    .from("activity_logs")
+    .select("user_id, actor_id, metadata")
+    .eq("event_type", ONE_ON_ONE_EVENT)
+    .neq("user_id", params.userId)
+    .gte("created_at", since)
+    .or(filters);
+  const booked: BookedOneOnOne[] = (data ?? []).flatMap((row) => {
+    const meta = (row.metadata ?? {}) as OneOnOneMetadata;
+    return meta.start
+      ? [{ userId: row.user_id, actorId: row.actor_id, start: meta.start, minutes: meta.minutes ?? 30, label: meta.label ?? meta.start, mentorId: meta.mentor_id ?? null }]
+      : [];
+  });
+  const clash = firstOverlap(booked, params.start, params.minutes);
+  if (!clash) return null;
+  const { data: other } = await admin.from("profiles").select("full_name").eq("id", clash.userId).maybeSingle();
+  const whose = `${other?.full_name ?? "someone else"}'s 1:1 (${clash.label})`;
+  const youAreIn = clash.actorId === params.schedulerId || clash.mentorId === params.schedulerId;
+  return youAreIn ? `You already have ${whose} at that time.` : `${params.mentorName ?? "The mentor"} is already in ${whose} at that time.`;
+}

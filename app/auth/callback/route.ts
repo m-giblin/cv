@@ -48,8 +48,9 @@ export async function GET(request: Request) {
  return NextResponse.redirect(`${origin}/login?error=unauthorized_domain`);
  }
 
+ // Super Admins start in Platform Console unless they signed in on the way to a specific page.
  const redirectPath =
- role && getAccessTier(role) === "super_admin" ? "/platform" : next;
+ role && getAccessTier(role) === "super_admin" && (next === "/dashboard" || next === "/") ? "/platform" : next;
  const response = NextResponse.redirect(`${origin}${redirectPath}`);
  if (role && getAccessTier(role) === "super_admin") {
  clearShadowCookiesOnResponse(response);

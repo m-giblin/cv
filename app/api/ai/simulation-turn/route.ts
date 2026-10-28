@@ -1,5 +1,5 @@
 import { generateText } from "ai";
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { z } from "zod";
 import { resolveAiProviderForUser } from "@/lib/ai/resolve-provider-for-user";
 import { enforceAiRateLimit } from "@/lib/ai/enforce-rate-limit";
@@ -71,18 +71,25 @@ export async function POST(request: Request) {
  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
  }
 
- const entitlement = await requireUserFeature(supabase, user.id, "simulations");
- if (entitlement) return entitlement;
- const aiEntitlement = await requireUserFeature(supabase, user.id, "ai-features");
- if (aiEntitlement) return aiEntitlement;
-
  const parsed = requestSchema.safeParse(await request.json());
 
  if (!parsed.success) {
  return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
  }
 
- const rateLimited = await enforceAiRateLimit(supabase, user.id);
+ // The person waits on every turn, so the checks run side by side instead of one after another.
+ const assignmentId = parsed.data.assignmentId;
+ const [entitlement, aiEntitlement, rateLimited, ai, assignmentRead] = await Promise.all([
+ requireUserFeature(supabase, user.id, "simulations"),
+ requireUserFeature(supabase, user.id, "ai-features"),
+ enforceAiRateLimit(supabase, user.id),
+ resolveAiProviderForUser(supabase, user.id),
+ assignmentId
+ ? supabase.from("simulation_assignments").select("assigned_to, session_data, tenant_id").eq("id", assignmentId).maybeSingle()
+ : Promise.resolve(null),
+ ]);
+ if (entitlement) return entitlement;
+ if (aiEntitlement) return aiEntitlement;
  if (rateLimited) {
  return rateLimited;
  }
@@ -91,14 +98,12 @@ export async function POST(request: Request) {
  // Objection drills started from a playbook report their result back to it.
  let drillSource: { playbookId: string; tenantId: string } | null = null;
 
- const { model, provider, modelName } = await resolveAiProviderForUser(supabase, user.id);
+ const { provider } = ai;
+ const model = ai.liveTurn?.model ?? ai.model;
+ const modelName = ai.liveTurn?.modelName ?? ai.modelName;
 
- if (parsed.data.assignmentId) {
- const { data: assignment, error: assignmentError } = await supabase
- .from("simulation_assignments")
- .select("assigned_to, session_data, tenant_id")
- .eq("id", parsed.data.assignmentId)
- .maybeSingle();
+ if (assignmentRead) {
+ const { data: assignment, error: assignmentError } = assignmentRead;
 
  if (assignmentError || !assignment) {
  return NextResponse.json({ error: "Simulation assignment not found" }, { status: 404 });
@@ -165,13 +170,16 @@ Jordan Ellis: Before we go deep — why should we talk about ${parsed.data.promp
 
  const speaker = classifySpeaker(result.text, userMessage);
 
- await logAiUsage(supabase, {
+ // Bookkeeping runs after the reply is sent.
+ after(() =>
+ logAiUsage(supabase, {
  feature: "simulation_turn",
  provider,
  model: modelName,
  userId: user.id,
  usage: result.usage,
- });
+ }),
+ );
 
  const ended = roleplayEnded(result.text);
  let assignmentCompleted: SettledAssignment = null;

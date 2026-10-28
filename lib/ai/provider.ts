@@ -1,5 +1,5 @@
 import { createOpenAI } from "@ai-sdk/openai";
-import { DEFAULT_AI_MODELS, resolveModelName } from "@/lib/ai/models";
+import { DEFAULT_AI_MODELS, LIVE_TURN_MODELS, resolveModelName } from "@/lib/ai/models";
 import { createXai } from "@ai-sdk/xai";
 import type { LanguageModel, ToolSet, TranscriptionModel } from "ai";
 import { SAILPOINT_DOC_DOMAINS } from "@/lib/help/sailpoint-docs";
@@ -18,18 +18,27 @@ function buildFromCredentials(
   provider: AiProviderName;
   model: LanguageModel;
   modelName: string;
+  liveTurn: { model: LanguageModel; modelName: string };
   docsSearch: DocsSearch;
   transcription: TranscriptionModel;
 } {
   // Saved settings may still name a retired model; run it on the current default.
   modelName = resolveModelName(provider, modelName);
+  const liveTurnName = LIVE_TURN_MODELS[provider] ?? modelName;
   if (provider === "openai") {
     const client = createOpenAI({ apiKey });
     const docsSearch = {
       model: client.responses(modelName),
       tools: { web_search: client.tools.webSearch({ filters: { allowedDomains: [...SAILPOINT_DOC_DOMAINS] } }) },
     };
-    return { provider, model: client(modelName), modelName, docsSearch, transcription: client.transcription("gpt-4o-mini-transcribe") };
+    return {
+      provider,
+      model: client(modelName),
+      modelName,
+      liveTurn: { model: client(liveTurnName), modelName: liveTurnName },
+      docsSearch,
+      transcription: client.transcription("gpt-4o-mini-transcribe"),
+    };
   }
 
   const client = createXai({ apiKey });
@@ -37,7 +46,14 @@ function buildFromCredentials(
     model: client.responses(modelName),
     tools: { web_search: client.tools.webSearch({ allowedDomains: [...SAILPOINT_DOC_DOMAINS] }) },
   };
-  return { provider, model: client(modelName), modelName, docsSearch, transcription: client.transcription() };
+  return {
+    provider,
+    model: client(modelName),
+    modelName,
+    liveTurn: { model: client(liveTurnName), modelName: liveTurnName },
+    docsSearch,
+    transcription: client.transcription(),
+  };
 }
 
 /** @deprecated use resolveAiProvider */
@@ -69,6 +85,8 @@ export async function resolveAiProvider(tenantId?: string): Promise<{
   provider: AiProviderName;
   model: LanguageModel | null;
   modelName: string;
+  /** Faster model for roleplay replies the person waits on; same provider and key. */
+  liveTurn?: { model: LanguageModel; modelName: string };
   docsSearch?: DocsSearch;
   /** Speech-to-text for spoken pitches; same provider and key as the language model. */
   transcription?: TranscriptionModel;

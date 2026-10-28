@@ -3,6 +3,7 @@ import type { Database } from "@/lib/database.types";
 import { parsePlanStepMetadata } from "@/lib/corpus/parse-step-metadata";
 import { createNotification } from "@/lib/notifications/create-notification";
 import { assignPlanToUser } from "@/lib/plans/assign-plan";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { stageAfter, type StageLink } from "@/lib/plans/stage-progression";
 
 function addDays(isoDate: string, days: number): string {
@@ -36,15 +37,25 @@ export async function enrollNextProgramStage(
     .maybeSingle();
   if (!assignment) return null;
 
-  const { data: memberships } = await supabase
+  // Stage links are program setup, not the manager's data: Run 3 lost a stage because links saved
+  // without a tenant were invisible to the manager's session. Read them with the platform client,
+  // scoped to the assignment's tenant.
+  const linkReader = (createAdminClient() as SupabaseClient<Database> | null) ?? supabase;
+  const { data: memberships, error: membershipError } = await linkReader
     .from("enablement_program_segments")
-    .select("program_id")
+    .select("program_id, tenant_id")
     .eq("plan_id", assignment.plan_id)
     .limit(1);
-  const programId = memberships?.[0]?.program_id;
-  if (!programId) return null;
+  const membership = memberships?.[0];
+  if (membershipError) console.error("[advance-program] could not read stage links", membershipError.message);
+  if (!membership?.program_id) return null;
+  if (membership.tenant_id && assignment.tenant_id && membership.tenant_id !== assignment.tenant_id) {
+    console.error("[advance-program] stage link belongs to another tenant", { assignmentId, planId: assignment.plan_id });
+    return null;
+  }
+  const programId = membership.program_id;
 
-  const { data: segmentRows } = await supabase
+  const { data: segmentRows } = await linkReader
     .from("enablement_program_segments")
     .select("segment_index, plan_id")
     .eq("program_id", programId);
@@ -91,10 +102,10 @@ export async function enrollNextProgramStage(
 
   await createNotification(supabase, {
     userId: assignment.user_id,
-    title: "Next program assigned",
+    title: nextPlan?.name ? `Next stage assigned: ${nextPlan.name}` : "Next stage assigned",
     body: nextPlan?.name
       ? `Your manager approved the move. ${nextPlan.name} is now on your plan.`
-      : "Your manager approved the move to the next program.",
+      : "Your manager approved the move to the next stage.",
     actionUrl: "/my-plan",
   });
 

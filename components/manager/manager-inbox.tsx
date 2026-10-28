@@ -31,6 +31,7 @@ import type { ReviewSignoffContext } from "@/lib/coaching/signoff-policy";
 import { signoffTierForReview } from "@/lib/coaching/signoff-policy";
 import { ageWords } from "@/lib/manager/copy";
 import { AT_RISK_READINESS, INBOX_SLA_DAYS } from "@/lib/manager/team-status";
+import { announceNotificationsRead } from "@/lib/notifications/read-events";
 import { cn } from "@/lib/utils";
 
 type MentorItem = {
@@ -122,6 +123,8 @@ function itemTimestamp(item: InboxItem): string | null {
       return item.createdAt ?? null;
     case "cert":
       return item.submittedAt;
+    case "plan_step":
+      return item.submittedAt ?? null;
     default:
       return null;
   }
@@ -169,7 +172,7 @@ function helperText(item: InboxItem) {
       return `Approving marks the challenge reviewed and records your grade for ${first}.`;
     case "plan_step":
       return item.isManagerGate
-        ? `This step is a segment gate. Approving validates it and unlocks ${first}'s next segment.`
+        ? `This step is a stage gate. Approving it opens what comes next for ${first}: the next part of the stage, or the next stage once every gate is signed off.`
         : `Approving validates this step in ${first}'s ramp${item.mentorEndorsed ? " (already endorsed by their mentor)" : ""}.`;
     case "cert":
       return `Approving clears the ${item.label} gate for ${first}.`;
@@ -292,6 +295,17 @@ export function ManagerInbox({
   const signoff = useCoachingSignoffState();
   const workbenchTitleId = useId();
   const [attemptedKey, setAttemptedKey] = useState<string | null>(null);
+
+  // Opening the Inbox is seeing what's new in it, so its notices stop counting on the sidebar badge.
+  useEffect(() => {
+    void fetch("/api/notifications/read-all", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ actionUrlPrefix: "/manager/inbox" }),
+    }).then((response) => {
+      if (response.ok) announceNotificationsRead({ actionUrlPrefix: "/manager/inbox" });
+    });
+  }, []);
 
   useEffect(() => {
     void fetch("/api/mentor-reviews")

@@ -223,7 +223,8 @@ export async function middleware(request: NextRequest) {
       }
 
       const loginUrl = new URL(AUTH_ROUTES.login, request.url);
-      loginUrl.searchParams.set("next", pathname);
+      // Keep the query too, so a link like /mentoring?open=… still opens that mentee after sign-in.
+      loginUrl.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
       return NextResponse.redirect(loginUrl);
     }
 

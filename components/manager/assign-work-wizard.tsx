@@ -19,7 +19,7 @@ type Person = { id: string; name: string; role: string; hasRampPlan: boolean; ra
 
 type Options = {
   people: Person[];
-  playbooks: { id: string; title: string; chapter: number; slug: string; subtitle?: string | null }[];
+  playbooks: { id: string; title: string; chapter: number; slug: string; subtitle?: string | null; keywords?: string }[];
   simulations: { id: string; name: string; persona: string; vertical: string; solution_focus: string; difficulty: string }[];
   pitches: { id: string; label: string; track: string; max_duration_sec: number }[];
   checks?: { key: string; title: string; solution: string | null; questions: number; kind: string }[];
@@ -128,7 +128,7 @@ export function AssignWorkWizard({
     if (!options || !kind) return [];
     return (
       kind === "playbook"
-        ? options.playbooks.map((p) => ({ id: p.id, title: `Ch. ${p.chapter} ${p.title}`, detail: p.subtitle ?? undefined, tryHref: `/learn/playbooks?playbook=${p.slug}` }))
+        ? options.playbooks.map((p) => ({ id: p.id, title: `Ch. ${p.chapter} ${p.title}`, detail: p.subtitle ?? undefined, keywords: p.keywords, tryHref: `/learn/playbooks?playbook=${p.slug}` }))
         : kind === "simulation"
           ? options.simulations.map((s) => ({
               id: s.id,
@@ -155,7 +155,7 @@ export function AssignWorkWizard({
   const words = searchTokens(search);
   const choices = words.length
     ? allChoices.filter((item) => {
-        const text = normalizeSearchText(`${item.title} ${item.detail ?? ""}`);
+        const text = normalizeSearchText(`${item.title} ${item.detail ?? ""} ${"keywords" in item ? (item.keywords ?? "") : ""}`);
         return words.every((word) => text.includes(word));
       })
     : allChoices;

@@ -16,6 +16,19 @@ import { loadBank } from "@/lib/question-bank/data";
  * own assignment routes.
  */
 
+type PlaybookOption = {
+  id: string;
+  title: string;
+  chapter: number;
+  slug: string;
+  subtitle: string | null;
+  objectives: string[] | null;
+  where_fits: string | null;
+  problem: string | null;
+  solution: string | null;
+  takeaways: string[] | null;
+};
+
 export async function GET() {
   const session = await requireManagerSession();
   if (session instanceof NextResponse) return session;
@@ -26,7 +39,9 @@ export async function GET() {
     loadAssignablePeople(session.tenantId, session.user.id, session.role),
     admin
       .from("capability_playbooks")
-      .select("id, title, chapter, slug, subtitle:body->>subtitle")
+      .select(
+        "id, title, chapter, slug, subtitle:body->>subtitle, objectives:body->objectives, where_fits:body->>whereFits, problem:body->problem->>title, solution:body->solution->>title, takeaways:body->takeaways",
+      )
       .eq("tenant_id", session.tenantId)
       .eq("status", "published")
       .order("chapter"),
@@ -71,7 +86,11 @@ export async function GET() {
   }
   return NextResponse.json({
     people: people.map((person) => ({ ...person, hasRampPlan: withPlan.has(person.id), rampDue: rampDue.get(person.id) ?? [] })),
-    playbooks: playbooks.data ?? [],
+    playbooks: ((playbooks.data ?? []) as PlaybookOption[]).map(({ objectives, where_fits, problem, solution, takeaways, ...row }) => ({
+      ...row,
+      // Search reaches into what the chapter teaches, not just its title: "access reviews" finds Ch. 4.
+      keywords: [...(objectives ?? []), where_fits, problem, solution, ...(takeaways ?? [])].filter(Boolean).join(" "),
+    })),
     simulations: ((simulations.data ?? []) as { prompt_body?: string }[]).flatMap((row) => {
       if (isDraftSimulationPrompt(row.prompt_body ?? "")) return [];
       const { prompt_body: _promptBody, ...rest } = row;

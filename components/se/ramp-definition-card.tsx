@@ -82,7 +82,7 @@ export function RampDefinitionCard({ model, planName }: { model: RampModel | nul
       {planName
         ? `${capitalize(numberWord(weeks))} weeks of ${planName}. Your manager signs off the gate at the end, which opens your next stage.`
         : `The ${numberWord(weeks)} weeks between your first login and your first solo customer call.`}
-      {segmented ? ` ${capitalize(numberWord(model.segments.length))} segments get you there:` : ""}
+      {segmented ? ` ${capitalize(numberWord(model.segments.length))} parts get you there:` : ""}
     </DefinitionCard>
   );
 }

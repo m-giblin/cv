@@ -80,6 +80,14 @@ export function SimulationWorkspace({
   const responseFieldId = useId();
   const startedRef = useRef(false);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
+  // Saves run in the background, one after another, so an older transcript never lands last.
+  const saveQueueRef = useRef<Promise<unknown>>(Promise.resolve());
+
+  function saveTranscript(transcript: TranscriptEntry[], status?: "in_progress" | "completed") {
+    saveQueueRef.current = saveQueueRef.current
+      .then(() => persistTranscript(assignment.id, transcript, status))
+      .catch(() => undefined);
+  }
 
   useEffect(() => {
     if (assignment.id.startsWith("practice") || (assignment.transcript?.length ?? 0) > 0) {
@@ -211,7 +219,7 @@ export function SimulationWorkspace({
       const nextMessages: TranscriptEntry[] = [{ speaker: payload.speaker, message: payload.response }];
       setMessages(nextMessages);
       setRoleplayEnded(payload.roleplayEnded);
-      await persistTranscript(assignment.id, nextMessages, "in_progress");
+      saveTranscript(nextMessages, "in_progress");
     } catch (error) {
       startedRef.current = false;
       toast.error("Could not start simulation", {
@@ -264,11 +272,7 @@ export function SimulationWorkspace({
       setMessages(nextMessages);
       setRoleplayEnded(payload.roleplayEnded);
       if (payload.assignmentCompleted) setFinishedAssignment(payload.assignmentCompleted);
-      await persistTranscript(
-        assignment.id,
-        nextMessages,
-        payload.roleplayEnded ? "completed" : "in_progress",
-      );
+      saveTranscript(nextMessages, payload.roleplayEnded ? "completed" : "in_progress");
     } catch (error) {
       toast.error("Persona response failed", {
         description: error instanceof Error ? error.message : "Please try again.",

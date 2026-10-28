@@ -8,4 +8,6 @@ export type PlanStepReviewItem = {
   notes?: string;
   mentorEndorsed?: boolean;
   isManagerGate?: boolean;
+  /** When the step went into review. */
+  submittedAt?: string | null;
 };

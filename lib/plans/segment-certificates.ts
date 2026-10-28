@@ -12,6 +12,8 @@ export async function issueSegmentCertificate(
     segmentIndex: number;
     programId?: string | null;
     validMonths?: number;
+    /** What the certificate is for, e.g. the stage name; shown in the new hire's notice. */
+    label?: string | null;
   },
 ) {
   const validMonths = input.validMonths ?? 12;
@@ -47,7 +49,7 @@ export async function issueSegmentCertificate(
 
   await createNotification(supabase, {
     userId: input.userId,
-    title: `Segment ${input.segmentIndex} certificate earned`,
+    title: input.label ? `Certificate earned: ${input.label}` : "Stage certificate earned",
     body: `Certificate ${code} — valid until ${expiresAt.toLocaleDateString()}.`,
     actionUrl: "/my-plan",
   });

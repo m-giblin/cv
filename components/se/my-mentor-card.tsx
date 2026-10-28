@@ -37,7 +37,9 @@ export function MyMentorCard({
             ? lastMet
               ? `${first} set your schedule ${scheduled}. The due dates on your ramp are the ones you agreed.`
               : `${first} drafted your due dates ${scheduled}. You'll confirm them together at your first 1:1.`
-            : `You'll agree your due dates with ${first} at your first 1:1.`}
+            : lastMet
+              ? `${first} hasn't set the dates for this stage yet. You'll agree them at your next 1:1.`
+              : `You'll agree your due dates with ${first} at your first 1:1.`}
         </li>
         <li>{first} reviews your steps and runs your test-outs. Your manager signs off each stage gate.</li>
       </ul>

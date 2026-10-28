@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
 import { Notification } from "@/lib/types";
+import { announceNotificationsRead, applyNotificationsRead, onNotificationsRead } from "@/lib/notifications/read-events";
 import { cn } from "@/lib/utils";
 
 function formatWhen(iso: string | null | undefined) {
@@ -79,6 +80,8 @@ export function NotificationFlyout({
  setItems(notifications);
  }, [notifications]);
 
+ useEffect(() => onNotificationsRead((detail) => setItems((current) => applyNotificationsRead(current, detail))), []);
+
  async function markRead(id: string) {
  const response = await fetch(`/api/notifications/${id}`, { method: "PATCH" });
 
@@ -87,9 +90,7 @@ export function NotificationFlyout({
  return;
  }
 
- setItems((current) =>
- current.map((item) => (item.id === id ? { ...item, readAt: new Date().toISOString() } : item)),
- );
+ announceNotificationsRead({ ids: [id] });
  }
 
  async function openNotification(item: Notification) {
@@ -114,9 +115,7 @@ export function NotificationFlyout({
  return;
  }
 
- setItems((current) =>
- current.map((item) => ({ ...item, readAt: item.readAt ?? new Date().toISOString() })),
- );
+ announceNotificationsRead({ all: true });
  setIsMarking(false);
  }
 

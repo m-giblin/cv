@@ -81,6 +81,12 @@ function formatClock(sec: number) {
   return `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`;
 }
 
+/** The saved title: the scenario, plus the person's own title when it adds something (the default repeats the scenario). */
+function sessionTitle(scenarioLabel: string, title: string) {
+  const own = title.trim();
+  return own && !scenarioLabel.toLowerCase().includes(own.toLowerCase()) ? `${scenarioLabel}: ${own}` : scenarioLabel;
+}
+
 export function VideoPitchCapture({
   initialScenarioId,
   peerLibrary,
@@ -160,6 +166,8 @@ export function VideoPitchCapture({
 
   const scenario =
     activeScenarioList.find((item) => item.id === selectedScenarioId) ??
+    // Free practice starts on a playbook pitch: it's typed or spoken, and scored against the guide.
+    (studioMode === "practice" ? activeScenarioList.find((item) => item.referenceText) : undefined) ??
     activeScenarioList[0] ??
     fallbackScenarios()[0]!;
   const isDrill = Boolean(scenario.referenceText);
@@ -205,6 +213,9 @@ export function VideoPitchCapture({
         if (body.queue[0] && !initialScenarioId) {
           setSelectedScenarioId(body.queue[0].scenario.id);
           setSelectedQueueSlotId(body.queue[0].id);
+        } else if (!body.queue.length) {
+          // Nothing assigned: open on free practice rather than an empty queue.
+          setStudioMode("practice");
         }
       }
       setLoadingQueue(false);
@@ -310,8 +321,9 @@ export function VideoPitchCapture({
       return;
     }
 
-    if (practiceScenarios[0]) {
-      setSelectedScenarioId(practiceScenarios[0].id);
+    const first = practiceScenarios.find((item) => item.referenceText) ?? practiceScenarios[0];
+    if (first) {
+      setSelectedScenarioId(first.id);
     }
   }
 
@@ -528,7 +540,7 @@ export function VideoPitchCapture({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        title: `${scenario.label}: ${title}`,
+        title: sessionTitle(scenario.label, title),
         evidencePath: uploaded?.evidencePath,
         reflectionText: reflection || undefined,
         scenarioId: isUuid(scenario.id) ? scenario.id : undefined,
@@ -614,7 +626,7 @@ export function VideoPitchCapture({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        title: `${scenario.label}: ${title}`,
+        title: sessionTitle(scenario.label, title),
         evidencePath: uploaded?.evidencePath,
         reflectionText: reflection || undefined,
         targetType: "certification",

@@ -79,6 +79,8 @@ export type PlanStep = {
   /** What the learner wrote when they submitted the step. */
   submissionNotes?: string;
   completedAt?: string;
+  /** Last change to the step's progress; for a step in review, when it was submitted. */
+  updatedAt?: string;
 };
 
 export type UserPlan = {

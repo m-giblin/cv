@@ -62,7 +62,7 @@ export const MANAGER_ARTICLES: HelpArticle[] = [
       "Light (challenges, deal preps, pitches): \"Strength observed\" and \"Concrete next action\". Required (sim cards and ordinary plan steps): adds \"Gap to address\". Certification gates and plan steps that are segment gates use the strictest tier: when approving you also choose \"Readiness confidence, 1 to 5\" and can tick \"Live coaching attestation\" and describe \"What you observed\".",
       "Sim cards, challenges and pitches also take a \"Grade, 1 to 5\". Mentor notes use a single \"Feedback\" box instead of the sign-off fields.",
       "The \"Coaching brief\" panel above the fields is an AI draft that pre-fills your sign-off and suggests what to ask in your 1:1. Edit it before you send.",
-      "Approve does something different per type, and the drawer tells you what. For example, approving a sim card validates the SE's simulation step, approving a gate plan step unlocks their next segment, and approving a certification gate clears it.",
+      "Approve does something different per type, and the drawer tells you what. For example, approving a sim card validates the SE's simulation step, approving a stage gate opens the next part of the stage, or the next stage once every gate is signed off, and approving a certification gate clears it.",
     ],
     steps: [
       { title: "Open the item", body: "Click a row in the Inbox. Read \"The work\" on the left, including any \"SE notes\" or \"SE reflection\". For pitches, click \"Watch video pitch\"." },

@@ -245,8 +245,8 @@ export function buildSeCoachingSummary(params: {
   if (!hasEvidence && plan) {
     talkingPoints.push(
       currentStep
-        ? `Getting started: walk through the plan, confirm the schedule the mentor agreed, and start with ${currentStep.title}.`
-        : "Getting started: walk through the plan and confirm the schedule the mentor agreed.",
+        ? `Getting started: walk through the plan, check the due dates with the mentor, and start with ${currentStep.title}.`
+        : "Getting started: walk through the plan and check the due dates with the mentor.",
     );
   }
   // Cert gates matter once the first ramp stage is behind them; in week one the ramp is the next thing.

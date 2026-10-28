@@ -237,7 +237,7 @@ export function PlanStepActions({
         <p className="text-[15px] text-ink-2">
           {step.segmentIndex != null
             ? `This step is in segment ${step.segmentIndex}. Pass the gate at the end of the previous segment to unlock it.`
-            : "Pass the gate at the end of the previous segment to unlock this step."}
+            : "Opens when your manager signs off the gate at the end of the previous part."}
         </p>
       </div>
     );

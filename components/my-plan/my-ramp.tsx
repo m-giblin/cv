@@ -412,13 +412,13 @@ export function RampStepDetail({
   step,
   number,
   total,
-  plan,
   mentor,
 }: {
   step: PlanStep;
   number: number;
   total: number;
-  plan: UserPlan;
+  /** Kept for callers; the locked note no longer names the part numbers. */
+  plan?: UserPlan;
   mentor?: Profile;
 }) {
   const due = formatDay(step.dueDate);
@@ -434,9 +434,7 @@ export function RampStepDetail({
         {feedbackFirst ? <MentorFeedbackForStep assignmentStepId={step.assignmentStepId} leading /> : null}
         {step.locked ? (
           <Note title="Locked">
-            This step is in a later segment. Clear the current segment gate and get your manager&apos;s approval to
-            unlock segment {step.segmentIndex ?? "?"}
-            {plan.unlockedSegmentMax ? `. You are on segment ${plan.unlockedSegmentMax}.` : "."}
+            This step is in a later part of the stage. It opens when your manager signs off the gate before it.
           </Note>
         ) : (
           /* PlanStepActions renders the step brief, "Done when" criteria, evidence and the submit action. */

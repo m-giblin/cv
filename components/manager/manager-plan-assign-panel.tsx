@@ -143,7 +143,7 @@ export function ManagerPlanAssignPanel({
  return;
  }
 
- toast.success(`${selectedTemplate?.name ?? "Plan"} assigned. The SE has been notified.`);
+ toast.success(`${selectedTemplate?.name ?? "Plan"} assigned. The SE${mentorId ? " and their mentor have" : " has"} been notified.`);
  onAssigned?.();
  router.refresh();
  }

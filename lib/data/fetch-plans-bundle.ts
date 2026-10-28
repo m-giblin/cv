@@ -157,6 +157,7 @@ export function planStepFromRow(
     ...reviewMeta(step.metadata),
     submissionNotes: progress?.notes ?? undefined,
     completedAt: progress?.completed_at ?? undefined,
+    updatedAt: progress?.updated_at ?? undefined,
     segmentIndex: segmentMeta.segmentIndex,
     isSegmentGate: segmentMeta.isSegmentGate,
     locked: isStepLockedForSegment(segmentMeta.segmentIndex, unlockedSegmentMax, segmentMeta.isSegmentGate),

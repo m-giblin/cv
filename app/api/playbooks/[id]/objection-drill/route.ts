@@ -4,6 +4,7 @@ import { requireAuthenticatedSession } from "@/lib/auth/require-authenticated";
 import { resolveTenantContext } from "@/lib/auth/tenant-context";
 import { mapPlaybook } from "@/lib/playbooks/data";
 import { OBJECTION_DRILL_PERSONA, objectionDrillName, objectionDrillPrompt } from "@/lib/playbooks/drills";
+import { isOnOnboardingRamp, withNewHireEasyMode } from "@/lib/simulations/new-hire-practice";
 import { resolveSimulationStartMessage } from "@/lib/simulations/prompt-template";
 import { SE_ROUTES } from "@/lib/se/se-routes";
 
@@ -40,7 +41,9 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     .maybeSingle();
 
   const name = objectionDrillName(playbook);
-  const promptBody = objectionDrillPrompt(playbook);
+  // Someone still on their onboarding ramp practises on easy.
+  const easy = await isOnOnboardingRamp(session.supabase, session.user.id);
+  const promptBody = easy ? withNewHireEasyMode(objectionDrillPrompt(playbook)) : objectionDrillPrompt(playbook);
   const { data, error } = await session.supabase
     .from("simulation_assignments")
     .insert({
@@ -50,7 +53,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
       persona: OBJECTION_DRILL_PERSONA,
       vertical: "SLED",
       solution_focus: playbook.title,
-      difficulty: "intermediate",
+      difficulty: easy ? "foundational" : "intermediate",
       status: "not_started",
       transcript: [],
       session_data: {

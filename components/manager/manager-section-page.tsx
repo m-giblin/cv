@@ -106,6 +106,7 @@ export async function ManagerSectionPage({ section }: { section: ManagerSection 
  stepType: step.type,
  mentorEndorsed: step.status === "under_review",
  isManagerGate: step.isSegmentGate ?? false,
+ submittedAt: step.updatedAt ?? null,
  }));
  });
 
