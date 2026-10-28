@@ -98,5 +98,17 @@ export async function enrollNextProgramStage(
     actionUrl: "/my-plan",
   });
 
+  // The mentor sets each stage's dates with the new hire, so they need to know the next one has started.
+  if (assignment.mentor_id) {
+    const { data: mentee } = await supabase.from("profiles").select("full_name").eq("id", assignment.user_id).maybeSingle();
+    const first = mentee?.full_name?.split(" ")[0] ?? "Your mentee";
+    await createNotification(supabase, {
+      userId: assignment.mentor_id,
+      title: `${first} moved on to ${nextPlan?.name ?? "the next stage"}`,
+      body: `The manager signed off the last stage. Agree the dates for this one with ${first}, then set the schedule.`,
+      actionUrl: `/mentoring?open=${nextAssignmentId}`,
+    });
+  }
+
   return nextAssignmentId;
 }
