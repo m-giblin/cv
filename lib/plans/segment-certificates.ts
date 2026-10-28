@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { logAuditEvent } from "@/lib/audit/log-admin-action";
 import { createNotification } from "@/lib/notifications/create-notification";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function issueSegmentCertificate(
   supabase: SupabaseClient<Database>,
@@ -18,8 +19,11 @@ export async function issueSegmentCertificate(
   expiresAt.setMonth(expiresAt.getMonth() + validMonths);
 
   const code = `ISC-S${input.segmentIndex}-${input.userId.slice(0, 8)}-${Date.now().toString(36).toUpperCase()}`;
+  // Certificates are issued by the platform once a gate is signed off; segment_certificates has no
+  // insert policy, so the manager's session cannot write the row itself.
+  const writer = (createAdminClient() as SupabaseClient<Database> | null) ?? supabase;
 
-  const { data: existing } = await supabase
+  const { data: existing } = await writer
     .from("segment_certificates")
     .select("id, certificate_code")
     .eq("assignment_id", input.assignmentId)
@@ -27,7 +31,7 @@ export async function issueSegmentCertificate(
     .maybeSingle();
 
   if (!existing) {
-    const { error } = await supabase.from("segment_certificates").insert({
+    const { error } = await writer.from("segment_certificates").insert({
       assignment_id: input.assignmentId,
       user_id: input.userId,
       program_id: input.programId ?? null,
