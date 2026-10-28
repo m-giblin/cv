@@ -230,16 +230,21 @@ function DoneSegment({ segment, model, plan }: { segment: RampSegment; model: Ra
   );
 }
 
-function UpcomingSegment({ segment, plan }: { segment: RampSegment; plan: UserPlan }) {
+function UpcomingSegment({ segment, model, plan }: { segment: RampSegment; model: RampModel; plan: UserPlan }) {
   const start = formatDay(segmentStartIso(plan, segment));
+  // Gates stay open so an experienced hire can test out before reaching them.
+  const gates = segment.steps.filter((step) => step.isSegmentGate);
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-dashed border-line-strong px-5 py-3">
-      <span className="text-[15px] font-bold text-ink-2">{segment.label}</span>
-      <span className="text-sm text-muted">
-        {segment.steps.length} {segment.steps.length === 1 ? "step" : "steps"}
-        {start ? `. Starts ${start}` : ""}
-        {segment.locked ? ". Locked until the gate before it clears" : ""}
-      </span>
+    <div className="flex flex-col gap-3 rounded-[12px] border border-dashed border-line-strong px-5 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <span className="text-[15px] font-bold text-ink-2">{segment.label}</span>
+        <span className="text-sm text-muted">
+          {segment.steps.length} {segment.steps.length === 1 ? "step" : "steps"}
+          {start ? `. Starts ${start}` : ""}
+          {segment.locked ? `. Locked until the gate before it clears${gates.length ? ", except its test-out" : ""}` : ""}
+        </span>
+      </div>
+      {gates.length ? <StepTable label={`${segment.label} gate`} model={model} plan={plan} steps={gates} /> : null}
     </div>
   );
 }
@@ -354,7 +359,7 @@ export function MyRampList({
         ) : segment.state === "current" ? (
           <CurrentSegment key={segment.index} model={model} plan={plan} reviewer={reviewer} segment={segment} />
         ) : (
-          <UpcomingSegment key={segment.index} plan={plan} segment={segment} />
+          <UpcomingSegment key={segment.index} model={model} plan={plan} segment={segment} />
         ),
       )}
     </RampFrame>

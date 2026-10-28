@@ -159,7 +159,7 @@ export function planStepFromRow(
     completedAt: progress?.completed_at ?? undefined,
     segmentIndex: segmentMeta.segmentIndex,
     isSegmentGate: segmentMeta.isSegmentGate,
-    locked: isStepLockedForSegment(segmentMeta.segmentIndex, unlockedSegmentMax),
+    locked: isStepLockedForSegment(segmentMeta.segmentIndex, unlockedSegmentMax, segmentMeta.isSegmentGate),
   };
 }
 

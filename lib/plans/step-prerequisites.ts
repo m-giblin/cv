@@ -61,8 +61,8 @@ export async function assertStepAccessible(
   const planStep = planStepResult.data;
   if (!assignment || !planStep) throw new Error("Plan step not found.");
 
-  const { segmentIndex } = parsePlanStepMetadata(planStep.metadata, planStep.sort_order);
-  if (isStepLockedForSegment(segmentIndex, assignment.unlocked_segment_max ?? 1)) {
+  const { segmentIndex, isSegmentGate } = parsePlanStepMetadata(planStep.metadata, planStep.sort_order);
+  if (isStepLockedForSegment(segmentIndex, assignment.unlocked_segment_max ?? 1, isSegmentGate)) {
     // Typed so callers map this to 403 like every other segment-lock path. Throwing a bare
     // Error here made the same condition surface as 400 from PATCH /api/plans/steps/[id],
     // which the client cannot distinguish from a malformed request.

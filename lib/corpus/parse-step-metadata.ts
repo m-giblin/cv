@@ -21,10 +21,12 @@ export function parsePlanStepMetadata(metadata: unknown, sortOrder: number): Pla
   return { segmentIndex, isSegmentGate, dueOffsetDays };
 }
 
+/** Gates are never locked: an experienced hire can take a stage's test-outs before the steps leading up to them. */
 export function isStepLockedForSegment(
   segmentIndex: number | null,
   unlockedSegmentMax: number,
+  isSegmentGate = false,
 ): boolean {
-  if (!segmentIndex) return false;
+  if (!segmentIndex || isSegmentGate) return false;
   return segmentIndex > unlockedSegmentMax;
 }

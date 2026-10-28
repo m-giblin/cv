@@ -31,6 +31,10 @@ describe("isStepLockedForSegment", () => {
     expect(isStepLockedForSegment(2, 2)).toBe(false);
     expect(isStepLockedForSegment(null, 1)).toBe(false);
   });
+
+  it("never locks a gate, so a stage can be tested out early", () => {
+    expect(isStepLockedForSegment(2, 1, true)).toBe(false);
+  });
 });
 
 describe("shouldUnlockNextSegment", () => {

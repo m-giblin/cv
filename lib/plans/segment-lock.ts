@@ -45,10 +45,10 @@ export async function assertAssignmentStepNotLocked(
     throw new Error("Plan step not found.");
   }
 
-  const { segmentIndex } = parsePlanStepMetadata(planStep.metadata, planStep.sort_order);
+  const { segmentIndex, isSegmentGate } = parsePlanStepMetadata(planStep.metadata, planStep.sort_order);
   const unlockedSegmentMax = assignment.unlocked_segment_max ?? 1;
 
-  if (isStepLockedForSegment(segmentIndex, unlockedSegmentMax)) {
+  if (isStepLockedForSegment(segmentIndex, unlockedSegmentMax, isSegmentGate)) {
     throw new StepSegmentLockedError(segmentIndex ?? 0, unlockedSegmentMax);
   }
 }
