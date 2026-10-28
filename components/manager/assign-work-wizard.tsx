@@ -7,16 +7,16 @@ import { KIND_LABEL } from "@/components/manager/assigned-work-list";
 import { Drawer } from "@/components/ui/drawer";
 import type { AssignedWorkKind } from "@/lib/manager/assigned-work";
 import { roleLabel } from "@/lib/auth/role-label";
+import { heavierWeek, lighterWeek } from "@/lib/manager/week-load";
 import { normalizeSearchText, searchTokens } from "@/lib/search/match";
+
+/** "Nov 16", or "Fri, Nov 20" with the weekday. */
+function shortDay(iso: string, weekday = false) {
+  return new Date(`${iso}T12:00:00`).toLocaleDateString("en-US", { ...(weekday ? { weekday: "short" as const } : {}), month: "short", day: "numeric" });
+}
 
 type Person = { id: string; name: string; role: string; hasRampPlan: boolean; rampDue?: string[] };
 
-/** Monday of the week a calendar day falls in, as "YYYY-MM-DD". */
-function weekOf(iso: string) {
-  const date = new Date(`${iso.slice(0, 10)}T12:00:00Z`);
-  date.setUTCDate(date.getUTCDate() - ((date.getUTCDay() + 6) % 7));
-  return date.toISOString().slice(0, 10);
-}
 type Options = {
   people: Person[];
   playbooks: { id: string; title: string; chapter: number; slug: string; subtitle?: string | null }[];
@@ -161,14 +161,20 @@ export function AssignWorkWizard({
     : allChoices;
 
   const nameOf = (id: string) => options?.people.find((person) => person.id === id)?.name ?? "this person";
-  // Ramp work already due the week this would be due, so the manager sees the doubled load.
+  // Only a week clearly heavier than the person's usual ramp week is worth a note; during a ramp
+  // nearly every week has steps. When it is, offer the lightest of the next few weeks.
+  const today = inDays(0);
   const busyThatWeek = dueDate
     ? people.flatMap((id) => {
         const person = options?.people.find((item) => item.id === id);
-        const count = (person?.rampDue ?? []).filter((day) => weekOf(day) === weekOf(dueDate)).length;
-        return person && count ? [{ name: person.name, count }] : [];
+        const load = person ? heavierWeek(person.rampDue ?? [], dueDate, today) : null;
+        return person && load ? [{ name: person.name, ...load }] : [];
       })
     : [];
+  const lighter =
+    dueDate && busyThatWeek.length
+      ? lighterWeek(people.map((id) => options?.people.find((item) => item.id === id)?.rampDue ?? []), dueDate)
+      : null;
   const pickedTitles =
     kind === "ramp_task"
       ? [taskTitle.trim()]
@@ -428,9 +434,20 @@ export function AssignWorkWizard({
             {dueDate ? new Date(`${dueDate}T12:00:00`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) : "Not set"}
             {busyThatWeek.length ? (
               <span className="mt-2 block text-[13px] text-warning">
-                Same week:{" "}
-                {busyThatWeek.map(({ name, count }) => `${name.split(" ")[0]} has ${count} ramp step${count === 1 ? "" : "s"} due`).join(", ")}. Consider a
-                later date.
+                Busy week:{" "}
+                {busyThatWeek
+                  .map(({ name, count, typical }) => `${name.split(" ")[0]} has ${count} ramp steps due that week, against a usual ${typical}`)
+                  .join("; ")}
+                .
+                {lighter ? (
+                  <>
+                    {" "}
+                    The week of {shortDay(lighter.week)} is lighter ({lighter.count}).{" "}
+                    <button className="link font-bold" onClick={() => setDueDate(lighter.friday)} type="button">
+                      Use {shortDay(lighter.friday, true)}
+                    </button>
+                  </>
+                ) : null}
               </span>
             ) : null}
           </div>
