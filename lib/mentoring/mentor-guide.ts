@@ -224,7 +224,7 @@ export function mentorGuideFor(step: PlanStep): MentorGuide {
       };
     case "deal_prep":
       return {
-        purpose: "Prepares a real or practice account the way a field SE would.",
+        purpose: "Prepares a real or practice account the way they would before a live customer meeting.",
         yourRole: "Review the brief with them as you would before a customer meeting.",
         ask: ["What do you expect the customer to push back on?", "What is the next step you want?"],
         lookFor: ["Specific discovery questions", "A clear next step"],
@@ -286,7 +286,7 @@ export function stepExemplar(step: PlanStep): StepExemplar {
     case "shadow_meeting_log":
       return {
         strong:
-          "\"The customer kept coming back to the audit finding. The SE asked who owns it before offering a workshop. I'll try that question on my next call.\"",
+          "\"The customer kept coming back to the audit finding. The person running the call asked who owns it before offering a workshop. I'll try that question on my next call.\"",
         weak: "\"It was a discovery call about the platform. They showed a few slides.\" The agenda is there. The customer is not.",
       };
     case "mentor_review":

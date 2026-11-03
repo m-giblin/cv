@@ -9,6 +9,7 @@ import { useTenantBranding } from "@/components/tenant/tenant-branding-provider"
 import { PageBody, PageHeader } from "@/components/ui/page-header";
 import { searchHelp } from "@/lib/help/search";
 import { HELP_AUDIENCE_LABELS, type HelpArticle, type HelpAudience } from "@/lib/help/types";
+import { fillLearnerTerms } from "@/lib/tenant/learner-terms";
 import { cn } from "@/lib/utils";
 
 /** Searchable, step-by-step help. Articles open in a workbench; ?article=<id> links straight to one. */
@@ -16,7 +17,7 @@ export function HelpCenter({ articles, audiences }: { articles: HelpArticle[]; a
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { productName } = useTenantBranding();
+  const { productName, learner } = useTenantBranding();
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [category, setCategory] = useState<string>("all");
   const [audience, setAudience] = useState<HelpAudience | "all">("all");
@@ -116,7 +117,7 @@ export function HelpCenter({ articles, audiences }: { articles: HelpArticle[]; a
                   <option value="all">Every role</option>
                   {audiences.map((item) => (
                     <option key={item} value={item}>
-                      {HELP_AUDIENCE_LABELS[item]}
+                      {fillLearnerTerms(HELP_AUDIENCE_LABELS[item], learner)}
                     </option>
                   ))}
                 </select>

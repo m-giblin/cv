@@ -2,6 +2,7 @@
  * Content › Practice library model. One list in the UI for two separate APIs:
  * simulation templates (/api/admin/simulation-templates) and pitch scenarios (/api/admin/pitch-scenarios).
  */
+import { DEFAULT_LEARNER_TERMS, type LearnerTerms } from "@/lib/tenant/learner-terms";
 
 export type PracticeKind = "sim" | "pitch";
 export type PracticeStatus = "live" | "draft";
@@ -107,11 +108,18 @@ export function withoutDraftMarker(promptBody: string): string {
 export type SimScoring = { goals: string[]; passMark: number | null; rounds: number | null; competency: string | null };
 
 /** The scoring block the wizard appends to every simulation prompt it writes. */
-export function buildSimScoringBlock(input: { goals: string[]; passMark: number; rounds: number; competency: string }): string {
+export function buildSimScoringBlock(input: {
+  goals: string[];
+  passMark: number;
+  rounds: number;
+  competency: string;
+  /** What the tenant calls the people it trains ("SE" by default). */
+  terms?: LearnerTerms;
+}): string {
   const goals = input.goals.map((goal) => goal.trim()).filter(Boolean);
   return [
     "SCORING",
-    "Score the SE from 0 to 100. Weight each goal equally:",
+    `Score the ${(input.terms ?? DEFAULT_LEARNER_TERMS).one} from 0 to 100. Weight each goal equally:`,
     ...goals.map((goal, index) => `  ${index + 1}. ${goal}`),
     `Pass mark: ${input.passMark}`,
     `Practice rounds before submitting: ${input.rounds}`,

@@ -11,8 +11,8 @@ export const ADMIN_ARTICLES: HelpArticle[] = [
     keywords: ["setup", "onboarding", "checklist", "getting started", "almost set up", "all set up", "home", "dashboard"],
     overview: [
       "Overview is the first page of the Admin portal. Its header reads \"Almost set up.\" until every checklist row is done, then \"All set up.\"",
-      "The checklist has five rows: Single sign-on, Import your SEs, Define competencies, a ramp plan row (\"Every SE has a ramp plan\" or how many SEs have none), and Connect Gong. Each row shows its status and a button to the page where you finish it.",
-      "Below the checklist, tiles show Active SEs, Plan progress and Open reviews. Click a tile to open the matching page.",
+      "The checklist has five rows: Single sign-on, Import your {learners}, Define competencies, a ramp plan row (\"Every {learner} has a ramp plan\" or how many {learners} have none), and Connect Gong. Each row shows its status and a button to the page where you finish it.",
+      "Below the checklist, tiles show Active {learners}, Plan progress and Open reviews. Click a tile to open the matching page.",
     ],
     steps: [
       {
@@ -21,15 +21,15 @@ export const ADMIN_ARTICLES: HelpArticle[] = [
       },
       {
         title: "Import your people",
-        body: "On the \"Import your SEs\" row, click Import people. Add people one at a time or by CSV on the People page.",
+        body: "On the \"Import your {learners}\" row, click Import people. Add people one at a time or by CSV on the People page.",
       },
       {
         title: "Define competencies",
         body: "Click Define competencies to open Programs > Competencies and add the skills readiness is measured against.",
       },
       {
-        title: "Give every SE a ramp plan",
-        body: "If the row says some SEs have no ramp plan, it lists their names. Click Assign plans to enroll them in a program.",
+        title: "Give every {learner} a ramp plan",
+        body: "If the row says some {learners} have no ramp plan, it lists their names. Click Assign plans to enroll them in a program.",
       },
       {
         title: "Check sign-in and integrations",
@@ -65,7 +65,7 @@ export const ADMIN_ARTICLES: HelpArticle[] = [
       },
       {
         title: "Choose role, level and manager",
-        body: "Pick a Role, an SE level (Basic, Senior or Advisory) and a Manager, or leave Manager as No manager.",
+        body: "Pick a Role, {a learner} level (Basic, Senior or Advisory) and a Manager, or leave Manager as No manager.",
       },
       {
         title: "Decide how they get a password",
@@ -82,20 +82,20 @@ export const ADMIN_ARTICLES: HelpArticle[] = [
   },
   {
     id: "admin-roles-and-levels",
-    title: "Roles, SE levels and managers",
+    title: "Roles, {learner} levels and managers",
     summary: "What each role and level means on the People page, and how manager assignment works.",
     audience: ["admin"],
     category: "People",
     keywords: ["role", "permissions", "level", "basic se", "senior se", "advisory", "mentor", "director", "manager", "admin"],
     overview: [
-      "The Role list offers: Basic se, Senior se, Advisory solutions consultant, Mentor, Manager, Director and Admin. The three SE roles are counted as Active SEs and are the people you enroll in programs.",
-      "SE level is Basic, Senior or Advisory. The People table filters show these as Basic SE, Senior SE and Advisory SC.",
+      "The Role list offers: Basic se, Senior se, Advisory solutions consultant, Mentor, Manager, Director and Admin. The three {learner} roles are counted as Active {learners} and are the people you enroll in programs.",
+      "{learner} level is Basic, Senior or Advisory. The People table filters show these as Basic {learner}, Senior {learner} and Advisory SC.",
       "The Manager list contains everyone whose role is Manager, Mentor, Director or Admin. A person's manager is who they report to in the platform.",
     ],
     steps: [
       {
         title: "Filter by role",
-        body: "On People, use the chips at the top (All, SE, Manager, Admin, Mentor, Director) to narrow the table. Each chip shows a count.",
+        body: "On People, use the chips at the top (All, {learner}, Manager, Admin, Mentor, Director) to narrow the table. Each chip shows a count.",
       },
       {
         title: "Filter by level or manager",
@@ -103,7 +103,7 @@ export const ADMIN_ARTICLES: HelpArticle[] = [
       },
       {
         title: "Change a role, level or manager",
-        body: "Click Edit on the person's row, change Role, SE level or Manager, then click Save changes.",
+        body: "Click Edit on the person's row, change Role, {learner} level or Manager, then click Save changes.",
       },
     ],
     links: [{ label: "Open People", href: "/admin/people" }],
@@ -162,12 +162,12 @@ export const ADMIN_ARTICLES: HelpArticle[] = [
       },
       {
         title: "Edit details",
-        body: "Click Edit on their row. The Edit user panel opens with Full name, Email, Role, SE level and Manager. Make changes and click Save changes.",
+        body: "Click Edit on their row. The Edit user panel opens with Full name, Email, Role, {learner} level and Manager. Make changes and click Save changes.",
       },
       {
         title: "Remove the user",
         body: "Click Remove on their row and confirm the prompt \"This removes their login permanently.\" A \"User deleted.\" message confirms it.",
-        tip: "Before removing an SE, check whether reviews or program enrollments still depend on them.",
+        tip: "Before removing {a learner}, check whether reviews or program enrollments still depend on them.",
       },
     ],
     links: [{ label: "Open People", href: "/admin/people" }],
@@ -176,13 +176,13 @@ export const ADMIN_ARTICLES: HelpArticle[] = [
   {
     id: "admin-programs-overview",
     title: "Create a program and use the program workbench",
-    summary: "Programs are ramp plans that SEs are enrolled in. Create one with New program and manage it from its workbench.",
+    summary: "Programs are ramp plans that {learners} are enrolled in. Create one with New program and manage it from its workbench.",
     audience: ["admin"],
     category: "Programs",
     keywords: ["program", "ramp plan", "onboarding plan", "template", "new program", "workbench", "progress", "schedule"],
     overview: [
       "Every program runs 13 weeks in four phases: Foundations, Field skills, Advisory readiness and Certification.",
-      "The Programs page lists each program with its steps by phase, people enrolled and status, plus SEs at risk and average completion.",
+      "The Programs page lists each program with its steps by phase, people enrolled and status, plus {learners} at risk and average completion.",
       "Opening a program shows four tabs: Progress (each enrolled person's progress by phase), Outline (the steps), People (enroll, see who is enrolled, and remove someone) and Schedule (steps due each week).",
     ],
     steps: [
@@ -219,7 +219,7 @@ export const ADMIN_ARTICLES: HelpArticle[] = [
     keywords: ["builder", "outline", "step", "step type", "criteria", "done when", "evidence", "reviewer", "gate", "segment", "phase", "due week", "weeks view"],
     overview: [
       "Step types are Content, Challenge, Simulation, Shadow, Review, Deal prep, Playbook, Knowledge check and Task. A playbook step opens that chapter. Add a knowledge check step after it for a quiz on the same material.",
-      "Evidence options: Recording, Document, Link, Screenshot, Score (automatic) and Reviewer observation. Reviewer options: SE's manager, Assigned mentor, Enablement admin and Automatic (score).",
+      "Evidence options: Recording, Document, Link, Screenshot, Score (automatic) and Reviewer observation. Reviewer options: {learner's} manager, Assigned mentor, Enablement admin and Automatic (score).",
       "Due is a week and day within the 13 weeks, for example \"Week 3, day 2\". Segment places a step in Foundations, Field skills, Advisory readiness or Certification. Ticking \"This step is a gate\" means clearing it unlocks the next segment.",
       "The builder has two views: Outline (step list and editor) and Weeks (a 13-week grid where you can drag content from the library onto a week).",
     ],
@@ -250,7 +250,7 @@ export const ADMIN_ARTICLES: HelpArticle[] = [
       },
       {
         title: "Preview",
-        body: "Use Preview as SE, or the Live preview panel, to see the step as the SE will.",
+        body: "Use Preview as {learner}, or the Live preview panel, to see the step as the {learner} will.",
       },
     ],
     links: [{ label: "Open Programs", href: "/admin/programs" }],
@@ -288,12 +288,12 @@ export const ADMIN_ARTICLES: HelpArticle[] = [
   {
     id: "admin-enroll-people",
     title: "Enroll people in a program",
-    summary: "Assign SEs to a program with a start date and an optional mentor.",
+    summary: "Assign {learners} to a program with a start date and an optional mentor.",
     audience: ["admin"],
     category: "Programs",
     keywords: ["enroll", "assign plan", "assign program", "mentor", "start date", "ramp plan"],
     overview: [
-      "Only SEs who are not already on the program appear in the enroll list. The target completion date is calculated from the start date and the program length.",
+      "Only {learners} who are not already on the program appear in the enroll list. The target completion date is calculated from the start date and the program length.",
     ],
     steps: [
       {
@@ -302,7 +302,7 @@ export const ADMIN_ARTICLES: HelpArticle[] = [
       },
       {
         title: "Pick people",
-        body: "Under Enroll people, tick each SE you want to add. Your own name is at the top, marked You, so you can enroll yourself.",
+        body: "Under Enroll people, tick each {learner} you want to add. Your own name is at the top, marked You, so you can enroll yourself.",
       },
       {
         title: "Set start date and mentor",
@@ -326,7 +326,7 @@ export const ADMIN_ARTICLES: HelpArticle[] = [
   {
     id: "admin-release-courses",
     title: "Create and assign release courses",
-    summary: "Package a plan template as a just-in-time release course and assign it to selected SEs.",
+    summary: "Package a plan template as a just-in-time release course and assign it to selected {learners}.",
     audience: ["admin"],
     category: "Programs",
     keywords: ["release", "release course", "release training", "launch", "just in time", "new feature training"],
@@ -348,8 +348,8 @@ export const ADMIN_ARTICLES: HelpArticle[] = [
         body: "Click Create release course. It appears in the Release courses list.",
       },
       {
-        title: "Assign SEs",
-        body: "Click Assign on the course, tick SEs, and click Assign selected. People with an active assignment of the plan show as Already enrolled.",
+        title: "Assign {learners}",
+        body: "Click Assign on the course, tick {learners}, and click Assign selected. People with an active assignment of the plan show as Already enrolled.",
       },
     ],
     links: [{ label: "Open Programs", href: "/admin/programs" }],
@@ -386,12 +386,12 @@ export const ADMIN_ARTICLES: HelpArticle[] = [
   {
     id: "admin-content-library",
     title: "Add content to the library",
-    summary: "Add modules, battle cards, guides and recordings that SEs find in Learn and that plan steps link to.",
+    summary: "Add modules, battle cards, guides and recordings that {learners} find in Learn and that plan steps link to.",
     audience: ["admin"],
     category: "Content",
     keywords: ["library", "content", "asset", "upload", "link", "video", "document", "tags", "battle card"],
     overview: [
-      "Assets appear in plan steps and on the SE Resources page.",
+      "Assets appear in plan steps and on the {learner} Resources page.",
       "Type is Link, Video, Document, Podcast or File. Category includes Solution brief, Pitch deck, Demo recording and Reference.",
     ],
     steps: [
@@ -422,13 +422,13 @@ export const ADMIN_ARTICLES: HelpArticle[] = [
   {
     id: "admin-practice-library",
     title: "Manage the practice library",
-    summary: "Simulations and pitch scenarios SEs rehearse: filter, edit, duplicate, assign, and control what is live.",
+    summary: "Simulations and pitch scenarios {learners} rehearse: filter, edit, duplicate, assign, and control what is live.",
     audience: ["admin"],
     category: "Content",
     keywords: ["practice", "simulation", "roleplay", "pitch", "pitch scenario", "live", "draft", "assign", "duplicate", "queue"],
     overview: [
       "Managers assign practice from Coaching, and programs pull it in as steps.",
-      "Live pitch scenarios rotate into every SE's pitch queue, four at a time. Pitch scenarios are recorded by the SE and graded by their manager.",
+      "Live pitch scenarios rotate into every {learner's} pitch queue, four at a time. Pitch scenarios are recorded by the {learner} and graded by their manager.",
       "Drafts show in the library with a Draft status until published.",
     ],
     steps: [
@@ -438,7 +438,7 @@ export const ADMIN_ARTICLES: HelpArticle[] = [
       },
       {
         title: "Open an item",
-        body: "Click a row to see it as the SE sees it, with actions for that item.",
+        body: "Click a row to see it as the {learner} sees it, with actions for that item.",
       },
       {
         title: "Edit it",
@@ -446,7 +446,7 @@ export const ADMIN_ARTICLES: HelpArticle[] = [
       },
       {
         title: "Duplicate or assign",
-        body: "Click Duplicate to start the wizard from a copy. For a simulation, click Assign to SEs, select people and confirm.",
+        body: "Click Duplicate to start the wizard from a copy. For a simulation, click Assign to {learners}, select people and confirm.",
       },
       {
         title: "Control what is live",
@@ -490,7 +490,7 @@ export const ADMIN_ARTICLES: HelpArticle[] = [
       },
       {
         title: "Choose what's next",
-        body: "After publishing, pick Add to a ramp plan, Assign to SEs now (simulations only) or Back to the library.",
+        body: "After publishing, pick Add to a ramp plan, Assign to {learners} now (simulations only) or Back to the library.",
       },
     ],
     links: [{ label: "Open Practice", href: "/admin/content/practice" }],
@@ -499,7 +499,7 @@ export const ADMIN_ARTICLES: HelpArticle[] = [
   {
     id: "admin-corpus",
     title: "Maintain the corpus and Q&A routing",
-    summary: "Check the health of source material behind answers, handle SE feedback, and route unanswered questions to SMEs.",
+    summary: "Check the health of source material behind answers, handle {learner} feedback, and route unanswered questions to SMEs.",
     audience: ["admin"],
     category: "Content",
     keywords: ["corpus", "health check", "broken link", "stale", "routing", "sme", "escalation", "feedback", "slack"],
@@ -517,8 +517,8 @@ export const ADMIN_ARTICLES: HelpArticle[] = [
         body: "Click Edit on an asset to update it, or Add asset to go to the Library.",
       },
       {
-        title: "Resolve SE feedback",
-        body: "In SE feedback queue, add an SME answer to publish (optional) or an Admin note (optional) and resolve the item.",
+        title: "Resolve {learner} feedback",
+        body: "In {learner} feedback queue, add an SME answer to publish (optional) or an Admin note (optional) and resolve the item.",
       },
       {
         title: "Add a routing rule",
@@ -554,7 +554,7 @@ export const ADMIN_ARTICLES: HelpArticle[] = [
   {
     id: "admin-insights-audit",
     title: "Use Insights and the audit log",
-    summary: "See how SEs are ramping, export analytics, and check who changed what.",
+    summary: "See how {learners} are ramping, export analytics, and check who changed what.",
     audience: ["admin"],
     category: "Insights",
     keywords: ["analytics", "insights", "report", "export", "csv", "audit", "audit log", "history", "readiness"],

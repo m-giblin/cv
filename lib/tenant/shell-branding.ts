@@ -1,6 +1,8 @@
 import "server-only";
 
 import { cache } from "react";
+import { resolveTenantContext } from "@/lib/auth/tenant-context";
+import { resolveLearnerTerms, type LearnerTerms } from "@/lib/tenant/learner-terms";
 import { getTenantById } from "@/lib/tenant/tenants";
 import {
   DEFAULT_SHELL_BRANDING,
@@ -29,7 +31,14 @@ export const getTenantShellBranding = cache(async (tenantId: string | null): Pro
     primaryColor: normalizeTenantPrimaryColor(tenant.branding.primaryColor),
     logoUrl: tenant.branding.logoUrl,
     tenantSlug: tenant.slug,
+    learner: resolveLearnerTerms(tenant.branding),
   };
+});
+
+/** What the tenant being viewed calls its learners, for server-rendered pages ("SE" by default). */
+export const getLearnerTerms = cache(async (): Promise<LearnerTerms> => {
+  const context = await resolveTenantContext().catch(() => null);
+  return (await getTenantShellBranding(context?.tenantId ?? null)).learner;
 });
 
 /** App name and subtitle for server-side text such as emails. */

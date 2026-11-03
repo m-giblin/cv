@@ -19,6 +19,7 @@ import { Chip } from "@/components/ui/chip";
 import { Drawer } from "@/components/ui/drawer";
 import { rowHighlight, TwoLineCell } from "@/components/ui/table";
 import { Tag } from "@/components/ui/tag";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import { cn } from "@/lib/utils";
 
 type ContentAsset = {
@@ -75,6 +76,7 @@ const emptyForm = {
 
 export function ContentAssetManagement() {
   const formId = useId();
+  const learner = useLearnerTerms();
   const [assets, setAssets] = useState<ContentAsset[]>([]);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
@@ -236,7 +238,7 @@ export function ContentAssetManagement() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <p className="max-w-2xl text-sm text-muted">
-          Assets appear in plan steps and on the SE Resources page. Managers pick them when building onboarding plans.
+          Assets appear in plan steps and on the {learner.one} Resources page. Managers pick them when building onboarding plans.
         </p>
         <button className="btn-primary" onClick={openCreate} type="button">
           Add content

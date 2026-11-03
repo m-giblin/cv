@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { differenceInCalendarDays } from "date-fns";
 import type { Database } from "@/lib/database.types";
 import { buildManagerReviewReminderEmail } from "@/lib/email/manager-review-reminder-email";
-import { getTenantProductBranding } from "@/lib/tenant/shell-branding";
+import { getTenantProductBranding, getTenantShellBranding } from "@/lib/tenant/shell-branding";
 import { sendResendEmail } from "@/lib/email/send-resend-email";
 import { createNotification } from "@/lib/notifications/create-notification";
 import {
@@ -108,7 +108,7 @@ export async function sendReviewReminder(
     return { ok: false, reason: eligibility.reason ?? "Reminder not available yet", eligibility };
   }
 
-  const triggerLabel = source === "se_nudge" ? "nudge from your SE" : "automatic reminder";
+  const triggerLabel = source === "se_nudge" ? "learner nudge" : "automatic reminder";
   const email = buildManagerReviewReminderEmail({
     managerName: target.managerName,
     seName: target.seName,
@@ -116,6 +116,7 @@ export async function sendReviewReminder(
     itemKind: target.kind,
     pendingDays: eligibility.pendingDays,
     triggerLabel,
+    learner: (await getTenantShellBranding(target.tenantId)).learner,
     ...(await getTenantProductBranding(target.tenantId)),
   });
 

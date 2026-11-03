@@ -43,6 +43,7 @@ import {
  fetchReadinessCertifications,
 } from "@/lib/data/get-manager-growth-data";
 import { createClient } from "@/lib/supabase/server";
+import { getLearnerTerms } from "@/lib/tenant/shell-branding";
 
 /** Sections that show readiness numbers and so need the readiness payload. */
 const READINESS_SECTIONS = new Set(["command", "roster", "readiness"]);
@@ -61,9 +62,10 @@ const ManagerPageShell = dynamic(
 
 export async function ManagerSectionPage({ section }: { section: ManagerSection }) {
  // Settings only need the user's tenant, so they load alongside the page data.
- const [{ data, role }, settings] = await Promise.all([
+ const [{ data, role }, settings, learner] = await Promise.all([
   requireManagerPageAccess(),
   resolveTenantContext().then((context) => loadPlatformSettings(context?.profileTenantId ?? undefined)),
+  getLearnerTerms(),
  ]);
  const { isShadowing } = await getEffectiveAccess(data.currentUser.role, data.currentUser.tenantId ?? null);
  if (!isManagerSectionAllowed(section, settings.featureFlags)) {
@@ -277,7 +279,7 @@ export async function ManagerSectionPage({ section }: { section: ManagerSection 
  card.transcript ??
  (simulation?.transcript.length
  ? simulation.transcript
- .map((entry) => `${entry.speaker === "se" ? "SE" : entry.speaker}: ${entry.message}`)
+ .map((entry) => `${entry.speaker === "se" ? learner.one : entry.speaker}: ${entry.message}`)
  .join("\n\n")
  : undefined),
  simulationLabel: context
@@ -344,6 +346,7 @@ export async function ManagerSectionPage({ section }: { section: ManagerSection 
  cohortBenchmark,
  quarterlyAlert,
  certSummary,
+ terms: learner,
  });
 
  return {

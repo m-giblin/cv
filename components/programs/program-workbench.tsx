@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Drawer } from "@/components/ui/drawer";
 import { StatusPill, type StatusTone } from "@/components/ui/status-pill";
@@ -333,11 +334,12 @@ function ProgressGrid({
   onOpen: (userId: string) => void;
   onEnroll: () => void;
 }) {
+  const learner = useLearnerTerms();
   if (enrollments.length === 0) {
     return (
       <div className="flex flex-col items-start gap-3 rounded-[14px] border border-dashed border-line-strong bg-white px-6 py-8">
         <p className="text-[15px] font-bold text-ink">Nobody is enrolled yet.</p>
-        <p className="text-sm text-ink-2">Enroll SEs from the People tab and their progress shows here, phase by phase.</p>
+        <p className="text-sm text-ink-2">Enroll {learner.many} from the People tab and their progress shows here, phase by phase.</p>
         <button className="btn-primary" onClick={onEnroll} type="button">
           Enroll people
         </button>
@@ -351,7 +353,7 @@ function ProgressGrid({
       <thead>
         <tr>
           <th className={thCls} scope="col">
-            SE
+            {learner.one}
           </th>
           {PROGRAM_PHASES.map((phase) => (
             <th className={thCls} key={phase.index} scope="col">
@@ -380,7 +382,7 @@ function ProgressGrid({
                 type="button"
               >
                 <PersonCell
-                  initials={initials(item.person?.fullName ?? "SE")}
+                  initials={initials(item.person?.fullName ?? learner.one)}
                   name={item.person?.fullName ?? "Former team member"}
                   subline={`Week ${item.week} of ${PROGRAM_WEEKS}${item.overdue ? `, ${item.overdue} overdue` : ""}`}
                 />
@@ -495,6 +497,7 @@ function Journey({
 }
 
 function Outline({ template, canEdit, onEdit }: { template: DbTemplate | null; canEdit: boolean; onEdit: () => void }) {
+  const learner = useLearnerTerms();
   const steps = useMemo(() => (template ? templateToBuilderSteps(template) : []), [template]);
 
   if (!template) {
@@ -505,7 +508,7 @@ function Outline({ template, canEdit, onEdit }: { template: DbTemplate | null; c
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <p className="max-w-[640px] text-[15px] text-ink-2">
-          {template.description || "What every SE on this program works through, phase by phase."}
+          {template.description || `What every ${learner.one} on this program works through, phase by phase.`}
         </p>
         {canEdit ? (
           <button className="btn-primary" onClick={onEdit} type="button">
@@ -576,6 +579,7 @@ function People({
   onChanged: () => void;
   onOpen: (userId: string) => void;
 }) {
+  const learner = useLearnerTerms();
   const enrolledIds = new Set(enrollments.map((item) => item.plan.userId));
   const available = [
     ...candidates.filter((person) => person.id === viewerId && !enrolledIds.has(person.id)),
@@ -639,7 +643,7 @@ function People({
             <thead>
               <tr>
                 <th className={thCls} scope="col">
-                  SE
+                  {learner.one}
                 </th>
                 <th className={thCls} scope="col">
                   Mentor
@@ -660,7 +664,7 @@ function People({
                 <tr className="cursor-pointer hover:bg-[#FBF9F5]" key={item.plan.id} onClick={() => onOpen(item.plan.userId)}>
                   <td className={cn(tdCls, "py-3")}>
                     <PersonCell
-                      initials={initials(item.person?.fullName ?? "SE")}
+                      initials={initials(item.person?.fullName ?? learner.one)}
                       name={item.person?.fullName ?? "Former team member"}
                       subline={HEALTH[item.health].label}
                     />
@@ -763,6 +767,7 @@ function People({
 }
 
 function Schedule({ enrollments }: { enrollments: EnrollmentSummary[] }) {
+  const learner = useLearnerTerms();
   const today = todayIso();
   const weeks = Array.from({ length: PROGRAM_WEEKS }, (_, index) => index + 1);
 
@@ -789,7 +794,7 @@ function Schedule({ enrollments }: { enrollments: EnrollmentSummary[] }) {
         <thead>
           <tr>
             <th className={thCls} scope="col">
-              SE
+              {learner.one}
             </th>
             {weeks.map((week) => (
               <th className={cn(thCls, "px-1 text-center")} key={week} scope="col">

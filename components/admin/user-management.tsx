@@ -23,6 +23,7 @@ import { Drawer } from "@/components/ui/drawer";
 import { StatusPill } from "@/components/ui/status-pill";
 import { PersonCell, rowHighlight } from "@/components/ui/table";
 import { Tag } from "@/components/ui/tag";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import { allowedEmailDomainsLabel } from "@/lib/auth/email-domain";
 import { ProfileRole, SeLevel } from "@/lib/types";
 import { cn, initials } from "@/lib/utils";
@@ -176,6 +177,7 @@ function matchesLevelFilter(level: SeLevel, filter: string) {
 }
 
 export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] }) {
+ const learner = useLearnerTerms();
  const [users, setUsers] = useState<AdminUser[]>(initialUsers ?? []);
  const [isLoading, setIsLoading] = useState(!initialUsers?.length);
  const [isSaving, setIsSaving] = useState(false);
@@ -489,7 +491,7 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  <KpiStrip
  items={[
  { label: "Total users", value: userStats.total },
- { label: "Active SEs", value: userStats.seCount },
+ { label: `Active ${learner.many}`, value: userStats.seCount },
  { label: "Managers", value: userStats.managerCount },
  { label: "Inactive", value: userStats.inactiveCount },
  ]}
@@ -546,8 +548,8 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  value={levelFilter}
  >
  <option>All levels</option>
- <option>Basic SE</option>
- <option>Senior SE</option>
+ <option value="Basic SE">Basic {learner.one}</option>
+ <option value="Senior SE">Senior {learner.one}</option>
  <option>Advisory SC</option>
  </SelectInput>
  <SelectInput

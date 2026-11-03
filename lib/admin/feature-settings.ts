@@ -8,6 +8,7 @@ import {
   type PlatformFeatureFlagDef,
   type PlatformFeatureFlags,
 } from "@/lib/platform/settings-shared";
+import { DEFAULT_LEARNER_TERMS, fillLearnerTerms, type LearnerTerms } from "@/lib/tenant/learner-terms";
 
 /** Features a tenant admin may never switch off from inside the tenant. */
 const ALWAYS_LOCKED = new Set(["tenant-admin-console"]);
@@ -28,24 +29,25 @@ export const FEATURE_AREA_LABELS: Record<FeatureFlagCategory, string> = {
   admin: "Admin",
 };
 
+/** Who uses each area; {learners} is the tenant's term ("SEs" by default). */
 const AREA_AUDIENCE: Record<FeatureFlagCategory, string> = {
-  workspace: "SEs",
+  workspace: "{learners}",
   manager: "Managers",
   readiness: "Everyone",
-  practice: "SEs, managers",
-  integrations: "SEs",
+  practice: "{learners}, managers",
+  integrations: "{learners}",
   admin: "Admins",
 };
 
 const AUDIENCE_OVERRIDES: Record<string, string> = {
-  "ramp-plans": "SEs, managers",
+  "ramp-plans": "{learners}, managers",
   "ai-features": "Everyone",
-  "buyer-shares": "SEs, buyers",
+  "buyer-shares": "{learners}, buyers",
   "agentic-ai-track": "Everyone",
 };
 
-export function featureAudience(def: PlatformFeatureFlagDef): string {
-  return AUDIENCE_OVERRIDES[def.id] ?? AREA_AUDIENCE[def.category];
+export function featureAudience(def: PlatformFeatureFlagDef, terms: LearnerTerms = DEFAULT_LEARNER_TERMS): string {
+  return fillLearnerTerms(AUDIENCE_OVERRIDES[def.id] ?? AREA_AUDIENCE[def.category], terms);
 }
 
 export function featureLabel(id: string): string {

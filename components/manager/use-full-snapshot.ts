@@ -5,6 +5,7 @@ import type { SeManagerSnapshot } from "@/components/manager/manager-se-detail-p
 import { buildQuarterlyAlert } from "@/lib/manager/growth-insights";
 import { buildSeCoachingSummary } from "@/lib/manager/se-coaching-summary";
 import type { Competency, DevelopmentPlan } from "@/lib/types";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 
 type Extras = {
   developmentPlan: DevelopmentPlan | null;
@@ -19,6 +20,7 @@ type Extras = {
 export function useFullSnapshot(base: SeManagerSnapshot | null, competencies: Competency[]): SeManagerSnapshot | null {
   const profileId = base?.profile.id ?? null;
   const [extras, setExtras] = useState<{ id: string; value: Extras } | null>(null);
+  const learner = useLearnerTerms();
 
   useEffect(() => {
     if (!profileId) return;
@@ -63,6 +65,7 @@ export function useFullSnapshot(base: SeManagerSnapshot | null, competencies: Co
     cohortBenchmark: base.cohortBenchmark,
     quarterlyAlert,
     certSummary: base.certSummary,
+    terms: learner,
   });
 
   return { ...base, developmentPlan, managerNotes, mentorNotes, quarterlyAlert, coaching };

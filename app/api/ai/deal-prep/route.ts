@@ -2,6 +2,7 @@ import { generateObject } from "ai";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { dealPrepPrompt } from "@/lib/ai/prompts";
+import { getLearnerTerms } from "@/lib/tenant/shell-branding";
 import { dealPrepSchema } from "@/lib/ai/schemas";
 import { resolveAiProviderForUser } from "@/lib/ai/resolve-provider-for-user";
 import { enforceAiRateLimit } from "@/lib/ai/enforce-rate-limit";
@@ -93,7 +94,7 @@ export async function POST(request: Request) {
  const result = await generateObject({
  model,
  schema: dealPrepSchema,
- prompt: dealPrepPrompt(parsed.data),
+ prompt: dealPrepPrompt(parsed.data, await getLearnerTerms()),
  experimental_telemetry: { isEnabled: true, functionId: "deal-prep" },
  });
 

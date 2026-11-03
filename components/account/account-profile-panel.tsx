@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { AccountBadge } from "@/lib/account/achievements";
 import type { CompletionBadge } from "@/lib/account/completion-badges";
 import { getAccessTier } from "@/lib/auth/rbac";
+import { getLearnerTerms } from "@/lib/tenant/shell-branding";
 import type { Profile } from "@/lib/types";
 import { Progress } from "@/components/ui/progress";
 import { Stamp } from "@/components/ui/stamp";
@@ -25,7 +26,7 @@ function sentenceCase(value: string) {
  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-export function AccountProfilePanel({
+export async function AccountProfilePanel({
  profile,
  manager,
  milestones,
@@ -38,6 +39,7 @@ export function AccountProfilePanel({
  trophies: CompletionBadge[];
  planProgress: number | null;
 }) {
+ const learner = await getLearnerTerms();
  const initials = profile.fullName
  .split(" ")
  .map((part) => part[0])
@@ -65,7 +67,7 @@ export function AccountProfilePanel({
  <p className="mt-0.5 text-sm text-muted">{profile.email}</p>
  <div className="mt-3 flex flex-wrap gap-2">
  <Tag tone="blue">{sentenceCase(profile.role)}</Tag>
- <Tag>{profile.level} SE</Tag>
+ <Tag>{profile.level} {learner.one}</Tag>
  <Tag tone="success">
  {totalEarned} badge{totalEarned === 1 ? "" : "s"} earned
  </Tag>

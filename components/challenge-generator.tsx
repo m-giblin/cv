@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import { generatedChallengeSchema, type GeneratedChallenge } from "@/lib/ai/schemas";
 
 const formSchema = z.object({
@@ -23,6 +24,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 export function ChallengeGenerator({ showSave = false }: { showSave?: boolean }) {
+ const learner = useLearnerTerms();
  const [challenge, setChallenge] = useState<GeneratedChallenge | null>(null);
  const [isGenerating, setIsGenerating] = useState(false);
  const form = useForm<FormValues>({
@@ -70,12 +72,12 @@ export function ChallengeGenerator({ showSave = false }: { showSave?: boolean })
  <CardHeader>
  <CardTitle>Generate a challenge</CardTitle>
  <CardDescription>
- Personalize by SE level, solution area, difficulty, and recent progress context.
+ Personalize by {learner.one} level, solution area, difficulty, and recent progress context.
  </CardDescription>
  </CardHeader>
  <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
  <label className="block space-y-1.5 text-sm font-semibold text-ink">
- SE level
+ {learner.one} level
  <select
  className="h-10 w-full rounded-[10px] border border-line-strong bg-white px-3 text-[15px] text-ink focus:border-blue"
  {...form.register("level")}
@@ -107,7 +109,7 @@ export function ChallengeGenerator({ showSave = false }: { showSave?: boolean })
  </label>
  <label className="block space-y-1.5 text-sm font-semibold text-ink">
  Recent activity context
- <Textarea placeholder="What the SE has worked on lately (optional)" {...form.register("recentActivity")} />
+ <Textarea placeholder={`What the ${learner.one} has worked on lately (optional)`} {...form.register("recentActivity")} />
  </label>
  <Button className="w-full" disabled={isGenerating} type="submit" variant="primary">
  {isGenerating ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}

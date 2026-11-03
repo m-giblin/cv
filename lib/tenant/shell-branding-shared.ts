@@ -1,3 +1,4 @@
+import { DEFAULT_LEARNER_TERMS, type LearnerTerms } from "@/lib/tenant/learner-terms";
 import { DEFAULT_TENANT_ID } from "@/lib/tenant/types";
 
 /** The product's name, kept in one place so it can change in one place. */
@@ -17,6 +18,8 @@ export type TenantShellBranding = {
   primaryColor: string;
   logoUrl: string | null;
   tenantSlug?: string | null;
+  /** What this tenant calls the people it trains: { one: "AE", many: "AEs" }. */
+  learner: LearnerTerms;
 };
 
 /** Fix common typos like #OO33A1 → #0033A1 (letter O typed for zero) */
@@ -39,6 +42,7 @@ export const DEFAULT_SHELL_BRANDING: TenantShellBranding = {
   productTagline: PRODUCT_TAGLINE,
   primaryColor: "#0033A1",
   logoUrl: null,
+  learner: DEFAULT_LEARNER_TERMS,
 };
 
 /** The tenant's app name and subtitle, falling back to the product default when unset. */

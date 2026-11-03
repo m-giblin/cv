@@ -15,6 +15,7 @@ import {
   type PitchTrackLabel,
   type SimTemplateRow,
 } from "@/lib/admin/practice-library";
+import { DEFAULT_LEARNER_TERMS, type LearnerTerms } from "@/lib/tenant/learner-terms";
 
 export type WizardStep = 1 | 2 | 3 | 4;
 export type WizardKind = "sim" | "pitch";
@@ -309,11 +310,11 @@ export function personaValue(state: WizardState): string {
 }
 
 /** Scenario text generated from steps 2 and 3, with placeholders for what managers may change. */
-export function generatedScenario(state: WizardState): string {
+export function generatedScenario(state: WizardState, terms: LearnerTerms = DEFAULT_LEARNER_TERMS): string {
   if (state.kind === "pitch") {
     const goals = filledGoals(state);
     return [
-      `Prompt shown to the SE (${state.duration} seconds, ${state.track.toLowerCase()} track):`,
+      `Prompt shown to the ${terms.one} (${state.duration} seconds, ${state.track.toLowerCase()} track):`,
       state.situation.trim() || "…",
       "Rubric:",
       ...(goals.length ? goals.map((goal, index) => `  ${index + 1}. ${goal}`) : ["  …"]),
@@ -327,31 +328,32 @@ export function generatedScenario(state: WizardState): string {
     `Situation: ${state.situation.trim() || "…"}`,
     `Difficulty: ${overrides.difficulty ? "{{difficulty}}" : state.difficulty.toLowerCase()}.`,
     `Solution in focus: ${overrides.solution ? "{{solution}}" : state.solutionFocus}`,
-    "Stay in character as the buyer. Answer only what the SE earns with good questions.",
-    "The SE succeeds if they:",
+    `Stay in character as the buyer. Answer only what the ${terms.one} earns with good questions.`,
+    `The ${terms.one} succeeds if they:`,
     ...(goals.length ? goals.map((goal, index) => `  ${index + 1}. ${goal}`) : ["  …"]),
   ].join("\n");
 }
 
-export function scenarioText(state: WizardState): string {
-  return state.rawScenario ?? generatedScenario(state);
+export function scenarioText(state: WizardState, terms: LearnerTerms = DEFAULT_LEARNER_TERMS): string {
+  return state.rawScenario ?? generatedScenario(state, terms);
 }
 
 /** Full promptBody stored on the simulation template: scenario plus the scoring block. */
-export function simPromptBody(state: WizardState): string {
+export function simPromptBody(state: WizardState, terms: LearnerTerms = DEFAULT_LEARNER_TERMS): string {
   return joinSimPrompt(
-    scenarioText(state),
+    scenarioText(state, terms),
     buildSimScoringBlock({
       goals: filledGoals(state),
       passMark: Number(state.pass ?? 70),
       rounds: state.rounds,
       competency: state.competency ?? "",
+      terms,
     }),
   );
 }
 
 /** Body for POST /api/admin/simulation-templates. */
-export function toSimPayload(state: WizardState) {
+export function toSimPayload(state: WizardState, terms: LearnerTerms = DEFAULT_LEARNER_TERMS) {
   return {
     name: state.name.trim(),
     persona: personaValue(state),
@@ -359,7 +361,7 @@ export function toSimPayload(state: WizardState) {
     solutionFocus: state.solutionFocus,
     difficulty: state.difficulty.toLowerCase() as "foundational" | "intermediate" | "advanced",
     practiceRoundsBeforeSubmit: state.rounds,
-    promptBody: simPromptBody(state),
+    promptBody: simPromptBody(state, terms),
   };
 }
 

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Send, Sparkles, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import type { WorkspaceHat } from "@/lib/auth/workspace";
 import { ASSISTANT_LIMITS } from "@/lib/help/assistant";
 import { shortDocUrl } from "@/lib/help/sailpoint-docs";
@@ -27,6 +28,7 @@ const STARTERS: Record<WorkspaceHat, string[]> = {
  * Help Center the person can read and SailPoint's public docs; the server enforces scope and cost caps.
  */
 export function AssistantWidget({ workspace }: { workspace: WorkspaceHat }) {
+  const learner = useLearnerTerms();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [draft, setDraft] = useState("");
@@ -127,7 +129,7 @@ export function AssistantWidget({ workspace }: { workspace: WorkspaceHat }) {
             {messages.length === 0 ? (
               <div className="flex flex-col gap-3">
                 <p className="text-sm text-ink-2">
-                  Ask how something in the platform works, or about SailPoint products and SE skills. Product questions are checked against documentation.sailpoint.com and developer.sailpoint.com.
+                  Ask how something in the platform works, or about SailPoint products and {learner.one} skills. Product questions are checked against documentation.sailpoint.com and developer.sailpoint.com.
                 </p>
                 <div className="flex flex-col gap-2">
                   {STARTERS[workspace].map((starter) => (

@@ -106,7 +106,7 @@ export async function sendMilestoneNudge(
     user_id: params.seUserId,
     actor_id: params.managerId,
     event_type: "manager_milestone_nudge",
-    title: `Manager nudged SE on milestone: ${params.milestoneLabel}`,
+    title: `Manager sent a nudge on milestone: ${params.milestoneLabel}`,
     metadata: {
       assignment_step_id: params.assignmentStepId,
       milestone_label: params.milestoneLabel,

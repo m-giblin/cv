@@ -1,11 +1,14 @@
 "use client";
 
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import { useUnsavedChanges } from "@/components/ui/drawer";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { possessive } from "@/lib/tenant/learner-terms";
 
 export function MentorCoachingNotesEditor({ seUserId }: { seUserId: string }) {
+  const learner = useLearnerTerms();
   const [notes, setNotes] = useState("");
   const [savedNotes, setSavedNotes] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -48,7 +51,7 @@ export function MentorCoachingNotesEditor({ seUserId }: { seUserId: string }) {
     }
 
     setSavedNotes(notes);
-    toast.success("Mentor notes saved. The SE's manager can see them.");
+    toast.success(`Mentor notes saved. The ${possessive(learner.one)} manager can see them.`);
   }
 
   return (
@@ -68,7 +71,7 @@ export function MentorCoachingNotesEditor({ seUserId }: { seUserId: string }) {
         ) : null}
       </div>
       <p className="mt-1 text-sm text-muted">
-        Shared with the SE&apos;s hiring manager: observations, ramp risks and coaching context.
+        Shared with the {possessive(learner.one)} hiring manager: observations, ramp risks and coaching context.
       </p>
       {isLoading ? (
         <div className="mt-3 flex justify-center py-4" role="status">

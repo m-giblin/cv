@@ -1,5 +1,6 @@
 import { appBaseUrl } from "@/lib/email/send-resend-email";
 import { PRODUCT_NAME, PRODUCT_TAGLINE } from "@/lib/tenant/shell-branding-shared";
+import { DEFAULT_LEARNER_TERMS, type LearnerTerms } from "@/lib/tenant/learner-terms";
 
 export type ManagerReviewReminderEmailInput = {
   managerName: string;
@@ -7,7 +8,10 @@ export type ManagerReviewReminderEmailInput = {
   itemTitle: string;
   itemKind: "challenge" | "coaching";
   pendingDays: number;
-  triggerLabel: "automatic reminder" | "nudge from your SE";
+  /** "learner nudge" when the person waiting pressed Nudge; shown as "a nudge from your SE". */
+  triggerLabel: "automatic reminder" | "learner nudge";
+  /** What the tenant calls the people it trains ("SE" by default). */
+  learner?: LearnerTerms;
   /** The tenant's app name and subtitle for the email header. */
   productName?: string;
   productTagline?: string;
@@ -17,6 +21,9 @@ export function buildManagerReviewReminderEmail(input: ManagerReviewReminderEmai
   const inboxUrl = `${appBaseUrl()}/manager/inbox`;
   const productName = input.productName ?? PRODUCT_NAME;
   const productTagline = input.productTagline ?? PRODUCT_TAGLINE;
+  const learner = input.learner ?? DEFAULT_LEARNER_TERMS;
+  const isNudge = input.triggerLabel === "learner nudge";
+  const triggerText = isNudge ? `nudge from your ${learner.one}` : "automatic reminder";
   const kindLabel = input.itemKind === "challenge" ? "Challenge submission" : "Simulation coaching card";
   const subject = `Review needed: ${input.seName}, ${input.itemTitle}`;
 
@@ -26,7 +33,7 @@ export function buildManagerReviewReminderEmail(input: ManagerReviewReminderEmai
     `${input.seName}'s ${kindLabel.toLowerCase()} has been waiting for your review for ${input.pendingDays} days.`,
     "",
     `Item: ${input.itemTitle}`,
-    `Triggered by: ${input.triggerLabel}`,
+    `Triggered by: ${triggerText}`,
     "",
     `Open your inbox: ${inboxUrl}`,
   ].join("\n");
@@ -70,7 +77,7 @@ export function buildManagerReviewReminderEmail(input: ManagerReviewReminderEmai
                   <td style="padding:16px 18px;border-left:3px solid #0033A1;">
                     <p style="margin:0 0 6px;font-size:12px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:#5E6577;">${escapeHtml(kindLabel)}</p>
                     <p style="margin:0;font-size:16px;font-weight:700;color:#121A2E;">${escapeHtml(input.itemTitle)}</p>
-                    <p style="margin:8px 0 0;font-size:13px;color:#5E6577;">Sent as ${input.triggerLabel === "nudge from your SE" ? "a nudge from your SE" : "an automatic reminder"}.</p>
+                    <p style="margin:8px 0 0;font-size:13px;color:#5E6577;">Sent as ${isNudge ? `a nudge from your ${escapeHtml(learner.one)}` : "an automatic reminder"}.</p>
                   </td>
                 </tr>
               </table>
@@ -82,7 +89,7 @@ export function buildManagerReviewReminderEmail(input: ManagerReviewReminderEmai
           <tr>
             <td style="padding:16px 32px 24px;border-top:1px solid #EFEAE2;">
               <p style="margin:0;font-size:13px;line-height:1.5;color:#5E6577;">
-                Timely reviews keep your team moving. This ${input.triggerLabel === "nudge from your SE" ? "nudge" : "reminder"} is sent at most once every 7 days per item.
+                Timely reviews keep your team moving. This ${isNudge ? "nudge" : "reminder"} is sent at most once every 7 days per item.
               </p>
             </td>
           </tr>

@@ -3,6 +3,7 @@ import { ASSISTANT_REFUSAL, BOSUN_DEFINITION, assistantSystemPrompt, isClearlyOf
 import { docSourcesFrom, isSailPointDocUrl, shortDocUrl, stripCitations, titleFromDocUrl, wantsDocsSearch } from "@/lib/help/sailpoint-docs";
 import { articleAsText, helpRelevance, searchHelp } from "@/lib/help/search";
 import type { HelpArticle } from "@/lib/help/types";
+import { fillLearnerTerms } from "@/lib/tenant/learner-terms";
 
 const article = (id: string, title: string, extra: Partial<HelpArticle> = {}): HelpArticle => ({
   id,
@@ -74,11 +75,19 @@ describe("assistant guardrails", () => {
   it("names Bosun and explains the name", () => {
     const prompt = assistantSystemPrompt([], "SE");
     expect(prompt).toContain("You are Bosun");
-    expect(prompt).toContain(BOSUN_DEFINITION);
+    expect(prompt).toContain(fillLearnerTerms(BOSUN_DEFINITION));
     expect(prompt).not.toContain("web_search");
     expect(assistantSystemPrompt([], "SE", "available")).toContain("documentation.sailpoint.com and developer.sailpoint.com");
     expect(assistantSystemPrompt([], "SE", "available")).toContain("search the docs before deciding it's out of scope");
     expect(assistantSystemPrompt([], "SE", "required")).toContain("search the docs before answering");
+  });
+
+  it("uses the tenant's learner term and never leaks placeholders", () => {
+    const prompt = assistantSystemPrompt([], "AE", "available", { one: "AE", many: "AEs" });
+    expect(prompt).toContain("train AEs");
+    expect(prompt).toContain("AE skills");
+    expect(prompt).not.toMatch(/\{an? learners?'?s?'?\}|\{learners?'?s?'?\}/);
+    expect(prompt).not.toMatch(/\bSEs?\b/);
   });
 });
 

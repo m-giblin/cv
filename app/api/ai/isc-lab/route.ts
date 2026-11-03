@@ -6,6 +6,7 @@ import { logAiUsage } from "@/lib/ai/log-usage";
 import { resolveAiProviderForUser } from "@/lib/ai/resolve-provider-for-user";
 import { createNotification } from "@/lib/notifications/create-notification";
 import { buildIscLabSystemPrompt, retrieveIscLabContext } from "@/lib/isc-lab/retrieve-context";
+import { getLearnerTerms } from "@/lib/tenant/shell-branding";
 import { logIscLabInteraction, type IscLabMode } from "@/lib/isc-lab/session-log";
 import { requireAuthenticatedSession } from "@/lib/auth/require-authenticated";
 import { requireUserFeature } from "@/lib/platform/require-feature";
@@ -40,7 +41,9 @@ export async function POST(request: Request) {
  const { message, history = [], mode, accountName } = parsed.data;
  const labMode = mode as IscLabMode;
 
+ const learner = await getLearnerTerms();
  const retrieval = await retrieveIscLabContext({
+ terms: learner,
  query: message,
  supabase: session.supabase,
  userId: session.user.id,
@@ -64,12 +67,12 @@ export async function POST(request: Request) {
  });
  }
 
- const transcript = history.map((turn) => `${turn.role === "user" ? "SE" : "Assistant"}: ${turn.content}`).join("\n");
+ const transcript = history.map((turn) => `${turn.role === "user" ? learner.one : "Assistant"}: ${turn.content}`).join("\n");
 
  const result = await generateText({
  model,
- system: buildIscLabSystemPrompt(retrieval.contextBlock),
- prompt: `${transcript ? `${transcript}\n` : ""}SE: ${message}\n\nAssistant:`,
+ system: buildIscLabSystemPrompt(retrieval.contextBlock, learner),
+ prompt: `${transcript ? `${transcript}\n` : ""}${learner.one}: ${message}\n\nAssistant:`,
  });
 
  const reply = result.text.trim();

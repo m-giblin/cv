@@ -2,6 +2,7 @@ import { generateObject } from "ai";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { challengePrompt } from "@/lib/ai/prompts";
+import { getLearnerTerms } from "@/lib/tenant/shell-branding";
 import { generatedChallengeSchema } from "@/lib/ai/schemas";
 import { resolveAiProviderForUser } from "@/lib/ai/resolve-provider-for-user";
 import { enforceAiRateLimit } from "@/lib/ai/enforce-rate-limit";
@@ -53,7 +54,7 @@ export async function POST(request: Request) {
  "Includes one thoughtful limitation, risk, or follow-up discovery question.",
  ],
  estimatedMinutes: parsed.data.difficulty === "advanced" ? 90 : 45,
- linkedResources: ["SailPoint Identity Library", "Internal SE demo tenant notes"],
+ linkedResources: ["SailPoint Identity Library", "Internal demo tenant notes"],
  linkedSolutions: ["Identity Security Cloud", "Workflows", "Access certifications"],
  difficulty: parsed.data.difficulty,
  },
@@ -63,7 +64,7 @@ export async function POST(request: Request) {
  const result = await generateObject({
  model,
  schema: generatedChallengeSchema,
- prompt: challengePrompt(parsed.data),
+ prompt: challengePrompt(parsed.data, await getLearnerTerms()),
  experimental_telemetry: {
  isEnabled: true,
  functionId: "generate-challenge",

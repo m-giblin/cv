@@ -8,6 +8,7 @@ import { requireAuthenticatedSession } from "@/lib/auth/require-authenticated";
 import { recordDrillResult } from "@/lib/playbooks/assignments";
 import { wordCount } from "@/lib/playbooks/drills";
 import { resolveEffectiveTenantId } from "@/lib/tenant/resolve-profile-tenant";
+import { getLearnerTerms } from "@/lib/tenant/shell-branding";
 import {
   fallbackPitchTips,
   pitchDrillPrompt,
@@ -136,7 +137,7 @@ export async function POST(request: Request) {
     const result = await generateObject({
       model,
       schema: pitchReviewSchema,
-      prompt: pitchReviewPrompt({ title: input.title, reflection: storyline, scenario: input.scenario }),
+      prompt: pitchReviewPrompt({ title: input.title, reflection: storyline, scenario: input.scenario }, await getLearnerTerms()),
       maxOutputTokens: 600,
       temperature: 0.2,
     });

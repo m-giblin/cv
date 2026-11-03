@@ -5,7 +5,12 @@ import { MANAGER_ARTICLES } from "@/lib/help/articles/manager";
 import { SE_ARTICLES } from "@/lib/help/articles/se";
 import type { HelpArticle, HelpAudience } from "@/lib/help/types";
 import type { WorkspaceHat } from "@/lib/auth/workspace";
+import { DEFAULT_LEARNER_TERMS, fillLearnerTermsDeep, type LearnerTerms } from "@/lib/tenant/learner-terms";
 
+/**
+ * Raw articles: their text holds learner placeholders ("{learner}", "{learners}"). Pages and the
+ * assistant read them through helpArticlesFor, which fills in the tenant's term.
+ */
 export const ALL_HELP_ARTICLES: HelpArticle[] = [
   ...BOSUN_ARTICLES,
   ...SE_ARTICLES,
@@ -25,6 +30,8 @@ export function helpAudiencesForHats(hats: WorkspaceHat[]): HelpAudience[] {
   return ["se"];
 }
 
-export function helpArticlesFor(audiences: HelpAudience[]): HelpArticle[] {
-  return ALL_HELP_ARTICLES.filter((article) => article.audience.some((audience) => audiences.includes(audience)));
+/** The articles these audiences may read, with "{learner}" placeholders filled with the tenant's terms. */
+export function helpArticlesFor(audiences: HelpAudience[], terms: LearnerTerms = DEFAULT_LEARNER_TERMS): HelpArticle[] {
+  const visible = ALL_HELP_ARTICLES.filter((article) => article.audience.some((audience) => audiences.includes(audience)));
+  return fillLearnerTermsDeep(visible, terms);
 }

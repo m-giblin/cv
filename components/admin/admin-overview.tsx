@@ -6,6 +6,7 @@ import { KpiStrip } from "@/components/admin/admin-ui";
 import { DefinitionCard } from "@/components/ui/editorial";
 import { MainWithRail, PageBody, PageHeader } from "@/components/ui/page-header";
 import { StatusPill } from "@/components/ui/status-pill";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import { getAccessTier } from "@/lib/auth/rbac";
 import type { ActivityLog, Profile, UserPlan } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -52,6 +53,7 @@ export function AdminOverview({
   activity: ActivityLog[];
   pendingReviews: number;
 }) {
+  const learner = useLearnerTerms();
   const [status, setStatus] = useState<SetupStatus>({ sso: null, competencies: null, gong: null });
 
   useEffect(() => {
@@ -99,13 +101,13 @@ export function AdminOverview({
       id: "sso",
       done: status.sso,
       title: "Single sign-on",
-      detail: status.sso ? "Connected" : "Lets SEs sign in with your identity provider",
+      detail: status.sso ? "Connected" : `Lets ${learner.many} sign in with your identity provider`,
       action: { label: "Security", href: "/admin/settings/security" },
     },
     {
       id: "users",
       done: ses.length > 0,
-      title: ses.length > 0 ? "People imported" : "Import your SEs",
+      title: ses.length > 0 ? "People imported" : `Import your ${learner.many}`,
       detail: ses.length > 0 ? `${profiles.length} ${profiles.length === 1 ? "person" : "people"} in the tenant` : "Add people by CSV or one at a time",
       action: { label: "Import people", href: "/admin/people" },
     },
@@ -123,8 +125,8 @@ export function AdminOverview({
       done: ses.length > 0 && withoutPlan.length === 0,
       title:
         withoutPlan.length > 0
-          ? `${withoutPlan.length} SE${withoutPlan.length === 1 ? " has" : "s have"} no ramp plan`
-          : "Every SE has a ramp plan",
+          ? `${withoutPlan.length} ${withoutPlan.length === 1 ? `${learner.one} has` : `${learner.many} have`} no ramp plan`
+          : `Every ${learner.one} has a ramp plan`,
       detail: withoutPlan.length > 0 ? namesSummary(withoutPlan.map((profile) => profile.fullName)) : "Assigned from Programs",
       action: { label: "Assign plans", href: "/admin/programs/assign" },
     },
@@ -231,7 +233,7 @@ export function AdminOverview({
 
           <KpiStrip
             items={[
-              { label: "Active SEs", value: activeSes, suffix: `/${ses.length}`, href: "/admin/people" },
+              { label: `Active ${learner.many}`, value: activeSes, suffix: `/${ses.length}`, href: "/admin/people" },
               { label: "Plan progress", value: avgProgress, suffix: "%", href: "/admin/programs" },
               { label: "Open reviews", value: pendingReviews, href: "/admin/content/reviews" },
               { label: "Sims run", value: activityCounts[0]?.value ?? 0, href: "/admin/insights" },
@@ -244,6 +246,7 @@ export function AdminOverview({
 }
 
 function EnablementCard({ rows }: { rows: { label: string; value: number }[] }) {
+  const learner = useLearnerTerms();
   return (
     <DefinitionCard
       inner={
@@ -267,7 +270,7 @@ function EnablementCard({ rows }: { rows: { label: string; value: number }[] }) 
       partOfSpeech="noun, ops"
       word="enablement"
     >
-      Getting a new SE from first login to first solo call, and keeping everyone else sharp after. Here is the last 30 days:
+      Getting a new {learner.one} from first login to first solo call, and keeping everyone else sharp after. Here is the last 30 days:
     </DefinitionCard>
   );
 }

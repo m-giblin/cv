@@ -1,7 +1,10 @@
+"use client";
+
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusPill } from "@/components/ui/status-pill";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import { cn } from "@/lib/utils";
 
 /**
@@ -36,13 +39,14 @@ export function PracticeToolPage({
 }
 
 export function TestModeNotice() {
+  const learner = useLearnerTerms();
   return (
     <div
       className="mx-[var(--page-pad-x)] mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-dashed border-line-strong px-4 py-2.5 max-sm:mx-4"
       role="status"
     >
       <p className="flex flex-wrap items-center gap-3 text-sm text-ink-2">
-        <StatusPill tone="warning">Test as SE</StatusPill>
+        <StatusPill tone="warning">Test as {learner.one}</StatusPill>
         You are checking scoring, personas and the coaching flow.
       </p>
       <Link className="link text-sm" href="/admin">

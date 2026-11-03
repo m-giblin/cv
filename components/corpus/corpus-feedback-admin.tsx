@@ -14,6 +14,7 @@ import {
 } from "@/components/admin/admin-ui";
 import { StatusPill } from "@/components/ui/status-pill";
 import { Tag } from "@/components/ui/tag";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 
 type FeedbackRow = {
   id: string;
@@ -49,6 +50,7 @@ function formatTimeAgo(createdAt: string) {
 }
 
 export function CorpusFeedbackAdmin() {
+  const learner = useLearnerTerms();
   const [items, setItems] = useState<FeedbackRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [notes, setNotes] = useState<Record<string, string>>({});
@@ -97,7 +99,7 @@ export function CorpusFeedbackAdmin() {
       actions={<Tag tone={items.length > 0 ? "warning" : "neutral"}>{items.length} waiting</Tag>}
       bodyClassName="p-0"
       meta="Lab questions that need an SME answer within 48 hours"
-      title="SE feedback queue"
+      title={`${learner.one} feedback queue`}
     >
       {loading ? (
         <LoadingState label="Loading feedback…" />
@@ -116,7 +118,7 @@ export function CorpusFeedbackAdmin() {
                     {item.comment ?? item.content_assets?.title ?? "No question provided."}
                   </p>
                   <p className="mt-0.5 text-[13px] text-muted">
-                    {item.profiles?.full_name ?? "Unknown SE"}, {formatTimeAgo(item.created_at).toLowerCase()}.{" "}
+                    {item.profiles?.full_name ?? `Unknown ${learner.one}`}, {formatTimeAgo(item.created_at).toLowerCase()}.{" "}
                     {item.is_confusing ? "Flagged as confusing." : "Asked a question."}
                   </p>
                 </div>

@@ -10,6 +10,7 @@ import { Drawer } from "@/components/ui/drawer";
 import { FlightStrip } from "@/components/ui/flight-strip";
 import { Modal } from "@/components/ui/modal";
 import { Stamp } from "@/components/ui/stamp";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import { PITCH_TRACKS, PRACTICE_VERTICALS, type PracticeItem, type PracticeKind } from "@/lib/admin/practice-library";
 import {
   DIFFICULTIES,
@@ -41,6 +42,7 @@ import {
   type WizardState,
   type WizardStep,
 } from "@/lib/admin/practice-wizard";
+import { possessive } from "@/lib/tenant/learner-terms";
 import { cn } from "@/lib/utils";
 
 /** What the wizard hands back after publishing. */
@@ -172,6 +174,7 @@ async function errorMessage(response: Response, fallback: string): Promise<strin
  */
 export function PracticeWizard({ open, onClose, onPublish, onNext, library, competencies, duplicateOf }: Props) {
   const titleId = useId();
+  const learner = useLearnerTerms();
   const fileRef = useRef<HTMLInputElement>(null);
   const slugSuffix = useRef(Date.now().toString(36));
   const [state, setState] = useState<WizardState>(initialWizardState);
@@ -270,7 +273,7 @@ export function PracticeWizard({ open, onClose, onPublish, onNext, library, comp
       const response = await fetch("/api/admin/simulation-templates", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(toSimPayload(state)),
+        body: JSON.stringify(toSimPayload(state, learner)),
       });
       if (!response.ok) {
         setBusy(false);
@@ -319,7 +322,7 @@ export function PracticeWizard({ open, onClose, onPublish, onNext, library, comp
   const eyebrow = published
     ? "Published"
     : `New practice / Step ${state.step} of 4${draftNote ? ` / ${draftNote}` : ""}`;
-  const heading = published ? published.name : state.step === 1 ? "Create practice for your SEs" : preview.title;
+  const heading = published ? published.name : state.step === 1 ? `Create practice for your ${learner.many}` : preview.title;
   const nextLabel = published
     ? "Done"
     : state.step === 4
@@ -331,8 +334,8 @@ export function PracticeWizard({ open, onClose, onPublish, onNext, library, comp
   const nexts: { title: string; desc: string; disabled?: boolean }[] = [
     { title: "Add to a ramp plan", desc: "Opens the plan builder with this as a new step" },
     sim
-      ? { title: "Assign to SEs now", desc: "Pick people; it shows on their Practice page" }
-      : { title: "Assign to SEs now", desc: "Pitch scenarios rotate into every SE's pitch queue on their own", disabled: true },
+      ? { title: `Assign to ${learner.many} now`, desc: "Pick people; it shows on their Practice page" }
+      : { title: `Assign to ${learner.many} now`, desc: `Pitch scenarios rotate into every ${possessive(learner.one)} pitch queue on their own`, disabled: true },
     { title: "Back to the library", desc: "It appears at the top of the list" },
   ];
 
@@ -410,7 +413,7 @@ export function PracticeWizard({ open, onClose, onPublish, onNext, library, comp
                 {published.competency ?? "the selected competency"}.
               </p>
               <div className="mt-1.5 flex flex-col gap-1.5">
-                <p className="label-caps">Put it in front of SEs</p>
+                <p className="label-caps">Put it in front of {learner.many}</p>
                 {nexts.map((entry, index) => (
                   <button
                     className={cn(tileBase, tileOff, "justify-between", entry.disabled && "cursor-not-allowed opacity-60")}
@@ -441,14 +444,14 @@ export function PracticeWizard({ open, onClose, onPublish, onNext, library, comp
                         stub: "Sim",
                         title: "Simulation",
                         desc: "A live role-play with an AI buyer. Scored 0 to 100 with a coaching card for the manager.",
-                        meta: "About 15 min for the SE",
+                        meta: `About 15 min for the ${learner.one}`,
                       },
                       {
                         id: "pitch" as const,
                         stub: "Pitch",
                         title: "Pitch scenario",
                         desc: "A timed, recorded pitch to a prompt. Scored 1 to 5 against your rubric.",
-                        meta: "60 to 120 seconds for the SE",
+                        meta: `60 to 120 seconds for the ${learner.one}`,
                       },
                     ]
                   ).map((kind) => {
@@ -585,7 +588,7 @@ export function PracticeWizard({ open, onClose, onPublish, onNext, library, comp
                   </Group>
                 </>
               )}
-              <Group hint={sim ? undefined : "Shown to the SE with the prompt. Pitch scenarios do not store a vertical yet."} title="Vertical">
+              <Group hint={sim ? undefined : `Shown to the ${learner.one} with the prompt. Pitch scenarios do not store a vertical yet.`} title="Vertical">
                 <ChipRow onPick={(vertical) => patch({ vertical })} options={PRACTICE_VERTICALS} value={state.vertical as (typeof PRACTICE_VERTICALS)[number]} />
               </Group>
             </>
@@ -602,7 +605,7 @@ export function PracticeWizard({ open, onClose, onPublish, onNext, library, comp
                 />
               </label>
               <label className="flex flex-col gap-1.5 text-sm font-bold text-ink">
-                {sim ? "What is the situation?" : "What does the SE see?"}
+                {sim ? "What is the situation?" : `What does the ${learner.one} see?`}
                 <span className="-mt-0.5 text-[13px] font-normal text-muted">
                   {sim ? "Plain language. This becomes the buyer's background." : "The prompt shown before the timer starts."}
                 </span>
@@ -619,7 +622,7 @@ export function PracticeWizard({ open, onClose, onPublish, onNext, library, comp
               </label>
               <fieldset className="flex flex-col gap-1.5">
                 <legend className="mb-1.5 text-sm font-bold text-ink">
-                  {sim ? "What should the SE uncover?" : "What makes a strong pitch?"}
+                  {sim ? `What should the ${learner.one} uncover?` : "What makes a strong pitch?"}
                 </legend>
                 <p className="-mt-1 text-[13px] text-muted">2 to 4 items. These become the scoring rubric.</p>
                 {state.goals.map((goal, index) => (
@@ -639,7 +642,7 @@ export function PracticeWizard({ open, onClose, onPublish, onNext, library, comp
                           goals: current.goals.map((entry, i) => (i === index ? event.target.value : entry)),
                         }))
                       }
-                      placeholder="Describe one thing the SE should do"
+                      placeholder={`Describe one thing the ${learner.one} should do`}
                       value={goal}
                     />
                     <LinkButton
@@ -710,7 +713,7 @@ export function PracticeWizard({ open, onClose, onPublish, onNext, library, comp
                 )}
               </Group>
               {sim ? (
-                <Group hint="Unscored attempts before the SE submits. SEs can still submit at any time." title="Recommended practice rounds">
+                <Group hint={`Unscored attempts before the ${learner.one} submits. ${learner.many} can still submit at any time.`} title="Recommended practice rounds">
                   <ChipRow onPick={(rounds) => patch({ rounds })} options={PRACTICE_ROUNDS} value={state.rounds as (typeof PRACTICE_ROUNDS)[number]} />
                 </Group>
               ) : null}
@@ -750,7 +753,7 @@ export function PracticeWizard({ open, onClose, onPublish, onNext, library, comp
           className="flex flex-col gap-3.5 overflow-y-auto border-l border-line px-5 py-[22px] max-md:hidden"
           style={{ flex: "0 0 clamp(220px, 30%, 300px)" }}
         >
-          <p className="label-caps">As the SE sees it</p>
+          <p className="label-caps">As the {learner.one} sees it</p>
           <FlightStrip className="shrink-0" compact numeral={preview.numeral} numeralCaption={preview.unit} stubLabel={preview.stub}>
             <span className="text-[13px] text-muted">{preview.meta}</span>
             <span className={cn("text-[17px] leading-[1.15] font-extrabold", preview.hasTitle ? "text-ink" : "text-muted")}>
@@ -835,7 +838,7 @@ export function PracticeWizard({ open, onClose, onPublish, onNext, library, comp
         aria-label="Raw prompt"
         className="min-h-[360px] text-[13px] leading-[1.6]"
         onChange={(event) => patch({ rawScenario: event.target.value })}
-        value={scenarioText(state)}
+        value={scenarioText(state, learner)}
       />
     </Drawer>
     </>

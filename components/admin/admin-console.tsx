@@ -8,6 +8,7 @@ import type { ReactNode } from "react";
 import { AdminBody, LoadingState } from "@/components/admin/admin-ui";
 import { AdminSettingsHeader } from "@/components/admin/admin-settings-header";
 import { PageHeader } from "@/components/ui/page-header";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import {
   adminRouteFromPath,
   type AdminSettingsSectionId,
@@ -16,6 +17,7 @@ import {
 import type { PracticeUsage } from "@/lib/admin/practice-library";
 import type { AiUsageSummary } from "@/lib/ai/settings-shared";
 import type { PendingReviewBreakdown } from "@/lib/data/get-pending-review-breakdown";
+import type { LearnerTerms } from "@/lib/tenant/learner-terms";
 import type { ActivityLog, Profile, ProfileRole, SeLevel, UserPlan } from "@/lib/types";
 
 const loading = () => <LoadingState />;
@@ -135,7 +137,7 @@ type InitialAdminUser = {
   created_at: string;
 };
 
-const HEADERS: Partial<Record<AdminTabId, { eyebrow: string; title: string; subtitle?: string }>> = {
+const headers = (learner: LearnerTerms): Partial<Record<AdminTabId, { eyebrow: string; title: string; subtitle?: string }>> => ({
   competencies: {
     eyebrow: "Programs",
     title: "Competencies",
@@ -144,15 +146,15 @@ const HEADERS: Partial<Record<AdminTabId, { eyebrow: string; title: string; subt
   "content-portal": {
     eyebrow: "Content",
     title: "Library",
-    subtitle: "Modules, battle cards and guides SEs find in Learn and plans link to as steps.",
+    subtitle: `Modules, battle cards and guides ${learner.many} find in Learn and plans link to as steps.`,
   },
   corpus: { eyebrow: "Content", title: "Corpus", subtitle: "The source material behind answers, and where unanswered questions go." },
   routing: { eyebrow: "Content", title: "Q&A routing" },
   reviews: { eyebrow: "Content", title: "Reviews", subtitle: "Work waiting on a reviewer across the tenant." },
-  analytics: { eyebrow: "Insights", title: "Analytics", subtitle: "How SEs are ramping, and whether readiness tracks with deals." },
+  analytics: { eyebrow: "Insights", title: "Analytics", subtitle: `How ${learner.many} are ramping, and whether readiness tracks with deals.` },
   audit: { eyebrow: "Insights", title: "Audit log", subtitle: "Who changed what, and when." },
   help: { eyebrow: "Overview", title: "Help", subtitle: "Ask the platform team, and see what you asked before." },
-};
+});
 
 /** Tenant admin console. The path picks the view; each view brings its own header and body. */
 const PROGRAM_VIEWS = [
@@ -186,6 +188,7 @@ export function AdminConsole({
   initialUsers?: InitialAdminUser[];
   practiceUsage?: PracticeUsage | null;
 }) {
+  const learner = useLearnerTerms();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const route = adminRouteFromPath(pathname);
@@ -260,9 +263,10 @@ export function AdminConsole({
     );
   }
 
-  const eyebrow = HEADERS[tab]?.eyebrow ?? "";
-  let title = HEADERS[tab]?.title ?? "";
-  const subtitle = HEADERS[tab]?.subtitle;
+  const header = headers(learner)[tab];
+  const eyebrow = header?.eyebrow ?? "";
+  let title = header?.title ?? "";
+  const subtitle = header?.subtitle;
   let actions: ReactNode = null;
   let body: ReactNode = null;
 

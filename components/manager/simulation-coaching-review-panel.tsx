@@ -3,6 +3,7 @@
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { ManagerCopilotDraft } from "@/components/manager/manager-copilot-draft";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import { ScoreBar } from "@/components/ui/bars";
 import { Drawer } from "@/components/ui/drawer";
 import { StatusPill, type StatusTone } from "@/components/ui/status-pill";
@@ -39,6 +40,7 @@ export function SimulationCoachingReviewPanel({
   onDraft: (text: string) => void;
   onAppendMoment: (text: string) => void;
 }) {
+  const learner = useLearnerTerms();
   const [showTranscript, setShowTranscript] = useState(false);
   const tone = scoreTone(item.score);
 
@@ -140,7 +142,7 @@ export function SimulationCoachingReviewPanel({
         context={[
           item.simulationLabel ? `Scenario: ${item.simulationLabel}` : null,
           item.managerSummary ? `Session brief: ${item.managerSummary}` : null,
-          item.seReflection ? `SE reflection: ${item.seReflection}` : null,
+          item.seReflection ? `${learner.one} reflection: ${item.seReflection}` : null,
         ]
           .filter(Boolean)
           .join("\n")}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import { PersonCell, TableCard, tdCls, thCls } from "@/components/ui/table";
 import type { LeaderboardEntry } from "@/lib/gamification/leaderboard";
 import { cn, initials } from "@/lib/utils";
@@ -18,6 +19,7 @@ export function ManagerLeaderboard({
   entries: LeaderboardEntry[];
   onOpenProfile: (profileId: string) => void;
 }) {
+  const learner = useLearnerTerms();
   if (entries.length === 0) {
     return (
       <p className="rounded-[14px] border border-line bg-white px-5 py-10 text-center text-[15px] text-muted">
@@ -32,7 +34,7 @@ export function ManagerLeaderboard({
       <thead>
         <tr>
           <th className={cn(thCls, "w-20")} scope="col">Rank</th>
-          <th className={thCls} scope="col">SE</th>
+          <th className={thCls} scope="col">{learner.one}</th>
           <th className={cn(thCls, "text-right")} scope="col">Trophies</th>
           <th className={cn(thCls, "text-right")} scope="col">Sim avg</th>
           <th className={cn(thCls, "text-right")} scope="col">Streak</th>

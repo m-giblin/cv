@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { SimulationAssignForm } from "@/components/manager/simulation-assign-form";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import { Drawer } from "@/components/ui/drawer";
 import { DistributionBar } from "@/components/ui/bars";
 import { PageBody, PageHeader } from "@/components/ui/page-header";
@@ -60,6 +61,7 @@ export function TeamReadiness({
   org: Profile[];
   tabs?: ReactNode;
 }) {
+  const learner = useLearnerTerms();
   const [view, setView] = useState("cards");
   const [assigning, setAssigning] = useState<CompetencyLine | null>(null);
   const lines = useMemo(() => buildLines(rows), [rows]);
@@ -75,7 +77,7 @@ export function TeamReadiness({
   const seCount = rows.length;
   const subtitle =
     seCount > 0 && lines.length > 0
-      ? `${numberWord(seCount, true)} ${plural(seCount, "SE", "SEs")}, ${numberWord(lines.length)} ${plural(lines.length, "competency", "competencies")}. Target is ${READINESS_TARGET}.`
+      ? `${numberWord(seCount, true)} ${plural(seCount, learner.one, learner.many)}, ${numberWord(lines.length)} ${plural(lines.length, "competency", "competencies")}. Target is ${READINESS_TARGET}.`
       : `Target is ${READINESS_TARGET}.`;
 
   return (
@@ -213,7 +215,7 @@ export function TeamReadiness({
         {assigning ? (
           <div className="flex flex-col gap-4">
             <p className="text-[15px] text-ink-2">
-              {assigning.below.length === 1 ? "This SE scores" : "These SEs score"} below {AT_RISK_READINESS} on{" "}
+              {assigning.below.length === 1 ? `This ${learner.one} scores` : `These ${learner.many} score`} below {AT_RISK_READINESS} on{" "}
               {assigning.name}. Pick a simulation to send them.
             </p>
             <SimulationAssignForm

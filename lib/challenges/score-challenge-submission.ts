@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { enforceAiRateLimit } from "@/lib/ai/enforce-rate-limit";
 import { logAiUsage } from "@/lib/ai/log-usage";
 import { resolveAiProviderForUser } from "@/lib/ai/resolve-provider-for-user";
+import { getLearnerTerms } from "@/lib/tenant/shell-branding";
 
 export type ChallengeAiReview = {
   score: number;
@@ -42,7 +43,7 @@ function templateReview(input: {
   return {
     score: base,
     suggestedGrade: scoreToGrade(base),
-    summary: `${input.challengeTitle}: SE submitted reflection and ${input.evidenceCount} evidence item(s). Validate query accuracy, business-risk linkage, and that attached proof matches the challenge steps.`,
+    summary: `${input.challengeTitle}: reflection and ${input.evidenceCount} evidence item(s) submitted. Validate query accuracy, business-risk linkage, and that attached proof matches the challenge steps.`,
     strengths: [
       reflectionLen > 80
         ? "Reflection shows structured thinking about the challenge outcome."
@@ -85,6 +86,7 @@ export async function scoreChallengeSubmission(
 
   const { model, provider, modelName } = await resolveAiProviderForUser(supabase, params.reviewerUserId);
   if (!model) return fallback;
+  const learner = await getLearnerTerms();
 
   const evidenceSummary = params.evidenceFiles
     .map((file, index) => {
@@ -100,7 +102,7 @@ export async function scoreChallengeSubmission(
     const result = await generateObject({
       model,
       schema: reviewSchema,
-      prompt: `You are grading a SailPoint SE challenge submission for a manager review inbox.
+      prompt: `You are grading a SailPoint ${learner.one} challenge submission for a manager review inbox.
 Use the challenge rubric and SLED enablement standards. The manager will verify visual evidence separately — score based on reflection quality, rubric alignment, and whether evidence was provided.
 
 Challenge: ${params.challenge.title}
@@ -111,7 +113,7 @@ Success criteria:
 ${params.challenge.successCriteria.map((c) => `- ${c}`).join("\n")}
 Linked solutions: ${params.challenge.linkedSolutions.join(", ") || "Identity Security Cloud"}
 
-SE reflection:
+${learner.one} reflection:
 ${params.reflectionText || "(none)"}
 
 Evidence submitted:

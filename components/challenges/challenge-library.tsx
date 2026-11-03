@@ -7,6 +7,7 @@ import { Chip } from "@/components/ui/chip";
 import { Drawer } from "@/components/ui/drawer";
 import { StatusPill } from "@/components/ui/status-pill";
 import { Tag } from "@/components/ui/tag";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import type { AssignmentStatus, Challenge, ChallengeSubmission } from "@/lib/types";
 
 type DifficultyFilter = "all" | Challenge["difficulty"];
@@ -87,6 +88,7 @@ function ChallengeDetail({
  onClose: () => void;
  onWorkOn: () => void;
 }) {
+ const learner = useLearnerTerms();
  return (
  <Drawer
  eyebrow="Challenge"
@@ -105,7 +107,7 @@ function ChallengeDetail({
  success criteria
  </span>
  <span className="flex flex-wrap items-center gap-1.5">
- {challenge.targetLevel ? <Tag tone="blue">{challenge.targetLevel} SE</Tag> : null}
+ {challenge.targetLevel ? <Tag tone="blue">{challenge.targetLevel} {learner.one}</Tag> : null}
  <Tag tone="neutral">{challenge.difficulty}</Tag>
  <Tag tone="neutral">{challenge.isAiGenerated ? "AI" : "Curated"}</Tag>
  <SubmissionStatusTag submission={submission} />

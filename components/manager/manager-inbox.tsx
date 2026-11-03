@@ -17,6 +17,7 @@ import { ChallengeSubmissionReviewPanel } from "@/components/manager/challenge-s
 import { MentorDateRequestsPanel } from "@/components/manager/mentor-date-requests-panel";
 import { MentorManagerNotesPanel } from "@/components/manager/mentor-manager-notes-panel";
 import { MentorGateRecommendationNote } from "@/components/manager/mentor-gate-recommendation-note";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import type { PlanStepReviewItem } from "@/components/manager/plan-step-review-panel";
 import type { ReviewItem } from "@/components/manager/review-queue";
 import { SimulationCoachingReviewPanel } from "@/components/manager/simulation-coaching-review-panel";
@@ -30,6 +31,7 @@ import { FilterBar, TableCard, rowHighlight, tdCls, thCls } from "@/components/u
 import type { ReviewSignoffContext } from "@/lib/coaching/signoff-policy";
 import { signoffTierForReview } from "@/lib/coaching/signoff-policy";
 import { ageWords } from "@/lib/manager/copy";
+import type { LearnerTerms } from "@/lib/tenant/learner-terms";
 import { AT_RISK_READINESS, INBOX_SLA_DAYS } from "@/lib/manager/team-status";
 import { announceNotificationsRead } from "@/lib/notifications/read-events";
 import { cn } from "@/lib/utils";
@@ -185,7 +187,7 @@ function helperText(item: InboxItem) {
   }
 }
 
-function briefPayloadForItem(item: InboxItem) {
+function briefPayloadForItem(item: InboxItem, learner: LearnerTerms) {
   return {
     reviewType: signoffContextForItem(item).reviewType,
     personName: itemPerson(item),
@@ -197,7 +199,7 @@ function briefPayloadForItem(item: InboxItem) {
     isManagerGate: item.inboxType === "plan_step" ? item.isManagerGate : item.inboxType === "cert",
     context:
       item.inboxType === "submission"
-        ? [`Challenge submission for ${item.personName}`, item.reflectionText ? `SE reflection: ${item.reflectionText}` : null]
+        ? [`Challenge submission for ${item.personName}`, item.reflectionText ? `${learner.one} reflection: ${item.reflectionText}` : null]
             .filter(Boolean)
             .join("\n")
         : undefined,
@@ -279,6 +281,7 @@ export function ManagerInbox({
   dealPrepItems?: DealPrepReviewItem[];
 }) {
   const router = useRouter();
+  const learner = useLearnerTerms();
   const [now] = useState(() => Date.now());
   const [mentorItems, setMentorItems] = useState<MentorItem[]>([]);
   const [pitchItems, setPitchItems] = useState<PitchItem[]>([]);
@@ -555,13 +558,13 @@ export function ManagerInbox({
           }
         >
           <select
-            aria-label="Filter by SE"
+            aria-label={`Filter by ${learner.one}`}
             className={pillCls}
             onChange={(event) => setPersonFilter(event.target.value)}
             style={caret}
             value={personFilter}
           >
-            <option value="all">Every SE</option>
+            <option value="all">Every {learner.one}</option>
             {people.map((name) => (
               <option key={name} value={name}>
                 {name}
@@ -603,7 +606,7 @@ export function ManagerInbox({
                   Item
                 </th>
                 <th className={cn(thCls, "w-[160px]")} scope="col">
-                  SE
+                  {learner.one}
                 </th>
                 <th className={cn(thCls, "w-[76px]")} scope="col">
                   Score
@@ -811,14 +814,14 @@ export function ManagerInbox({
 
                 {activeItem.inboxType === "mentor" && activeItem.seNotes ? (
                   <div className="flex flex-col gap-1.5 rounded-[12px] border border-line bg-white px-4 py-3">
-                    <p className="label-caps">SE notes</p>
+                    <p className="label-caps">{learner.one} notes</p>
                     <p className="text-ink">{activeItem.seNotes}</p>
                   </div>
                 ) : null}
 
                 {activeItem.inboxType === "pitch" && activeItem.reflectionText ? (
                   <div className="flex flex-col gap-1.5 rounded-[12px] border border-line bg-white px-4 py-3">
-                    <p className="label-caps">SE reflection</p>
+                    <p className="label-caps">{learner.one} reflection</p>
                     <p className="text-ink">{activeItem.reflectionText}</p>
                   </div>
                 ) : null}
@@ -844,7 +847,7 @@ export function ManagerInbox({
                 <p className="label-caps">Your sign-off</p>
                 {usesStructuredSignoff(activeItem) ? (
                   <>
-                    <ManagerCoachingBriefPanel onBrief={signoff.applyBrief} payload={briefPayloadForItem(activeItem)} />
+                    <ManagerCoachingBriefPanel onBrief={signoff.applyBrief} payload={briefPayloadForItem(activeItem, learner)} />
                     <CoachingSignoffForm
                       decision="approve"
                       onAttestationNoteChange={signoff.setAttestationNote}

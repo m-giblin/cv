@@ -34,6 +34,8 @@ type DbTenant = {
   welcome_message: string | null;
   product_name?: string | null;
   product_tagline?: string | null;
+  learner_term?: string | null;
+  learner_term_plural?: string | null;
   created_at: string;
   updated_at: string;
   operator_notes?: string | null;
@@ -60,6 +62,8 @@ function mapBranding(row: DbTenant): TenantBranding {
     allowedEmailDomains: Array.isArray(domains) ? (domains as string[]) : [],
     productName: row.product_name ?? null,
     productTagline: row.product_tagline ?? null,
+    learnerTerm: row.learner_term ?? null,
+    learnerTermPlural: row.learner_term_plural ?? null,
   };
 }
 
@@ -219,6 +223,8 @@ export async function updateTenantBranding(
   }
   if (branding.productName !== undefined) payload.product_name = cleanBrandText(branding.productName);
   if (branding.productTagline !== undefined) payload.product_tagline = cleanBrandText(branding.productTagline);
+  if (branding.learnerTerm !== undefined) (payload as Record<string, unknown>).learner_term = cleanBrandText(branding.learnerTerm);
+  if (branding.learnerTermPlural !== undefined) (payload as Record<string, unknown>).learner_term_plural = cleanBrandText(branding.learnerTermPlural);
 
   const { data, error } = await admin
     .from("tenants")

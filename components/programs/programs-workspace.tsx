@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { PeopleBreakdown, type BreakdownKind } from "@/components/programs/people-breakdown";
 import { ProgramTimeline, ProgramTrackCards } from "@/components/programs/program-tracks";
 import { ProgramWorkbench, type ProgramTab } from "@/components/programs/program-workbench";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import { GapBanner } from "@/components/ui/editorial";
 import { PageBody, PageHeader } from "@/components/ui/page-header";
 import { ScoreBar } from "@/components/ui/bars";
@@ -49,6 +50,7 @@ export function ProgramsWorkspace({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const learner = useLearnerTerms();
   const [templates, setTemplates] = useState<DbTemplate[] | null>(null);
   const canEdit = mode === "admin";
 
@@ -204,12 +206,12 @@ export function ProgramsWorkspace({
             value={loading ? "—" : tracks.length || programs.length}
           />
           <Stat
-            label={mode === "manager" ? "Your SEs enrolled" : "SEs enrolled"}
+            label={mode === "manager" ? `Your ${learner.many} enrolled` : `${learner.many} enrolled`}
             note={`of ${people.length}`}
             onClick={() => setBreakdown("enrolled")}
             value={enrolledCount}
           />
-          <Stat label="SEs at risk" note="overdue work" onClick={() => setBreakdown("at_risk")} tone={atRisk > 0 ? "danger" : "blue"} value={atRisk} />
+          <Stat label={`${learner.many} at risk`} note="overdue work" onClick={() => setBreakdown("at_risk")} tone={atRisk > 0 ? "danger" : "blue"} value={atRisk} />
           <Stat label="Avg completion" onClick={() => setBreakdown("completion")} value={avgProgress === null ? "—" : `${avgProgress}%`} />
         </StatStrip>
 
@@ -226,7 +228,7 @@ export function ProgramsWorkspace({
               </span>
             }
             of={people.length}
-            title={`${unenrolled.length === 1 ? "SE has" : "SEs have"} no program`}
+            title={`${unenrolled.length === 1 ? `${learner.one} has` : `${learner.many} have`} no program`}
             value={unenrolled.length}
           >
             {unenrolled
@@ -249,7 +251,7 @@ export function ProgramsWorkspace({
           <div className="flex flex-col items-start gap-3 rounded-[14px] border border-dashed border-line-strong bg-white px-6 py-8">
             <p className="text-[15px] font-bold text-ink">No programs yet.</p>
             <p className="text-sm text-ink-2">
-              {canEdit ? "Create the first program, then enroll SEs in it." : "Your enablement admin hasn't published a program yet."}
+              {canEdit ? `Create the first program, then enroll ${learner.many} in it.` : "Your enablement admin hasn't published a program yet."}
             </p>
             {canEdit ? (
               <button className="btn-primary" onClick={() => setOpen(NEW)} type="button">

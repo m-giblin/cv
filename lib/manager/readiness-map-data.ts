@@ -303,7 +303,7 @@ export function segmentsCell(unlocked: number, tenureDays: number, firstName: st
     actions: [
       { title: "Program progress", description: "See phase progress and gates", href: "/manager/programs" },
       { title: "Plan Calendar", description: "Align segment timing on the calendar", href: "/plan-calendar" },
-      { title: "Team Roster", description: "Open full SE coaching profile", href: "/manager/team" },
+      { title: "Team Roster", description: "Open their full coaching profile", href: "/manager/team" },
     ],
     confidence: "high",
   };

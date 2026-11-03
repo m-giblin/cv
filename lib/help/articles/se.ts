@@ -13,7 +13,7 @@ export const SE_ARTICLES: HelpArticle[] = [
     category: "Getting started",
     keywords: ["login", "log in", "sign in", "mfa", "2fa", "two factor", "authenticator", "qr code", "verification code", "first time", "enroll"],
     overview: [
-      "Signing in to SE Enablement takes two steps: your password, then a six-digit code from an authenticator app. MFA is required every time you sign in, not just on new devices.",
+      "Signing in takes two steps: your password, then a six-digit code from an authenticator app. MFA is required every time you sign in, not just on new devices.",
       "The first time you sign in, you'll be asked to enroll an authenticator. After that you go straight to the verify screen. If you're inactive for 15 minutes, your session expires and you have to sign in again.",
     ],
     steps: [
@@ -390,7 +390,7 @@ export const SE_ARTICLES: HelpArticle[] = [
     keywords: ["privacy", "visibility", "manager", "mentor", "who sees", "private", "reviewer", "admin"],
     overview: [
       "Your manager is listed under \"Your manager\" on your account page. They validate your ramp steps, approve challenges, review simulation cards and pitches that you submit, sign off certification gates and build your growth plan.",
-      "Your mentor reviews steps of type Review (mentor review) and can sign off gates. If you don't have a mentor, those requests go to your manager. Program admins can see every SE in the workspace.",
+      "Your mentor reviews steps of type Review (mentor review) and can sign off gates. If you don't have a mentor, those requests go to your manager. Program admins can see every {learner} in the workspace.",
       "Some work stays private: simulation practice rounds, \"Free practice\" pitches and deal prep briefs you haven't shared.",
     ],
     steps: [

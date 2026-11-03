@@ -1,4 +1,5 @@
 import { SeLevel } from "@/lib/types";
+import { DEFAULT_LEARNER_TERMS, type LearnerTerms } from "@/lib/tenant/learner-terms";
 
 export type CareerStage = {
   level: SeLevel;
@@ -7,26 +8,32 @@ export type CareerStage = {
   certifications: string[];
 };
 
-export const CAREER_STAGES: CareerStage[] = [
-  {
-    level: "Basic",
-    title: "Basic SE",
-    requirements: ["Complete onboarding plan", "First ISC discovery challenge", "SLED roleplay simulation"],
-    certifications: ["solo_discovery"],
-  },
-  {
-    level: "Senior",
-    title: "Senior SE",
-    requirements: ["Executive demo storytelling", "Competitive positioning", "Quarterly dev plan on track"],
-    certifications: ["executive_demo", "competitive_bakeoff"],
-  },
-  {
-    level: "Advisory",
-    title: "Advisory Solutions Consultant",
-    requirements: ["Customer workshop facilitation", "Advisory readiness review", "Mentor other SEs"],
-    certifications: ["customer_workshop", "advisory_readiness"],
-  },
-];
+/** The career ladder, worded with the tenant's term ("Basic SE", "Basic AE"). */
+export function careerStages(terms: LearnerTerms = DEFAULT_LEARNER_TERMS): CareerStage[] {
+  return [
+    {
+      level: "Basic",
+      title: `Basic ${terms.one}`,
+      requirements: ["Complete onboarding plan", "First ISC discovery challenge", "SLED roleplay simulation"],
+      certifications: ["solo_discovery"],
+    },
+    {
+      level: "Senior",
+      title: `Senior ${terms.one}`,
+      requirements: ["Executive demo storytelling", "Competitive positioning", "Quarterly dev plan on track"],
+      certifications: ["executive_demo", "competitive_bakeoff"],
+    },
+    {
+      level: "Advisory",
+      title: "Advisory Solutions Consultant",
+      requirements: ["Customer workshop facilitation", "Advisory readiness review", `Mentor other ${terms.many}`],
+      certifications: ["customer_workshop", "advisory_readiness"],
+    },
+  ];
+}
+
+/** The career ladder with the default SE wording, for code that only reads levels and certifications. */
+export const CAREER_STAGES: CareerStage[] = careerStages();
 
 export const CERT_LABELS: Record<string, string> = {
   solo_discovery: "Solo discovery call",
@@ -44,12 +51,14 @@ export function computeCareerProgress(params: {
   approvedCerts: string[];
   planProgress: number;
   avgSimScore: number | null;
+  terms?: LearnerTerms;
 }) {
-  const stageIndex = CAREER_STAGES.findIndex((stage) => stage.level === params.currentLevel);
-  const nextStage = CAREER_STAGES[stageIndex + 1];
+  const stages = careerStages(params.terms);
+  const stageIndex = stages.findIndex((stage) => stage.level === params.currentLevel);
+  const nextStage = stages[stageIndex + 1];
 
   if (!nextStage) {
-    return { currentStage: CAREER_STAGES[stageIndex], nextStage: null, readinessPercent: 100 };
+    return { currentStage: stages[stageIndex], nextStage: null, readinessPercent: 100 };
   }
 
   const certDone = nextStage.certifications.filter((cert) => params.approvedCerts.includes(cert)).length;
@@ -60,7 +69,7 @@ export function computeCareerProgress(params: {
 
   const readinessPercent = Math.round((certPercent * 0.5 + planPercent * 0.25 + simPercent * 0.25));
 
-  return { currentStage: CAREER_STAGES[stageIndex], nextStage, readinessPercent };
+  return { currentStage: stages[stageIndex], nextStage, readinessPercent };
 }
 
 export function practiceCadenceMessage(lastSimDate: string | null): string {

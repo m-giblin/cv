@@ -20,6 +20,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { StatusPill } from "@/components/ui/status-pill";
 import { rowHighlight } from "@/components/ui/table";
 import { Tag } from "@/components/ui/tag";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import { cn } from "@/lib/utils";
 import type { Profile } from "@/lib/types";
 
@@ -41,6 +42,7 @@ export function ReleaseCoursesPanel({
 }: {
   assignees: Profile[];
 }) {
+  const learner = useLearnerTerms();
   const [courses, setCourses] = useState<Course[]>([]);
   const [templates, setTemplates] = useState<PlanTemplate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -150,7 +152,7 @@ export function ReleaseCoursesPanel({
 
     const userIds = [...selectedUserIds];
     if (userIds.length === 0) {
-      toast.error("Select at least one SE to assign.");
+      toast.error(`Select at least one ${learner.one} to assign.`);
       return;
     }
 
@@ -169,7 +171,7 @@ export function ReleaseCoursesPanel({
     }
     const body = (await response.json()) as { assigned: number; skipped: number };
     toast.success(
-      `Assigned ${body.assigned} SE${body.assigned === 1 ? "" : "s"}.${body.skipped ? ` ${body.skipped} ${body.skipped === 1 ? "was" : "were"} already enrolled.` : ""}`,
+      `Assigned ${body.assigned} ${body.assigned === 1 ? learner.one : learner.many}.${body.skipped ? ` ${body.skipped} ${body.skipped === 1 ? "was" : "were"} already enrolled.` : ""}`,
     );
     setAssignCourseId(null);
     void load();
@@ -287,7 +289,7 @@ export function ReleaseCoursesPanel({
       {assignCourse ? (
         <LineCard meta={`${selectedUserIds.size} selected`} title={`Assign: ${assignCourse.name}`}>
           <p className="text-[13px] text-muted">
-            SEs with an active assignment of this plan are shown as already enrolled.
+            {learner.many} with an active assignment of this plan are shown as already enrolled.
           </p>
           {eligibleAssignees.length === 0 ? (
             <p className="mt-3 text-sm text-muted">No team members to assign.</p>

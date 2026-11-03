@@ -22,6 +22,7 @@ import {
   type FeatureFlagCategory,
   type PlatformFeatureFlags,
 } from "@/lib/platform/settings-shared";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import { cn } from "@/lib/utils";
 
 const AREAS = [...new Set(PLATFORM_FEATURE_FLAG_DEFS.map((def) => def.category))] as FeatureFlagCategory[];
@@ -31,6 +32,7 @@ const AREAS = [...new Set(PLATFORM_FEATURE_FLAG_DEFS.map((def) => def.category))
  * while TENANT_ADMINS_CAN_EDIT_FEATURES is false the API reports every feature as locked and rejects changes.
  */
 export function AdminSettingsFeatures() {
+  const learner = useLearnerTerms();
   const [saved, setSaved] = useState<PlatformFeatureFlags | null>(null);
   const [draft, setDraft] = useState<PlatformFeatureFlags>({});
   const [locked, setLocked] = useState<string[]>([]);
@@ -201,7 +203,7 @@ export function AdminSettingsFeatures() {
                       </span>
                     </td>
                     <td className={cn(cell, "text-sm text-ink-2")}>{FEATURE_AREA_LABELS[def.category]}</td>
-                    <td className={cn(cell, "text-sm text-ink-2")}>{featureAudience(def)}</td>
+                    <td className={cn(cell, "text-sm text-ink-2")}>{featureAudience(def, learner)}</td>
                     <td className={cn(cell, "text-sm", def.dependsOn?.length ? "text-ink-2" : "text-muted")}>
                       {def.dependsOn?.length ? def.dependsOn.map(featureLabel).join(", ") : "None"}
                     </td>

@@ -3,6 +3,7 @@
 import { Loader2, Plus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ManagerCopilotDraft } from "@/components/manager/manager-copilot-draft";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import { ScoreBar } from "@/components/ui/bars";
 import { StatusPill, type StatusTone } from "@/components/ui/status-pill";
 import { Tag } from "@/components/ui/tag";
@@ -190,6 +191,7 @@ export function ChallengeSubmissionReviewPanel({
   onAppendMoment?: (text: string) => void;
   onDraft?: (text: string) => void;
 }) {
+  const learner = useLearnerTerms();
   const [detail, setDetail] = useState<ChallengeDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -311,7 +313,7 @@ export function ChallengeSubmissionReviewPanel({
           </h3>
           {detail.evidence.length === 0 ? (
             <p className="rounded-[14px] bg-danger-soft px-4 py-3 text-sm font-semibold text-danger">
-              No evidence attached. Ask the SE to resubmit with screenshots, exports or workflow artifacts.
+              No evidence attached. Ask the {learner.one} to resubmit with screenshots, exports or workflow artifacts.
             </p>
           ) : (
             <ul className="overflow-hidden rounded-[14px] border border-line bg-white">
@@ -319,7 +321,7 @@ export function ChallengeSubmissionReviewPanel({
                 <li className="border-b border-divider p-3 last:border-b-0" key={`${item.label}-${index}`}>
                   {item.unavailable ? (
                     <p className="text-sm font-semibold text-danger">
-                      {item.label} is missing from storage. Ask the SE to re-upload it.
+                      {item.label} is missing from storage. Ask the {learner.one} to re-upload it.
                     </p>
                   ) : item.kind === "image" && item.href ? (
                     <button

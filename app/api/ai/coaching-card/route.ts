@@ -4,6 +4,7 @@ import { z } from "zod";
 import { createCoachingAttestation } from "@/lib/ai/coaching-attestation";
 import { enforceAiRateLimit } from "@/lib/ai/enforce-rate-limit";
 import { coachingCardPrompt } from "@/lib/ai/prompts";
+import { getLearnerTerms } from "@/lib/tenant/shell-branding";
 import { coachingCardSchema } from "@/lib/ai/schemas";
 import { resolveAiProviderForUser } from "@/lib/ai/resolve-provider-for-user";
 import { logAiUsage } from "@/lib/ai/log-usage";
@@ -54,7 +55,7 @@ export async function POST(request: Request) {
  recommendedNextPractice:
  "Repeat the scenario with a tougher procurement or compliance objection and produce a two-minute close.",
  managerSummary:
- "The SE is progressing well and should focus the next practice rep on discovery depth and quantified business value.",
+ "They are progressing well and should focus the next practice rep on discovery depth and quantified business value.",
  };
 
  return NextResponse.json({
@@ -68,7 +69,7 @@ export async function POST(request: Request) {
  const result = await generateObject({
  model,
  schema: coachingCardSchema,
- prompt: coachingCardPrompt(parsed.data),
+ prompt: coachingCardPrompt(parsed.data, await getLearnerTerms()),
  experimental_telemetry: {
  isEnabled: true,
  functionId: "generate-coaching-card",

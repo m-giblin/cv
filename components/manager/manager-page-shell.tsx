@@ -22,6 +22,7 @@ import type { PlanStepReviewItem } from "@/components/manager/plan-step-review-p
 import type { ReviewItem } from "@/components/manager/review-queue";
 import { TeamReadiness, type CompetencySeRow } from "@/components/manager/team-readiness";
 import { SectionTabs } from "@/components/nav/section-tabs";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import { PageBody, PageHeader } from "@/components/ui/page-header";
 import type { MenteeAssignment } from "@/lib/data/fetch-mentor-mentees";
 import type { LeaderboardEntry } from "@/lib/gamification/leaderboard";
@@ -135,6 +136,7 @@ export function ManagerPageShell({
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const learner = useLearnerTerms();
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(searchParams.get("profile"));
 
   // Back/forward and in-app links that change ?profile= keep the drawer in sync.
@@ -292,7 +294,7 @@ export function ManagerPageShell({
     <>
       {content}
       {selectedSnapshot && !fullSnapshot ? (
-        <Drawer bodyWidth="full" eyebrow="SE" onClose={closeProfile} open title={selectedSnapshot.profile.fullName}>
+        <Drawer bodyWidth="full" eyebrow={learner.one} onClose={closeProfile} open title={selectedSnapshot.profile.fullName}>
           <PageSkeleton label={`Loading ${selectedSnapshot.profile.fullName}`} />
         </Drawer>
       ) : null}

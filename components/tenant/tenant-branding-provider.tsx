@@ -19,3 +19,8 @@ export function TenantBrandingProvider({
 export function useTenantBranding() {
  return useContext(TenantBrandingContext);
 }
+
+/** What this tenant calls the people it trains: { one: "AE", many: "AEs" }; SE/SEs by default. */
+export function useLearnerTerms() {
+ return useContext(TenantBrandingContext).learner;
+}

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { FIELD_CLS, LABEL_CLS, TEXTAREA_CLS } from "@/components/se/form-classes";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import { Drawer } from "@/components/ui/drawer";
 import { DefinitionCard } from "@/components/ui/editorial";
 import { PageBody, PageHeader } from "@/components/ui/page-header";
@@ -25,6 +26,7 @@ import {
   type MatrixCell,
 } from "@/lib/se/gate-matrix";
 import { createClient } from "@/lib/supabase/client";
+import { withArticle } from "@/lib/tenant/learner-terms";
 import type { Challenge, ChallengeSubmission, CoachingCard, Profile, SeLevel } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -431,6 +433,8 @@ function SubmitDrawer({ row, onClose, onDone }: { row: GateRow | null; onClose: 
 
 function ReviewDrawer({ row, seName, onClose, onDone }: { row: GateRow | null; seName?: string; onClose: () => void; onDone: () => void }) {
   const notesId = useId();
+  const learner = useLearnerTerms();
+  const who = seName ?? `The ${learner.one}`;
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -453,7 +457,7 @@ function ReviewDrawer({ row, seName, onClose, onDone }: { row: GateRow | null; s
       toast.error("Review failed.");
       return;
     }
-    toast(status === "approved" ? `Approved. ${seName ?? "The SE"} is notified.` : `Changes requested. ${seName ?? "The SE"} is notified.`);
+    toast(status === "approved" ? `Approved. ${who} is notified.` : `Changes requested. ${who} is notified.`);
     onDone();
   }
 
@@ -476,7 +480,7 @@ function ReviewDrawer({ row, seName, onClose, onDone }: { row: GateRow | null; s
       {row ? (
         <div className="flex flex-col gap-4 text-[15px] leading-[1.5] text-ink-2">
           <p className="text-sm text-muted">
-            {seName ?? "The SE"} has {row.simsMet} of {row.simsRequired} simulations at {SIM_PASS_SCORE}+, and the
+            {who} has {row.simsMet} of {row.simsRequired} simulations at {SIM_PASS_SCORE}+, and the
             challenge is {row.challengeMet ? "met" : "missing"}.
           </p>
           <p className="text-ink">{row.record?.evidence_text ?? "No evidence text."}</p>
@@ -507,6 +511,7 @@ function ReviewDrawer({ row, seName, onClose, onDone }: { row: GateRow | null; s
 }
 
 function TeamOverview({ profiles, teamCerts }: { profiles: TeamProfile[]; teamCerts: CertificationRecord[] }) {
+  const learner = useLearnerTerms();
   const pending = teamCerts
     .filter((cert) => cert.status === "submitted")
     .map((cert) => ({ ...cert, profileName: profiles.find((p) => p.id === cert.userId)?.fullName ?? "Unknown" }));
@@ -547,7 +552,7 @@ function TeamOverview({ profiles, teamCerts }: { profiles: TeamProfile[]; teamCe
           </ul>
         ) : (
           <p className="rounded-[14px] border border-dashed border-line-strong p-6 text-[15px] text-muted">
-            No pending sign-offs. When an SE submits evidence it appears here.
+            No pending sign-offs. When {withArticle(learner.one)} submits evidence it appears here.
           </p>
         )}
       </section>
@@ -560,7 +565,7 @@ function TeamOverview({ profiles, teamCerts }: { profiles: TeamProfile[]; teamCe
           <thead>
             <tr>
               <th className={thCls} scope="col">
-                SE
+                {learner.one}
               </th>
               <th className={thCls} scope="col">
                 Level
@@ -647,6 +652,7 @@ export function CertificationGates({
   challenges?: Challenge[];
   reviewerFirstName?: string | null;
 }) {
+  const learner = useLearnerTerms();
   const [records, setRecords] = useState<GateRecord[]>([]);
   const [loading, setLoading] = useState(Boolean(userId));
   const [submitting, setSubmitting] = useState<GateRow | null>(null);
@@ -726,7 +732,7 @@ export function CertificationGates({
               <Link className="link" href={CERT_BASE}>
                 Team
               </Link>
-              &nbsp;/&nbsp;{profileName ?? "SE"}
+              &nbsp;/&nbsp;{profileName ?? learner.one}
             </>
           ) : (
             <>
@@ -761,7 +767,7 @@ export function CertificationGates({
                 <p className="text-[13px] text-muted">
                   {isSelfView
                     ? `Submitting sends the gate to ${reviewer} for sign-off. Simulations and challenges show what usually backs each gate; they never block a submission.`
-                    : "Approving clears the gate and notifies the SE."}
+                    : `Approving clears the gate and notifies the ${learner.one}.`}
                 </p>
               </>
             )}

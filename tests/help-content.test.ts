@@ -32,6 +32,16 @@ describe("help content", () => {
   });
 });
 
+describe("help learner terms", () => {
+  it("fills every learner placeholder with the tenant's term", () => {
+    const articles = helpArticlesFor(helpAudiencesForHats(["tenant_admin"]), { one: "AE", many: "AEs" });
+    const text = JSON.stringify(articles.map((article) => ({ ...article, id: "", keywords: [] })));
+    expect(text).not.toMatch(/\{[aA]?n? ?learners?'?s?'?\}/);
+    expect(text).not.toMatch(/\bSEs?\b/);
+    expect(text).toContain("AEs");
+  });
+});
+
 describe("help gating", () => {
   it("gives SEs only SE articles", () => {
     const audiences = helpAudiencesForHats(["se"]);

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Field, LinkButton, SelectInput, TextArea, TextInput } from "@/components/admin/admin-ui";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import { usePlanBuilderData, type LibraryItem } from "@/components/plans/plan-builder-data";
 import { PlanPreviewDrawer, StepFlightPreview } from "@/components/plans/plan-builder-preview";
 import { PlanWeeksView } from "@/components/plans/plan-builder-weeks";
@@ -111,6 +112,7 @@ export function PlanBuilder({
   onDirtyChange?: (dirty: boolean) => void;
 } = {}) {
   const data = usePlanBuilderData();
+  const learner = useLearnerTerms();
   const [planId, setPlanId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -412,7 +414,7 @@ export function PlanBuilder({
         ) : (
           <span className="text-sm text-muted">{steps.length ? "Every step is complete" : "No steps yet"}</span>
         )}
-        <LinkButton onClick={() => setPreviewOpen(true)}>Preview as SE</LinkButton>
+        <LinkButton onClick={() => setPreviewOpen(true)}>Preview as {learner.one}</LinkButton>
         <button
           aria-describedby={!publishable ? "plan-publish-note" : undefined}
           className="btn-primary"
@@ -641,7 +643,7 @@ export function PlanBuilder({
           aria-label="Live preview"
           className="flex flex-col gap-4 border-t border-line px-[22px] py-6 xl:border-t-0 xl:border-l"
         >
-          <p className="label-caps">As the SE sees it</p>
+          <p className="label-caps">As the {learner.one} sees it</p>
           {selected ? <StepFlightPreview index={selectedIndex} step={selected} total={steps.length} /> : null}
           <ReadyChecklist onSelect={setSelectedKey} selected={selected} steps={steps} />
         </aside>
@@ -861,6 +863,7 @@ function StepEditor({
   }[];
   competencies: { id: string; name: string }[] | null;
 }) {
+  const learner = useLearnerTerms();
   const id = (field: string) => `step-${step.key}-${field}`;
   const week = weekOf(step.dueOffsetDays);
   const dueOptions = Array.from({ length: PLAN_WEEKS * 7 }, (_, i) => i + 1);
@@ -884,7 +887,7 @@ function StepEditor({
       {step.isSegmentGate ? (
         <p className="flex items-center gap-2 rounded-[10px] border border-blue bg-blue-soft px-3 py-2 text-sm font-bold text-blue">
           <span aria-hidden className="h-[9px] w-[9px] shrink-0 rotate-45 bg-blue" />
-          Gate: a test-out the SE must pass before the next stage opens.
+          Gate: a test-out the {learner.one} must pass before the next stage opens.
         </p>
       ) : null}
       <fieldset className="flex flex-col gap-1.5">
@@ -988,7 +991,7 @@ function StepEditor({
         <TextInput id={id("title")} onChange={(event) => onChange({ title: event.target.value })} value={step.title} />
       </Field>
 
-      <Field htmlFor={id("description")} label="What the SE does">
+      <Field htmlFor={id("description")} label={`What the ${learner.one} does`}>
         <TextArea
           className="min-h-16 text-sm"
           id={id("description")}

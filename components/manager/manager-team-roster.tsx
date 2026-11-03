@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { AssignWorkWizard } from "@/components/manager/assign-work-wizard";
 import { TeamActionLink, TeamStatusTag, initialsOf } from "@/components/manager/team-member-bits";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import { PageBody, PageHeader } from "@/components/ui/page-header";
 import { SegmentedToggle } from "@/components/ui/segmented-toggle";
 import { Stamp } from "@/components/ui/stamp";
@@ -172,6 +173,7 @@ function RosterTable({
   onOpenProfile: (id: string) => void;
   readinessAvailable: boolean;
 }) {
+  const learner = useLearnerTerms();
   const [sort, setSort] = useState<SortKey>("urgency");
   const sorted = useMemo(() => {
     if (sort === "name") return [...members].sort((a, b) => a.fullName.localeCompare(b.fullName));
@@ -201,7 +203,7 @@ function RosterTable({
       <caption className="sr-only">Team roster. Click a column header to sort.</caption>
       <thead>
         <tr>
-          {sortHeader("name", "SE")}
+          {sortHeader("name", learner.one)}
           {sortHeader("urgency", "Status", "w-[150px]")}
           {sortHeader("readiness", "Ready", "w-[80px]")}
           <th className={cn(thCls, "w-[100px]")} scope="col">

@@ -1,5 +1,6 @@
 import { format } from "date-fns";
 import { StatusPill } from "@/components/ui/status-pill";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import { TableCard, tdCls, thCls } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import type { ActivityLog, CoachingCard, Profile } from "@/lib/types";
@@ -95,6 +96,7 @@ export function ManagerReviewHistory({
  entries: ReviewHistoryEntry[];
  fullPage?: boolean;
 }) {
+ const learner = useLearnerTerms();
  if (entries.length === 0) {
  return (
  <p className="rounded-[14px] border border-line bg-white px-5 py-10 text-center text-[15px] text-muted">
@@ -109,7 +111,7 @@ export function ManagerReviewHistory({
  <thead>
  <tr>
  <th className={thCls} scope="col">Item</th>
- <th className={thCls} scope="col">SE</th>
+ <th className={thCls} scope="col">{learner.one}</th>
  <th className={thCls} scope="col">Decision</th>
  <th className={cn(thCls, "text-right")} scope="col">Reviewed</th>
  </tr>

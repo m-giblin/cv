@@ -31,6 +31,7 @@ import {
   stepLifecycle,
   type RampModel,
 } from "@/lib/se/ramp-model";
+import { DEFAULT_LEARNER_TERMS, type LearnerTerms } from "@/lib/tenant/learner-terms";
 import type { DashboardData, PlanStep } from "@/lib/types";
 import { planStepActionLabel, planStepHref } from "@/lib/utils/plan-links";
 
@@ -83,6 +84,7 @@ export function SeToday({
   myMentor = null,
   oneOnOnes = [],
   weeklyQuiz = null,
+  learner = DEFAULT_LEARNER_TERMS,
 }: {
   data: DashboardData;
   gateRows: GateRow[];
@@ -97,6 +99,7 @@ export function SeToday({
   oneOnOnes?: UpcomingOneOnOne[];
   /** This week's quiz; shown until it's passed. Null when quizzes are switched off. */
   weeklyQuiz?: MixStatus | null;
+  learner?: LearnerTerms;
 }) {
   const user = data.currentUser;
   const firstName = user.fullName.split(" ")[0] ?? "there";
@@ -120,7 +123,7 @@ export function SeToday({
         : null}
     </>
   ) : (
-    `${user.level} SE`
+    `${user.level} ${learner.one}`
   );
   const hero =
     !model && mentees.length

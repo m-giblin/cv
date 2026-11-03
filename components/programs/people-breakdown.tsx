@@ -1,19 +1,21 @@
 "use client";
 
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import { Drawer } from "@/components/ui/drawer";
 import { StatusPill } from "@/components/ui/status-pill";
 import type { EnrollmentSummary, ProgramSummary } from "@/lib/programs/program-model";
 import type { ProgramTrack } from "@/lib/programs/tracks";
+import type { LearnerTerms } from "@/lib/tenant/learner-terms";
 import type { Profile } from "@/lib/types";
 
 export type BreakdownKind = "enrolled" | "at_risk" | "completion" | "unenrolled";
 
-const TITLES: Record<BreakdownKind, { title: string; subtitle: string }> = {
-  enrolled: { title: "SEs enrolled", subtitle: "Everyone with an active plan, and where they are." },
-  at_risk: { title: "SEs at risk", subtitle: "People with overdue steps, most overdue first." },
+const titles = (learner: LearnerTerms): Record<BreakdownKind, { title: string; subtitle: string }> => ({
+  enrolled: { title: `${learner.many} enrolled`, subtitle: "Everyone with an active plan, and where they are." },
+  at_risk: { title: `${learner.many} at risk`, subtitle: "People with overdue steps, most overdue first." },
   completion: { title: "Completion", subtitle: "Every enrollment, least complete first." },
-  unenrolled: { title: "SEs with no program", subtitle: "People who aren't on any plan yet." },
-};
+  unenrolled: { title: `${learner.many} with no program`, subtitle: "People who aren't on any plan yet." },
+});
 
 /** The list behind a Programs stat: who it counts, and why. */
 export function PeopleBreakdown({
@@ -29,6 +31,8 @@ export function PeopleBreakdown({
   unenrolled: Profile[];
   onClose: () => void;
 }) {
+  const learner = useLearnerTerms();
+  const title = titles(learner)[kind];
   const programOf = (planId: string) => {
     const track = tracks.find((item) => item.stages.some((stage) => stage.planId === planId));
     const stage = track?.stages.find((item) => item.planId === planId);
@@ -47,7 +51,7 @@ export function PeopleBreakdown({
         : [...rows].sort((a, b) => (a.person?.fullName ?? "").localeCompare(b.person?.fullName ?? ""));
 
   return (
-    <Drawer onClose={onClose} open size="form" subtitle={TITLES[kind].subtitle} title={TITLES[kind].title}>
+    <Drawer onClose={onClose} open size="form" subtitle={title.subtitle} title={title.title}>
       {kind === "unenrolled" ? (
         unenrolled.length ? (
           <ul className="overflow-hidden rounded-[14px] border border-line bg-white">

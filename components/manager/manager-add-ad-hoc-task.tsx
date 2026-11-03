@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 import { toast } from "sonner";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import { Drawer } from "@/components/ui/drawer";
 
 const INPUT_CLASS =
@@ -18,6 +19,7 @@ export function ManagerAddAdHocTask({
   personName: string;
 }) {
   const router = useRouter();
+  const learner = useLearnerTerms();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -64,7 +66,7 @@ export function ManagerAddAdHocTask({
         <div className="min-w-0 flex-1">
           <h3 className="text-[15px] font-bold text-ink">Add ramp task</h3>
           <p className="mt-1 text-sm text-muted">
-            A one-off task for this SE. You run the live sign-off when they submit it.
+            A one-off task for this {learner.one}. You run the live sign-off when they submit it.
           </p>
         </div>
         <button aria-haspopup="dialog" className="link text-sm" onClick={() => setOpen(true)} type="button">
@@ -94,7 +96,7 @@ export function ManagerAddAdHocTask({
         onClose={() => setOpen(false)}
         open={open}
         size="form"
-        subtitle="A one-off task for this SE. You run the live sign-off when they submit it."
+        subtitle={`A one-off task for this ${learner.one}. You run the live sign-off when they submit it.`}
         title="Add ramp task"
       >
         <form className="space-y-3" id={formId} onSubmit={handleAdd}>

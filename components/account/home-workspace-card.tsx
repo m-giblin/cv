@@ -50,7 +50,7 @@ export function HomeWorkspaceCard() {
       <div>
         <h2 className="text-[18px] font-extrabold text-ink">Your home workspace</h2>
         <p className="text-sm text-muted">
-          Where you train as an SE. You appear in its People list, so its admins and managers can enroll you in programs and assign you
+          Where you train. You appear in its People list, so its admins and managers can enroll you in programs and assign you
           work. You keep full super-admin access everywhere. Change it whenever you like.
         </p>
       </div>
@@ -70,7 +70,7 @@ export function HomeWorkspaceCard() {
           </select>
         </label>
         <label className="flex flex-col gap-1.5 text-sm font-semibold text-ink">
-          Your SE level
+          Your level
           <select className={INPUT} onChange={(event) => setLevel(event.target.value)} value={level}>
             <option>Basic</option>
             <option>Senior</option>

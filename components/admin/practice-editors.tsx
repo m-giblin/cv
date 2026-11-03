@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Field, SecondaryButton, SelectInput, TextArea, TextInput } from "@/components/admin/admin-ui";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Drawer } from "@/components/ui/drawer";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import type { PitchScenarioRow, SimTemplateRow } from "@/lib/admin/practice-library";
 
 type Difficulty = "foundational" | "intermediate" | "advanced";
@@ -28,6 +29,7 @@ export function SimTemplateEditor({
   /** "As the SE sees it" preview and item actions, shown as the workbench's right column. */
   side?: React.ReactNode;
 }) {
+  const learner = useLearnerTerms();
   const formId = useId();
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
@@ -78,7 +80,7 @@ export function SimTemplateEditor({
       eyebrow={side ? "Practice" : undefined}
       mainLabel={side ? "Edit" : undefined}
       side={side}
-      sideLabel="As the SE sees it"
+      sideLabel={`As the ${learner.one} sees it`}
       size={side ? "full" : "form"}
       footer={
         <>
@@ -119,7 +121,7 @@ export function SimTemplateEditor({
           <TextInput id={`${formId}-solution`} onChange={(event) => set("solutionFocus", event.target.value)} required value={form.solutionFocus} />
         </Field>
         <Field
-          hint="Suggested unscored attempts before submitting. SEs can still submit at any time."
+          hint={`Suggested unscored attempts before submitting. ${learner.many} can still submit at any time.`}
           htmlFor={`${formId}-rounds`}
           label="Recommended practice rounds"
         >
@@ -159,6 +161,7 @@ export function PitchScenarioEditor({
   onSaved: () => void;
   side?: React.ReactNode;
 }) {
+  const learner = useLearnerTerms();
   const formId = useId();
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
@@ -228,7 +231,7 @@ export function PitchScenarioEditor({
       eyebrow={side ? "Practice" : undefined}
       mainLabel={side ? "Edit" : undefined}
       side={side}
-      sideLabel="As the SE sees it"
+      sideLabel={`As the ${learner.one} sees it`}
       size={side ? "full" : "form"}
       footer={
         <>
@@ -275,7 +278,7 @@ export function PitchScenarioEditor({
             </SelectInput>
           </Field>
         </div>
-        <Field htmlFor={`${formId}-prompt`} label="What the SE sees">
+        <Field htmlFor={`${formId}-prompt`} label={`What the ${learner.one} sees`}>
           <TextArea id={`${formId}-prompt`} minLength={10} onChange={(event) => set("prompt", event.target.value)} required rows={3} value={form.prompt} />
         </Field>
         <Field hint="What a strong pitch does. Managers see this when they grade." htmlFor={`${formId}-description`} label="Coaching description">
@@ -286,7 +289,7 @@ export function PitchScenarioEditor({
         </Field>
         <label className="flex items-center gap-2.5 text-sm font-bold text-ink">
           <Checkbox checked={form.active} onChange={(event) => set("active", event.target.checked)} />
-          Live: rotates into SE pitch queues
+          Live: rotates into {learner.one} pitch queues
         </label>
       </form>
     </Drawer>

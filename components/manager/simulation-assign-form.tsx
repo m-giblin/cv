@@ -3,6 +3,7 @@
 import { ChevronLeft, ChevronRight, Loader2, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import { Chip } from "@/components/ui/chip";
 import { paginate } from "@/components/ui/data-table";
 import { rowHighlight } from "@/components/ui/table";
@@ -66,6 +67,7 @@ export function SimulationAssignForm({
    */
   submitVariant?: "primary" | "secondary";
 }) {
+  const learner = useLearnerTerms();
   const singleOptions = useMemo(() => seProfiles(assignees), [assignees]);
   const teamOptions = useMemo(
     () => seProfiles(teamAssignees ?? assignees),
@@ -188,13 +190,13 @@ export function SimulationAssignForm({
           : [];
 
     if (assignedToIds.length === 0) {
-      toast.error("Pick at least one SE.");
+      toast.error(`Pick at least one ${learner.one}.`);
       return;
     }
 
     if (!isFixed && assignMode === "all") {
       const confirmed = window.confirm(
-        `Assign this simulation to all ${assignedToIds.length} SEs on your team?`,
+        `Assign this simulation to all ${assignedToIds.length} ${learner.many} on your team?`,
       );
       if (!confirmed) return;
     }
@@ -229,8 +231,8 @@ export function SimulationAssignForm({
     const count = body.assignedCount ?? assignedToIds.length;
     toast.success(
       count === 1
-        ? "Simulation assigned. The SE can start it from Simulations."
-        : `Simulation assigned to ${count} SEs.`,
+        ? `Simulation assigned. The ${learner.one} can start it from Simulations.`
+        : `Simulation assigned to ${count} ${learner.many}.`,
     );
     onAssigned?.();
   }
@@ -238,11 +240,11 @@ export function SimulationAssignForm({
   const fixedCount = fixedAssigneeIds?.length ?? 0;
   const submitLabel = isFixed
     ? fixedCount === 1
-      ? "Assign to SE"
-      : `Assign to ${fixedCount} SEs`
+      ? `Assign to ${learner.one}`
+      : `Assign to ${fixedCount} ${learner.many}`
     : assignMode === "all"
-      ? `Assign to all ${teamOptions.length} SEs`
-      : "Assign to SE";
+      ? `Assign to all ${teamOptions.length} ${learner.many}`
+      : `Assign to ${learner.one}`;
 
   return (
     <div className="min-w-0 space-y-6">
@@ -357,7 +359,7 @@ export function SimulationAssignForm({
         {isFixed ? (
           <div className="rounded-[14px] border border-line bg-white px-4 py-3 text-[15px] text-ink">
             <p className="font-bold">
-              Assigning to {fixedCount} SE{fixedCount === 1 ? "" : "s"}
+              Assigning to {fixedCount} {fixedCount === 1 ? learner.one : learner.many}
             </p>
             {fixedNames.length > 0 ? <p className="text-sm text-ink-2">{fixedNames.join(", ")}</p> : null}
           </div>
@@ -366,10 +368,10 @@ export function SimulationAssignForm({
             {canAssignAll ? (
               <div aria-label="Assign to" className="flex flex-wrap gap-2" role="group">
                 <Chip active={assignMode === "one"} onClick={() => setAssignMode("one")}>
-                  One SE
+                  One {learner.one}
                 </Chip>
                 <Chip active={assignMode === "all"} count={teamOptions.length} onClick={() => setAssignMode("all")}>
-                  All SEs
+                  All {learner.many}
                 </Chip>
               </div>
             ) : null}
@@ -392,7 +394,7 @@ export function SimulationAssignForm({
               </label>
             ) : (
               <p className="rounded-[14px] border border-line bg-white px-4 py-3 text-sm text-ink-2">
-                Will assign to <span className="font-bold text-ink">{teamOptions.length}</span> SEs:{" "}
+                Will assign to <span className="font-bold text-ink">{teamOptions.length}</span> {learner.many}:{" "}
                 {teamOptions
                   .slice(0, 6)
                   .map((profile) => profile.fullName)

@@ -9,6 +9,7 @@ import { CARD_CLS, FIELD_CLS, LINE_CARD_CLS, SELECT_CLS } from "@/components/se/
 import { Chip } from "@/components/ui/chip";
 import { StatusPill } from "@/components/ui/status-pill";
 import { Tag } from "@/components/ui/tag";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import {
  type ChallengeFilter,
  filterChallenges,
@@ -157,6 +158,7 @@ export function ChallengesPortal({
  showGenerator: boolean;
  gapRecommendations?: GapChallengeRecommendation[];
 }) {
+ const learner = useLearnerTerms();
  const router = useRouter();
  const searchParams = useSearchParams();
  const viewParam = searchParams.get("view");
@@ -594,7 +596,7 @@ export function ChallengesPortal({
  <header className="border-b border-divider px-6 py-5">
  <div className="mb-2 flex flex-wrap items-center gap-1.5">
  {selectedChallenge.targetLevel ? (
- <Tag tone="blue">{selectedChallenge.targetLevel} SE</Tag>
+ <Tag tone="blue">{selectedChallenge.targetLevel} {learner.one}</Tag>
  ) : null}
  <Tag tone="neutral">{selectedChallenge.difficulty}</Tag>
  <Tag tone="neutral">{selectedChallenge.isAiGenerated ? "AI" : "Curated"}</Tag>

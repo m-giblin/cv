@@ -19,7 +19,7 @@ export const MANAGER_ARTICLES: HelpArticle[] = [
       { title: "Check the numbers", body: "Read \"Reviews waiting\", \"At risk\" and \"Avg readiness\" at the top of the page. A red At risk number means at least one person needs attention." },
       { title: "Clear reviews first", body: "Click \"Open inbox\" to work through items waiting on you, oldest first." },
       { title: "Work the team list from the top", body: "Start with the first row. The reason column tells you why the person is listed and the action tells you what to do next." },
-      { title: "Open a person", body: "Click a name to open that SE's detail workbench with their Overview and Coach columns." },
+      { title: "Open a person", body: "Click a name to open that {learner's} detail workbench with their Overview and Coach columns." },
       { title: "Keep your coaching rhythm", body: "In the side rail, click \"Book the rest\" to go to Coaching cadence and see who you haven't coached in the last seven days." },
     ],
     links: [
@@ -38,12 +38,12 @@ export const MANAGER_ARTICLES: HelpArticle[] = [
     overview: [
       "The Inbox lists \"Items waiting on you, oldest first\". Item types are Sim cards, Challenges, Plan steps, Gates (certification gates), Deal preps, Pitches and Mentor notes. A type filter only appears when there is at least one item of that type.",
       "The header shows \"Waiting\" and \"Older than 3 days\". Three days is the review target; the Older than 3 days count turns red when anything has passed it.",
-      "Nothing is sent to the SE until you click Approve or Request changes in the review workbench.",
+      "Nothing is sent to the {learner} until you click Approve or Request changes in the review workbench.",
     ],
     steps: [
-      { title: "Open the Inbox", body: "Click Inbox in the left navigation. Items are listed oldest first with columns for Age, Type, Item, SE and Score." },
+      { title: "Open the Inbox", body: "Click Inbox in the left navigation. Items are listed oldest first with columns for Age, Type, Item, {learner} and Score." },
       { title: "Filter by type", body: "Click a type chip such as \"Sim cards\" or \"Plan steps\" to narrow the list. Each chip shows its count." },
-      { title: "Filter by person or age", body: "Use the SE filter (\"Every SE\" or one name) and the age filter (\"Any age\", \"Older than 3 days\" or \"Today\")." },
+      { title: "Filter by person or age", body: "Use the {learner} filter (\"Every {learner}\" or one name) and the age filter (\"Any age\", \"Older than 3 days\" or \"Today\")." },
       { title: "Open an item", body: "Click a row to open the review workbench. \"The work\" is on the left and \"Your sign-off\" is on the right." },
       { title: "Finish and move on", body: "Approve or request changes. The item leaves the list. When everything is done you see \"Inbox clear. Nice work.\"" },
     ],
@@ -62,10 +62,10 @@ export const MANAGER_ARTICLES: HelpArticle[] = [
       "Light (challenges, deal preps, pitches): \"Strength observed\" and \"Concrete next action\". Required (sim cards and ordinary plan steps): adds \"Gap to address\". Certification gates and plan steps that are segment gates use the strictest tier: when approving you also choose \"Readiness confidence, 1 to 5\" and can tick \"Live coaching attestation\" and describe \"What you observed\".",
       "Sim cards, challenges and pitches also take a \"Grade, 1 to 5\". Mentor notes use a single \"Feedback\" box instead of the sign-off fields.",
       "The \"Coaching brief\" panel above the fields is an AI draft that pre-fills your sign-off and suggests what to ask in your 1:1. Edit it before you send.",
-      "Approve does something different per type, and the drawer tells you what. For example, approving a sim card validates the SE's simulation step, approving a stage gate opens the next part of the stage, or the next stage once every gate is signed off, and approving a certification gate clears it.",
+      "Approve does something different per type, and the drawer tells you what. For example, approving a sim card validates the {learner's} simulation step, approving a stage gate opens the next part of the stage, or the next stage once every gate is signed off, and approving a certification gate clears it.",
     ],
     steps: [
-      { title: "Open the item", body: "Click a row in the Inbox. Read \"The work\" on the left, including any \"SE notes\" or \"SE reflection\". For pitches, click \"Watch video pitch\"." },
+      { title: "Open the item", body: "Click a row in the Inbox. Read \"The work\" on the left, including any \"{learner} notes\" or \"{learner} reflection\". For pitches, click \"Watch video pitch\"." },
       { title: "Review the AI draft", body: "Read the \"Coaching brief\" under \"Your sign-off\". It fills in the fields for you; rewrite anything that isn't what you saw." },
       { title: "Complete the sign-off fields", body: "Fill in \"Strength observed\", \"Gap to address\" (when shown) and \"Concrete next action\". Be specific; very short answers fail validation." },
       { title: "Set grade and confidence", body: "Where shown, enter \"Grade, 1 to 5\". For gates, select a \"Readiness confidence, 1 to 5\" rating before approving." },
@@ -96,8 +96,8 @@ export const MANAGER_ARTICLES: HelpArticle[] = [
   },
   {
     id: "mgr-se-workbench",
-    title: "Opening an SE's detail workbench",
-    summary: "See one SE's ramp, gates and activity, schedule a 1:1, keep private notes, assign a simulation or change their mentor.",
+    title: "Opening {a learner}'s detail workbench",
+    summary: "See one {learner's} ramp, gates and activity, schedule a 1:1, keep private notes, assign a simulation or change their mentor.",
     audience: ["manager"],
     category: "Team",
     keywords: ["se detail", "profile", "drawer", "schedule 1:1", "one on one", "talking points", "private coaching notes", "assign simulation", "assign work", "assign training", "library", "reassign mentor", "ics"],
@@ -112,7 +112,7 @@ export const MANAGER_ARTICLES: HelpArticle[] = [
       { title: "Copy talking points", body: "Click \"Copy talking points\" to put the full list on your clipboard for your 1:1 doc." },
       { title: "Keep private notes", body: "Under \"Private coaching notes\", type observations and commitments, then click \"Save notes\"." },
       { title: "Assign work", body: "Click \"Assign work\" and pick what kind: a playbook chapter, simulation, pitch, knowledge check, Learn library item or ramp task. Pick the items, then who (this person, several people or everyone) and the due date. To assign to several people without opening a profile, use \"Assign work\" on Team, or \"Assign\" next to any item in Coaching › Library." },
-      { title: "Change their mentor", body: "Under \"Assigned mentor\", choose a mentor (or \"No mentor assigned\") and click \"Save mentor\". This only appears when the SE has a ramp plan." },
+      { title: "Change their mentor", body: "Under \"Assigned mentor\", choose a mentor (or \"No mentor assigned\") and click \"Save mentor\". This only appears when the {learner} has a ramp plan." },
     ],
     links: [{ label: "Open Roster", href: "/manager/team" }],
     related: ["mgr-roster", "mgr-today", "mgr-readiness", "mgr-coaching-cadence"],
@@ -151,8 +151,8 @@ export const MANAGER_ARTICLES: HelpArticle[] = [
     steps: [
       { title: "Open Readiness", body: "Click Team, then Readiness." },
       { title: "Find the weakest competency", body: "Competencies are listed worst first, so start at the top." },
-      { title: "Assign practice", body: "Click \"Assign practice to N\". A drawer explains which SEs score below 60 on that competency." },
-      { title: "Pick a simulation", body: "Choose a prompt template in the drawer and assign it. The SEs start it from Simulations." },
+      { title: "Assign practice", body: "Click \"Assign practice to N\". A drawer explains which {learners} score below 60 on that competency." },
+      { title: "Pick a simulation", body: "Choose a prompt template in the drawer and assign it. The {learners} start it from Simulations." },
     ],
     links: [{ label: "Open Readiness", href: "/manager/team/readiness" }],
     related: ["mgr-se-workbench", "mgr-notifications", "mgr-roster"],
@@ -179,19 +179,19 @@ export const MANAGER_ARTICLES: HelpArticle[] = [
   {
     id: "mgr-mentees",
     title: "Mentees and mentor check-ins",
-    summary: "Respond to check-in requests from SEs you mentor and see which steps await manager sign-off.",
+    summary: "Respond to check-in requests from {learners} you mentor and see which steps await manager sign-off.",
     audience: ["manager"],
     category: "Team",
     keywords: ["mentees", "mentor", "check-in", "mentor review", "approve step", "needs revision", "mentor notes"],
     overview: [
-      "Team > Mentees covers SEs where you are the mentor on their ramp plan. The header shows \"Active mentees\", \"Check-ins pending\" and \"Awaiting manager sign-off\".",
+      "Team > Mentees covers {learners} where you are the mentor on their ramp plan. The header shows \"Active mentees\", \"Check-ins pending\" and \"Awaiting manager sign-off\".",
       "\"Mentor reviews\" lists check-in requests from onboarding plans. A mentor's approval endorses a step; steps that need the manager still show \"Manager sign-off pending\".",
     ],
     steps: [
       { title: "Open Mentees", body: "Click Team, then Mentees." },
       { title: "Answer check-ins", body: "In \"Mentor reviews\", write \"Mentor feedback and next steps\" and click \"Approve step\" or \"Needs revision\"." },
       { title: "Check each mentee", body: "Under \"Your mentees\", expand a person to see their pending check-ins and anything awaiting sign-off." },
-      { title: "Read mentor notes as a manager", body: "Mentor notes about your direct reports arrive in the Inbox as \"Mentor notes\" and in the SE's workbench under \"Mentor and notes\"." },
+      { title: "Read mentor notes as a manager", body: "Mentor notes about your direct reports arrive in the Inbox as \"Mentor notes\" and in the {learner's} workbench under \"Mentor and notes\"." },
     ],
     links: [
       { label: "Open Mentees", href: "/manager/team/mentees" },
@@ -233,7 +233,7 @@ export const MANAGER_ARTICLES: HelpArticle[] = [
     steps: [
       { title: "Open Review history", body: "Click Coaching, then Review history." },
       { title: "Scan decisions", body: "Use the Decision column to see what you approved and what you sent back." },
-      { title: "Follow up", body: "For items sent back, check the SE's workbench under \"Sent back for changes\" to see whether they resubmitted." },
+      { title: "Follow up", body: "For items sent back, check the {learner's} workbench under \"Sent back for changes\" to see whether they resubmitted." },
     ],
     links: [{ label: "Open Review history", href: "/manager/coaching/history" }],
     related: ["mgr-inbox", "mgr-review-workbench", "mgr-coaching-cadence"],
@@ -241,19 +241,19 @@ export const MANAGER_ARTICLES: HelpArticle[] = [
   {
     id: "mgr-development",
     title: "Development plans and quarterly reviews",
-    summary: "Track each SE's annual development goals and attest to quarterly reviews.",
+    summary: "Track each {learner's} annual development goals and attest to quarterly reviews.",
     audience: ["manager"],
     category: "Coaching",
     keywords: ["development", "dev plan", "goals", "quarterly review", "attest", "attestation", "annual goals", "q1", "q4"],
     overview: [
-      "Coaching > Development shows \"Plans that outlast the ramp\": each SE's annual goals and the quarterly attestations due. The header shows \"Plans\", \"Attestations due\" and \"Overdue\".",
+      "Coaching > Development shows \"Plans that outlast the ramp\": each {learner's} annual goals and the quarterly attestations due. The header shows \"Plans\", \"Attestations due\" and \"Overdue\".",
       "\"Quarterly attestations due\" lists reviews due in the next 14 days, marked \"Due soon\" or \"Overdue\".",
       "A plan has at most 5 goals. Creating a plan schedules Q1 to Q4 reviews automatically. Goals show as Not started, On track, At risk or Achieved.",
     ],
     steps: [
       { title: "Open Development", body: "Click Coaching, then Development." },
-      { title: "Attest due reviews", body: "In \"Quarterly attestations due\", click \"Attest\" next to a review to open it on that SE's plan." },
-      { title: "Create a missing plan", body: "Under \"Goals by SE\", click \"Create plan\" for anyone without one, then add up to 5 goals." },
+      { title: "Attest due reviews", body: "In \"Quarterly attestations due\", click \"Attest\" next to a review to open it on that {learner's} plan." },
+      { title: "Create a missing plan", body: "Under \"Goals by {learner}\", click \"Create plan\" for anyone without one, then add up to 5 goals." },
       { title: "Review an existing plan", body: "Click \"Open plan\" to see goals, evidence and this quarter's review status." },
     ],
     links: [
@@ -265,20 +265,20 @@ export const MANAGER_ARTICLES: HelpArticle[] = [
   {
     id: "mgr-programs",
     title: "Programs: the list and the program workbench",
-    summary: "See every ramp program, how your enrolled SEs are doing, and open a program to work on it.",
+    summary: "See every ramp program, how your enrolled {learners} are doing, and open a program to work on it.",
     audience: ["manager"],
     category: "Programs",
     keywords: ["programs", "ramp", "onboarding", "program workbench", "progress", "outline", "people", "schedule", "phases", "13 weeks"],
     overview: [
-      "Programs > Programs (\"Every ramp in one place.\") shows \"Programs\", \"Avg completion\" and \"SEs at risk\", then one row per program.",
+      "Programs > Programs (\"Every ramp in one place.\") shows \"Programs\", \"Avg completion\" and \"{learners} at risk\", then one row per program.",
       "Each program runs 13 weeks in four phases: Foundations, Field skills, Advisory readiness and Certification.",
       "Opening a row opens the program workbench with four tabs: Progress, Outline, People and Schedule. Enablement admins edit the outline; managers see it read only.",
     ],
     steps: [
       { title: "Open Programs", body: "Click Programs in the left navigation." },
       { title: "Open a program", body: "Click a program row. The workbench opens on the Progress tab." },
-      { title: "Read Progress", body: "Each enrolled SE has a status per phase and an Overall percentage. Click a row to see that person's journey." },
-      { title: "Read the Outline", body: "Click Outline to see what every SE on this program works through, phase by phase, including gate steps." },
+      { title: "Read Progress", body: "Each enrolled {learner} has a status per phase and an Overall percentage. Click a row to see that person's journey." },
+      { title: "Read the Outline", body: "Click Outline to see what every {learner} on this program works through, phase by phase, including gate steps." },
       { title: "Check the Schedule", body: "Click Schedule to see dated steps across the 13 weeks for everyone enrolled." },
     ],
     links: [{ label: "Open Programs", href: "/manager/programs" }],
@@ -287,7 +287,7 @@ export const MANAGER_ARTICLES: HelpArticle[] = [
   {
     id: "mgr-program-enroll",
     title: "Enrolling people in a program",
-    summary: "Add SEs to a program with a start date and an optional mentor.",
+    summary: "Add {learners} to a program with a start date and an optional mentor.",
     audience: ["manager"],
     category: "Programs",
     keywords: ["enroll", "assign plan", "add to program", "start date", "mentor", "ramp plan", "onboarding"],
@@ -297,7 +297,7 @@ export const MANAGER_ARTICLES: HelpArticle[] = [
     ],
     steps: [
       { title: "Open the People tab", body: "Open a program and click People, or click \"Enroll people\" on an empty Progress tab." },
-      { title: "Pick people", body: "Under \"Enroll people\", tick each SE you want to add." },
+      { title: "Pick people", body: "Under \"Enroll people\", tick each {learner} you want to add." },
       { title: "Set the start date", body: "Choose a \"Start date\". It defaults to today." },
       { title: "Choose a mentor", body: "Pick from \"Mentor (optional)\", or leave it as \"No mentor\"." },
       { title: "Enroll", body: "Click \"Enroll N\". You see how many people were enrolled; any failures are listed by name." },
@@ -309,7 +309,7 @@ export const MANAGER_ARTICLES: HelpArticle[] = [
   {
     id: "mgr-program-journey",
     title: "Reading a person's journey: phase status, at risk and overdue",
-    summary: "What each phase and step status means in a program, and when an SE counts as at risk.",
+    summary: "What each phase and step status means in a program, and when {a learner} counts as at risk.",
     audience: ["manager"],
     category: "Programs",
     keywords: ["journey", "phase status", "overdue", "at risk", "on track", "in progress", "upcoming", "complete", "in review"],
@@ -336,7 +336,7 @@ export const MANAGER_ARTICLES: HelpArticle[] = [
     category: "Programs",
     keywords: ["calendar", "timeline", "gantt", "month", "team view", "drag", "reschedule", "block day", "scheduling check"],
     overview: [
-      "Programs > Calendar shows your team's ramp plans. The \"Calendar view\" switch offers Timeline, Month and Team. The \"Calendar perspective\" switch lets you preview as Manager, SE or Mentor.",
+      "Programs > Calendar shows your team's ramp plans. The \"Calendar view\" switch offers Timeline, Month and Team. The \"Calendar perspective\" switch lets you preview as Manager, {learner} or Mentor.",
       "In the Manager perspective you can change dates. Other perspectives are \"Read only.\"",
       "The \"Scheduling check\" strip flags conflicts, or says \"No issues found\".",
     ],
@@ -358,15 +358,15 @@ export const MANAGER_ARTICLES: HelpArticle[] = [
     category: "Reviews",
     keywords: ["certification", "gate", "sign-off", "evidence", "approve", "request changes", "ready for sign-off", "cleared"],
     overview: [
-      "Programs > Certifications (\"Who is ready to sign off.\") lists your team and their gate status. Open one SE to see their evidence matrix by gate.",
-      "Approving clears the gate and notifies the SE. Requesting changes also notifies them. If you leave the notes empty, the SE sees \"Cleared for field readiness.\" or \"Needs more evidence before sign-off.\"",
+      "Programs > Certifications (\"Who is ready to sign off.\") lists your team and their gate status. Open one {learner} to see their evidence matrix by gate.",
+      "Approving clears the gate and notifies the {learner}. Requesting changes also notifies them. If you leave the notes empty, the {learner} sees \"Cleared for field readiness.\" or \"Needs more evidence before sign-off.\"",
       "Certification gates submitted for sign-off also appear in your Inbox under Gates, where they use the strictest sign-off tier.",
     ],
     steps: [
       { title: "Open Certifications", body: "Click Programs, then Certifications." },
-      { title: "Open an SE", body: "Click the link next to a person to open their evidence matrix." },
+      { title: "Open {a learner}", body: "Click the link next to a person to open their evidence matrix." },
       { title: "Review a gate", body: "Click \"Review\" on a gate that is ready for sign-off. Read the evidence and any attached file or link." },
-      { title: "Decide", body: "Add notes if you want, then click \"Approve\" or \"Request changes\". The SE is notified either way." },
+      { title: "Decide", body: "Add notes if you want, then click \"Approve\" or \"Request changes\". The {learner} is notified either way." },
     ],
     links: [
       { label: "Open Certifications", href: "/certifications" },
@@ -377,14 +377,14 @@ export const MANAGER_ARTICLES: HelpArticle[] = [
   {
     id: "mgr-notifications",
     title: "Notifications and readiness nudges",
-    summary: "Where notifications appear and why you get a nudge when an SE is critical on a readiness area.",
+    summary: "Where notifications appear and why you get a nudge when {a learner} is critical on a readiness area.",
     audience: ["manager"],
     category: "Getting started",
     keywords: ["notifications", "bell", "alerts", "nudge", "critical", "readiness nudge", "mark all read", "unread"],
     overview: [
       "The Notifications bell shows an unread count. Open it to read notifications and use \"Mark all read\".",
-      "Readiness nudges: when the readiness map is turned on for your organisation and you open Today, Roster or Readiness, the app checks each SE. If someone is critical on a readiness area, you get a notification titled \"<name> is critical on <area>\" and the SE gets one too. Both link to the recommended action.",
-      "Nudges only cover each SE's single worst critical area, and at most once every 7 days for the same nudge. Nothing is assigned automatically.",
+      "Readiness nudges: when the readiness map is turned on for your organisation and you open Today, Roster or Readiness, the app checks each {learner}. If someone is critical on a readiness area, you get a notification titled \"<name> is critical on <area>\" and the {learner} gets one too. Both link to the recommended action.",
+      "Nudges only cover each {learner's} single worst critical area, and at most once every 7 days for the same nudge. Nothing is assigned automatically.",
     ],
     steps: [
       { title: "Open notifications", body: "Click the Notifications bell. Unread items are counted at the top." },

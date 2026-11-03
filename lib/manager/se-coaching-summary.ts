@@ -8,6 +8,7 @@ import type {
 import { computeCareerProgress, practiceCadenceMessage } from "@/lib/growth/career-readiness";
 import { rampWeekFor } from "@/lib/manager/team-status";
 import { profileLevelLabel } from "@/lib/utils/level-label";
+import type { LearnerTerms } from "@/lib/tenant/learner-terms";
 import type {
   ActivityLog,
   ChallengeSubmission,
@@ -95,7 +96,7 @@ function devGoalStats(plan?: DevelopmentPlan | null) {
 
 const HEALTH_LABELS: Record<CoachingHealth, string> = {
   coach_now: "Coach now",
-  waiting_on_se: "Waiting on SE",
+  waiting_on_se: "Waiting on them",
   stalled: "Stalled",
   at_risk: "At risk",
   on_track: "On track",
@@ -115,6 +116,8 @@ export function buildSeCoachingSummary(params: {
   cohortBenchmark?: CohortBenchmark | null;
   quarterlyAlert?: QuarterlyAlert | null;
   certSummary?: CertSummary;
+  /** What the tenant calls the people it trains, for the career-path line ("SE" by default). */
+  terms?: LearnerTerms;
 }): SeCoachingSummary {
   const {
     profile,
@@ -178,6 +181,7 @@ export function buildSeCoachingSummary(params: {
     approvedCerts,
     planProgress: plan?.progress ?? 0,
     avgSimScore,
+    terms: params.terms,
   });
 
   let health: CoachingHealth = "on_track";

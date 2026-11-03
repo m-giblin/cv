@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { EmptyState, KpiStrip, LineCard, LoadingState, Meta, Notice } from "@/components/admin/admin-ui";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import type { AnalyticsData } from "@/lib/data/get-analytics-data";
 
 type ManagerProgressRow = {
@@ -31,6 +32,7 @@ function sparklinePath(data: number[]) {
 }
 
 export function AnalyticsDashboard() {
+ const learner = useLearnerTerms();
  const [data, setData] = useState<ExtendedAnalytics | null>(null);
  const [isLoading, setIsLoading] = useState(true);
 
@@ -96,7 +98,7 @@ export function AnalyticsDashboard() {
  <div className="h-full rounded-full bg-blue" style={{ width: `${row.avgProgress}%` }} />
  </div>
  <Meta className="mt-1 block text-muted">
- {row.seCount} SEs, {row.planCount} plans
+ {row.seCount} {row.seCount === 1 ? learner.one : learner.many}, {row.planCount} plans
  </Meta>
  </li>
  ))}

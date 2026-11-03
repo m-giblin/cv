@@ -16,6 +16,7 @@ import { DataTablePagination, paginate } from "@/components/ui/data-table";
 import { StatusPill } from "@/components/ui/status-pill";
 import { FilterBar, TableCard, TwoLineCell, rowHighlight, tdCls, thCls } from "@/components/ui/table";
 import { Tag } from "@/components/ui/tag";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import {
   DEFAULT_PRACTICE_FILTERS,
   FALLBACK_COMPETENCIES,
@@ -39,6 +40,7 @@ import {
   type SimTemplateRow,
 } from "@/lib/admin/practice-library";
 import type { AiUsageSummary } from "@/lib/ai/settings-shared";
+import { possessive } from "@/lib/tenant/learner-terms";
 import type { Profile } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -98,6 +100,7 @@ export function PracticeLibrary({
   aiUsage: AiUsageSummary | null;
 }) {
   const router = useRouter();
+  const learner = useLearnerTerms();
   const [sims, setSims] = useState<SimTemplateRow[] | null>(null);
   const [pitches, setPitches] = useState<PitchScenarioRow[] | null>(null);
   const [competencies, setCompetencies] = useState<string[]>([]);
@@ -201,7 +204,7 @@ export function PracticeLibrary({
     if (index === 1) {
       const item = items.find((entry) => entry.key === `${published.kind}-${published.id}`);
       if (item?.sim) setAssigning(item);
-      else toast.error("Could not find the new simulation. Pick it in the list and choose Assign to SEs.");
+      else toast.error(`Could not find the new simulation. Pick it in the list and choose Assign to ${learner.many}.`);
     }
   }
 
@@ -228,7 +231,7 @@ export function PracticeLibrary({
             active: true,
           }),
         })
-      : window.confirm(`Take "${row.label}" out of SE pitch queues? You can make it live again later.`)
+      : window.confirm(`Take "${row.label}" out of ${learner.one} pitch queues? You can make it live again later.`)
         ? await fetch(`/api/admin/pitch-scenarios/${row.id}`, { method: "DELETE" })
         : null;
     if (!response) return;
@@ -344,7 +347,7 @@ export function PracticeLibrary({
           Duplicate
         </LinkButton>
         {selected.sim && selected.status === "live" ? (
-          <LinkButton onClick={() => setAssigning(selected)}>Assign to SEs</LinkButton>
+          <LinkButton onClick={() => setAssigning(selected)}>Assign to {learner.many}</LinkButton>
         ) : null}
       </div>
       <div className="flex flex-wrap gap-x-3.5 gap-y-2">
@@ -387,7 +390,7 @@ export function PracticeLibrary({
       <Link className="link" href="/admin/settings/ai">
         Settings
       </Link>
-      . Pitch scenarios are recorded by the SE and graded by their manager.
+      . Pitch scenarios are recorded by the {learner.one} and graded by their manager.
     </>
   );
 
@@ -398,7 +401,7 @@ export function PracticeLibrary({
           <div className="flex min-w-0 flex-col gap-3">
             <p className="label-caps label-caps--blue">Content</p>
             <h1 className="page-title text-ink max-sm:text-[32px] min-[700px]:whitespace-nowrap">
-              Practice library. <span className="page-title__accent">What SEs rehearse.</span>
+              Practice library. <span className="page-title__accent">What {learner.many} rehearse.</span>
             </h1>
             <p className="max-w-[640px] text-base leading-normal text-ink-2">
               Simulations and pitch scenarios. Managers assign them from Coaching; plans pull them in as steps.
@@ -558,7 +561,7 @@ export function PracticeLibrary({
       </div>
 
       <aside aria-label="Selected practice" className="flex min-w-0 flex-col gap-[22px] pt-1.5">
-        <p className="label-caps">As the SE sees it</p>
+        <p className="label-caps">As the {learner.one} sees it</p>
         {selected ? (
           <>
             {seView}
@@ -568,12 +571,12 @@ export function PracticeLibrary({
             {itemActions}
             {selected.pitch ? (
               <p className="text-[13px] leading-normal text-muted">
-                Live pitch scenarios rotate into every SE&apos;s pitch queue, four at a time.
+                Live pitch scenarios rotate into every {possessive(learner.one)} pitch queue, four at a time.
               </p>
             ) : null}
           </>
         ) : (
-          <p className="text-sm text-muted">{loading ? "Loading…" : "Select an item to see it as the SE will."}</p>
+          <p className="text-sm text-muted">{loading ? "Loading…" : `Select an item to see it as the ${learner.one} will.`}</p>
         )}
         <Note title="A note on AI">{aiNote}</Note>
       </aside>

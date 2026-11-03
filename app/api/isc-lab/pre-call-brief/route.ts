@@ -6,6 +6,7 @@ import { logAiUsage } from "@/lib/ai/log-usage";
 import { resolveAiProviderForUser } from "@/lib/ai/resolve-provider-for-user";
 import { createNotification } from "@/lib/notifications/create-notification";
 import { buildIscLabSystemPrompt, retrieveIscLabContext } from "@/lib/isc-lab/retrieve-context";
+import { getLearnerTerms } from "@/lib/tenant/shell-branding";
 import { logIscLabInteraction } from "@/lib/isc-lab/session-log";
 import { requireAuthenticatedSession } from "@/lib/auth/require-authenticated";
 import { SE_ROUTES } from "@/lib/se/se-routes";
@@ -31,7 +32,9 @@ export async function POST(request: Request) {
  const { accountName, meetingDate, sessionId } = parsed.data;
  const query = `Pre-call brief for ${accountName}${meetingDate ? ` meeting on ${meetingDate}` : ""}`;
 
+ const learner = await getLearnerTerms();
  const retrieval = await retrieveIscLabContext({
+ terms: learner,
  query,
  supabase: session.supabase,
  userId: session.user.id,
@@ -46,7 +49,7 @@ export async function POST(request: Request) {
 
  const result = await generateText({
  model,
- system: buildIscLabSystemPrompt(retrieval.contextBlock),
+ system: buildIscLabSystemPrompt(retrieval.contextBlock, learner),
  prompt: `Produce a markdown pre-call brief with sections: Executive summary, Discovery questions (5), Objection prep (3), Demo recommendation, Next steps. Account: ${accountName}.`,
  });
 

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 
 type MentorRequest = {
  id: string;
@@ -14,6 +15,7 @@ type MentorRequest = {
 };
 
 export function MentorReviewPanel() {
+ const learner = useLearnerTerms();
  const [requests, setRequests] = useState<MentorRequest[]>([]);
  const [feedback, setFeedback] = useState<Record<string, string>>({});
  const [isLoading, setIsLoading] = useState(true);
@@ -68,7 +70,7 @@ export function MentorReviewPanel() {
  {requests.map((request) => (
  <li className="border-b border-divider px-5 py-4 last:border-b-0" key={request.id}>
  <p className="text-[15px] font-bold text-ink">{request.topic}</p>
- <p className="text-[13px] text-muted">{request.seName ?? "SE"}</p>
+ <p className="text-[13px] text-muted">{request.seName ?? learner.one}</p>
  {request.seNotes ? <p className="mt-2 max-w-[640px] text-[15px] text-ink-2">{request.seNotes}</p> : null}
  <label className="mt-3 block space-y-1.5 text-sm font-bold text-ink">
  <span className="block">Mentor feedback</span>

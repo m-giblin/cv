@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { EmptyState, LinkButton, TextInput } from "@/components/admin/admin-ui";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Modal } from "@/components/ui/modal";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import { PersonCell, rowHighlight } from "@/components/ui/table";
 import type { PracticeItem } from "@/lib/admin/practice-library";
 import type { Profile } from "@/lib/types";
@@ -35,6 +36,7 @@ export function PracticeAssignDialog({
   onAssigned?: (count: number) => void;
 }) {
   const titleId = useId();
+  const learner = useLearnerTerms();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [query, setQuery] = useState("");
   const [saving, setSaving] = useState(false);
@@ -84,7 +86,7 @@ export function PracticeAssignDialog({
     }
     const body = (await response.json().catch(() => ({}))) as { assignedCount?: number };
     const count = body.assignedCount ?? selected.size;
-    toast.success(`${item.name} assigned to ${count} SE${count === 1 ? "" : "s"}. It shows on their Practice page.`);
+    toast.success(`${item.name} assigned to ${count} ${count === 1 ? learner.one : learner.many}. It shows on their Practice page.`);
     onAssigned?.(count);
     onClose();
   }
@@ -99,7 +101,7 @@ export function PracticeAssignDialog({
           {item?.name}
         </h2>
         <p className="text-sm text-ink-2">
-          Runs as {item?.sim?.vertical ?? "set"}, {item?.sim?.difficulty ?? "intermediate"}. SEs see it under Assigned to you on
+          Runs as {item?.sim?.vertical ?? "set"}, {item?.sim?.difficulty ?? "intermediate"}. {learner.many} see it under Assigned to you on
           their Practice page.
         </p>
       </div>
@@ -112,10 +114,10 @@ export function PracticeAssignDialog({
           type="search"
           value={query}
         />
-        <ul aria-label="SEs" className="min-h-0 flex-1 overflow-y-auto rounded-[14px] border border-line bg-white">
+        <ul aria-label={learner.many} className="min-h-0 flex-1 overflow-y-auto rounded-[14px] border border-line bg-white">
           {visible.length === 0 ? (
             <li>
-              <EmptyState>{people.length === 0 ? "No SEs in this tenant yet." : "No one matches that search."}</EmptyState>
+              <EmptyState>{people.length === 0 ? `No ${learner.many} in this tenant yet.` : "No one matches that search."}</EmptyState>
             </li>
           ) : (
             visible.map((person) => {
@@ -124,7 +126,7 @@ export function PracticeAssignDialog({
                 <li className={cn("border-t border-divider first:border-t-0", on && rowHighlight.ready)} key={person.id}>
                   <label className="flex cursor-pointer items-center gap-3.5 px-5 py-3">
                     <Checkbox checked={on} label={`Select ${person.fullName}`} onChange={() => toggle(person.id)} />
-                    <PersonCell initials={initials(person.fullName)} name={person.fullName} subline={`${person.level} SE`} />
+                    <PersonCell initials={initials(person.fullName)} name={person.fullName} subline={`${person.level} ${learner.one}`} />
                   </label>
                 </li>
               );
@@ -133,11 +135,11 @@ export function PracticeAssignDialog({
         </ul>
       </div>
       <div className="flex flex-wrap items-center gap-[18px] border-t border-line bg-white px-6 py-3.5">
-        <span className="text-sm text-ink-2">{count ? `${count} selected` : "Pick at least one SE"}</span>
+        <span className="text-sm text-ink-2">{count ? `${count} selected` : `Pick at least one ${learner.one}`}</span>
         <div className="ml-auto flex items-center gap-[18px]">
           <LinkButton onClick={onClose}>Cancel</LinkButton>
           <button className="btn-primary" disabled={count === 0 || saving} onClick={() => void assign()} type="button">
-            {saving ? "Assigning…" : count ? `Assign to ${count} SE${count === 1 ? "" : "s"}` : "Assign"}
+            {saving ? "Assigning…" : count ? `Assign to ${count} ${count === 1 ? learner.one : learner.many}` : "Assign"}
           </button>
         </div>
       </div>

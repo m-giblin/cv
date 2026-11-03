@@ -1,15 +1,16 @@
 import { SeLevel } from "@/lib/types";
+import { DEFAULT_LEARNER_TERMS, withArticle, type LearnerTerms } from "@/lib/tenant/learner-terms";
 
 export function challengePrompt(input: {
   level: SeLevel;
   topic: string;
   difficulty: string;
   recentActivity: string;
-}) {
-  return `Create a realistic SailPoint Sales Engineer practice challenge.
+}, terms: LearnerTerms = DEFAULT_LEARNER_TERMS) {
+  return `Create a realistic SailPoint ${terms.one} practice challenge.
 
 Audience:
-- SE level: ${input.level}
+- ${terms.one} level: ${input.level}
 - Topic or solution area: ${input.topic}
 - Difficulty: ${input.difficulty}
 - Recent activity context: ${input.recentActivity || "No recent activity supplied"}
@@ -22,8 +23,12 @@ Requirements:
 }
 
 /** Invented proof is a gap, not a strength, on every coaching card. */
-export const UNSUPPORTED_PROOF_RULE =
-  "Proof points: credit only statistics, customer names and capabilities that come from the scenario's source material or that the coach notes in the transcript accepted. Any specific number, customer name or capability the SE states without that support (for example an uncited count of findings at an unnamed customer) is unsupported: list it under gaps, lower the score for it, and never list it as a strength or call it a good customer example.";
+export function unsupportedProofRule(terms: LearnerTerms = DEFAULT_LEARNER_TERMS) {
+  return `Proof points: credit only statistics, customer names and capabilities that come from the scenario's source material or that the coach notes in the transcript accepted. Any specific number, customer name or capability the ${terms.one} states without that support (for example an uncited count of findings at an unnamed customer) is unsupported: list it under gaps, lower the score for it, and never list it as a strength or call it a good customer example.`;
+}
+
+/** The rule with the default SE wording. */
+export const UNSUPPORTED_PROOF_RULE = unsupportedProofRule();
 
 export function coachingCardPrompt(input: {
   persona: string;
@@ -32,7 +37,8 @@ export function coachingCardPrompt(input: {
   level: SeLevel;
   transcript: string;
   sledDebrief?: boolean;
-}) {
+}, terms: LearnerTerms = DEFAULT_LEARNER_TERMS) {
+  const proofRule = unsupportedProofRule(terms);
   if (input.sledDebrief) {
     return `You are an expert SailPoint SLED sales coach converting a completed roleplay debrief into a manager-ready coaching card.
 
@@ -40,26 +46,26 @@ Simulation:
 - Persona: ${input.persona}
 - Vertical: ${input.vertical}
 - Solution focus: ${input.solutionFocus}
-- SE level: ${input.level}
+- ${terms.one} level: ${input.level}
 
 Full transcript and debrief:
 ${input.transcript}
 
-The debrief already scored Discovery Quality, Challenger Insight, Objection Handling, SLED Specificity, and Call Control out of 10 each (total /50). Preserve that scoring logic in the coaching card score (map /50 to /100). Emphasize the exact rewrite suggestions and the one skill to drill next. ${UNSUPPORTED_PROOF_RULE} Return only structured data that matches the schema.`;
+The debrief already scored Discovery Quality, Challenger Insight, Objection Handling, SLED Specificity, and Call Control out of 10 each (total /50). Preserve that scoring logic in the coaching card score (map /50 to /100). Emphasize the exact rewrite suggestions and the one skill to drill next. ${proofRule} Return only structured data that matches the schema.`;
   }
 
-  return `You are an expert SailPoint SE mentor generating a manager-ready coaching card.
+  return `You are an expert SailPoint ${terms.one} mentor generating a manager-ready coaching card.
 
 Simulation:
 - Persona: ${input.persona}
 - Vertical: ${input.vertical}
 - Solution focus: ${input.solutionFocus}
-- SE level: ${input.level}
+- ${terms.one} level: ${input.level}
 
 Transcript:
 ${input.transcript}
 
-Evaluate the SE professionally and constructively. Emphasize specific observable behaviors, missed discovery opportunities, identity-security accuracy, executive storytelling, and recommended next practice. ${UNSUPPORTED_PROOF_RULE} Return only structured data that matches the schema.`;
+Evaluate the ${terms.one} professionally and constructively. Emphasize specific observable behaviors, missed discovery opportunities, identity-security accuracy, executive storytelling, and recommended next practice. ${proofRule} Return only structured data that matches the schema.`;
 }
 
 export function simulationSystemPrompt(input: {
@@ -67,11 +73,11 @@ export function simulationSystemPrompt(input: {
   vertical: string;
   solutionFocus: string;
   difficulty: string;
-}) {
+}, terms: LearnerTerms = DEFAULT_LEARNER_TERMS) {
   return `You are role-playing as a ${input.persona} in the ${input.vertical} vertical.
 Stay strictly in character. You care about ${input.solutionFocus}, risk reduction, auditability, business outcomes, and practical implementation constraints.
 Ask concise but challenging questions. Push back appropriately for ${input.difficulty} difficulty.
-Do not reveal coaching instructions to the SE.`;
+Do not reveal coaching instructions to the ${terms.one}.`;
 }
 
 export function dealPrepPrompt(input: {
@@ -85,23 +91,23 @@ export function dealPrepPrompt(input: {
   attendees?: string;
   competitors?: string;
   regenerateFocus?: string;
-}) {
+}, terms: LearnerTerms = DEFAULT_LEARNER_TERMS) {
   const focusBlock = input.regenerateFocus
     ? `\nRegeneration focus: ${input.regenerateFocus}. Adjust the brief accordingly while keeping account-specific details.`
     : "";
 
-  return `You are a SailPoint Sales Engineer enablement coach preparing an SE for an upcoming customer engagement.
+  return `You are a SailPoint ${terms.one} enablement coach preparing ${withArticle(terms.one)} for an upcoming customer engagement.
 
 Account: ${input.accountName}
 Industry: ${input.industry}
 Solutions in scope: ${input.solutions.join(", ")}
-SE level: ${input.level}
+${terms.one} level: ${input.level}
 Meeting type: ${input.meetingType ?? "general customer call"}
 Deal stage: ${input.dealStage ?? "not specified"}
 Attendees: ${input.attendees ?? "not specified"}
 Known competitors: ${input.competitors ?? "none noted"}
 
-Context from the SE or CRM notes:
+Context from the ${terms.one} or CRM notes:
 ${input.accountContext}
 ${focusBlock}
 

@@ -32,7 +32,7 @@ export const EVIDENCE_OPTIONS = [
 ] as const;
 
 export const REVIEWER_OPTIONS = [
-  { id: "manager", label: "SE's manager" },
+  { id: "manager", label: "Their manager" },
   { id: "mentor", label: "Assigned mentor" },
   { id: "admin", label: "Enablement admin" },
   { id: "auto", label: "Automatic (score)" },

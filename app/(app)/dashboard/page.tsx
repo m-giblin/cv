@@ -14,6 +14,7 @@ import { loadTodayMentees } from "@/lib/mentoring/today-mentees";
 import { loadMyMentor } from "@/lib/mentoring/my-mentor";
 import { loadUpcomingOneOnOnes } from "@/lib/manager/one-on-ones";
 import { loadMixStatus } from "@/lib/question-bank/data";
+import { getLearnerTerms } from "@/lib/tenant/shell-branding";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 
@@ -33,7 +34,7 @@ export default async function DashboardPage() {
     const tenantId = context?.tenantId ?? data.currentUser.tenantId ?? null;
     const admin = getTenantAdminClient() as unknown as SupabaseClient<Database> | null;
     const myPlan = data.plans.find((item) => item.userId === data.currentUser.id);
-    const [userCerts, settings, playbookAssignments, mentees, myMentor, oneOnOnes, weeklyQuiz] = await Promise.all([
+    const [userCerts, settings, playbookAssignments, mentees, myMentor, oneOnOnes, weeklyQuiz, learner] = await Promise.all([
       fetchCertificationsForUsers([data.currentUser.id]),
       loadPlatformSettings(data.currentUser.tenantId ?? undefined),
       tenantId ? loadAssignments(tenantId, { assigneeIds: [data.currentUser.id], includeClosed: true }) : Promise.resolve([]),
@@ -41,6 +42,7 @@ export default async function DashboardPage() {
       admin && myPlan?.mentorId ? loadMyMentor(admin, data.currentUser.id, myPlan.mentorId, myPlan.id).catch(() => null) : Promise.resolve(null),
       admin ? loadUpcomingOneOnOnes(admin, data.currentUser.id).catch(() => []) : Promise.resolve([]),
       tenantId ? loadMixStatus(tenantId, data.currentUser.id).catch(() => null) : Promise.resolve(null),
+      getLearnerTerms(),
     ]);
     const manager = data.profiles.find((profile) => profile.id === data.currentUser.managerId);
     const gateRows = buildGateRows({
@@ -59,6 +61,7 @@ export default async function DashboardPage() {
           calendarEnabled={isFeatureEnabled(settings.featureFlags, "plan-calendar")}
           data={data}
           gateRows={gateRows}
+          learner={learner}
           mentees={mentees}
           myMentor={myMentor}
           oneOnOnes={oneOnOnes}

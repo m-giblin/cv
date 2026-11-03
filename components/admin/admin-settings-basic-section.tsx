@@ -10,9 +10,12 @@ import {
   MAX_SESSION_IDLE_MINUTES,
   MIN_SESSION_IDLE_MINUTES,
 } from "@/lib/platform/settings-shared";
+import { DEFAULT_LEARNER_TERMS, LEARNER_TERM_MAX_LENGTH } from "@/lib/tenant/learner-terms";
 import { PRODUCT_NAME, PRODUCT_TAGLINE, PRODUCT_TEXT_MAX_LENGTH } from "@/lib/tenant/shell-branding-shared";
 
-type BrandingBody = { productName: string | null; productTagline: string | null };
+type BrandingBody = { productName: string | null; productTagline: string | null; learnerTerm?: string | null; learnerTermPlural?: string | null };
+type BrandingForm = { productName: string; productTagline: string; learnerTerm: string; learnerTermPlural: string };
+const EMPTY_BRANDING: BrandingForm = { productName: "", productTagline: "", learnerTerm: "", learnerTermPlural: "" };
 
 export function AdminSettingsBasicSection() {
   const id = useId();
@@ -20,9 +23,10 @@ export function AdminSettingsBasicSection() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [sessionIdleMinutes, setSessionIdleMinutes] = useState(DEFAULT_SESSION_IDLE_MINUTES);
-  const [productName, setProductName] = useState("");
-  const [productTagline, setProductTagline] = useState("");
-  const [savedBranding, setSavedBranding] = useState({ productName: "", productTagline: "" });
+  const [brand, setBrand] = useState<BrandingForm>(EMPTY_BRANDING);
+  const [savedBranding, setSavedBranding] = useState<BrandingForm>(EMPTY_BRANDING);
+  const setField = (field: keyof BrandingForm) => (event: React.ChangeEvent<HTMLInputElement>) =>
+    setBrand((current) => ({ ...current, [field]: event.target.value }));
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -39,9 +43,13 @@ export function AdminSettingsBasicSection() {
     setSessionIdleMinutes(body.settings.sessionIdleMinutes);
     if (brandingResponse.ok) {
       const branding = (await brandingResponse.json()) as BrandingBody;
-      const next = { productName: branding.productName ?? "", productTagline: branding.productTagline ?? "" };
-      setProductName(next.productName);
-      setProductTagline(next.productTagline);
+      const next: BrandingForm = {
+        productName: branding.productName ?? "",
+        productTagline: branding.productTagline ?? "",
+        learnerTerm: branding.learnerTerm ?? "",
+        learnerTermPlural: branding.learnerTermPlural ?? "",
+      };
+      setBrand(next);
       setSavedBranding(next);
     }
   }, []);
@@ -53,8 +61,13 @@ export function AdminSettingsBasicSection() {
   async function handleSave(event: React.FormEvent) {
     event.preventDefault();
     setSaving(true);
-    const brandingChanged =
-      productName.trim() !== savedBranding.productName || productTagline.trim() !== savedBranding.productTagline;
+    const trimmed: BrandingForm = {
+      productName: brand.productName.trim(),
+      productTagline: brand.productTagline.trim(),
+      learnerTerm: brand.learnerTerm.trim(),
+      learnerTermPlural: brand.learnerTermPlural.trim(),
+    };
+    const brandingChanged = (Object.keys(trimmed) as (keyof BrandingForm)[]).some((field) => trimmed[field] !== savedBranding[field]);
     const [settingsResponse, brandingResponse] = await Promise.all([
       fetch("/api/admin/platform-settings", {
         method: "PATCH",
@@ -65,7 +78,12 @@ export function AdminSettingsBasicSection() {
         ? fetch("/api/admin/branding", {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ productName: productName.trim() || null, productTagline: productTagline.trim() || null }),
+            body: JSON.stringify({
+              productName: trimmed.productName || null,
+              productTagline: trimmed.productTagline || null,
+              learnerTerm: trimmed.learnerTerm || null,
+              learnerTermPlural: trimmed.learnerTermPlural || null,
+            }),
           })
         : null,
     ]);
@@ -75,8 +93,8 @@ export function AdminSettingsBasicSection() {
       return;
     }
     if (brandingResponse) {
-      setSavedBranding({ productName: productName.trim(), productTagline: productTagline.trim() });
-      // The header and page titles come from the server layout, so refresh it to show the new name.
+      setSavedBranding(trimmed);
+      // The header, page titles and page text come from the server layout, so refresh it to show the new names.
       router.refresh();
     }
     toast.success("General settings saved.");
@@ -100,9 +118,9 @@ export function AdminSettingsBasicSection() {
                 className="max-w-sm"
                 id={`${id}-product-name`}
                 maxLength={PRODUCT_TEXT_MAX_LENGTH}
-                onChange={(event) => setProductName(event.target.value)}
+                onChange={setField("productName")}
                 placeholder={PRODUCT_NAME}
-                value={productName}
+                value={brand.productName}
               />
             </Field>
             <Field
@@ -114,11 +132,37 @@ export function AdminSettingsBasicSection() {
                 className="max-w-sm"
                 id={`${id}-product-tagline`}
                 maxLength={PRODUCT_TEXT_MAX_LENGTH}
-                onChange={(event) => setProductTagline(event.target.value)}
+                onChange={setField("productTagline")}
                 placeholder={PRODUCT_TAGLINE}
-                value={productTagline}
+                value={brand.productTagline}
               />
             </Field>
+            <div className="flex flex-wrap gap-4">
+              <Field
+                hint={`Used across pages, help and emails. Blank uses "${DEFAULT_LEARNER_TERMS.one}".`}
+                htmlFor={`${id}-learner-term`}
+                label="What you call the people you train"
+              >
+                <TextInput
+                  className="max-w-40"
+                  id={`${id}-learner-term`}
+                  maxLength={LEARNER_TERM_MAX_LENGTH}
+                  onChange={setField("learnerTerm")}
+                  placeholder={DEFAULT_LEARNER_TERMS.one}
+                  value={brand.learnerTerm}
+                />
+              </Field>
+              <Field hint="Blank adds an s." htmlFor={`${id}-learner-term-plural`} label="More than one">
+                <TextInput
+                  className="max-w-40"
+                  id={`${id}-learner-term-plural`}
+                  maxLength={LEARNER_TERM_MAX_LENGTH}
+                  onChange={setField("learnerTermPlural")}
+                  placeholder={brand.learnerTerm.trim() ? `${brand.learnerTerm.trim()}s` : DEFAULT_LEARNER_TERMS.many}
+                  value={brand.learnerTermPlural}
+                />
+              </Field>
+            </div>
           </div>
         </LineCard>
         <LineCard meta="Applies to every signed-in user" title="Sessions">

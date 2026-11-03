@@ -16,6 +16,7 @@ import {
 import { docSourcesFrom, stripCitations, wantsDocsSearch } from "@/lib/help/sailpoint-docs";
 import { helpArticlesFor, helpAudiencesForHats } from "@/lib/help";
 import { loadShellData } from "@/lib/shell/load-shell-data";
+import { getLearnerTerms } from "@/lib/tenant/shell-branding";
 
 const requestSchema = z.object({
   messages: z
@@ -25,7 +26,7 @@ const requestSchema = z.object({
   portal: z.enum(["se", "manager", "tenant_admin", "platform"]).optional(),
 });
 
-const PORTAL_NAMES = { se: "SE", manager: "Manager", tenant_admin: "Admin", platform: "Platform" } as const;
+const PORTAL_NAMES = { manager: "Manager", tenant_admin: "Admin", platform: "Platform" } as const;
 
 /** Bosun, the in-app assistant: platform how-to and SailPoint topics only, grounded in the Help Center. */
 export async function POST(request: Request) {
@@ -71,7 +72,8 @@ export async function POST(request: Request) {
   // What this person may read comes from their own workspaces, never from the request.
   const shell = await loadShellData();
   const hats = shell?.workspaceHats ?? ["se"];
-  const articles = helpArticlesFor(helpAudiencesForHats(hats));
+  const terms = await getLearnerTerms();
+  const articles = helpArticlesFor(helpAudiencesForHats(hats), terms);
   const portal = parsed.data.portal && hats.includes(parsed.data.portal) ? parsed.data.portal : hats[0] ?? "se";
   const context = pickContextArticles(articles, question.content);
 
@@ -96,7 +98,7 @@ export async function POST(request: Request) {
     const result = await generateText({
       model: searchDocs ? docsSearch!.model : model,
       ...(searchDocs ? { tools: docsSearch!.tools } : {}),
-      system: assistantSystemPrompt(context, PORTAL_NAMES[portal], docsMode),
+      system: assistantSystemPrompt(context, portal === "se" ? terms.one : PORTAL_NAMES[portal], docsMode, terms),
       messages: history.map((message) => ({ role: message.role, content: message.content })),
       maxOutputTokens: ASSISTANT_LIMITS.maxOutputTokens,
       temperature: 0.3,

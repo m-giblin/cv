@@ -19,6 +19,7 @@ import { PlanCalendarGanttView } from "@/components/plans/plan-calendar-gantt-vi
 import { PlanCalendarIntelStrip } from "@/components/plans/plan-calendar-intel-strip";
 import { PlanCalendarTeamView } from "@/components/plans/plan-calendar-team-view";
 import { SelectInput } from "@/components/admin/admin-ui";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import { SegmentedToggle } from "@/components/ui/segmented-toggle";
 import { StatusPill } from "@/components/ui/status-pill";
 import { thCls } from "@/components/ui/table";
@@ -35,17 +36,20 @@ import {
   todayDayIndex,
   type GanttBar,
 } from "@/lib/plans/plan-calendar-gantt";
+import type { LearnerTerms } from "@/lib/tenant/learner-terms";
 import type { Profile, UserPlan } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type CalendarView = "timeline" | "month" | "team";
 type CalendarRole = "manager" | "se" | "mentor";
 
-const ROLE_OPTIONS: { id: CalendarRole; label: string }[] = [
-  { id: "manager", label: "Manager" },
-  { id: "se", label: "SE" },
-  { id: "mentor", label: "Mentor" },
-];
+function roleOptions(learner: LearnerTerms): { id: CalendarRole; label: string }[] {
+  return [
+    { id: "manager", label: "Manager" },
+    { id: "se", label: learner.one },
+    { id: "mentor", label: "Mentor" },
+  ];
+}
 
 const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
   { id: "timeline", label: "Timeline" },
@@ -82,6 +86,7 @@ export function PlanCalendarWorkspace({
   initialPreviewUserId?: string | null;
 }) {
   const router = useRouter();
+  const learner = useLearnerTerms();
 
   const [view, setView] = useState<CalendarView>("timeline");
   const [roleView, setRoleView] = useState<CalendarRole>(roleFromTier(tier));
@@ -352,7 +357,7 @@ export function PlanCalendarWorkspace({
             <SegmentedToggle
               label="Calendar perspective"
               onChange={(id) => setRoleView(id as CalendarRole)}
-              options={ROLE_OPTIONS}
+              options={roleOptions(learner)}
               value={roleView}
             />
           ) : null}

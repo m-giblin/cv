@@ -31,7 +31,7 @@ export const PLATFORM_FEATURE_FLAG_DEFS: PlatformFeatureFlagDef[] = [
   {
     id: "workspace-dashboard",
     label: "My Workspace",
-    description: "SE home dashboard and activity hub.",
+    description: "Home dashboard and activity hub for the people being trained.",
     category: "workspace",
     defaultEnabled: true,
     kind: "product",
@@ -110,7 +110,7 @@ export const PLATFORM_FEATURE_FLAG_DEFS: PlatformFeatureFlagDef[] = [
   {
     id: "assign-plans",
     label: "Assign plans",
-    description: "Assign ramp plans to SEs.",
+    description: "Assign ramp plans to people on the team.",
     category: "manager",
     defaultEnabled: true,
     kind: "product",
@@ -131,7 +131,7 @@ export const PLATFORM_FEATURE_FLAG_DEFS: PlatformFeatureFlagDef[] = [
   {
     id: "manager-dev",
     label: "Team development",
-    description: "Manager view of SE development plans.",
+    description: "Manager view of team development plans.",
     category: "manager",
     defaultEnabled: true,
     kind: "product",

@@ -14,6 +14,9 @@ export type TenantBranding = {
   /** App name in the header, page titles and emails; null uses the product default. */
   productName: string | null;
   productTagline: string | null;
+  /** What this tenant calls the people it trains ("AE"); null uses "SE". */
+  learnerTerm: string | null;
+  learnerTermPlural: string | null;
 };
 
 export type Tenant = {

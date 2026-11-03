@@ -27,7 +27,7 @@ export const FEATURE_FLAG_PRESETS: FeatureFlagPreset[] = [
   },
   {
     id: "se-only",
-    label: "SE only",
+    label: "Workspace only",
     description: "Workspace + practice; no manager modules or tenant admin.",
     billingPlan: "se-only",
     flags: {
@@ -45,7 +45,7 @@ export const FEATURE_FLAG_PRESETS: FeatureFlagPreset[] = [
   {
     id: "ae-pilot",
     label: "AE pilot",
-    description: "Lean pilot: SE workspace, challenges, sims, tenant admin; limited manager.",
+    description: "Lean pilot: workspace, challenges, sims, tenant admin; limited manager.",
     billingPlan: "ae-pilot",
     flags: {
       "isc-lab": false,
@@ -66,7 +66,7 @@ export const FEATURE_FLAG_PRESETS: FeatureFlagPreset[] = [
   {
     id: "manager-lite",
     label: "Manager lite",
-    description: "SE tools + manager core/cadence without program tracker or assign.",
+    description: "Workspace tools + manager core/cadence without program tracker or assign.",
     billingPlan: "manager-lite",
     flags: {
       "program-tracker": false,

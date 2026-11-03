@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { MyTrainingCard } from "@/components/manager/my-training-card";
 import { MenteesTodayCard } from "@/components/mentoring/mentees-today-card";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import { TeamWeeklyQuizCard } from "@/components/manager/team-weekly-quiz-card";
 import { HeaderStat, TeamActionLink, TeamStatusTag, initialsOf } from "@/components/manager/team-member-bits";
 import { DefinitionCard } from "@/components/ui/editorial";
@@ -71,6 +72,7 @@ export function ManagerToday({
 }) {
   // Date and greeting depend on the viewer's clock, so they render after mount (no hydration mismatch).
   const router = useRouter();
+  const learner = useLearnerTerms();
   const [list, setList] = useState<"at_risk" | "readiness" | null>(null);
   const [now, setNow] = useState<Date | null>(null);
   useEffect(() => setNow(new Date()), []);
@@ -225,7 +227,7 @@ export function ManagerToday({
               <thead>
                 <tr>
                   <th className={thCls} scope="col">
-                    SE
+                    {learner.one}
                   </th>
                   <th className={cn(thCls, "w-[150px]")} scope="col">
                     Status
@@ -245,7 +247,7 @@ export function ManagerToday({
                 {shown.length === 0 ? (
                   <tr>
                     <td className={cn(tdCls, "py-10 text-center text-muted")} colSpan={5}>
-                      No one reports to you yet. SEs appear here once they are assigned to you.
+                      No one reports to you yet. {learner.many} appear here once they are assigned to you.
                     </td>
                   </tr>
                 ) : (

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import { Stamp } from "@/components/ui/stamp";
 import { rowHighlight } from "@/components/ui/table";
 import { Tag } from "@/components/ui/tag";
@@ -67,6 +68,7 @@ export function ManagerPlanAssignPanel({
  onAssigned?: () => void;
 }) {
  const router = useRouter();
+ const learner = useLearnerTerms();
  const [templates, setTemplates] = useState<PlanTemplate[]>([]);
  const [isLoading, setIsLoading] = useState(true);
  const [isSaving, setIsSaving] = useState(false);
@@ -112,7 +114,7 @@ export function ManagerPlanAssignPanel({
  event.preventDefault();
 
  if (!selectedTemplateId || !userId) {
- toast.error("Pick a template and SE.");
+ toast.error(`Pick a template and ${learner.one}.`);
  return;
  }
  // Without a mentor nobody is asked to meet them or agree their dates, so make it a choice.
@@ -143,7 +145,7 @@ export function ManagerPlanAssignPanel({
  return;
  }
 
- toast.success(`${selectedTemplate?.name ?? "Plan"} assigned. The SE${mentorId ? " and their mentor have" : " has"} been notified.`);
+ toast.success(`${selectedTemplate?.name ?? "Plan"} assigned. The ${learner.one}${mentorId ? " and their mentor have" : " has"} been notified.`);
  onAssigned?.();
  router.refresh();
  }
@@ -169,7 +171,7 @@ export function ManagerPlanAssignPanel({
  {compact ? "Assign onboarding plan" : "Onboarding plans"}
  </h3>
  <p className="mt-1 text-sm text-muted">
- Pick a template, choose the SE and mentor, then confirm the start date. The mentor agrees the due dates with the new hire.
+ Pick a template, choose the {learner.one} and mentor, then confirm the start date. The mentor agrees the due dates with the new hire.
  </p>
  <p className="mt-1 text-sm text-muted">
  Experienced hire? Start them on Days 1–30 too. They can take the stage&apos;s test-outs straight away; when you sign off the
@@ -178,7 +180,7 @@ export function ManagerPlanAssignPanel({
  <ol className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
  {[
  { n: 1, label: "Template" },
- { n: 2, label: "SE and mentor" },
+ { n: 2, label: `${learner.one} and mentor` },
  { n: 3, label: "Confirm" },
  ].map((step) => (
  <li
@@ -252,7 +254,7 @@ export function ManagerPlanAssignPanel({
  ) : null}
 
  <form className="space-y-4 border-t border-divider pt-4" onSubmit={handleAssign}>
- <p className="label-caps">Steps 2 and 3, SE, mentor and dates</p>
+ <p className="label-caps">Steps 2 and 3, {learner.one}, mentor and dates</p>
  <div className={`grid gap-4 ${compact ? "grid-cols-1" : "sm:grid-cols-2"}`}>
  <label className={LABEL_CLASS}>
  <span className="block">Assign to</span>
@@ -263,7 +265,7 @@ export function ManagerPlanAssignPanel({
  value={userId}
  >
  <option disabled value="">
- Select SE
+ Select {learner.one}
  </option>
  {seAssignees.map((profile) => (
  <option key={profile.id} value={profile.id}>
@@ -276,7 +278,7 @@ export function ManagerPlanAssignPanel({
  <label className={LABEL_CLASS}>
  <span className="block">Mentor</span>
  <span className="block text-sm font-normal text-muted">
- An experienced SE. They meet the new hire, agree the dates and review everyday steps; you sign off each stage gate.
+ An experienced {learner.one}. They meet the new hire, agree the dates and review everyday steps; you sign off each stage gate.
  </span>
  <select
  className={INPUT_CLASS}

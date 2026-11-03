@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { GoalStatusBadge } from "@/components/development/goal-status-badge";
 import { Drawer } from "@/components/ui/drawer";
 import { StatusPill } from "@/components/ui/status-pill";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import {
   FIELD_CLS,
   LABEL_CLS,
@@ -433,6 +434,7 @@ export function ReviewWorkbench({
   onClose: () => void;
 }) {
   const fieldId = useId();
+  const learner = useLearnerTerms();
   const [seEvidence, setSeEvidence] = useState(review.seEvidence ?? "");
   const [seEvidenceUrl, setSeEvidenceUrl] = useState(review.seEvidenceUrl ?? "");
   const [managerComments, setManagerComments] = useState(review.managerComments ?? "");
@@ -499,7 +501,7 @@ export function ReviewWorkbench({
           <>
             {review.seEvidence ? (
               <div className="rounded-[10px] border border-line bg-surface-2 px-4 py-3">
-                <p className="text-sm font-bold text-ink">SE evidence</p>
+                <p className="text-sm font-bold text-ink">{learner.one} evidence</p>
                 <p className="mt-1 text-sm text-ink-2">{review.seEvidence}</p>
               </div>
             ) : null}

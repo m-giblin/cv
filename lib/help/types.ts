@@ -33,8 +33,9 @@ export type HelpArticle = {
   related?: string[];
 };
 
+/** Holds "{learners}" for the "se" audience: fill it with the tenant's terms before showing it. */
 export const HELP_AUDIENCE_LABELS: Record<HelpAudience, string> = {
-  se: "Sales engineers",
+  se: "{learners}",
   manager: "Managers",
   admin: "Admins",
 };

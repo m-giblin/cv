@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import { StatusPill } from "@/components/ui/status-pill";
 import type { ManagerCoachingQuality } from "@/lib/coaching/manager-quality";
 
 /** Your own coaching quality over the last 30 days, as one compact strip of stats. */
 export function ManagerCoachingQualityPanel({ orgIds }: { orgIds: string[] }) {
+  const learner = useLearnerTerms();
   const [row, setRow] = useState<ManagerCoachingQuality | null | undefined>(undefined);
 
   useEffect(() => {
@@ -33,7 +35,7 @@ export function ManagerCoachingQualityPanel({ orgIds }: { orgIds: string[] }) {
         ["Sign-offs", String(row.totalSignoffs)],
         ["Avg review time", hasSignoffs && row.avgReviewDurationMs ? `${Math.round(row.avgReviewDurationMs / 1000)} sec` : "—"],
         ["AI feedback edited", hasSignoffs ? `${Math.round(row.aiEditRate * 100)}%` : "—"],
-        ["SEs overdue a touchpoint", String(row.cadenceRiskCount)],
+        [`${learner.many} overdue a touchpoint`, String(row.cadenceRiskCount)],
       ]
     : [];
 

@@ -7,14 +7,14 @@ export const BOSUN_ARTICLES: HelpArticle[] = [
     id: "bosun-meet",
     title: "Meet Bosun, your enablement guide",
     summary:
-      "Bosun is the assistant behind the \"Ask the Bosun\" button. It answers questions about this platform, SailPoint products and SE skills, and cites where the answer came from.",
+      "Bosun is the assistant behind the \"Ask the Bosun\" button. It answers questions about this platform, SailPoint products and {learner} skills, and cites where the answer came from.",
     audience: ["se", "manager", "admin"],
     category: "Bosun",
     keywords: ["bosun", "boatswain", "assistant", "ai", "chat", "ask", "bot", "help", "sailpoint docs", "developer docs"],
     overview: [
       `Why the name? ${BOSUN_DEFINITION}`,
-      "Bosun answers three kinds of questions: how to do something in SE Enablement, SailPoint products and APIs, and SE craft such as discovery, demos and objection handling. It politely declines anything else (sports, weather, general trivia) without spending AI credits.",
-      "Platform answers come from the Help Center articles you can read in your portal, so an SE never sees admin-only steps. Product questions about Identity Security Cloud, IdentityIQ, connectors, transforms, workflows or the APIs are checked live against documentation.sailpoint.com and developer.sailpoint.com, and only those two sites.",
+      "Bosun answers three kinds of questions: how to do something in this platform, SailPoint products and APIs, and {learner} craft such as discovery, demos and objection handling. It politely declines anything else (sports, weather, general trivia) without spending AI credits.",
+      "Platform answers come from the Help Center articles you can read in your portal, so {a learner} never sees admin-only steps. Product questions about Identity Security Cloud, IdentityIQ, connectors, transforms, workflows or the APIs are checked live against documentation.sailpoint.com and developer.sailpoint.com, and only those two sites.",
       `To keep AI costs in check, each person gets ${ASSISTANT_LIMITS.dailyQuestions} questions a day, questions are capped at ${ASSISTANT_LIMITS.maxQuestionChars} characters, and Bosun keeps answers short. The counter under the question box shows what's left today. The Help Center itself is always free and unlimited.`,
     ],
     steps: [

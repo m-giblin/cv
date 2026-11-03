@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ScheduleOneOnOne } from "@/components/manager/schedule-one-on-one";
 import { ManagerCoachingQualityPanel } from "@/components/manager/manager-coaching-quality-panel";
 import { HeaderStat } from "@/components/manager/team-member-bits";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import { PageBody, PageHeader } from "@/components/ui/page-header";
 import { StatusPill, type StatusTone } from "@/components/ui/status-pill";
 import { PersonCell, TableCard, rowHighlight, tdCls, thCls } from "@/components/ui/table";
@@ -40,6 +41,7 @@ export function ManagerCoachingCadencePanel({
   const attention = cadenceRows.filter((row) => row.priority === "attention").length;
   const profileById = new Map(org.map((profile) => [profile.id, profile]));
   const [scheduling, setScheduling] = useState<Profile | null>(null);
+  const learner = useLearnerTerms();
 
   return (
     <>
@@ -52,7 +54,7 @@ export function ManagerCoachingCadencePanel({
           </div>
         }
         eyebrow="Coaching"
-        subtitle={`A 14-day coaching rhythm across ${cadenceRows.length} SE${cadenceRows.length === 1 ? "" : "s"}, most urgent first.`}
+        subtitle={`A 14-day coaching rhythm across ${cadenceRows.length} ${cadenceRows.length === 1 ? learner.one : learner.many}, most urgent first.`}
         title="Cadence."
       />
       <PageBody className="flex flex-col gap-5 pb-7">
@@ -62,7 +64,7 @@ export function ManagerCoachingCadencePanel({
             <caption className="sr-only">Coaching cadence, most urgent first</caption>
             <thead>
               <tr>
-                <th className={thCls} scope="col">SE</th>
+                <th className={thCls} scope="col">{learner.one}</th>
                 <th className={thCls} scope="col">Status</th>
                 <th className={thCls} scope="col">Last coached</th>
                 <th className={cn(thCls, "text-right")} scope="col">Open reviews</th>

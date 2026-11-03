@@ -1,5 +1,6 @@
 "use client";
 
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import { Drawer } from "@/components/ui/drawer";
 import { FlightStrip } from "@/components/ui/flight-strip";
 import { addDaysToIsoDate } from "@/lib/plans/template-catalog";
@@ -70,8 +71,9 @@ export function PlanPreviewDrawer({
   startDate?: string;
   personName?: string;
 }) {
+  const learner = useLearnerTerms();
   return (
-    <Drawer onClose={onClose} open={open} title={personName ? `Preview as ${personName}` : "Preview as SE"}>
+    <Drawer onClose={onClose} open={open} title={personName ? `Preview as ${personName}` : `Preview as ${learner.one}`}>
       <div className="flex flex-col gap-3">
         <p className="text-sm text-ink-2">
           {name || "Untitled plan"}, {steps.length} {steps.length === 1 ? "step" : "steps"}.

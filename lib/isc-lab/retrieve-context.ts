@@ -5,6 +5,7 @@ import { buildCertificationAndChallengeNudges } from "@/lib/isc-lab/certificatio
 import { rankDocEntries, tokenizeQuery, type DocIndexEntry } from "@/lib/isc-lab/doc-index";
 import { formatGoldenAnswersBlock, loadGoldenAnswers } from "@/lib/isc-lab/golden-answers";
 import { ISC_LAB_SYSTEM_CONTEXT } from "@/lib/isc-lab/knowledge-base";
+import { DEFAULT_LEARNER_TERMS, fillLearnerTerms, type LearnerTerms } from "@/lib/tenant/learner-terms";
 import { searchKnowledgeChunks } from "@/lib/isc-lab/semantic-search";
 import type { IscLabMode } from "@/lib/isc-lab/session-log";
 import type { CertificationNudge, ChallengeNudge } from "@/lib/isc-lab/certification-nudges";
@@ -119,6 +120,8 @@ export async function retrieveIscLabContext(input: {
   userId: string;
   mode?: IscLabMode;
   accountName?: string | null;
+  /** What the tenant calls the people it trains ("SE" by default). */
+  terms?: LearnerTerms;
 }): Promise<{
   sources: IscLabSource[];
   platform: Awaited<ReturnType<typeof loadPlatformContext>>;
@@ -193,7 +196,7 @@ export async function retrieveIscLabContext(input: {
       : null,
     nudges.cert ? `Certification nudge: ${nudges.cert.label} — ${nudges.cert.reason}` : null,
     nudges.challenge ? `Challenge nudge: ${nudges.challenge.title}` : null,
-    `SE level: ${platform.level}`,
+    `${(input.terms ?? DEFAULT_LEARNER_TERMS).one} level: ${platform.level}`,
   ]
     .filter(Boolean)
     .join("\n");
@@ -227,13 +230,13 @@ export async function retrieveIscLabContext(input: {
   };
 }
 
-export function buildIscLabSystemPrompt(contextBlock: string): string {
-  return `${ISC_LAB_SYSTEM_CONTEXT}
+export function buildIscLabSystemPrompt(contextBlock: string, terms: LearnerTerms = DEFAULT_LEARNER_TERMS): string {
+  return `${fillLearnerTerms(ISC_LAB_SYSTEM_CONTEXT, terms)}
 
 ${contextBlock}
 
 Response rules:
-- Answer as a senior SailPoint SE coach.
+- Answer as a senior SailPoint ${terms.one} coach.
 - Prefer retrieved sources (docs, battlecards, golden pitches, account context) over general knowledge.
 - Cite sources inline as [title](url) and mention when content was fetched when using live docs.
 - End with one concrete next action (discovery question, demo step, challenge, or certification).`.trim();

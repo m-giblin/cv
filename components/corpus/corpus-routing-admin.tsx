@@ -23,6 +23,8 @@ import {
 import { Drawer } from "@/components/ui/drawer";
 import { StatusPill, type StatusTone } from "@/components/ui/status-pill";
 import { Tag } from "@/components/ui/tag";
+import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
+import { withArticle } from "@/lib/tenant/learner-terms";
 
 type Rule = {
   id: string;
@@ -58,6 +60,7 @@ function destinationLabel(type: string | null) {
 }
 
 export function CorpusRoutingAdmin() {
+  const learner = useLearnerTerms();
   const [rules, setRules] = useState<Rule[]>([]);
   const [inquiries, setInquiries] = useState<QaInquiry[]>([]);
   const [stats, setStats] = useState({
@@ -229,7 +232,7 @@ export function CorpusRoutingAdmin() {
               <div className="min-w-0 flex-1">
                 <p className="font-bold text-ink">{row.question}</p>
                 <p className="mt-0.5 text-[13px] text-muted">
-                  {row.profiles?.full_name ?? "An SE"} asked.{" "}
+                  {row.profiles?.full_name ?? withArticle(learner.one).replace(/^a/, "A")} asked.{" "}
                   {row.routed_destination_address
                     ? `Routed to ${row.routed_destination_address} on ${destinationLabel(row.routed_destination_type)}.`
                     : "Not routed yet."}

@@ -21,6 +21,7 @@ import type {
 } from "@/lib/types";
 import { initials, uniqueProfiles } from "@/lib/utils";
 import { avatarGradientForId } from "@/lib/se/avatar-gradients";
+import { DEFAULT_LEARNER_TERMS, type LearnerTerms } from "@/lib/tenant/learner-terms";
 
 export type ProgramTrackerTab = "cohort" | "programs" | "milestones";
 
@@ -357,6 +358,7 @@ export function buildProgramTrackerView({
   activity = [],
   pendingGateSteps = [],
   pendingCertReviews = [],
+  terms = DEFAULT_LEARNER_TERMS,
 }: {
   org: Profile[];
   plans: UserPlan[];
@@ -366,6 +368,8 @@ export function buildProgramTrackerView({
   activity?: ActivityLog[];
   pendingGateSteps?: Array<{ userId: string; title: string; planName: string }>;
   pendingCertReviews?: Array<{ userId: string; personName: string; label: string }>;
+  /** What the tenant calls the people it trains ("SE" by default). */
+  terms?: LearnerTerms;
 }): ProgramTrackerView {
   const teamPlans = plans.filter((plan) => org.some((person) => person.id === plan.userId));
   const now = new Date();
@@ -445,7 +449,7 @@ export function buildProgramTrackerView({
       const rampCard: ProgramCardView = {
         id: `${person.id}-ramp`,
         name: plan.name,
-        subtitle: "SE onboarding program",
+        subtitle: `${terms.one} onboarding program`,
         type: "Onboarding",
         typeColor: rampStyle.statusColor === "#B42318" ? "#B42318" : "#0033A1",
         pct: progress,
@@ -522,7 +526,7 @@ export function buildProgramTrackerView({
       userId: person.id,
       initials: initials(person.fullName),
       name: person.fullName,
-      level: `${person.level} SE`,
+      level: `${person.level} ${terms.one}`,
       day,
       avatarBg: avatarGradientForId(person.id),
       healthLabel: health.label,
@@ -611,7 +615,7 @@ export function buildProgramTrackerView({
       userId: person.id,
       name: person.fullName,
       initials: initials(person.fullName),
-      level: `${person.level} SE`,
+      level: `${person.level} ${terms.one}`,
       day,
       avatarBg: avatarGradientForId(person.id),
       healthLabel: health.label,
@@ -716,7 +720,7 @@ export function buildProgramTrackerView({
   const seniorCount = org.filter((p) => p.level === "Senior" || p.level === "Advisory").length;
 
   return {
-    cohortEyebrow: `${org.length} SE${org.length === 1 ? "" : "s"} · ${basicCount} basic · ${seniorCount} senior`,
+    cohortEyebrow: `${org.length} ${org.length === 1 ? terms.one : terms.many} · ${basicCount} basic · ${seniorCount} senior`,
     cohortRows,
     sePrograms,
     milestonesOverdue,
