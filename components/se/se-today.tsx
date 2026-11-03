@@ -14,6 +14,8 @@ import { MenteesCard } from "@/components/mentoring/mentees-card";
 import type { MyMentor } from "@/lib/mentoring/my-mentor";
 import { MyMentorCard } from "@/components/se/my-mentor-card";
 import { MyTrainingCard } from "@/components/manager/my-training-card";
+import { WeeklyQuizCard } from "@/components/se/weekly-quiz-card";
+import type { MixStatus } from "@/lib/question-bank/data";
 import type { UpcomingOneOnOne } from "@/lib/manager/one-on-ones";
 import { stepReviewer } from "@/lib/plans/step-reviewer";
 import {
@@ -80,6 +82,7 @@ export function SeToday({
   mentees = [],
   myMentor = null,
   oneOnOnes = [],
+  weeklyQuiz = null,
 }: {
   data: DashboardData;
   gateRows: GateRow[];
@@ -92,6 +95,8 @@ export function SeToday({
   myMentor?: MyMentor | null;
   /** 1:1s their manager has scheduled that haven't happened yet. */
   oneOnOnes?: UpcomingOneOnOne[];
+  /** This week's quiz; shown until it's passed. Null when quizzes are switched off. */
+  weeklyQuiz?: MixStatus | null;
 }) {
   const user = data.currentUser;
   const firstName = user.fullName.split(" ")[0] ?? "there";
@@ -155,6 +160,7 @@ export function SeToday({
       <PageBody>
         <div className="grid items-start gap-[var(--rail-gap)] xl:grid-cols-[minmax(0,1fr)_clamp(360px,40%,520px)]">
           <div className="flex min-w-0 flex-col gap-8">
+            <WeeklyQuizCard status={weeklyQuiz} />
             {mentees.length ? <MenteesCard mentees={mentees} /> : null}
             {(!plan || !model) && mentees.length ? null : !plan || !model ? (
               <div className="rounded-[14px] border border-dashed border-line-strong p-7 text-[15px] text-muted">

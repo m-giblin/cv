@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { AssignmentDoneNote, type FinishedAssignment } from "@/components/playbooks/assignment-done-note";
 import { StatusPill } from "@/components/ui/status-pill";
 import type { MixStatus, QuizQuestion } from "@/lib/question-bank/data";
-import { MIX_KEY, MIX_LENGTH, SOURCE_LABEL, solutionOrder, type QuestionSourceKind } from "@/lib/question-bank/model";
+import { MIX_KEY, MIX_LENGTH, MIX_PASS_MARK, SOURCE_LABEL, solutionOrder, type QuestionSourceKind } from "@/lib/question-bank/model";
 
 export type Check = {
   key: string;
@@ -296,16 +296,20 @@ export function KnowledgeChecks({ initialSource }: { initialSource?: string }) {
             <h2 className="m-0 text-[20px] font-extrabold text-ink">Weekly mix</h2>
             <p className="m-0 text-sm text-muted">
               {MIX_LENGTH} questions from across all {mix.questions} in the bank, starting with the chapters you&apos;re assigned and the
-              topics you miss most. Take it once a week; take it again any time for new questions.
+              topics you miss most. Pass with {MIX_PASS_MARK}% or more each week; take it again any time for new questions.
             </p>
           </div>
-          {mix.thisWeek ? (
-            <StatusPill tone={mix.thisWeek.score >= 80 ? "success" : "warning"}>Done this week, {mix.thisWeek.score}%</StatusPill>
+          {mix.thisWeek?.passed ? (
+            <StatusPill tone="success">Passed this week, {mix.thisWeek.best}%</StatusPill>
+          ) : mix.thisWeek ? (
+            <StatusPill tone="warning">
+              Best {mix.thisWeek.best}%, needs {MIX_PASS_MARK}%
+            </StatusPill>
           ) : (
             <StatusPill tone="neutral">Not done this week</StatusPill>
           )}
-          <button className={mix.thisWeek ? "btn-secondary shrink-0" : "btn-primary shrink-0"} onClick={() => setActive(MIX_KEY)} type="button">
-            {mix.thisWeek ? "Another mix" : "Start this week's mix"}
+          <button className={mix.thisWeek?.passed ? "btn-secondary shrink-0" : "btn-primary shrink-0"} onClick={() => setActive(MIX_KEY)} type="button">
+            {mix.thisWeek?.passed ? "Another mix" : mix.thisWeek ? "Try again" : "Start this week's mix"}
           </button>
         </section>
       ) : null}

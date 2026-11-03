@@ -235,6 +235,8 @@ export function pickRotation<T extends Pick<BankQuestion, "id" | "difficulty">>(
 /** Questions in the weekly mix, and the key it's served under. */
 export const MIX_LENGTH = 10;
 export const MIX_KEY = "mix";
+/** The weekly mix is passed at 75%: with ten questions, three can be wrong. */
+export const MIX_PASS_MARK = 75;
 
 /** A mix needs a few answers in a source before calling it strong or weak. */
 const MIX_MIN_ANSWERS = 3;

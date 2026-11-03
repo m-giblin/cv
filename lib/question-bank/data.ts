@@ -8,6 +8,7 @@ import { signQuiz, verifyQuiz } from "@/lib/question-bank/quiz-token";
 import {
   isMixQuiz,
   MIX_KEY,
+  MIX_PASS_MARK,
   normalizeSolution,
   pickMix,
   pickRotation,
@@ -336,9 +337,42 @@ function weekStart(now = new Date()) {
   return start.toISOString();
 }
 
-export type MixStatus = { questions: number; thisWeek: { score: number; takenAt: string } | null; lastScore: number | null };
+/**
+ * This week's mix for one person: best score (the one that counts toward passing), how many they
+ * took and when they last did. Null when they haven't taken one since Monday.
+ */
+export type WeeklyMix = { best: number; passed: boolean; taken: number; takenAt: string };
 
-/** Whether this person has done this week's mix, and how their last mix went. */
+export type MixStatus = { questions: number; thisWeek: WeeklyMix | null; lastScore: number | null };
+
+type AttemptRow = {
+  user_id: string;
+  quiz_id: string;
+  correct: boolean;
+  created_at: string;
+  question: { source_kind: QuestionSourceKind; playbook_id: string | null; topic: string } | null;
+};
+const ATTEMPT_COLUMNS = "user_id, quiz_id, correct, created_at, question:question_bank(source_kind, playbook_id, topic)";
+
+/** Graded mixes in a set of attempt rows (newest first in, newest first out), with their scores. */
+function mixesIn(rows: AttemptRow[]) {
+  const quizzes = new Map<string, AttemptRow[]>();
+  for (const row of rows) quizzes.set(row.quiz_id, [...(quizzes.get(row.quiz_id) ?? []), row]);
+  return [...quizzes.values()]
+    .filter((quiz) =>
+      isMixQuiz(quiz.flatMap((row) => (row.question ? [sourceKey({ sourceKind: row.question.source_kind, playbookId: row.question.playbook_id, topic: row.question.topic })] : []))),
+    )
+    .map((quiz) => ({ userId: quiz[0]!.user_id, takenAt: quiz[0]!.created_at, score: Math.round((quiz.filter((row) => row.correct).length / quiz.length) * 100) }));
+}
+
+function weeklyMix(mixes: { takenAt: string; score: number }[], since = weekStart()): WeeklyMix | null {
+  const thisWeek = mixes.filter((mix) => mix.takenAt >= since);
+  if (!thisWeek.length) return null;
+  const best = Math.max(...thisWeek.map((mix) => mix.score));
+  return { best, passed: best >= MIX_PASS_MARK, taken: thisWeek.length, takenAt: thisWeek[0]!.takenAt };
+}
+
+/** Whether this person has passed this week's mix, and how their last mix went. */
 export async function loadMixStatus(tenantId: string, userId: string): Promise<MixStatus | null> {
   const admin = db();
   if (!admin) return null;
@@ -346,26 +380,33 @@ export async function loadMixStatus(tenantId: string, userId: string): Promise<M
     admin.from("question_bank").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("status", "active"),
     admin
       .from("question_attempts")
-      .select("quiz_id, correct, created_at, question:question_bank(source_kind, playbook_id, topic)")
+      .select(ATTEMPT_COLUMNS)
       .eq("tenant_id", tenantId)
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(400),
   ]);
-  type AttemptRow = { quiz_id: string; correct: boolean; created_at: string; question: { source_kind: QuestionSourceKind; playbook_id: string | null; topic: string } | null };
-  const quizzes = new Map<string, AttemptRow[]>();
-  for (const row of (data ?? []) as unknown as AttemptRow[]) quizzes.set(row.quiz_id, [...(quizzes.get(row.quiz_id) ?? []), row]);
-  const mixes = [...quizzes.values()].filter((rows) =>
-    isMixQuiz(rows.flatMap((row) => (row.question ? [sourceKey({ sourceKind: row.question.source_kind, playbookId: row.question.playbook_id, topic: row.question.topic })] : []))),
-  );
-  const scoreOf = (rows: AttemptRow[]) => Math.round((rows.filter((row) => row.correct).length / rows.length) * 100);
-  const last = mixes[0];
+  const mixes = mixesIn((data ?? []) as unknown as AttemptRow[]);
+  return { questions: count ?? 0, thisWeek: weeklyMix(mixes), lastScore: mixes[0]?.score ?? null };
+}
+
+/** This week's mix for each of several people (a manager's team), in one query. */
+export async function loadWeeklyMixForPeople(tenantId: string, userIds: string[]): Promise<Record<string, WeeklyMix | null>> {
+  const admin = db();
+  const result: Record<string, WeeklyMix | null> = Object.fromEntries(userIds.map((id) => [id, null]));
+  if (!admin || !userIds.length) return result;
   const since = weekStart();
-  return {
-    questions: count ?? 0,
-    thisWeek: last && last[0]!.created_at >= since ? { score: scoreOf(last), takenAt: last[0]!.created_at } : null,
-    lastScore: last ? scoreOf(last) : null,
-  };
+  const { data } = await admin
+    .from("question_attempts")
+    .select(ATTEMPT_COLUMNS)
+    .eq("tenant_id", tenantId)
+    .in("user_id", userIds)
+    .gte("created_at", since)
+    .order("created_at", { ascending: false })
+    .limit(5000);
+  const mixes = mixesIn((data ?? []) as unknown as AttemptRow[]);
+  for (const id of userIds) result[id] = weeklyMix(mixes.filter((mix) => mix.userId === id), since);
+  return result;
 }
 
 export async function serveQuiz(tenantId: string, userId: string, key: string): Promise<{ title: string; token: string; questions: QuizQuestion[] } | null> {
