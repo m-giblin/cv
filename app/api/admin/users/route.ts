@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { logAuditEvent } from "@/lib/audit/log-admin-action";
+import { newTemporaryPassword, unusablePassword, type AccessMetadata } from "@/lib/auth/account-access";
+import { issueActivationCode } from "@/lib/auth/account-access-server";
 import { validateSailPointEmail, requireAdminSession } from "@/lib/auth/require-admin";
 import { validateEmailForTenant } from "@/lib/auth/tenant-email";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -22,6 +24,11 @@ const createUserSchema = z.object({
  level: z.enum(["Basic", "Senior", "Advisory"] as [SeLevel, ...SeLevel[]]),
  managerId: z.string().uuid().nullable().optional(),
  sendInvite: z.boolean().optional(),
+ /**
+  * How the person gets in: an activation code the admin shares (default), a temporary password they
+  * must replace at first sign-in, or Supabase's email link (often blocked by corporate filters).
+  */
+ onboarding: z.enum(["code", "password", "email"]).optional(),
 });
 
 export async function GET() {
@@ -94,13 +101,16 @@ export async function POST(request: Request) {
  }
 
  const email = parsed.data.email.trim().toLowerCase();
- const tempPassword = parsed.data.password ?? crypto.randomUUID().replace(/-/g, "").slice(0, 12) + "Aa1!";
+ const onboarding = parsed.data.onboarding ?? (parsed.data.sendInvite ? "email" : parsed.data.password ? "password" : "code");
+ // Only a temporary password is ever known to anyone; code and email accounts start with one nobody has.
+ const tempPassword = onboarding === "password" ? (parsed.data.password ?? newTemporaryPassword()) : unusablePassword();
 
  const { data: authData, error: authError } = await admin.auth.admin.createUser({
  email,
  password: tempPassword,
  email_confirm: true,
  user_metadata: { full_name: parsed.data.fullName },
+ app_metadata: onboarding === "password" ? ({ must_change_password: true } satisfies AccessMetadata) : {},
  });
 
  if (authError) {
@@ -125,19 +135,20 @@ export async function POST(request: Request) {
  return NextResponse.json({ error: profileError.message }, { status: 500 });
  }
 
- if (parsed.data.sendInvite) {
+ if (onboarding === "email") {
  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
  await admin.auth.resetPasswordForEmail(email, {
  redirectTo: `${siteUrl}/auth/reset-password`,
  });
  }
+ const activation = onboarding === "code" ? await issueActivationCode(admin, userId).catch(() => null) : null;
 
  await logAuditEvent(session.user.id, {
  action: "user.created",
  targetType: "profile",
  targetId: userId,
  tenantId: session.tenantId,
- details: { email, role: parsed.data.role, level: parsed.data.level },
+ details: { email, role: parsed.data.role, level: parsed.data.level, onboarding },
  });
 
  return NextResponse.json({
@@ -149,12 +160,10 @@ export async function POST(request: Request) {
  level: parsed.data.level,
  manager_id: parsed.data.managerId ?? null,
  },
- inviteSent: Boolean(parsed.data.sendInvite),
- ...(parsed.data.sendInvite
- ? {}
- : {
- passwordDelivery:
- "Temporary password was set at creation. Use sendInvite for email-based onboarding instead of returning credentials in API responses.",
- }),
+ inviteSent: onboarding === "email",
+ // Shown to the admin once, to pass on; neither is stored in a readable form.
+ ...(onboarding === "password" ? { temporaryPassword: tempPassword } : {}),
+ ...(activation ? { activationCode: activation.code, activationExpiresAt: activation.expiresAt } : {}),
+ ...(onboarding === "code" && !activation ? { activationError: "The account was created, but the code couldn't be issued. Use \"New activation code\" on the user." } : {}),
  });
 }

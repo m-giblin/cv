@@ -1,6 +1,8 @@
 export const AUTH_ROUTES = {
   login: "/login",
   forgotPassword: "/login/forgot-password",
+  activate: "/login/activate",
+  setPassword: "/account/change-password?required=1",
   mfaEnroll: "/auth/mfa/enroll",
   mfaVerify: "/auth/mfa/verify",
   signOut: "/auth/signout",
@@ -21,7 +23,17 @@ export function isPublicAppRoute(pathname: string) {
 }
 
 export function isPublicApiRoute(pathname: string) {
-  return pathname.startsWith("/api/share/");
+  return pathname.startsWith("/api/share/") || pathname === "/api/auth/activate";
+}
+
+/** Where someone on a temporary password may go before they've set their own. */
+export function allowedBeforePasswordChange(pathname: string) {
+  return (
+    pathname === "/account/change-password" ||
+    pathname === "/api/account/password" ||
+    pathname.startsWith("/auth/") ||
+    pathname === "/api/platform/session-idle"
+  );
 }
 
 export function isProtectedAppRoute(pathname: string) {

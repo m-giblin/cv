@@ -7,10 +7,14 @@ import { MfaReauthGate } from "@/components/auth/mfa-reauth-gate";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
 
-export function ChangePasswordForm() {
+/**
+ * `required`: they signed in with a temporary password and must choose their own before using the
+ * app. They've just passed MFA to get here, so there's no second MFA step.
+ */
+export function ChangePasswordForm({ required = false }: { required?: boolean }) {
  const passwordId = useId();
  const confirmId = useId();
- const [mfaVerified, setMfaVerified] = useState(false);
+ const [mfaVerified, setMfaVerified] = useState(required);
  const [password, setPassword] = useState("");
  const [confirmPassword, setConfirmPassword] = useState("");
  const [isSubmitting, setIsSubmitting] = useState(false);
@@ -34,6 +38,25 @@ export function ChangePasswordForm() {
  if (!supabase) {
  toast.error("Supabase is not configured.");
  setIsSubmitting(false);
+ return;
+ }
+
+ if (required) {
+ // The server sets the password and lifts the block; a fresh session drops the old flag.
+ const response = await fetch("/api/account/password", {
+ method: "POST",
+ headers: { "Content-Type": "application/json" },
+ body: JSON.stringify({ password }),
+ });
+ const body = (await response.json().catch(() => null)) as { error?: string } | null;
+ if (!response.ok) {
+ toast.error(body?.error ?? "Couldn't set your password.");
+ setIsSubmitting(false);
+ return;
+ }
+ await supabase.auth.refreshSession();
+ toast.success("Password set. You're all set up.");
+ window.location.assign("/dashboard");
  return;
  }
 
@@ -75,14 +98,19 @@ export function ChangePasswordForm() {
  return (
  <form className="space-y-5" onSubmit={handleSubmit}>
  <div>
- <p className="label-caps label-caps--blue">Step 2 of 2</p>
- <h2 className="mt-1 text-lg leading-[1.3] font-extrabold text-ink">New password</h2>
- <p className="mt-1 text-sm text-muted">At least 8 characters. Use a passphrase you don&apos;t use anywhere else.</p>
+ {required ? null : <p className="label-caps label-caps--blue">Step 2 of 2</p>}
+ <h2 className="mt-1 text-lg leading-[1.3] font-extrabold text-ink">{required ? "Choose your own password" : "New password"}</h2>
+ <p className="mt-1 text-sm text-muted">
+ {required ? "You signed in with a temporary password. Pick one only you know. " : null}
+ At least 8 characters. Use a passphrase you don&apos;t use anywhere else.
+ </p>
  </div>
 
+ {required ? null : (
  <p className="rounded-[10px] border border-success/30 bg-success-soft px-3.5 py-2.5 text-sm text-success" role="status">
  Identity verified. Enter your new password.
  </p>
+ )}
 
  <div>
  <label className="mb-1.5 block text-sm font-semibold text-ink" htmlFor={passwordId}>
@@ -116,7 +144,7 @@ export function ChangePasswordForm() {
 
  <button className="btn-primary inline-flex items-center gap-2" disabled={isSubmitting} type="submit">
  {isSubmitting ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
- Update password
+ {required ? "Set my password" : "Update password"}
  </button>
  </form>
  );

@@ -1,7 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { getVerifiedUser } from "@/lib/auth/verified-user";
 import { NextResponse, type NextRequest } from "next/server";
-import { AUTH_ROUTES, isAuthRoute, isProtectedAppRoute, isPublicApiRoute, isPublicAppRoute } from "@/lib/auth/routes";
+import { AUTH_ROUTES, allowedBeforePasswordChange, isAuthRoute, isProtectedAppRoute, isPublicApiRoute, isPublicAppRoute } from "@/lib/auth/routes";
+import type { AccessMetadata } from "@/lib/auth/account-access-rules";
 import { isAllowedEmail } from "@/lib/auth/email-domain";
 import { validateProfileTenantEmail } from "@/lib/auth/tenant-email";
 import { getApiRouteAccess, isApiRoutePublic, tierMeetsRequirement } from "@/lib/auth/api-route-policy";
@@ -294,6 +295,14 @@ export async function middleware(request: NextRequest) {
     }
 
     return response;
+  }
+
+  // Someone given a temporary password sets their own before anything else (after MFA).
+  if ((user.app_metadata as AccessMetadata | undefined)?.must_change_password && !allowedBeforePasswordChange(pathname)) {
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Set a new password first." }, { status: 403 });
+    }
+    return NextResponse.redirect(new URL(AUTH_ROUTES.setPassword, request.url));
   }
 
   const idleExpired = await expireIdleSession(

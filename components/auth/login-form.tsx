@@ -187,6 +187,12 @@ export function LoginForm({ initialError }: { initialError?: string | null }) {
         {isSubmitting ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
         {isSubmitting ? "Signing in…" : "Sign in"}
       </button>
+      <p className="text-center text-sm text-muted">
+        New here?{" "}
+        <Link className="link" href="/login/activate">
+          Activate your account with a code
+        </Link>
+      </p>
     </form>
   );
 }

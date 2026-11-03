@@ -61,8 +61,63 @@ const emptyForm = {
  role: "basic_se" as ProfileRole,
  level: "Basic" as SeLevel,
  managerId: "",
- sendInvite: true,
+ onboarding: "code" as Onboarding,
 };
+
+/** How a new person gets into their account (see lib/auth/account-access.ts). */
+type Onboarding = "code" | "password" | "email";
+
+const ONBOARDING_OPTIONS: { value: Onboarding; label: string; hint: string }[] = [
+ { value: "code", label: "Activation code", hint: "You get a code to send them (Teams, Slack). They use it to set their own password." },
+ { value: "password", label: "Temporary password", hint: "You get a password to send them. They must choose their own at first sign-in." },
+ { value: "email", label: "Email link", hint: "Supabase emails a setup link. Corporate email filters often block it." },
+];
+
+/** A code or temporary password just issued: shown once, with a message ready to send. */
+type IssuedAccess = { kind: "code" | "password"; value: string; name: string; email: string; expiresAt?: string };
+
+function issuedMessage(issued: IssuedAccess, origin: string) {
+ const first = issued.name.split(" ")[0] || "there";
+ if (issued.kind === "code") {
+  const until = issued.expiresAt ? new Date(issued.expiresAt).toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" }) : "three days";
+  return `Hi ${first}, your enablement account is ready. Go to ${origin}/login/activate, enter ${issued.email} and the code ${issued.value} (it works until ${until}), choose your password, then set up your authenticator app.`;
+ }
+ return `Hi ${first}, your enablement account is ready. Sign in at ${origin}/login with ${issued.email} and the temporary password ${issued.value}. You'll set up your authenticator app, then choose your own password.`;
+}
+
+function IssuedAccessNotice({ issued, onDismiss }: { issued: IssuedAccess; onDismiss: () => void }) {
+ const copy = (text: string, what: string) =>
+  void navigator.clipboard.writeText(text).then(
+   () => toast.success(`${what} copied`),
+   () => toast.error("Couldn't copy. Select it and copy instead."),
+  );
+ const message = issuedMessage(issued, window.location.origin);
+ return (
+  <Notice className="border-signal bg-signal-soft">
+   <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="min-w-0">
+     <p className="text-sm font-bold text-ink">
+      {issued.kind === "code" ? "Activation code" : "Temporary password"} for {issued.name}
+     </p>
+     <p className="mt-0.5 text-[13px] text-ink-2">Shown once. Send it to {issued.email} over Teams or Slack, not email.</p>
+     <p className="mt-2.5 text-lg font-bold tracking-[0.04em] text-ink select-all">{issued.value}</p>
+    </div>
+    <div className="flex flex-wrap gap-2">
+     <button className="btn-primary" onClick={() => copy(message, "Message")} type="button">
+      Copy message to send
+     </button>
+     <SecondaryButton onClick={() => copy(issued.value, issued.kind === "code" ? "Code" : "Password")}>
+      Copy {issued.kind === "code" ? "code" : "password"}
+     </SecondaryButton>
+     <button className="link text-sm" onClick={onDismiss} type="button">
+      Done
+     </button>
+    </div>
+   </div>
+   <p className="mt-3 rounded-[10px] bg-white/70 px-3 py-2 text-[13px] text-ink-2">{message}</p>
+  </Notice>
+ );
+}
 
 const PAGE_SIZE = 25;
 
@@ -123,7 +178,7 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  const [editingId, setEditingId] = useState<string | null>(null);
  const [showCreate, setShowCreate] = useState(false);
  const [form, setForm] = useState(emptyForm);
- const [tempPasswordShown, setTempPasswordShown] = useState<string | null>(null);
+ const [issued, setIssued] = useState<IssuedAccess | null>(null);
  const [search, setSearch] = useState("");
  const [roleFilter, setRoleFilter] = useState("All roles");
  const [levelFilter, setLevelFilter] = useState("All levels");
@@ -235,6 +290,33 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  await loadUsers();
  }
 
+ /** A new activation code, or a temporary password, for someone who already has an account. */
+ async function issueAccess(id: string, method: "code" | "password") {
+ const person = users.find((user) => user.id === id);
+ if (!person) return;
+ if (
+ method === "password" &&
+ !window.confirm(`Replace ${person.full_name}'s password with a temporary one? They'll choose a new one when they next sign in.`)
+ ) {
+ return;
+ }
+ setIsSaving(true);
+ const response = await fetch(`/api/admin/users/${id}/access`, {
+ method: "POST",
+ headers: { "Content-Type": "application/json" },
+ body: JSON.stringify({ method }),
+ });
+ const body = (await response.json().catch(() => null)) as
+ | { error?: string; activationCode?: string; expiresAt?: string; temporaryPassword?: string }
+ | null;
+ setIsSaving(false);
+ if (!response.ok || !body) return void toast.error(body?.error ?? "Couldn't update their access.");
+ const who = { name: person.full_name, email: person.email };
+ if (body.activationCode) setIssued({ kind: "code", value: body.activationCode, expiresAt: body.expiresAt, ...who });
+ else if (body.temporaryPassword) setIssued({ kind: "password", value: body.temporaryPassword, ...who });
+ closeForm();
+ }
+
  async function sendPasswordReset(id: string) {
  const person = users.find((user) => user.id === id);
  if (!person || !window.confirm(`Email ${person.email} a link to set a new password?`)) return;
@@ -258,7 +340,7 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  role: user.role,
  level: user.level,
  managerId: user.manager_id ?? "",
- sendInvite: false,
+ onboarding: "code",
  });
  }
 
@@ -266,7 +348,7 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  setEditingId(null);
  setShowCreate(true);
  setForm(emptyForm);
- setTempPasswordShown(null);
+ setIssued(null);
  }
 
  async function handleCreate(event: React.FormEvent) {
@@ -279,17 +361,20 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  body: JSON.stringify({
  fullName: form.fullName,
  email: form.email,
- password: form.password || undefined,
+ password: form.onboarding === "password" ? form.password || undefined : undefined,
  role: form.role,
  level: form.level,
  managerId: form.managerId || null,
- sendInvite: form.sendInvite,
+ onboarding: form.onboarding,
  }),
  });
 
  const body = (await response.json()) as {
  error?: string;
  temporaryPassword?: string;
+ activationCode?: string;
+ activationExpiresAt?: string;
+ activationError?: string;
  inviteSent?: boolean;
  };
 
@@ -299,11 +384,17 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  return;
  }
 
+ const created = { name: form.fullName, email: form.email.trim().toLowerCase() };
  if (body.inviteSent) {
- toast.success("User created. Password reset invite sent.");
+ toast.success("User created. Setup email sent.");
+ } else if (body.activationCode) {
+ setIssued({ kind: "code", value: body.activationCode, expiresAt: body.activationExpiresAt, ...created });
+ toast.success("User created. Send them the activation code.");
  } else if (body.temporaryPassword) {
- setTempPasswordShown(body.temporaryPassword);
- toast.success("User created. Copy the temporary password below.");
+ setIssued({ kind: "password", value: body.temporaryPassword, ...created });
+ toast.success("User created. Send them the temporary password.");
+ } else if (body.activationError) {
+ toast.error(body.activationError);
  }
 
  setShowCreate(false);
@@ -389,15 +480,7 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  ]}
  />
 
- {tempPasswordShown ? (
- <Notice className="border-signal bg-signal-soft">
- <p className="text-sm font-bold text-ink">Temporary password</p>
- <p className="mt-0.5 text-[13px] text-ink-2">
- Share it securely. They must change it on first sign-in and enroll in MFA.
- </p>
- <p className="mt-2.5 text-lg font-bold tracking-[0.02em] text-ink select-all">{tempPasswordShown}</p>
- </Notice>
- ) : null}
+ {issued ? <IssuedAccessNotice issued={issued} onDismiss={() => setIssued(null)} /> : null}
 
  <div className="flex flex-col gap-4">
  <div className="flex flex-wrap items-center justify-between gap-3">
@@ -625,9 +708,17 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  </button>
  <SecondaryButton onClick={closeForm}>Cancel</SecondaryButton>
  {editingId ? (
- <button className="link ml-auto text-sm" disabled={isSaving} onClick={() => void sendPasswordReset(editingId)} type="button">
- Send password reset
+ <div className="ml-auto flex flex-wrap items-center gap-3">
+ <button className="link text-sm" disabled={isSaving} onClick={() => void issueAccess(editingId, "code")} type="button">
+ New activation code
  </button>
+ <button className="link text-sm" disabled={isSaving} onClick={() => void issueAccess(editingId, "password")} type="button">
+ Temporary password
+ </button>
+ <button className="link text-sm" disabled={isSaving} onClick={() => void sendPasswordReset(editingId)} type="button">
+ Email reset link
+ </button>
+ </div>
  ) : null}
  </>
  }
@@ -703,28 +794,43 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  </SelectInput>
  </Field>
  {showCreate ? (
- <>
- <Field htmlFor="admin-user-password" label="Password (optional)">
+ <fieldset className="flex flex-col gap-2">
+ <legend className="mb-1 text-sm font-bold text-ink">How will they get in?</legend>
+ {ONBOARDING_OPTIONS.map((option) => (
+ <label
+ className={cn(
+ "flex cursor-pointer items-start gap-2.5 rounded-[12px] border px-3.5 py-2.5 text-sm",
+ form.onboarding === option.value ? "border-blue bg-blue-soft" : "border-line bg-white",
+ )}
+ key={option.value}
+ >
+ <input
+ checked={form.onboarding === option.value}
+ className="mt-1"
+ name="admin-user-onboarding"
+ onChange={() => setForm((current) => ({ ...current, onboarding: option.value }))}
+ type="radio"
+ />
+ <span>
+ <span className="block font-bold text-ink">{option.label}</span>
+ <span className="block text-[13px] text-muted">{option.hint}</span>
+ </span>
+ </label>
+ ))}
+ {form.onboarding === "password" ? (
+ <Field htmlFor="admin-user-password" label="Temporary password (optional)">
  <TextInput
  autoComplete="new-password"
  id="admin-user-password"
  minLength={8}
  onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
- placeholder="Auto-generated if blank"
- type="password"
+ placeholder="Leave blank and we'll make one"
+ type="text"
  value={form.password}
  />
  </Field>
- <label className="flex items-start gap-2.5 text-sm text-ink-2" htmlFor="admin-user-invite">
- <Checkbox
- checked={form.sendInvite}
- className="mt-0.5"
- id="admin-user-invite"
- onChange={(event) => setForm((current) => ({ ...current, sendInvite: event.target.checked }))}
- />
- Email a password setup link instead of showing a temporary password
- </label>
- </>
+ ) : null}
+ </fieldset>
  ) : null}
  </form>
  </Drawer>

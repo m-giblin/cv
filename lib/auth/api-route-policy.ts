@@ -28,6 +28,7 @@ const API_ROUTE_ACCESS: Array<{ prefix: string; access: ApiRouteAccess }> = [
   { prefix: "/api/manager/", access: { minTier: "manager" } },
   { prefix: "/api/cron/", access: { publicRoute: true, minTier: null } },
   { prefix: "/api/share/", access: { publicRoute: true, minTier: null } },
+  { prefix: "/api/auth/activate", access: { publicRoute: true, minTier: null } },
   { prefix: "/api/tenant/feature-flags", access: { minTier: null } },
 ];
 
