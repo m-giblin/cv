@@ -19,6 +19,10 @@
  *
  * Test accounts get a generated password (written to .env.demo-tenant.local, which git ignores) and an
  * mfa_exemptions row. SEs report to the first manager account.
+ *
+ * Copying into a tenant that already exists (its users, settings and own content stay; rows it already
+ * has, matched by name, title or link, aren't duplicated):
+ *   node scripts/clone-tenant.mjs --source sailpoint --into sailpoint-ae-tenant [--apply]
  */
 import { createClient } from "@supabase/supabase-js";
 import { randomBytes, randomUUID } from "crypto";
@@ -45,6 +49,7 @@ function parseArgs(argv) {
     const next = () => argv[++i];
     if (flag === "--apply") args.apply = true;
     else if (flag === "--source") args.source = next();
+    else if (flag === "--into") args.into = next();
     else if (flag === "--name") args.name = next();
     else if (flag === "--slug") args.slug = next();
     else if (flag === "--product-name") args.productName = next();
@@ -54,9 +59,10 @@ function parseArgs(argv) {
       args.accounts.push({ role, email: email.trim().toLowerCase(), fullName: rest.join(":").trim() || email });
     } else throw new Error(`Unknown argument ${flag}`);
   }
-  if (!args.source || !args.name || !args.slug) {
-    throw new Error("--source, --name and --slug are required");
+  if (!args.source || (!args.into && (!args.name || !args.slug))) {
+    throw new Error("--source and either --into or both --name and --slug are required");
   }
+  if (args.into && args.accounts.length) throw new Error("--account only applies to a new tenant");
   return args;
 }
 
@@ -95,6 +101,23 @@ const CONFIG_TABLES = [
   { table: "plan_holidays" },
   { table: "corpus_routing_rules" },
 ];
+
+/** How a row is recognised as already in the target tenant when copying --into it. */
+const NATURAL_KEYS = {
+  competencies: ["name"],
+  challenges: ["title"],
+  content_assets: ["title", "storage_path"],
+  playbook_guides: ["title"],
+  capability_playbooks: ["slug"],
+  question_bank: ["stem"],
+  pitch_scenario_templates: ["title"],
+  simulation_templates: ["title"],
+  onboarding_plans: ["name"],
+  enablement_programs: ["name"],
+  isc_lab_knowledge_chunks: ["url"],
+};
+/** Retired or per-tenant-only tables a copy into an existing tenant leaves alone. */
+const INTO_SKIP = new Set(["market_pulse_weeks", "plan_holidays"]);
 
 const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
 
@@ -139,19 +162,37 @@ async function resolveSource(source) {
 
 async function main() {
   const source = await resolveSource(args.source);
-  const { data: clash } = await admin.from("tenants").select("id").eq("slug", args.slug).maybeSingle();
-  if (clash) throw new Error(`A tenant with slug ${args.slug} already exists (${clash.id})`);
+  const target = args.into ? await resolveSource(args.into) : null;
+  if (target && target.id === source.id) throw new Error("Source and target are the same tenant");
+  if (!target) {
+    const { data: clash } = await admin.from("tenants").select("id").eq("slug", args.slug).maybeSingle();
+    if (clash) throw new Error(`A tenant with slug ${args.slug} already exists (${clash.id})`);
+  }
 
   const fks = await loadForeignKeys();
   const hasProductColumns = "product_name" in source;
-  const newTenantId = randomUUID();
+  const newTenantId = target ? target.id : randomUUID();
+  const tables = target ? CONFIG_TABLES.filter((spec) => !INTO_SKIP.has(spec.table)) : CONFIG_TABLES;
 
-  // 1. Read everything first and give every copied row a new id.
+  // 1. Read everything first and give every copied row a new id. Copying into an existing tenant, a
+  // row it already has keeps that row's id instead, so references point at it and it isn't duplicated.
   const idMap = new Map([[source.id, newTenantId]]);
   const sourceRows = {};
-  for (const spec of CONFIG_TABLES) {
+  const alreadyThere = {};
+  const naturalKey = (table, row) => JSON.stringify((NATURAL_KEYS[table] ?? []).map((column) => row[column] ?? null));
+  for (const spec of tables) {
     sourceRows[spec.table] = await fetchAll(spec.table, source.id);
-    if (!spec.key) for (const row of sourceRows[spec.table]) idMap.set(row.id, randomUUID());
+    const existing = new Map();
+    if (target && NATURAL_KEYS[spec.table]) {
+      for (const row of await fetchAll(spec.table, target.id)) existing.set(naturalKey(spec.table, row), row.id);
+    }
+    alreadyThere[spec.table] = new Set();
+    if (spec.key) continue;
+    for (const row of sourceRows[spec.table]) {
+      const match = existing.get(naturalKey(spec.table, row));
+      if (match) alreadyThere[spec.table].add(row.id);
+      idMap.set(row.id, match ?? randomUUID());
+    }
   }
   const { data: settings } = await admin.from("platform_settings").select("*").eq("tenant_id", source.id).maybeSingle();
 
@@ -202,9 +243,10 @@ async function main() {
     return out;
   }
 
-  const planned = CONFIG_TABLES.map((spec) => ({
+  const planned = tables.map((spec) => ({
     ...spec,
-    rows: sourceRows[spec.table].map((row) => transform(spec.table, row)),
+    skipped: alreadyThere[spec.table].size,
+    rows: sourceRows[spec.table].filter((row) => !alreadyThere[spec.table].has(row.id)).map((row) => transform(spec.table, row)),
   }));
 
   const tenantRow = {
@@ -228,7 +270,7 @@ async function main() {
     : null;
 
   console.log(`\nSource: ${source.name} (${source.slug}, ${source.id})`);
-  console.log(`New tenant: ${args.name} (${args.slug}, ${newTenantId})`);
+  console.log(target ? `Into existing tenant: ${target.name} (${target.slug}, ${target.id})` : `New tenant: ${args.name} (${args.slug}, ${newTenantId})`);
   if (args.productName) {
     console.log(
       hasProductColumns
@@ -236,12 +278,16 @@ async function main() {
         : "App name: not set — run migration 20261031120000_tenant_product_branding.sql first, then set it in Admin → Settings → General.",
     );
   }
-  console.log(`Platform settings: ${settingsRow ? "copied (feature flags, AI provider and key, retention, session timeout)" : "none in source"}`);
+  console.log(
+    target
+      ? "Platform settings: the target keeps its own"
+      : `Platform settings: ${settingsRow ? "copied (feature flags, AI provider and key, retention, session timeout)" : "none in source"}`,
+  );
   console.log("\nRows to copy:");
   let total = 0;
   for (const spec of planned) {
     total += spec.rows.length;
-    console.log(`  ${spec.table.padEnd(30)} ${String(spec.rows.length).padStart(5)}`);
+    console.log(`  ${spec.table.padEnd(30)} ${String(spec.rows.length).padStart(5)}${spec.skipped ? `  (${spec.skipped} already there)` : ""}`);
   }
   console.log(`  ${"total".padEnd(30)} ${String(total).padStart(5)}`);
   console.log(`\nPeople references cleared (created_by, updated_by, reviewed_by…): ${report.clearedPeople}`);
@@ -258,7 +304,7 @@ async function main() {
   }
 
   if (!args.apply) {
-    console.log("\nDry run: nothing written. Re-run with --apply to create the tenant.");
+    console.log(`\nDry run: nothing written. Re-run with --apply to ${target ? "copy" : "create the tenant"}.`);
     return;
   }
 
@@ -275,9 +321,11 @@ async function main() {
   }
 
   try {
-    const { error: tenantError } = await admin.from("tenants").insert(tenantRow);
-    if (tenantError) throw new Error(`tenants: ${tenantError.message}`);
-    if (settingsRow) await insertRows("platform_settings", [settingsRow]);
+    if (!target) {
+      const { error: tenantError } = await admin.from("tenants").insert(tenantRow);
+      if (tenantError) throw new Error(`tenants: ${tenantError.message}`);
+      if (settingsRow) await insertRows("platform_settings", [settingsRow]);
+    }
 
     for (const spec of planned) {
       const rows = spec.selfRefs
@@ -338,13 +386,13 @@ async function main() {
       console.log(`  created ${account.role} ${account.email}`);
     }
 
-    await admin.from("tenants").update({ status: "active" }).eq("id", newTenantId);
+    if (!target) await admin.from("tenants").update({ status: "active" }).eq("id", newTenantId);
     await admin.from("audit_logs").insert({
       tenant_id: newTenantId,
-      action: "tenant.cloned",
+      action: target ? "tenant.content_copied" : "tenant.cloned",
       target_type: "tenant",
       target_id: newTenantId,
-      details: { sourceTenantId: source.id, slug: args.slug, name: args.name, rows: total },
+      details: { sourceTenantId: source.id, slug: target?.slug ?? args.slug, name: target?.name ?? args.name, rows: total },
     });
 
     if (credentials.length) {
@@ -352,14 +400,18 @@ async function main() {
       appendFileSync(file, `\n# ${args.name} (${newTenantId}) test accounts, ${new Date().toISOString()}\n${credentials.join("\n")}\n`);
       console.log(`\nTest account passwords written to ${file}`);
     }
-    console.log(`\nDone: ${args.name} is active (${newTenantId}).`);
+    console.log(target ? `\nDone: copied ${total} rows into ${target.name}.` : `\nDone: ${args.name} is active (${newTenantId}).`);
   } catch (error) {
     console.error(`\nFailed: ${error instanceof Error ? error.message : error}\nUndoing this run's inserts…`);
     for (const userId of createdUsers) await admin.auth.admin.deleteUser(userId);
-    // Clear links between copied rows first so the deletes below can go in any order.
-    for (const spec of CONFIG_TABLES) {
+    // Clear links between copied rows first so the deletes below can go in any order. In an existing
+    // tenant only this run's rows are touched.
+    for (const spec of tables) {
       for (const column of spec.selfRefs ?? []) {
-        await admin.from(spec.table).update({ [column]: null }).eq("tenant_id", newTenantId);
+        const ids = inserted.filter((batch) => batch.table === spec.table).flatMap((batch) => batch.rows.map((row) => row.id));
+        if (target) {
+          for (let i = 0; i < ids.length; i += 200) await admin.from(spec.table).update({ [column]: null }).in("id", ids.slice(i, i + 200));
+        } else await admin.from(spec.table).update({ [column]: null }).eq("tenant_id", newTenantId);
       }
     }
     for (const batch of inserted.reverse()) {
@@ -372,6 +424,10 @@ async function main() {
       } else {
         await admin.from(batch.table).delete().in("id", batch.rows.map((row) => row.id));
       }
+    }
+    if (target) {
+      console.error("Undone; the tenant's own rows were not touched.");
+      process.exit(1);
     }
     await admin.from("audit_logs").delete().eq("tenant_id", newTenantId);
     await admin.from("tenant_admin_invites").delete().eq("tenant_id", newTenantId);
