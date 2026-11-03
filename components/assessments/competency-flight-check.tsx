@@ -17,7 +17,6 @@ type Question = {
   type: string;
   prompt: string;
   options?: string[];
-  rubricHint: string;
 };
 
 const COMPETENCY_AREAS = [
@@ -114,7 +113,8 @@ export function CompetencyFlightCheck({
         : {
             sessionId,
             questionId: question.id,
-            answer: skip ? 0 : (selected ?? 0),
+            // -1 is "no option picked": options are shuffled, so any real index could be the right one.
+            answer: skip ? -1 : (selected ?? -1),
           };
 
     const response = await fetch("/api/assessments/flight-check", {

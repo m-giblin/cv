@@ -18,6 +18,45 @@ export function focusCompetenciesForUser(data: DashboardData, userId: string, li
   return ["Discovery", "Objection Handling", "Agentic AI"].slice(0, limit);
 }
 
+/** What the browser sees of a question: no answer key or hint until it's answered. */
+export type PresentedFlightCheckQuestion = Pick<FlightCheckQuestion, "id" | "competency" | "type" | "difficulty" | "prompt" | "options">;
+
+/**
+ * The order a session shows a question's options in: `order[shown] = original index`. Seeded by the
+ * session and question, so a reload shows the same order and the answer maps back without storing it,
+ * while the right answer lands on a different letter from one question and person to the next.
+ */
+export function optionOrder(sessionId: string, questionId: string, count: number): number[] {
+  // FNV-1a hash as the seed, then mulberry32 for a Fisher-Yates shuffle.
+  let seed = 2166136261;
+  for (const char of `${sessionId}:${questionId}`) seed = Math.imul(seed ^ char.charCodeAt(0), 16777619);
+  const random = () => {
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const order = Array.from({ length: count }, (_, index) => index);
+  for (let index = count - 1; index > 0; index -= 1) {
+    const swap = Math.floor(random() * (index + 1));
+    [order[index], order[swap]] = [order[swap]!, order[index]!];
+  }
+  return order;
+}
+
+export function presentQuestion(question: FlightCheckQuestion | null, sessionId: string): PresentedFlightCheckQuestion | null {
+  if (!question) return null;
+  const { id, competency, type, difficulty, prompt, options } = question;
+  if (!options?.length) return { id, competency, type, difficulty, prompt };
+  return { id, competency, type, difficulty, prompt, options: optionOrder(sessionId, id, options.length).map((index) => options[index]!) };
+}
+
+/** Maps the option a person picked, as shown, back to its index in the bank. */
+export function originalOptionIndex(question: FlightCheckQuestion, sessionId: string, shownIndex: number) {
+  if (!question.options?.length) return shownIndex;
+  return optionOrder(sessionId, question.id, question.options.length)[shownIndex] ?? -1;
+}
+
 function normalizeCompetency(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }

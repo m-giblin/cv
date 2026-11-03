@@ -7,6 +7,8 @@ import {
  computeFieldSignalScore,
  evaluateAnswer,
  focusCompetenciesForUser,
+ originalOptionIndex,
+ presentQuestion,
  selectNextQuestion,
  type FlightCheckResponse,
 } from "@/lib/assessments/flight-check-engine";
@@ -44,7 +46,7 @@ export async function GET() {
  sessionId: active.id,
  focusCompetencies: active.focus_competencies,
  responses,
- question: next,
+ question: presentQuestion(next, active.id),
  progress: responses.length,
  total: FLIGHT_CHECK_QUESTION_COUNT,
  });
@@ -75,7 +77,7 @@ export async function GET() {
  sessionId: session.id,
  focusCompetencies,
  responses: [],
- question: next,
+ question: presentQuestion(next, session.id),
  progress: 0,
  total: FLIGHT_CHECK_QUESTION_COUNT,
  });
@@ -122,10 +124,12 @@ export async function POST(request: Request) {
  }
 
  const responses = [...((session.responses ?? []) as FlightCheckResponse[])];
- const correct = evaluateAnswer(question, parsed.data.answer);
+ // Options are shown shuffled per session; store and grade the pick as its place in the bank.
+ const answer = question.type === "talk_track" ? parsed.data.answer : originalOptionIndex(question, session.id, Number(parsed.data.answer));
+ const correct = evaluateAnswer(question, answer);
  responses.push({
  questionId: question.id,
- answer: parsed.data.answer,
+ answer,
  correct,
  competency: question.competency,
  difficulty: question.difficulty,
@@ -181,6 +185,6 @@ export async function POST(request: Request) {
  fieldSignalScore: complete ? fieldSignalScore : null,
  competencyScores: complete ? competencyScores : null,
  recommendedActions: complete ? recommendedActions : null,
- question: next,
+ question: presentQuestion(next, session.id),
  });
 }
