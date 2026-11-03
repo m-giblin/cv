@@ -6,7 +6,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import type { WorkspaceHat } from "@/lib/auth/workspace";
 import { canonicalAdminHref } from "@/lib/admin/admin-routes";
 import { canonicalHref } from "@/lib/manager/manager-routes";
-import { NAV, resolveActive, visibleNav } from "@/lib/navigation/nav-model";
+import { NAV, resolveActive, visibleNav, type NavItem } from "@/lib/navigation/nav-model";
 import { canonicalPlatformHref } from "@/lib/platform/platform-routes";
 import type { PlatformFeatureFlags } from "@/lib/platform/settings-shared";
 import type { Notification } from "@/lib/types";
@@ -64,70 +64,84 @@ export function SidebarContent({
   const mentoring = NAV.se.find((item) => item.id === "mentoring");
   if (hasMentees && mentoring && !items.some((item) => item.id === "mentoring")) {
     const help = items.findIndex((item) => item.id === "help-center");
-    items.splice(help === -1 ? items.length : help, 0, mentoring);
+    // It joins the group Help sits in, so it doesn't open a heading of its own in other workspaces.
+    const at = help === -1 ? items.length : help;
+    items.splice(at, 0, { ...mentoring, group: (items[at] ?? items.at(-1))?.group });
+  }
+  // Consecutive items with the same group share one heading.
+  const groups: { label: string; items: NavItem[] }[] = [];
+  for (const item of items) {
+    const label = item.group ?? GROUP_LABELS[workspace];
+    const last = groups.at(-1);
+    if (last?.label === label) last.items.push(item);
+    else groups.push({ label, items: [item] });
   }
 
   return (
     <div className="flex flex-col gap-[26px] py-6">
-      <nav aria-label={`${GROUP_LABELS[workspace]} navigation`} className="flex flex-col gap-0.5">
-        <span className="label-caps px-6 pb-2">{GROUP_LABELS[workspace]}</span>
-        {items.map((item) => {
-          const active = item.id === itemId;
-          const inbox = item.id === "inbox" ? unreadFor(notifications, [item.href]) : 0;
-          const count = counts?.[item.id];
-          const children = active ? (item.children ?? []) : [];
-          return (
-            <div key={item.id}>
-              <Link
-                aria-current={active && !childId ? "page" : undefined}
-                className={cn(
-                  "flex items-center justify-between gap-2 px-6 py-2 text-[15px] no-underline",
-                  active
-                    ? "bg-blue-soft font-bold text-blue shadow-[inset_3px_0_0_var(--color-blue)]"
-                    : "font-medium text-ink hover:bg-bg",
-                )}
-                href={hrefFor(item)}
-                onClick={onNavigate}
-                prefetch={hrefFor(item).startsWith("/api/") ? false : undefined}
-              >
-                <span className="flex min-w-0 items-center gap-2">
-                  <span className="truncate">{item.label}</span>
-                  <LinkPending />
-                </span>
-                {inbox > 0 ? (
-                  <span className="num rounded-full bg-signal px-2.5 text-[13px] leading-[22px] font-bold text-ink">
-                    {inbox > 99 ? "99+" : inbox}
-                  </span>
-                ) : count !== undefined ? (
-                  <span className="num text-[13px] font-medium text-muted">{count}</span>
-                ) : null}
-              </Link>
-              {children.length > 1 ? (
-                <ul className="flex flex-col pb-1">
-                  {children.map((child) => {
-                    const childActive = child.id === childId;
-                    return (
-                      <li key={child.id}>
-                        <Link
-                          aria-current={childActive ? "page" : undefined}
-                          className={cn(
-                            "flex items-center gap-2 py-1.5 pr-6 pl-10 text-sm no-underline",
-                            childActive ? "font-bold text-blue" : "font-medium text-ink-2 hover:text-ink",
-                          )}
-                          href={child.href}
-                          onClick={onNavigate}
-                        >
-                          {child.label}
-                          <LinkPending />
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
-              ) : null}
-            </div>
-          );
-        })}
+      <nav aria-label={`${GROUP_LABELS[workspace]} navigation`} className="flex flex-col gap-[26px]">
+        {groups.map((group) => (
+          <div className="flex flex-col gap-0.5" key={group.label}>
+            <span className="label-caps px-6 pb-2">{group.label}</span>
+            {group.items.map((item) => {
+              const active = item.id === itemId;
+              const inbox = item.id === "inbox" ? unreadFor(notifications, [item.href]) : 0;
+              const count = counts?.[item.id];
+              const children = active ? (item.children ?? []) : [];
+              return (
+                <div key={item.id}>
+                  <Link
+                    aria-current={active && !childId ? "page" : undefined}
+                    className={cn(
+                      "flex items-center justify-between gap-2 px-6 py-2 text-[15px] no-underline",
+                      active
+                        ? "bg-blue-soft font-bold text-blue shadow-[inset_3px_0_0_var(--color-blue)]"
+                        : "font-medium text-ink hover:bg-bg",
+                    )}
+                    href={hrefFor(item)}
+                    onClick={onNavigate}
+                    prefetch={hrefFor(item).startsWith("/api/") ? false : undefined}
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="truncate">{item.label}</span>
+                      <LinkPending />
+                    </span>
+                    {inbox > 0 ? (
+                      <span className="num rounded-full bg-signal px-2.5 text-[13px] leading-[22px] font-bold text-ink">
+                        {inbox > 99 ? "99+" : inbox}
+                      </span>
+                    ) : count !== undefined ? (
+                      <span className="num text-[13px] font-medium text-muted">{count}</span>
+                    ) : null}
+                  </Link>
+                  {children.length > 1 ? (
+                    <ul className="flex flex-col pb-1">
+                      {children.map((child) => {
+                        const childActive = child.id === childId;
+                        return (
+                          <li key={child.id}>
+                            <Link
+                              aria-current={childActive ? "page" : undefined}
+                              className={cn(
+                                "flex items-center gap-2 py-1.5 pr-6 pl-10 text-sm no-underline",
+                                childActive ? "font-bold text-blue" : "font-medium text-ink-2 hover:text-ink",
+                              )}
+                              href={child.href}
+                              onClick={onNavigate}
+                            >
+                              {child.label}
+                              <LinkPending />
+                            </Link>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        ))}
       </nav>
       {people && people.length > 0 ? (
         <div className="flex flex-col gap-0.5">

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { canonicalSeHref, legacySeRedirect, LEGACY_SE_REDIRECTS } from "@/lib/se/se-routes";
-import { resolveActive } from "@/lib/navigation/nav-model";
+import { NAV, resolveActive } from "@/lib/navigation/nav-model";
 import { canAccessRoute } from "@/lib/auth/rbac";
 import { flagForPathname } from "@/lib/platform/feature-flags";
 import { buildRampModel, splitWeeks, stepLifecycle } from "@/lib/se/ramp-model";
@@ -44,6 +44,18 @@ describe("SE nav model", () => {
     expect(active("/readiness/certification")).toEqual({ itemId: "readiness", childId: "certification" });
     expect(active("/learn/lab")).toEqual({ itemId: "learn", childId: "lab" });
     expect(active("/my-plan", "view=calendar").itemId).toBe("ramp");
+  });
+
+  it("groups your own progress apart from practice and learning", () => {
+    expect(NAV.se.map((item) => `${item.group}: ${item.id}`)).toEqual([
+      "My work: today",
+      "My work: ramp",
+      "My work: readiness",
+      "Practice & learn: practice",
+      "Practice & learn: learn",
+      "Support: mentoring",
+      "Support: help-center",
+    ]);
   });
 });
 

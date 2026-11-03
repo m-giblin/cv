@@ -18,20 +18,37 @@ export type NavItem = {
   match?: string[];
   /** Shown as in-page section tabs, never as extra sidebar items. */
   children?: NavChild[];
+  /** Sidebar heading this item sits under; consecutive items share one. Unset: the workspace's heading. */
+  group?: string;
 };
 
 export const NAV: Record<WorkspaceHat, NavItem[]> = {
   se: [
-    { id: "today", label: "Today", href: "/dashboard" },
+    { id: "today", label: "Today", href: "/dashboard", group: "My work" },
     {
       // List | Calendar is a view toggle in the My ramp header (?view=calendar), not section tabs.
       id: "ramp",
+      group: "My work",
       label: "My ramp",
       href: "/my-plan",
       match: ["/plan-steps", "/plan-calendar"],
     },
     {
+      id: "readiness",
+      group: "My work",
+      label: "Readiness",
+      href: "/readiness",
+      match: ["/growth", "/feedback", "/growth-plan", "/certifications"],
+      children: [
+        { id: "competencies", label: "Competencies", href: "/readiness" },
+        { id: "feedback", label: "Feedback", href: "/readiness/feedback" },
+        { id: "growth-plan", label: "Growth plan", href: "/readiness/growth-plan" },
+        { id: "certification", label: "Certification", href: "/readiness/certification" },
+      ],
+    },
+    {
       id: "practice",
+      group: "Practice & learn",
       label: "Practice",
       href: "/practice",
       match: ["/simulations", "/challenges", "/pitch", "/prep", "/flight-check", "/market-pulse", "/my-practice"],
@@ -46,31 +63,19 @@ export const NAV: Record<WorkspaceHat, NavItem[]> = {
       ],
     },
     {
-      id: "readiness",
-      label: "Readiness",
-      href: "/readiness",
-      match: ["/growth", "/feedback", "/growth-plan", "/certifications"],
-      children: [
-        { id: "competencies", label: "Competencies", href: "/readiness" },
-        { id: "feedback", label: "Feedback", href: "/readiness/feedback" },
-        { id: "growth-plan", label: "Growth plan", href: "/readiness/growth-plan" },
-        { id: "certification", label: "Certification", href: "/readiness/certification" },
-      ],
-    },
-    {
       id: "learn",
+      group: "Practice & learn",
       label: "Learn",
       href: "/learn",
       match: ["/resources", "/lab"],
       children: [
         { id: "library", label: "Library", href: "/learn" },
         { id: "playbooks", label: "Playbooks", href: "/learn/playbooks" },
-        { id: "knowledge-checks", label: "Knowledge checks", href: "/learn/knowledge-checks" },
         { id: "lab", label: "ISC Lab", href: "/learn/lab" },
       ],
     },
-    { id: "mentoring", label: "Mentoring", href: "/mentoring" },
-    { id: "help-center", label: "Help", href: "/help" },
+    { id: "mentoring", label: "Mentoring", href: "/mentoring", group: "Support" },
+    { id: "help-center", label: "Help", href: "/help", group: "Support" },
   ],
   manager: [
     { id: "today", label: "Today", href: "/manager" },
