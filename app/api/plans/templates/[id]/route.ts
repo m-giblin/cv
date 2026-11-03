@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { persistedStepType } from "@/lib/admin/plan-builder";
+import { persistedStepType, SEGMENT_NAMES } from "@/lib/admin/plan-builder";
 import { logAuditEvent } from "@/lib/audit/log-admin-action";
 import { requireManagerSession } from "@/lib/auth/require-manager";
 import { assertTenantOwnedRow, getTenantAdminClient } from "@/lib/data/tenant-scoped-query";
 import { builderMetadata } from "@/lib/plans/builder-metadata";
-import { templateRequestError, updateTemplateSchema, type TemplateStepInput } from "@/lib/plans/template-step-schema";
+import { phaseNamesForStorage, templateRequestError, updateTemplateSchema, type TemplateStepInput } from "@/lib/plans/template-step-schema";
 import { canEditTemplateStructure, isLockedTemplate } from "@/lib/plans/template-lock";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -78,6 +78,7 @@ export async function PATCH(request: Request, context: RouteContext) {
  .update({
  name: parsed.data.name,
  description: parsed.data.description ?? null,
+ ...(parsed.data.phaseNames ? { phase_names: phaseNamesForStorage(parsed.data.phaseNames, SEGMENT_NAMES) } : {}),
  })
  .eq("id", id)
  .eq("tenant_id", session.tenantId);

@@ -1,4 +1,4 @@
-import { PLAN_WEEKS, SEGMENT_NAMES, type DbTemplate } from "@/lib/admin/plan-builder";
+import { PLAN_WEEKS, resolvePhaseNames, SEGMENT_NAMES, type DbTemplate } from "@/lib/admin/plan-builder";
 import { isStepValidated } from "@/lib/se/ramp-model";
 import type { PlanStep, Profile, UserPlan } from "@/lib/types";
 
@@ -19,6 +19,16 @@ export const PROGRAM_PHASES = SEGMENT_NAMES.map((name, index) => ({
     "Certification gates and manager sign-off",
   ][index]!,
 }));
+
+/** The phases with this program's own names. The default summary only shows under a default name. */
+export function programPhases(template?: Pick<DbTemplate, "phase_names"> | null) {
+  const names = resolvePhaseNames(template?.phase_names);
+  return PROGRAM_PHASES.map((phase, index) => ({
+    ...phase,
+    name: names[index]!,
+    summary: names[index] === phase.name ? phase.summary : "",
+  }));
+}
 
 export type PhaseStatus = "complete" | "active" | "overdue" | "upcoming" | "empty";
 
@@ -52,6 +62,8 @@ export type ProgramSummary = {
   description: string;
   stepCount: number;
   stepsPerPhase: number[];
+  /** This program's four phase names. */
+  phaseNames: string[];
   enrollments: EnrollmentSummary[];
   avgProgress: number | null;
   atRisk: number;
@@ -77,7 +89,12 @@ export function isStepOverdue(step: PlanStep, today: string): boolean {
   return Boolean(step.dueDate && step.dueDate.slice(0, 10) < today && !isStepValidated(step.status));
 }
 
-export function summarizeEnrollment(plan: UserPlan, person: Profile | null, now: Date = new Date()): EnrollmentSummary {
+export function summarizeEnrollment(
+  plan: UserPlan,
+  person: Profile | null,
+  now: Date = new Date(),
+  phaseNames: readonly string[] = resolvePhaseNames(plan.phaseNames),
+): EnrollmentSummary {
   const today = isoDay(now);
   const steps = [...plan.steps].sort((a, b) => a.order - b.order);
   const total = steps.length;
@@ -86,7 +103,7 @@ export function summarizeEnrollment(plan: UserPlan, person: Profile | null, now:
 
   const phases: PhaseProgress[] = PROGRAM_PHASES.map((phase) => ({
     index: phase.index,
-    name: phase.name,
+    name: phaseNames[phase.index - 1] ?? phase.name,
     status: "empty" as PhaseStatus,
     done: 0,
     total: 0,
@@ -172,11 +189,12 @@ export function summarizePrograms(
   }
 
   const summaries: ProgramSummary[] = templates.map((template) => {
+    const phaseNames = resolvePhaseNames(template.phase_names);
     const enrollments = (byTemplate.get(template.id) ?? [])
-      .map((plan) => summarizeEnrollment(plan, personById.get(plan.userId) ?? null, now))
+      .map((plan) => summarizeEnrollment(plan, personById.get(plan.userId) ?? null, now, phaseNames))
       .sort((a, b) => b.overdue - a.overdue || a.progress - b.progress);
     byTemplate.delete(template.id);
-    return toSummary(template.id, template.name, template.description ?? "", template.steps.length, templateStepsPerPhase(template), enrollments);
+    return toSummary(template.id, template.name, template.description ?? "", template.steps.length, templateStepsPerPhase(template), phaseNames, enrollments);
   });
 
   // Enrollments in programs this viewer can't list (for example a locked template) still show.
@@ -184,7 +202,7 @@ export function summarizePrograms(
     const enrollments = list.map((plan) => summarizeEnrollment(plan, personById.get(plan.userId) ?? null, now));
     const sample = enrollments[0]!;
     const stepsPerPhase = sample.phases.map((phase) => phase.total);
-    summaries.push(toSummary(templateId, sample.plan.name, "", sample.total, stepsPerPhase, enrollments));
+    summaries.push(toSummary(templateId, sample.plan.name, "", sample.total, stepsPerPhase, resolvePhaseNames(), enrollments));
   }
 
   return summaries;
@@ -196,6 +214,7 @@ function toSummary(
   description: string,
   stepCount: number,
   stepsPerPhase: number[],
+  phaseNames: string[],
   enrollments: EnrollmentSummary[],
 ): ProgramSummary {
   const avgProgress = enrollments.length
@@ -207,6 +226,7 @@ function toSummary(
     description,
     stepCount,
     stepsPerPhase,
+    phaseNames,
     enrollments,
     avgProgress,
     atRisk: enrollments.filter((item) => item.health === "at_risk").length,

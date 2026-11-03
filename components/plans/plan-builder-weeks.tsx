@@ -38,6 +38,7 @@ export function PlanWeeksView({
   onOpenStep,
   onAddFromLibrary,
   onMoveStep,
+  phaseNames,
 }: {
   /** Optional; the builder renders its header bar above both views. */
   header?: ReactNode;
@@ -48,6 +49,7 @@ export function PlanWeeksView({
   onOpenStep: (key: string) => void;
   onAddFromLibrary: (item: LibraryItem, week: number) => void;
   onMoveStep: (key: string, week: number) => void;
+  phaseNames?: string[];
 }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | LibraryKind>("all");
@@ -55,7 +57,7 @@ export function PlanWeeksView({
   const [drop, setDrop] = useState<{ week: number; row: number; span: number } | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
 
-  const groups = useMemo(() => outlineGroups(steps).filter((group) => group.segmentIndex !== null), [steps]);
+  const groups = useMemo(() => outlineGroups(steps, phaseNames).filter((group) => group.segmentIndex !== null), [steps, phaseNames]);
   const { blocks, rows } = useMemo(() => layoutGrid(steps), [steps]);
   const lastWeek = blocks.reduce((max, block) => Math.max(max, block.endWeek), 0);
 

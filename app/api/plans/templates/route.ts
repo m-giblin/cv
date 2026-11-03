@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { persistedStepType } from "@/lib/admin/plan-builder";
+import { persistedStepType, SEGMENT_NAMES } from "@/lib/admin/plan-builder";
 import { logAuditEvent } from "@/lib/audit/log-admin-action";
 import { requireManagerSession } from "@/lib/auth/require-manager";
 import { getTenantAdminClient } from "@/lib/data/tenant-scoped-query";
 import { builderMetadata } from "@/lib/plans/builder-metadata";
-import { createTemplateSchema, templateRequestError } from "@/lib/plans/template-step-schema";
+import { createTemplateSchema, phaseNamesForStorage, templateRequestError } from "@/lib/plans/template-step-schema";
 
 export async function GET() {
  const session = await requireManagerSession();
@@ -19,7 +19,8 @@ export async function GET() {
 
  const { data: templates, error } = await admin
  .from("onboarding_plans")
- .select("id, name, description, is_template, is_locked, created_at")
+ // "*" so phase_names is read once its column exists, without breaking before.
+ .select("*")
  .eq("is_template", true)
  .eq("tenant_id", session.tenantId)
  .eq("is_archived", false)
@@ -73,6 +74,7 @@ export async function POST(request: Request) {
  description: parsed.data.description ?? null,
  is_template: true,
  is_locked: false,
+ ...(parsed.data.phaseNames ? { phase_names: phaseNamesForStorage(parsed.data.phaseNames, SEGMENT_NAMES) } : {}),
  created_by: session.user.id,
  tenant_id: session.tenantId,
  } as never)

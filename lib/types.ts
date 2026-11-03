@@ -94,6 +94,8 @@ export type UserPlan = {
   status: AssignmentStatus;
   progress: number;
   unlockedSegmentMax?: number;
+  /** The program's own phase names (null entries use the defaults). */
+  phaseNames?: (string | null)[] | null;
   steps: PlanStep[];
 };
 

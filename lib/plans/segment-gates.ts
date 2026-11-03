@@ -93,7 +93,7 @@ export async function maybeUnlockNextSegment(
     .eq("id", assignmentId);
 
   const [{ data: plan }, { data: stageLinks }] = await Promise.all([
-    supabase.from("onboarding_plans").select("name").eq("id", assignment.plan_id).maybeSingle(),
+    supabase.from("onboarding_plans").select("*").eq("id", assignment.plan_id).maybeSingle(),
     // Program setup, read like advance-program does: the manager's session may not see the links.
     ((createAdminClient() as SupabaseClient<Database> | null) ?? supabase)
       .from("enablement_program_segments")
@@ -101,7 +101,8 @@ export async function maybeUnlockNextSegment(
       .eq("plan_id", assignment.plan_id)
       .limit(1),
   ]);
-  const partName = (index: number) => RAMP_SEGMENT_NAMES[index - 1] ?? `part ${index}`;
+  const customNames = (plan as { phase_names?: (string | null)[] | null } | null)?.phase_names;
+  const partName = (index: number) => customNames?.[index - 1]?.trim() || RAMP_SEGMENT_NAMES[index - 1] || `part ${index}`;
 
   await issueSegmentCertificate(supabase, {
     assignmentId,

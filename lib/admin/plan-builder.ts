@@ -44,6 +44,13 @@ export type ReviewerKind = (typeof REVIEWER_OPTIONS)[number]["id"];
 /** Ramp segments. `plan_steps.metadata.segmentIndex` is 1–4. */
 export const SEGMENT_NAMES = ["Foundations", "Field skills", "Advisory readiness", "Certification"] as const;
 
+export const PHASE_NAME_MAX_LENGTH = 40;
+
+/** A program's four phase names: its own where set, the shared defaults otherwise. */
+export function resolvePhaseNames(custom?: readonly (string | null | undefined)[] | null): string[] {
+  return SEGMENT_NAMES.map((name, index) => custom?.[index]?.trim() || name);
+}
+
 export type BuilderStep = {
   /** Stable client key (db id for saved steps). */
   key: string;
@@ -89,6 +96,7 @@ export type DbTemplate = {
   name: string;
   description: string | null;
   is_locked?: boolean | null;
+  phase_names?: (string | null)[] | null;
   steps: DbTemplateStep[];
 };
 
@@ -431,7 +439,7 @@ export type OutlineGroup = {
  * Groups steps by segment in segment order (unsegmented last) and derives each segment's week span:
  * a segment starts the week after the previous one ends and ends at its latest due week.
  */
-export function outlineGroups(steps: BuilderStep[]): OutlineGroup[] {
+export function outlineGroups(steps: BuilderStep[], phaseNames: readonly string[] = SEGMENT_NAMES): OutlineGroup[] {
   const indexed = steps.map((step, index) => ({ step, index }));
   const groups: OutlineGroup[] = [];
   let cursor = 1;
@@ -442,7 +450,7 @@ export function outlineGroups(steps: BuilderStep[]): OutlineGroup[] {
     const isLast = position === segmentIds.length - 1;
     const start = Math.min(cursor, PLAN_WEEKS);
     const end = Math.min(PLAN_WEEKS, Math.max(start, isLast ? Math.max(maxWeek, PLAN_WEEKS) : maxWeek));
-    groups.push({ segmentIndex: segment, name: SEGMENT_NAMES[segment - 1]!, startWeek: start, endWeek: end, steps: members });
+    groups.push({ segmentIndex: segment, name: phaseNames[segment - 1] ?? SEGMENT_NAMES[segment - 1]!, startWeek: start, endWeek: end, steps: members });
     cursor = end + 1;
   });
   const loose = indexed.filter(({ step }) => step.segmentIndex === null);

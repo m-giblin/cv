@@ -7,7 +7,7 @@ import { fetchAdHocStepsForAssignments } from "@/lib/plans/ad-hoc-steps";
 type DbPlanStep = Database["public"]["Tables"]["plan_steps"]["Row"];
 type DbPlanAssignment = Database["public"]["Tables"]["plan_assignments"]["Row"];
 type DbPlanAssignmentStep = Database["public"]["Tables"]["plan_assignment_steps"]["Row"];
-type DbOnboardingPlan = Database["public"]["Tables"]["onboarding_plans"]["Row"];
+type DbOnboardingPlan = Database["public"]["Tables"]["onboarding_plans"]["Row"] & { phase_names?: (string | null)[] | null };
 
 export async function fetchPlansBundle(
   supabase: SupabaseClient<Database>,
@@ -46,7 +46,7 @@ export async function fetchPlansForUsers(
   const assignmentIds = assignments.map((assignment) => assignment.id);
   const planIds = [...new Set(assignments.map((assignment) => assignment.plan_id))];
 
-  const plansQuery = supabase.from("onboarding_plans").select("id, name").in("id", planIds);
+  const plansQuery = supabase.from("onboarding_plans").select("*").in("id", planIds);
   const planStepsQuery = supabase.from("plan_steps").select("*").in("plan_id", planIds).order("sort_order");
   const contentAssetsQuery = supabase.from("content_assets").select("id, storage_path");
 
@@ -105,6 +105,7 @@ export async function fetchPlansForUsers(
       userId: assignment.user_id,
       mentorId: assignment.mentor_id,
       name: template?.name ?? "Onboarding plan",
+      phaseNames: template?.phase_names ?? null,
       startDate: assignment.start_date,
       targetCompletion: assignment.target_completion ?? "",
       status: assignment.status,

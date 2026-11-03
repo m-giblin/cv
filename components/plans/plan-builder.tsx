@@ -22,6 +22,8 @@ import {
   EVIDENCE_OPTIONS,
   PLAN_WEEKS,
   REVIEWER_OPTIONS,
+  PHASE_NAME_MAX_LENGTH,
+  resolvePhaseNames,
   SEGMENT_NAMES,
   builderStepsToPayload,
   canPublish,
@@ -116,10 +118,13 @@ export function PlanBuilder({
   const [planId, setPlanId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  // Blank means the shared default name for that phase.
+  const [phaseNames, setPhaseNames] = useState<string[]>(["", "", "", ""]);
   const [steps, setSteps] = useState<BuilderStep[]>([]);
-  const [baseline, setBaseline] = useState<{ name: string; description: string; steps: BuilderStep[] }>({
+  const [baseline, setBaseline] = useState<{ name: string; description: string; phaseNames: string[]; steps: BuilderStep[] }>({
     name: "",
     description: "",
+    phaseNames: ["", "", "", ""],
     steps: [],
   });
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
@@ -135,15 +140,26 @@ export function PlanBuilder({
 
   const template = data.templates.find((entry) => entry.id === planId) ?? null;
   const dirty =
-    name !== baseline.name || description !== baseline.description || !stepsEqual(steps, baseline.steps);
+    name !== baseline.name ||
+    description !== baseline.description ||
+    phaseNames.join("\n") !== baseline.phaseNames.join("\n") ||
+    !stepsEqual(steps, baseline.steps);
+  const resolvedPhaseNames = resolvePhaseNames(phaseNames);
 
   const openPlan = useCallback((next: DbTemplate | null) => {
     const nextSteps = next ? templateToBuilderSteps(next) : [emptyBuilderStep({ segmentIndex: 1 })];
     setPlanId(next?.id ?? null);
     setName(next?.name ?? "");
     setDescription(next?.description ?? "");
+    const nextPhaseNames = SEGMENT_NAMES.map((_, index) => next?.phase_names?.[index] ?? "");
+    setPhaseNames(nextPhaseNames);
     setSteps(nextSteps);
-    setBaseline({ name: next?.name ?? "", description: next?.description ?? "", steps: next ? nextSteps : [] });
+    setBaseline({
+      name: next?.name ?? "",
+      description: next?.description ?? "",
+      phaseNames: nextPhaseNames,
+      steps: next ? nextSteps : [],
+    });
     setSelectedKey(nextSteps[0]?.key ?? null);
   }, []);
 
@@ -326,7 +342,12 @@ export function PlanBuilder({
     const response = await fetch(planId ? `/api/plans/templates/${planId}` : "/api/plans/templates", {
       method: planId ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: name.trim(), description: description.trim(), steps: builderStepsToPayload(steps) }),
+      body: JSON.stringify({
+        name: name.trim(),
+        description: description.trim(),
+        phaseNames: phaseNames.map((phase) => phase.trim()),
+        steps: builderStepsToPayload(steps),
+      }),
     });
     setSaving(false);
     if (!response.ok) {
@@ -450,6 +471,7 @@ export function PlanBuilder({
             setSelectedKey(key);
             setView("outline");
           }}
+          phaseNames={resolvedPhaseNames}
           selectedKey={selectedKey}
           steps={steps}
         />
@@ -458,7 +480,7 @@ export function PlanBuilder({
     );
   }
 
-  const groups = outlineGroups(steps);
+  const groups = outlineGroups(steps, resolvedPhaseNames);
   const selectedSegment = selected?.segmentIndex ?? null;
   const gates = gateNumbers(steps);
 
@@ -613,6 +635,23 @@ export function PlanBuilder({
                 value={description}
               />
             </Field>
+            <fieldset className="flex flex-col gap-2">
+              <legend className="mb-1 text-[13px] font-bold text-ink">Phase names</legend>
+              {SEGMENT_NAMES.map((defaultName, index) => (
+                <TextInput
+                  aria-label={`Phase ${index + 1} name`}
+                  className="text-sm"
+                  key={defaultName}
+                  maxLength={PHASE_NAME_MAX_LENGTH}
+                  onChange={(event) =>
+                    setPhaseNames((current) => current.map((phase, i) => (i === index ? event.target.value : phase)))
+                  }
+                  placeholder={`Phase ${index + 1}: ${defaultName}`}
+                  value={phaseNames[index] ?? ""}
+                />
+              ))}
+              <span className="text-[12px] text-muted">Leave blank to use the default name.</span>
+            </fieldset>
             {template ? (
               <LinkButton className="self-start" onClick={() => void deletePlan()} tone="danger">
                 Delete plan
@@ -630,6 +669,7 @@ export function PlanBuilder({
               competencies={data.competencies}
               onChange={(patch) => patchStep(selected.key, patch)}
               onRemove={() => removeStep(selected.key)}
+              phaseNames={resolvedPhaseNames}
               simTemplates={data.simTemplates}
               step={selected}
             />
@@ -847,6 +887,7 @@ function StepEditor({
   challenges,
   simTemplates,
   competencies,
+  phaseNames,
 }: {
   step: BuilderStep;
   onChange: (patch: Partial<BuilderStep>) => void;
@@ -862,6 +903,7 @@ function StepEditor({
     competency?: string | null;
   }[];
   competencies: { id: string; name: string }[] | null;
+  phaseNames: string[];
 }) {
   const learner = useLearnerTerms();
   const id = (field: string) => `step-${step.key}-${field}`;
@@ -1141,7 +1183,7 @@ function StepEditor({
             )}
           </SelectInput>
         </Field>
-        <Field htmlFor={id("segment")} label="Segment">
+        <Field htmlFor={id("segment")} label="Phase">
           <SelectInput
             className="text-sm"
             id={id("segment")}
@@ -1149,8 +1191,8 @@ function StepEditor({
             value={step.segmentIndex ?? ""}
           >
             <option value="">No segment</option>
-            {SEGMENT_NAMES.map((segment, index) => (
-              <option key={segment} value={index + 1}>
+            {phaseNames.map((segment, index) => (
+              <option key={index} value={index + 1}>
                 {segment}
               </option>
             ))}

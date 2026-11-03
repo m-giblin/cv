@@ -24,6 +24,7 @@ import {
   PROGRAM_WEEKS,
   isStepOverdue,
   phaseOfStep,
+  programPhases,
   stepWeek,
   type EnrollmentSummary,
   type PhaseStatus,
@@ -357,7 +358,7 @@ function ProgressGrid({
           </th>
           {PROGRAM_PHASES.map((phase) => (
             <th className={thCls} key={phase.index} scope="col">
-              {phase.name}
+              {enrollments[0]?.phases[phase.index - 1]?.name ?? phase.name}
             </th>
           ))}
           <th className={cn(thCls, "text-right")} scope="col">
@@ -462,7 +463,7 @@ function Journey({
               <header className="flex items-start justify-between gap-3">
                 <span className="flex flex-col gap-0.5">
                   <span className="label-caps">Phase {phase.index}</span>
-                  <span className="text-[17px] font-extrabold text-ink">{phase.name}</span>
+                  <span className="text-[17px] font-extrabold text-ink">{progress.name}</span>
                 </span>
                 <PhaseCell phase={progress} />
               </header>
@@ -519,7 +520,7 @@ function Outline({ template, canEdit, onEdit }: { template: DbTemplate | null; c
         )}
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
-        {PROGRAM_PHASES.map((phase) => {
+        {programPhases(template).map((phase) => {
           const phaseSteps = steps.filter(
             (step, position) => phaseOfStep({ segmentIndex: step.segmentIndex }, position, steps.length) === phase.index,
           );
@@ -529,7 +530,7 @@ function Outline({ template, canEdit, onEdit }: { template: DbTemplate | null; c
               <header className="flex flex-col gap-0.5">
                 <span className="label-caps">Phase {phase.index}</span>
                 <span className="text-[17px] font-extrabold text-ink">{phase.name}</span>
-                <span className="text-[13px] text-muted">{phase.summary}</span>
+                {phase.summary ? <span className="text-[13px] text-muted">{phase.summary}</span> : null}
               </header>
               {phaseSteps.length === 0 ? (
                 <p className="text-sm text-muted">No steps yet.</p>

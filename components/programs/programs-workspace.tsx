@@ -309,11 +309,11 @@ export function ProgramsWorkspace({
                     </button>
                   </td>
                   <td className={tdCls}>
-                    <span aria-label={PROGRAM_PHASES.map((phase, index) => `${phase.name} ${program.stepsPerPhase[index] ?? 0}`).join(", ")} className="flex items-end gap-1">
+                    <span aria-label={PROGRAM_PHASES.map((phase, index) => `${program.phaseNames[index] ?? phase.name} ${program.stepsPerPhase[index] ?? 0}`).join(", ")} className="flex items-end gap-1">
                       {PROGRAM_PHASES.map((phase, index) => {
                         const count = program.stepsPerPhase[index] ?? 0;
                         return (
-                          <span className="flex flex-col items-center gap-1" key={phase.index} title={`${phase.name}: ${count} steps`}>
+                          <span className="flex flex-col items-center gap-1" key={phase.index} title={`${program.phaseNames[index] ?? phase.name}: ${count} steps`}>
                             <span className="num text-[12px] font-bold text-ink-2">{count}</span>
                             <span className={cn("h-1.5 w-10 rounded-full", count ? "bg-blue" : "bg-track")} />
                           </span>

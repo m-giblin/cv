@@ -41,15 +41,27 @@ export const templateStepUpdateSchema = templateStepSchema.extend({
 
 export type TemplateStepInput = z.infer<typeof templateStepUpdateSchema>;
 
+/** Four names, blank meaning the shared default. Left out on older clients. */
+const phaseNamesSchema = z.array(z.string().trim().max(40)).length(4).optional();
+
+/** Stored as null when every name is the default, so programs keep following the defaults. */
+export function phaseNamesForStorage(names: string[] | undefined, defaults: readonly string[]): (string | null)[] | null {
+  if (!names) return null;
+  const cleaned = names.map((name, index) => (name && name !== defaults[index] ? name : null));
+  return cleaned.some(Boolean) ? cleaned : null;
+}
+
 export const createTemplateSchema = z.object({
   name: z.string().min(3),
   description: z.string().optional(),
+  phaseNames: phaseNamesSchema,
   steps: z.array(templateStepSchema).min(1),
 });
 
 export const updateTemplateSchema = z.object({
   name: z.string().min(3),
   description: z.string().optional(),
+  phaseNames: phaseNamesSchema,
   steps: z.array(templateStepUpdateSchema).min(1),
 });
 

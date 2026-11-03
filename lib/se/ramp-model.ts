@@ -120,7 +120,7 @@ export function buildRampModel(plan: UserPlan, now = new Date()): RampModel {
       : segmentSteps.length > 0 && validated === segmentSteps.length;
     const segment: RampSegment = {
       index,
-      label: index === 0 ? "Ramp" : (RAMP_SEGMENT_NAMES[index - 1] ?? `Segment ${index}`),
+      label: index === 0 ? "Ramp" : (plan.phaseNames?.[index - 1]?.trim() || RAMP_SEGMENT_NAMES[index - 1] || `Segment ${index}`),
       weeks,
       startWeek,
       endWeek,
