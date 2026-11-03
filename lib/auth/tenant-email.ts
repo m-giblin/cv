@@ -10,13 +10,23 @@ export function emailDomain(email: string): string | null {
   return normalized.slice(atIndex + 1);
 }
 
+/** "@SailPoint.com " and "sailpoint.com" are the same domain: admins often type the @. */
+export function normalizeEmailDomain(value: string): string {
+  return value.trim().toLowerCase().replace(/^@+/, "");
+}
+
+/** Clean, de-duplicated domains for saving, so the stored list always matches what the check compares. */
+export function normalizeEmailDomains(values: string[]): string[] {
+  return [...new Set(values.map(normalizeEmailDomain).filter(Boolean))];
+}
+
 export function isEmailDomainAllowedForTenant(email: string, tenantDomains: string[]): boolean {
   const domain = emailDomain(email);
   if (!domain) {
     return false;
   }
 
-  const allowed = tenantDomains.map((value) => value.trim().toLowerCase()).filter(Boolean);
+  const allowed = normalizeEmailDomains(tenantDomains);
   if (allowed.length > 0) {
     return allowed.includes(domain);
   }
@@ -57,7 +67,7 @@ export async function validateEmailForTenant(
   tenantId: string,
   loadDomains: (tenantId: string) => Promise<string[]> = loadTenantAllowedEmailDomains,
 ): Promise<string | null> {
-  const domains = await loadDomains(tenantId);
+  const domains = normalizeEmailDomains(await loadDomains(tenantId));
   if (!isEmailDomainAllowedForTenant(email, domains)) {
     const label =
       domains.length > 0

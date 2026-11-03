@@ -3,6 +3,7 @@ import { DEFAULT_AI_MODELS, estimateAiCostUsd } from "@/lib/ai/models";
 
 import type { Database } from "@/lib/database.types";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { normalizeEmailDomains } from "@/lib/auth/tenant-email";
 import { requireAuditEvent } from "@/lib/audit/log-admin-action";
 import { loadPlatformSettings, savePlatformSettings } from "@/lib/platform/settings";
 import { billingPlanForPreset, matchFeatureFlagPreset } from "@/lib/platform/flag-presets";
@@ -138,7 +139,7 @@ export async function createTenant(
       branding_primary_color: normalizeTenantPrimaryColor(branding.primaryColor ?? "#0033A1"),
       branding_logo_url: branding.logoUrl ?? null,
       welcome_message: branding.welcomeMessage ?? null,
-      allowed_email_domains: branding.allowedEmailDomains ?? [],
+      allowed_email_domains: normalizeEmailDomains(branding.allowedEmailDomains ?? []),
       // Only sent when set, so creating a tenant never depends on the branding columns.
       ...(cleanBrandText(branding.productName) ? { product_name: cleanBrandText(branding.productName) } : {}),
       ...(cleanBrandText(branding.productTagline) ? { product_tagline: cleanBrandText(branding.productTagline) } : {}),
@@ -214,7 +215,7 @@ export async function updateTenantBranding(
   if (branding.logoUrl !== undefined) payload.branding_logo_url = branding.logoUrl;
   if (branding.welcomeMessage !== undefined) payload.welcome_message = branding.welcomeMessage;
   if (branding.allowedEmailDomains !== undefined) {
-    payload.allowed_email_domains = branding.allowedEmailDomains;
+    payload.allowed_email_domains = normalizeEmailDomains(branding.allowedEmailDomains);
   }
   if (branding.productName !== undefined) payload.product_name = cleanBrandText(branding.productName);
   if (branding.productTagline !== undefined) payload.product_tagline = cleanBrandText(branding.productTagline);
