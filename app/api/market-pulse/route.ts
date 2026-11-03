@@ -19,7 +19,7 @@ export async function GET() {
  }
 
  const weekId = currentWeekId();
- const { questions } = await ensureMarketPulseWeek(supabase, weekId);
+ const { questions } = await ensureMarketPulseWeek(supabase, weekId, null, user.id);
 
  const { data: priorResult } = await supabase
  .from("market_pulse_results")

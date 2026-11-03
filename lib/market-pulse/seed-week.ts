@@ -1,6 +1,7 @@
 import { MARKET_PULSE_WEEKLY } from "@/lib/market-pulse/quiz";
 import { currentWeekId } from "@/lib/market-pulse/week";
-import { resolveProfileTenantId } from "@/lib/tenant/resolve-profile-tenant";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { resolveEffectiveTenantId } from "@/lib/tenant/resolve-profile-tenant";
 import { DEFAULT_TENANT_ID } from "@/lib/tenant/types";
 
 export function defaultMarketPulseQuestions() {
@@ -22,7 +23,7 @@ export async function ensureMarketPulseWeek(
 ) {
   const resolvedTenantId =
     tenantId ??
-    (userId ? ((await resolveProfileTenantId(supabase, userId)) ?? DEFAULT_TENANT_ID) : DEFAULT_TENANT_ID);
+    (userId ? ((await resolveEffectiveTenantId(supabase, userId)) ?? DEFAULT_TENANT_ID) : DEFAULT_TENANT_ID);
 
   const { data: existing } = await supabase
     .from("market_pulse_weeks")
@@ -39,13 +40,14 @@ export async function ensureMarketPulseWeek(
     };
   }
 
+  // Only managers may write weeks under RLS, but whoever opens the pulse first each week (usually an SE)
+  // has to create it, or their answers have no week to attach to. The row is seeded content, so the
+  // service role writes it; a second opener in the same moment leaves the first row alone.
   const questions = defaultMarketPulseQuestions();
-  await supabase.from("market_pulse_weeks").insert({
-    week_id: weekId,
-    tenant_id: resolvedTenantId,
-    questions,
-    source: "seed",
-  });
+  const admin = createAdminClient();
+  await (admin ?? supabase)
+    .from("market_pulse_weeks")
+    .upsert({ week_id: weekId, tenant_id: resolvedTenantId, questions, source: "seed" }, { onConflict: "tenant_id,week_id", ignoreDuplicates: true });
 
   return { weekId, tenantId: resolvedTenantId, questions };
 }

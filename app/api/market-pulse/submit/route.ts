@@ -3,7 +3,6 @@ import { z } from "zod";
 import { ensureMarketPulseWeek } from "@/lib/market-pulse/seed-week";
 import { reinforceChallengesForAnswers } from "@/lib/market-pulse/reinforcement";
 import { currentWeekId } from "@/lib/market-pulse/week";
-import { resolveProfileTenantId } from "@/lib/tenant/resolve-profile-tenant";
 import { createClient } from "@/lib/supabase/server";
 
 const submitSchema = z.object({
@@ -33,11 +32,10 @@ export async function POST(request: Request) {
  }
 
  const weekId = parsed.data.weekId === currentWeekId() ? parsed.data.weekId : currentWeekId();
- const { questions } = await ensureMarketPulseWeek(supabase, weekId);
+ const { questions, tenantId } = await ensureMarketPulseWeek(supabase, weekId, null, user.id);
 
  const score = questions.filter((q) => parsed.data.answers[q.id] === q.correctIndex).length;
  const total = questions.length;
- const tenantId = await resolveProfileTenantId(supabase, user.id);
 
  const { error } = await supabase.from("market_pulse_results").upsert(
  {
@@ -48,7 +46,8 @@ export async function POST(request: Request) {
  answers: parsed.data.answers,
  tenant_id: tenantId,
  },
- { onConflict: "user_id,week_id" },
+ // One result per person per week: a second submit keeps the first (people may insert their own row, not update it).
+ { onConflict: "user_id,week_id", ignoreDuplicates: true },
  );
 
  if (error) {
