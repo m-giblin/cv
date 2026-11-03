@@ -509,7 +509,7 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  key={option}
  onClick={() => setRoleFilter(option)}
  >
- {option === "All roles" ? "All" : option}
+ {option === "All roles" ? "All" : option === "SE" ? learner.one : option}
  </Chip>
  ))}
  </div>
@@ -664,7 +664,7 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  </Td>
  <Td className="text-sm text-ink-2">{user.email}</Td>
  <Td>
- <Tag tone={badge.tone}>{user.job_title || badge.label}</Tag>
+ <Tag tone={badge.tone}>{user.job_title || (badge.label === "SE" ? learner.one : badge.label)}</Tag>
  </Td>
  <Td className="text-sm">{user.level}</Td>
  <Td className="max-w-[180px] truncate text-sm">
