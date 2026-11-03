@@ -89,7 +89,7 @@ export async function AppShell({
       people={people}
       shadowMode={access.isShadowing ? (access.shadowMode ?? "admin") : null}
       shadowTenantName={
-        access.isShadowing ? (access.shadowTenantName ?? branding.productName) : null
+        access.isShadowing ? (access.shadowTenantName ?? branding.tenantName ?? branding.productName) : null
       }
       tier={access.tier}
       workspace={workspace}

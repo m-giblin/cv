@@ -9,6 +9,7 @@ import { readFileSync } from "fs";
 import { resolve } from "path";
 import { ISC_LAB_DOC_INDEX } from "../lib/isc-lab/doc-index";
 import type { Database } from "../lib/database.types";
+import { DEFAULT_TENANT_ID } from "../lib/tenant/types";
 
 function loadEnv() {
   const path = resolve(process.cwd(), ".env.local");
@@ -64,6 +65,7 @@ async function upsertChunk(
   const { data: existing } = await supabase
     .from("isc_lab_knowledge_chunks")
     .select("id")
+    .eq("tenant_id", DEFAULT_TENANT_ID)
     .eq("url", row.url)
     .maybeSingle();
 

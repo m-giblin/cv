@@ -1787,6 +1787,8 @@ export type Database = {
           branding_logo_url: string | null;
           allowed_email_domains: Json;
           welcome_message: string | null;
+          product_name: string | null;
+          product_tagline: string | null;
           operator_notes: string | null;
           maintenance_mode: boolean;
           maintenance_message: string | null;
@@ -1812,6 +1814,8 @@ export type Database = {
           branding_logo_url?: string | null;
           allowed_email_domains?: Json;
           welcome_message?: string | null;
+          product_name?: string | null;
+          product_tagline?: string | null;
           operator_notes?: string | null;
           maintenance_mode?: boolean;
           maintenance_message?: string | null;

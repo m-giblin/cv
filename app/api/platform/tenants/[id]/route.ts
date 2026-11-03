@@ -20,6 +20,8 @@ const brandingSchema = z.object({
  logoUrl: z.string().url().nullable().optional(),
  welcomeMessage: z.string().nullable().optional(),
  allowedEmailDomains: z.array(z.string()).optional(),
+ productName: z.string().trim().max(40).nullable().optional(),
+ productTagline: z.string().trim().max(40).nullable().optional(),
 });
 
 const commercialSchema = z.object({

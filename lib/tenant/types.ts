@@ -11,6 +11,9 @@ export type TenantBranding = {
   logoUrl: string | null;
   welcomeMessage: string | null;
   allowedEmailDomains: string[];
+  /** App name in the header, page titles and emails; null uses the product default. */
+  productName: string | null;
+  productTagline: string | null;
 };
 
 export type Tenant = {

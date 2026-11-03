@@ -8,13 +8,12 @@ import { CommandPalette } from "@/components/nav/command-palette";
 import { TopBar } from "@/components/nav/top-bar";
 import { useNavFlags } from "@/components/nav/use-nav-flags";
 import { ShadowTenantBanner } from "@/components/platform/shadow-tenant-banner";
-import { TenantBrandingProvider } from "@/components/tenant/tenant-branding-provider";
+import { TenantBrandingProvider, useTenantBranding } from "@/components/tenant/tenant-branding-provider";
 import { WorkspaceSwitcher } from "@/components/workspace-switcher";
 import type { AccessTier } from "@/lib/auth/rbac";
 import { resolveActiveWorkspace, type WorkspaceHat } from "@/lib/auth/workspace";
 import { pageTitle, paletteEntries } from "@/lib/navigation/nav-model";
 import type { TenantShellBranding } from "@/lib/tenant/shell-branding";
-import { PRODUCT_NAME } from "@/lib/tenant/shell-branding-shared";
 import { applyNotificationsRead, onNotificationsRead } from "@/lib/notifications/read-events";
 import { Notification, Profile } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -22,10 +21,18 @@ import { cn } from "@/lib/utils";
 function DocumentTitle({ workspace }: { workspace: WorkspaceHat }) {
   const pathname = usePathname();
   const params = useSearchParams();
+  const { productName } = useTenantBranding();
 
   useEffect(() => {
-    document.title = pageTitle(workspace, pathname, params, PRODUCT_NAME);
-  }, [workspace, pathname, params]);
+    const title = pageTitle(workspace, pathname, params, productName);
+    document.title = title;
+    // router.refresh() re-applies the root layout's static title; put this one back when it does.
+    const observer = new MutationObserver(() => {
+      if (document.title !== title) document.title = title;
+    });
+    observer.observe(document.head, { childList: true, subtree: true, characterData: true });
+    return () => observer.disconnect();
+  }, [workspace, pathname, params, productName]);
 
   return null;
 }

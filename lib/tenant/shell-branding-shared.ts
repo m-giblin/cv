@@ -4,8 +4,14 @@ import { DEFAULT_TENANT_ID } from "@/lib/tenant/types";
 export const PRODUCT_NAME = "SE Enablement";
 export const PRODUCT_TAGLINE = "Field readiness";
 
+/** Longest app name or subtitle a tenant can set (matches the tenants table check). */
+export const PRODUCT_TEXT_MAX_LENGTH = 40;
+
 export type TenantShellBranding = {
   tenantId: string | null;
+  /** The tenant's own name ("SailPoint"); null outside a tenant. */
+  tenantName?: string | null;
+  /** App name in the header and page titles; the tenant's setting or PRODUCT_NAME. */
   productName: string;
   productTagline: string;
   primaryColor: string;
@@ -30,7 +36,15 @@ export function normalizeTenantPrimaryColor(color: string | null | undefined, fa
 export const DEFAULT_SHELL_BRANDING: TenantShellBranding = {
   tenantId: DEFAULT_TENANT_ID,
   productName: PRODUCT_NAME,
-  productTagline: "PLATFORM",
+  productTagline: PRODUCT_TAGLINE,
   primaryColor: "#0033A1",
   logoUrl: null,
 };
+
+/** The tenant's app name and subtitle, falling back to the product default when unset. */
+export function resolveProductBranding(tenant: { productName?: string | null; productTagline?: string | null } | null) {
+  return {
+    productName: tenant?.productName?.trim() || PRODUCT_NAME,
+    productTagline: tenant?.productTagline?.trim() || PRODUCT_TAGLINE,
+  };
+}

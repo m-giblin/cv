@@ -1,4 +1,5 @@
 import { appBaseUrl } from "@/lib/email/send-resend-email";
+import { PRODUCT_NAME, PRODUCT_TAGLINE } from "@/lib/tenant/shell-branding-shared";
 
 export type ManagerReviewReminderEmailInput = {
   managerName: string;
@@ -7,10 +8,15 @@ export type ManagerReviewReminderEmailInput = {
   itemKind: "challenge" | "coaching";
   pendingDays: number;
   triggerLabel: "automatic reminder" | "nudge from your SE";
+  /** The tenant's app name and subtitle for the email header. */
+  productName?: string;
+  productTagline?: string;
 };
 
 export function buildManagerReviewReminderEmail(input: ManagerReviewReminderEmailInput) {
   const inboxUrl = `${appBaseUrl()}/manager/inbox`;
+  const productName = input.productName ?? PRODUCT_NAME;
+  const productTagline = input.productTagline ?? PRODUCT_TAGLINE;
   const kindLabel = input.itemKind === "challenge" ? "Challenge submission" : "Simulation coaching card";
   const subject = `Review needed: ${input.seName}, ${input.itemTitle}`;
 
@@ -41,8 +47,8 @@ export function buildManagerReviewReminderEmail(input: ManagerReviewReminderEmai
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#FFFFFF;border:1px solid #E6E0D6;border-radius:14px;overflow:hidden;">
           <tr>
             <td style="background:#0033A1;padding:14px 32px;">
-              <p style="margin:0;font-size:15px;font-weight:800;letter-spacing:0.01em;text-transform:uppercase;color:#FFFFFF;">SE Enablement</p>
-              <p style="margin:2px 0 0;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#FFB81C;">Field readiness</p>
+              <p style="margin:0;font-size:15px;font-weight:800;letter-spacing:0.01em;text-transform:uppercase;color:#FFFFFF;">${escapeHtml(productName)}</p>
+              <p style="margin:2px 0 0;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#FFB81C;">${escapeHtml(productTagline)}</p>
             </td>
           </tr>
           <tr>

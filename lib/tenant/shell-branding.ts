@@ -5,15 +5,12 @@ import { getTenantById } from "@/lib/tenant/tenants";
 import {
   DEFAULT_SHELL_BRANDING,
   normalizeTenantPrimaryColor,
+  resolveProductBranding,
   type TenantShellBranding,
 } from "@/lib/tenant/shell-branding-shared";
 
 export type { TenantShellBranding } from "@/lib/tenant/shell-branding-shared";
 export { DEFAULT_SHELL_BRANDING } from "@/lib/tenant/shell-branding-shared";
-
-function formatProductName(name: string) {
-  return name.replace(/\s+Tenant$/i, "").trim();
-}
 
 export const getTenantShellBranding = cache(async (tenantId: string | null): Promise<TenantShellBranding> => {
   if (!tenantId) {
@@ -27,10 +24,16 @@ export const getTenantShellBranding = cache(async (tenantId: string | null): Pro
 
   return {
     tenantId: tenant.id,
-    productName: formatProductName(tenant.name),
-    productTagline: "PLATFORM",
+    tenantName: tenant.name,
+    ...resolveProductBranding(tenant.branding),
     primaryColor: normalizeTenantPrimaryColor(tenant.branding.primaryColor),
     logoUrl: tenant.branding.logoUrl,
     tenantSlug: tenant.slug,
   };
 });
+
+/** App name and subtitle for server-side text such as emails. */
+export async function getTenantProductBranding(tenantId: string | null) {
+  const branding = await getTenantShellBranding(tenantId);
+  return { productName: branding.productName, productTagline: branding.productTagline };
+}

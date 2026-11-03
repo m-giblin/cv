@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getTenantProductBranding } from "@/lib/tenant/shell-branding";
 import { fetchDevelopmentPlans } from "@/lib/data/get-development-data";
 import { buildAccountabilityMetrics } from "@/lib/development/plan-utils";
 import type { DashboardData, Profile } from "@/lib/types";
@@ -187,7 +188,7 @@ export async function GET(request: Request) {
  body: JSON.stringify({
  from: fromEmail,
  to: manager.email,
- subject: "SE Enablement — weekly team digest",
+ subject: `${(await getTenantProductBranding(manager.tenant_id)).productName} — weekly team digest`,
  text: body,
  }),
  });

@@ -6,7 +6,7 @@ import { NotificationFlyout } from "@/components/notifications/notification-flyo
 import { UserAccountMenu } from "@/components/nav/user-account-menu";
 import { WorkspaceSwitcher } from "@/components/workspace-switcher";
 import { getWorkspaceHome, type WorkspaceHat } from "@/lib/auth/workspace";
-import { PRODUCT_NAME, PRODUCT_TAGLINE } from "@/lib/tenant/shell-branding-shared";
+import { useTenantBranding } from "@/components/tenant/tenant-branding-provider";
 import type { Notification, Profile } from "@/lib/types";
 
 export function LogoMark() {
@@ -18,12 +18,13 @@ export function LogoMark() {
 }
 
 export function Wordmark({ workspace }: { workspace: WorkspaceHat }) {
+  const { productName, productTagline } = useTenantBranding();
   return (
     <Link className="flex items-center gap-3 no-underline" href={getWorkspaceHome(workspace)}>
       <LogoMark />
       <span className="flex flex-col">
-        <span className="wordmark">{PRODUCT_NAME}</span>
-        <span className="wordmark__sub hidden sm:block">{PRODUCT_TAGLINE}</span>
+        <span className="wordmark">{productName}</span>
+        <span className="wordmark__sub hidden sm:block">{productTagline}</span>
       </span>
     </Link>
   );

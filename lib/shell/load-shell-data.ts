@@ -173,7 +173,7 @@ export const loadShellData = cache(async (): Promise<ShellData | null> => {
     workspaceHats,
     workspaceCookie: cookieStore.get(WORKSPACE_HAT_COOKIE)?.value ?? null,
     shadowMode: enterMode,
-    shadowTenantName: access.isShadowing ? (access.shadowTenantName ?? branding.productName) : null,
+    shadowTenantName: access.isShadowing ? (access.shadowTenantName ?? branding.tenantName ?? branding.productName) : null,
     people,
     menteeCount,
     forgeEnabled: isForgeConfigured(),

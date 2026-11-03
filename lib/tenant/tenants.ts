@@ -31,6 +31,8 @@ type DbTenant = {
   branding_logo_url: string | null;
   allowed_email_domains: string[] | unknown;
   welcome_message: string | null;
+  product_name?: string | null;
+  product_tagline?: string | null;
   created_at: string;
   updated_at: string;
   operator_notes?: string | null;
@@ -55,6 +57,8 @@ function mapBranding(row: DbTenant): TenantBranding {
     logoUrl: row.branding_logo_url,
     welcomeMessage: row.welcome_message,
     allowedEmailDomains: Array.isArray(domains) ? (domains as string[]) : [],
+    productName: row.product_name ?? null,
+    productTagline: row.product_tagline ?? null,
   };
 }
 
@@ -81,6 +85,12 @@ function mapTenant(row: DbTenant): Tenant {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+}
+
+/** Blank names fall back to the product default, so store them as null. */
+function cleanBrandText(value: string | null | undefined): string | null {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
 }
 
 export async function listTenants(): Promise<Tenant[]> {
@@ -129,6 +139,9 @@ export async function createTenant(
       branding_logo_url: branding.logoUrl ?? null,
       welcome_message: branding.welcomeMessage ?? null,
       allowed_email_domains: branding.allowedEmailDomains ?? [],
+      // Only sent when set, so creating a tenant never depends on the branding columns.
+      ...(cleanBrandText(branding.productName) ? { product_name: cleanBrandText(branding.productName) } : {}),
+      ...(cleanBrandText(branding.productTagline) ? { product_tagline: cleanBrandText(branding.productTagline) } : {}),
     })
     .select("*")
     .single();
@@ -203,6 +216,8 @@ export async function updateTenantBranding(
   if (branding.allowedEmailDomains !== undefined) {
     payload.allowed_email_domains = branding.allowedEmailDomains;
   }
+  if (branding.productName !== undefined) payload.product_name = cleanBrandText(branding.productName);
+  if (branding.productTagline !== undefined) payload.product_tagline = cleanBrandText(branding.productTagline);
 
   const { data, error } = await admin
     .from("tenants")

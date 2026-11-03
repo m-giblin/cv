@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronRight, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Drawer } from "@/components/ui/drawer";
+import { useTenantBranding } from "@/components/tenant/tenant-branding-provider";
 import { PageBody, PageHeader } from "@/components/ui/page-header";
 import { searchHelp } from "@/lib/help/search";
 import { HELP_AUDIENCE_LABELS, type HelpArticle, type HelpAudience } from "@/lib/help/types";
@@ -15,6 +16,7 @@ export function HelpCenter({ articles, audiences }: { articles: HelpArticle[]; a
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { productName } = useTenantBranding();
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [category, setCategory] = useState<string>("all");
   const [audience, setAudience] = useState<HelpAudience | "all">("all");
@@ -64,7 +66,7 @@ export function HelpCenter({ articles, audiences }: { articles: HelpArticle[]; a
       <PageHeader
         accent="Step by step."
         eyebrow="Help"
-        subtitle="How every part of SE Enablement works, written for your role. Search, or browse by topic."
+        subtitle={`How every part of ${productName} works, written for your role. Search, or browse by topic.`}
         title="Help Center."
       />
       <PageBody className="flex flex-col gap-6">
