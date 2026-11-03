@@ -20,11 +20,11 @@ function buildRows(account: string, persona: string, tools: PreflightTool[]): Ro
   const audience = persona.split(/[—(]/)[0]!.trim() || "buyer";
   const all: Row[] = [
     {
-      tool: "market-pulse",
-      title: "Market Pulse refresher",
-      sub: "Competitive positioning for this conversation",
-      minutes: PREFLIGHT_MINUTES["market-pulse"],
-      href: "/practice/quizzes",
+      tool: "quiz",
+      title: "Quick quiz",
+      sub: "Ten questions across the bank, weakest topics first",
+      minutes: PREFLIGHT_MINUTES.quiz,
+      href: "/practice/quizzes?source=mix",
     },
     {
       tool: "deal-prep",
@@ -53,7 +53,7 @@ function buildRows(account: string, persona: string, tools: PreflightTool[]): Ro
 
 /**
  * Practice › Pre-flight (artboard 3a, prototype "practice"): pick the call, build a short path that
- * chains Market Pulse, Deal prep, a simulation and Flight Check. Progress is kept in this browser.
+ * chains a quick quiz, Deal prep, a simulation and Flight Check. Progress is kept in this browser.
  */
 export function PreflightCard({ personas, tools }: { personas: string[]; tools: PreflightTool[] }) {
   const ids = { account: useId(), persona: useId(), date: useId(), path: useId() };

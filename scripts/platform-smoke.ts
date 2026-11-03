@@ -91,7 +91,6 @@ const GET_APIS = [
   "/api/deal-prep/sessions",
   "/api/deal-prep/sessions?group=account",
   "/api/gamification/scorecard",
-  "/api/market-pulse",
   "/api/content",
   "/api/challenges",
   "/api/certifications",

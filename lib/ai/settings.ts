@@ -29,7 +29,7 @@ const FEATURE_LABELS: Record<string, string> = {
   corpus_suggest_tags: "Content tagging",
   manager_coaching_brief: "Manager coaching briefs",
   manager_copilot: "Manager copilot",
-  market_pulse: "Market Pulse quizzes",
+  market_pulse: "Market Pulse (retired)",
   assistant: "Bosun questions",
   pitch_coach: "Pitch reviews",
   pitch_transcribe: "Pitch transcription",

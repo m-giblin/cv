@@ -143,7 +143,7 @@ export function AssignWorkWizard({
                   id: c.key,
                   title: c.title,
                   detail: `${c.kind === "playbook" ? "Playbook chapter" : (c.solution ?? "Product knowledge")} · ${c.questions} questions`,
-                  tryHref: `/learn/knowledge-checks?source=${encodeURIComponent(c.key)}`,
+                  tryHref: `/practice/quizzes?source=${encodeURIComponent(c.key)}`,
                 }))
               : kind === "content"
                 ? (options.library ?? []).map((item) => ({ id: item.id, title: item.title, detail: item.category, tryHref: undefined as string | undefined }))

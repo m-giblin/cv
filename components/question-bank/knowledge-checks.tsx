@@ -4,8 +4,8 @@ import { ExternalLink, Loader2, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { AssignmentDoneNote, type FinishedAssignment } from "@/components/playbooks/assignment-done-note";
 import { StatusPill } from "@/components/ui/status-pill";
-import type { QuizQuestion } from "@/lib/question-bank/data";
-import { SOURCE_LABEL, solutionOrder, type QuestionSourceKind } from "@/lib/question-bank/model";
+import type { MixStatus, QuizQuestion } from "@/lib/question-bank/data";
+import { MIX_KEY, MIX_LENGTH, SOURCE_LABEL, solutionOrder, type QuestionSourceKind } from "@/lib/question-bank/model";
 
 export type Check = {
   key: string;
@@ -196,18 +196,36 @@ export function QuizPlayer({
 
 export function KnowledgeChecks({ initialSource }: { initialSource?: string }) {
   const [checks, setChecks] = useState<Check[] | null>(null);
+  const [mix, setMix] = useState<MixStatus | null>(null);
   const [active, setActive] = useState<string | null>(initialSource ?? null);
 
   const load = useCallback(() => {
     void fetch("/api/question-bank/quiz")
       .then((response) => (response.ok ? response.json() : { checks: [] }))
-      .then((body: { checks?: Check[] }) => setChecks(body.checks ?? []))
+      .then((body: { checks?: Check[]; mix?: MixStatus | null }) => {
+        setChecks(body.checks ?? []);
+        setMix(body.mix ?? null);
+      })
       .catch(() => setChecks([]));
   }, []);
   useEffect(() => load(), [load]);
 
-  if (!checks) return <p className="text-sm text-muted">Loading knowledge checks</p>;
-  const current = checks.find((check) => check.key === active);
+  if (!checks) return <p className="text-sm text-muted">Loading quizzes</p>;
+  // The mix plays like any check; it just draws from every source.
+  const mixCheck: Check | null = mix?.questions
+    ? {
+        key: MIX_KEY,
+        kind: "manual",
+        solution: "",
+        chapter: null,
+        playbookSlug: null,
+        title: "Weekly mix",
+        questions: mix.questions,
+        lastScore: mix.lastScore,
+        lastTakenAt: mix.thisWeek?.takenAt ?? null,
+      }
+    : null;
+  const current = active === MIX_KEY ? mixCheck : checks.find((check) => check.key === active);
 
   if (current) {
     return (
@@ -215,7 +233,7 @@ export function KnowledgeChecks({ initialSource }: { initialSource?: string }) {
         <div className="flex flex-wrap items-baseline justify-between gap-3">
           <h2 className="text-[22px] font-extrabold text-ink">{current.title}</h2>
           <button className="link text-sm" onClick={() => setActive(null)} type="button">
-            All knowledge checks
+            All quizzes
           </button>
         </div>
         <QuizPlayer check={current} onDone={load} />
@@ -271,6 +289,26 @@ export function KnowledgeChecks({ initialSource }: { initialSource?: string }) {
 
   return (
     <div className="flex flex-col gap-8">
+      {mixCheck && mix ? (
+        <section className="flex flex-wrap items-center gap-4 rounded-[14px] border border-line bg-white p-5 shadow-[var(--shadow-card)]">
+          <div className="min-w-0 flex-1">
+            <p className="label-caps m-0">This week</p>
+            <h2 className="m-0 text-[20px] font-extrabold text-ink">Weekly mix</h2>
+            <p className="m-0 text-sm text-muted">
+              {MIX_LENGTH} questions from across all {mix.questions} in the bank, starting with the chapters you&apos;re assigned and the
+              topics you miss most. Take it once a week; take it again any time for new questions.
+            </p>
+          </div>
+          {mix.thisWeek ? (
+            <StatusPill tone={mix.thisWeek.score >= 80 ? "success" : "warning"}>Done this week, {mix.thisWeek.score}%</StatusPill>
+          ) : (
+            <StatusPill tone="neutral">Not done this week</StatusPill>
+          )}
+          <button className={mix.thisWeek ? "btn-secondary shrink-0" : "btn-primary shrink-0"} onClick={() => setActive(MIX_KEY)} type="button">
+            {mix.thisWeek ? "Another mix" : "Start this week's mix"}
+          </button>
+        </section>
+      ) : null}
       {playbookChecks.length ? (
         <section className="flex flex-col gap-2">
           <h2 className="text-[18px] font-extrabold text-ink">Playbook chapters</h2>

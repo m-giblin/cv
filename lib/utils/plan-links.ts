@@ -8,7 +8,7 @@ function simulationStepHref(step: PlanStep) {
 
 export function planStepHref(step: PlanStep) {
   if (step.type === "knowledge_check") {
-    return step.questionSource ? `/learn/knowledge-checks?source=${encodeURIComponent(step.questionSource)}` : "/learn/knowledge-checks";
+    return step.questionSource ? `/practice/quizzes?source=${encodeURIComponent(step.questionSource)}` : "/practice/quizzes";
   }
   if (step.assignmentStepId) {
     switch (step.type) {

@@ -16,7 +16,7 @@ const ACTIVITY_ROWS: { eventTypes: ActivityLog["eventType"][]; label: string }[]
   { eventTypes: ["simulation_completed"], label: "Simulations run" },
   { eventTypes: ["challenge_submitted"], label: "Challenges submitted" },
   { eventTypes: ["deal_prep_completed"], label: "Deal prep briefs" },
-  { eventTypes: ["flight_check_completed"], label: "Market Pulse quizzes" },
+  { eventTypes: ["flight_check_completed"], label: "Flight checks" },
   { eventTypes: ["pitch_submitted"], label: "Pitches recorded" },
 ];
 

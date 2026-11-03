@@ -90,7 +90,7 @@ export default async function PracticePage() {
   ];
 
   const tools: PreflightTool[] = [
-    flags.quizzes ? "market-pulse" : null,
+    flags.quizzes ? "quiz" : null,
     flags.dealPrep ? "deal-prep" : null,
     flags.simulations ? "simulations" : null,
     flags.flightCheck ? "flight-check" : null,

@@ -6,7 +6,10 @@ import type { DraftQuestion } from "@/lib/question-bank/generate";
 import { completeKnowledgeCheckSteps } from "@/lib/question-bank/plan-completion";
 import { signQuiz, verifyQuiz } from "@/lib/question-bank/quiz-token";
 import {
+  isMixQuiz,
+  MIX_KEY,
   normalizeSolution,
+  pickMix,
   pickRotation,
   questionHealth,
   sourceKey,
@@ -326,12 +329,53 @@ export async function loadAvailableChecks(tenantId: string, userId: string) {
     });
 }
 
+/** Monday 00:00 UTC of the current week: when the weekly mix resets. */
+function weekStart(now = new Date()) {
+  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  start.setUTCDate(start.getUTCDate() - ((start.getUTCDay() + 6) % 7));
+  return start.toISOString();
+}
+
+export type MixStatus = { questions: number; thisWeek: { score: number; takenAt: string } | null; lastScore: number | null };
+
+/** Whether this person has done this week's mix, and how their last mix went. */
+export async function loadMixStatus(tenantId: string, userId: string): Promise<MixStatus | null> {
+  const admin = db();
+  if (!admin) return null;
+  const [{ count }, { data }] = await Promise.all([
+    admin.from("question_bank").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("status", "active"),
+    admin
+      .from("question_attempts")
+      .select("quiz_id, correct, created_at, question:question_bank(source_kind, playbook_id, topic)")
+      .eq("tenant_id", tenantId)
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(400),
+  ]);
+  type AttemptRow = { quiz_id: string; correct: boolean; created_at: string; question: { source_kind: QuestionSourceKind; playbook_id: string | null; topic: string } | null };
+  const quizzes = new Map<string, AttemptRow[]>();
+  for (const row of (data ?? []) as unknown as AttemptRow[]) quizzes.set(row.quiz_id, [...(quizzes.get(row.quiz_id) ?? []), row]);
+  const mixes = [...quizzes.values()].filter((rows) =>
+    isMixQuiz(rows.flatMap((row) => (row.question ? [sourceKey({ sourceKind: row.question.source_kind, playbookId: row.question.playbook_id, topic: row.question.topic })] : []))),
+  );
+  const scoreOf = (rows: AttemptRow[]) => Math.round((rows.filter((row) => row.correct).length / rows.length) * 100);
+  const last = mixes[0];
+  const since = weekStart();
+  return {
+    questions: count ?? 0,
+    thisWeek: last && last[0]!.created_at >= since ? { score: scoreOf(last), takenAt: last[0]!.created_at } : null,
+    lastScore: last ? scoreOf(last) : null,
+  };
+}
+
 export async function serveQuiz(tenantId: string, userId: string, key: string): Promise<{ title: string; token: string; questions: QuizQuestion[] } | null> {
   const admin = db();
   if (!admin) return null;
   const bank = await loadBank(tenantId);
-  const source = bank?.sources.find((item) => item.key === key);
-  if (!bank || !source) return null;
+  if (!bank) return null;
+  if (key === MIX_KEY) return serveMix(admin, bank, tenantId, userId);
+  const source = bank.sources.find((item) => item.key === key);
+  if (!source) return null;
   const pool = bank.questions.filter((question) => question.status === "active" && sourceKey(question) === key);
 
   const { data } = await admin
@@ -348,10 +392,13 @@ export async function serveQuiz(tenantId: string, userId: string, key: string): 
     if (!lastSeen.has(row.question_id)) lastSeen.set(row.question_id, row.created_at);
   }
 
-  const picked = pickRotation(pool, lastSeen);
+  return presentQuiz(userId, source.title, pickRotation(pool, lastSeen));
+}
+
+function presentQuiz(userId: string, title: string, picked: BankQuestion[]) {
   const { token } = signQuiz(userId, picked.map((question) => question.id));
   return {
-    title: source.title,
+    title,
     token,
     questions: picked.map((question) => ({
       id: question.id,
@@ -363,6 +410,38 @@ export async function serveQuiz(tenantId: string, userId: string, key: string): 
         .map(({ index, text }) => ({ index, text })),
     })),
   };
+}
+
+/**
+ * Ten questions from across the bank, led by the chapters this person is assigned and the topics they
+ * get wrong most (see pickMix).
+ */
+async function serveMix(admin: SupabaseClient, bank: NonNullable<Awaited<ReturnType<typeof loadBank>>>, tenantId: string, userId: string) {
+  const pool = bank.questions.filter((question) => question.status === "active");
+  const keyOf = new Map(pool.map((question) => [question.id, sourceKey(question)]));
+  const [{ data: attempts }, { data: assigned }] = await Promise.all([
+    admin
+      .from("question_attempts")
+      .select("question_id, correct, created_at")
+      .eq("tenant_id", tenantId)
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(2000),
+    admin.from("playbook_assignments").select("playbook_id").eq("assigned_to", userId).eq("status", "active"),
+  ]);
+  const lastSeen = new Map<string, string>();
+  const results = new Map<string, { shown: number; correct: number }>();
+  for (const row of (attempts ?? []) as { question_id: string; correct: boolean; created_at: string }[]) {
+    if (!lastSeen.has(row.question_id)) lastSeen.set(row.question_id, row.created_at);
+    const key = keyOf.get(row.question_id);
+    if (!key) continue;
+    const entry = results.get(key) ?? { shown: 0, correct: 0 };
+    entry.shown += 1;
+    if (row.correct) entry.correct += 1;
+    results.set(key, entry);
+  }
+  const focus = new Set(((assigned ?? []) as { playbook_id: string }[]).map((row) => `playbook:${row.playbook_id}`));
+  return presentQuiz(userId, "Weekly mix", pickMix(pool, lastSeen, results, focus));
 }
 
 export class QuizTokenError extends Error {}

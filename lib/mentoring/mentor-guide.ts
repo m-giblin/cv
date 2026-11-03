@@ -61,8 +61,8 @@ export function mentorPreviewHref(step: PlanStep): string | null {
   switch (step.type) {
     case "knowledge_check":
       return step.questionSource
-        ? `/learn/knowledge-checks?source=${encodeURIComponent(step.questionSource)}`
-        : "/learn/knowledge-checks";
+        ? `/practice/quizzes?source=${encodeURIComponent(step.questionSource)}`
+        : "/practice/quizzes";
     case "challenge":
       return step.challengeId
         ? `/practice/challenges?focus=challenge&challenge=${step.challengeId}`

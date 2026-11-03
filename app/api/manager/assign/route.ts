@@ -237,7 +237,7 @@ export async function POST(request: Request) {
           userId,
           `Knowledge check assigned, due ${due}`,
           `Pass ${what} with ${input.passScore}% or more.${input.note ? ` Note: ${input.note}` : ""}`,
-          sources.length === 1 ? `/learn/knowledge-checks?source=${encodeURIComponent(sources[0]!.key)}` : "/learn/knowledge-checks",
+          sources.length === 1 ? `/practice/quizzes?source=${encodeURIComponent(sources[0]!.key)}` : "/practice/quizzes",
         ),
       ),
     );

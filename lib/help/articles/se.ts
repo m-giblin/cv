@@ -108,7 +108,7 @@ export const SE_ARTICLES: HelpArticle[] = [
     keywords: ["practice", "pre-flight", "preflight", "call prep", "rehearse", "assigned practice", "checklist"],
     overview: [
       "Practice rounds are never scored. Only an attempt you submit or share reaches your mentor or manager.",
-      "Pre-flight's plan has four parts: a Market Pulse refresher, a deal prep brief for the account, a simulation with your chosen audience, and a Flight Check.",
+      "Pre-flight's plan has four parts: a quick quiz from across the question bank, a deal prep brief for the account, a simulation with your chosen audience, and a Flight Check.",
     ],
     steps: [
       { title: "Open Practice", body: "Click \"Practice\" in the navigation. The \"Pre-flight\" card is at the top of the page." },
@@ -182,21 +182,23 @@ export const SE_ARTICLES: HelpArticle[] = [
   },
   {
     id: "se-quizzes",
-    title: "Take the Market Pulse quiz",
-    summary: "A short weekly multiple-choice quiz on competitive intel, graded as soon as you submit.",
+    title: "Take a quiz",
+    summary: "The weekly mix draws from the whole question bank; topic quizzes cover one playbook chapter or product area.",
     audience: ["se"],
     category: "Practice",
-    keywords: ["quiz", "quizzes", "market pulse", "competitive", "competitors", "weekly quiz", "knowledge check"],
+    keywords: ["quiz", "quizzes", "weekly mix", "knowledge check", "question bank", "practice questions", "market pulse"],
     overview: [
-      "Market Pulse is graded automatically. A score of 70% or higher is \"On track\", 60% or higher is \"Close\", and anything lower is \"Needs practice\".",
+      "Practice, then \"Quizzes\" has every quiz. The \"Weekly mix\" at the top is ten questions from across the bank: chapters you're assigned come first, then the topics you get wrong most. Below it is one quiz per playbook chapter and per product topic, five questions each.",
+      "Questions rotate: ones you haven't seen come first, and anything you answered in the last three weeks goes to the back. Answer choices are shuffled every time.",
+      "When a manager assigns a topic quiz with a pass mark, your result says whether you passed it, and a passing score completes that step on your ramp.",
     ],
     steps: [
-      { title: "Open Quizzes", body: "Go to Practice, then \"Quizzes\". This week's quiz is listed under \"Week of\" and that week's date." },
-      { title: "Answer every question", body: "Pick an answer for each question. You can't submit until all of them are answered." },
-      { title: "Submit and review", body: "Click \"Submit quiz\". You'll see your score, with your answer and the correct answer marked for each question." },
-      { title: "Reinforce", body: "Use \"Reinforce with practice\" to open a related challenge, and \"Quick reference\" for competitor notes. \"Your history\" shows past weeks." },
+      { title: "Open Quizzes", body: "Go to Practice, then \"Quizzes\". Click \"Start this week's mix\", or \"Start\" next to a chapter or topic." },
+      { title: "Answer every question", body: "Pick an answer for each question. You can't check your answers until all of them are answered." },
+      { title: "Check and review", body: "Click \"Check my answers\". You'll see your score, the right answer for each question, why it's right and where it comes from." },
+      { title: "Go again", body: "Click \"New questions\" for a fresh set. The weekly mix shows \"Done this week\" once you've taken it since Monday." },
     ],
-    links: [{ label: "Open Market Pulse", href: "/practice/quizzes" }],
+    links: [{ label: "Open Quizzes", href: "/practice/quizzes" }],
     related: ["se-flight-check", "se-practice-preflight"],
   },
   {

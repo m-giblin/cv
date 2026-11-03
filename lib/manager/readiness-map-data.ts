@@ -14,7 +14,7 @@ export type ReadinessDimName =
   | "Pitch"
   | "Challenges"
   | "FlightCheck"
-  | "MarketPulse";
+  | "Knowledge";
 
 export type ChallengeSubmissionSignal = {
   userId: string;
@@ -30,7 +30,7 @@ export type FlightCheckSignal = {
   competencyScores: Record<string, number>;
 };
 
-export type MarketPulseSignal = {
+export type KnowledgeSignal = {
   userId: string;
   score: number;
   total: number;
@@ -123,7 +123,7 @@ const DIM_NAMES: ReadinessDimName[] = [
   "Pitch",
   "Challenges",
   "FlightCheck",
-  "MarketPulse",
+  "Knowledge",
 ];
 const CERT_TOTAL = 8;
 const SEGMENT_TOTAL = 4;
@@ -138,7 +138,7 @@ const DIM_DISPLAY_LABEL: Record<ReadinessDimName, string> = {
   Pitch: "Pitch",
   Challenges: "Challenges",
   FlightCheck: "Flight Check",
-  MarketPulse: "Market Pulse",
+  Knowledge: "Knowledge",
 };
 
 function levelColor(level: ReadinessStatusLevel) {
@@ -499,18 +499,18 @@ function flightCheckCell(signal: FlightCheckSignal | null, firstName: string): R
   };
 }
 
-function marketPulseCell(signals: MarketPulseSignal[], firstName: string): ReadinessMapCell {
+function knowledgeCell(signals: KnowledgeSignal[], firstName: string): ReadinessMapCell {
   if (signals.length === 0) {
     return {
       score: "0",
-      status: "No weekly pulse taken",
-      insight: `${firstName} hasn't taken a Market Pulse quiz recently.`,
+      status: "No quizzes taken",
+      insight: `${firstName} hasn't taken a quiz recently.`,
       level: "unknown",
       numericScore: 0,
       progressPct: 0,
       segmentUnlocked: null,
       segmentTotal: null,
-      actions: [{ title: "Market Pulse", description: "Take this week's competitive quiz", href: "/market-pulse" }],
+      actions: [{ title: "Weekly mix", description: "Ten questions from across the question bank", href: "/practice/quizzes?source=mix" }],
       confidence: "high",
     };
   }
@@ -519,8 +519,8 @@ function marketPulseCell(signals: MarketPulseSignal[], firstName: string): Readi
     (signals.reduce((sum, s) => sum + s.score / Math.max(1, s.total), 0) / signals.length) * 100,
   );
   const level = statusLevelForScore(pct);
-  const status = pct >= 70 ? "Sharp on competitive intel" : "Needs reinforcement";
-  const insight = `${firstName}'s recent Market Pulse average is ${pct}% across ${signals.length} week${signals.length === 1 ? "" : "s"}.`;
+  const status = pct >= 70 ? "Knows the material" : "Needs reinforcement";
+  const insight = `${firstName}'s average is ${pct}% across their last ${signals.length === 1 ? "quiz" : `${signals.length} quizzes`}.`;
 
   return {
     score: `${pct}%`,
@@ -531,7 +531,7 @@ function marketPulseCell(signals: MarketPulseSignal[], firstName: string): Readi
     progressPct: pct,
     segmentUnlocked: null,
     segmentTotal: null,
-    actions: [{ title: "Market Pulse", description: "Review this week's quiz", href: "/market-pulse" }],
+    actions: [{ title: "Quizzes", description: "The weekly mix and topic quizzes", href: "/practice/quizzes" }],
     confidence: signals.length === 1 ? "medium" : "high",
   };
 }
@@ -631,14 +631,14 @@ export function buildReadinessMapPayload(input: {
   pitchGradeByUser: Record<string, number | null>;
   challengeSignalsByUser?: Record<string, ChallengeSubmissionSignal[]>;
   flightCheckByUser?: Record<string, FlightCheckSignal>;
-  marketPulseSignalsByUser?: Record<string, MarketPulseSignal[]>;
+  knowledgeSignalsByUser?: Record<string, KnowledgeSignal[]>;
   dealPrepActivityByUser?: Record<string, DealPrepActivity>;
   /** challenge_id -> competency names, from the challenge_competencies join. */
   challengeCompetenciesByChallengeId?: Record<string, string[]>;
 }): ReadinessMapPayload {
   const challengeSignalsByUser = input.challengeSignalsByUser ?? {};
   const flightCheckByUser = input.flightCheckByUser ?? {};
-  const marketPulseSignalsByUser = input.marketPulseSignalsByUser ?? {};
+  const knowledgeSignalsByUser = input.knowledgeSignalsByUser ?? {};
   const dealPrepActivityByUser = input.dealPrepActivityByUser ?? {};
   const challengeCompetenciesByChallengeId = input.challengeCompetenciesByChallengeId ?? {};
   const seProfiles = uniqueProfiles(
@@ -681,7 +681,7 @@ export function buildReadinessMapPayload(input: {
     const firstName = profile.fullName.split(" ")[0] ?? profile.fullName;
     const challengeSignals = challengeSignalsByUser[profile.id] ?? [];
     const flightCheckSignal = flightCheckByUser[profile.id] ?? null;
-    const marketPulseSignals = marketPulseSignalsByUser[profile.id] ?? [];
+    const knowledgeSignals = knowledgeSignalsByUser[profile.id] ?? [];
 
     const dims: Record<ReadinessDimName, ReadinessMapCell> = {
       Ramp: rampCell(breakdown.planProgress, tenureDays, firstName),
@@ -692,7 +692,7 @@ export function buildReadinessMapPayload(input: {
       Pitch: pitchCell(pitchScore, firstName),
       Challenges: challengesCell(challengeSignals, firstName),
       FlightCheck: flightCheckCell(flightCheckSignal, firstName),
-      MarketPulse: marketPulseCell(marketPulseSignals, firstName),
+      Knowledge: knowledgeCell(knowledgeSignals, firstName),
     };
 
     const composite = breakdown.score;
@@ -764,7 +764,7 @@ export function buildReadinessMapPayload(input: {
   const pitchAvg = avg(rows.map((r) => r.dims.Pitch.numericScore));
   const challengesAvg = avg(rows.map((r) => r.dims.Challenges.numericScore));
   const flightCheckAvg = avg(rows.map((r) => r.dims.FlightCheck.numericScore));
-  const marketPulseAvg = avg(rows.map((r) => r.dims.MarketPulse.numericScore));
+  const knowledgeAvg = avg(rows.map((r) => r.dims.Knowledge.numericScore));
 
   const dimensionPillars = [
     { label: "RAMP", value: `${rampAvg}%`, badge: pillarBadge(rampAvg).badge, badgeTone: pillarBadge(rampAvg).tone },
@@ -801,10 +801,10 @@ export function buildReadinessMapPayload(input: {
       badgeTone: pillarBadge(flightCheckAvg).tone,
     },
     {
-      label: "MARKET PULSE",
-      value: `${marketPulseAvg}%`,
-      badge: pillarBadge(marketPulseAvg).badge,
-      badgeTone: pillarBadge(marketPulseAvg).tone,
+      label: "KNOWLEDGE",
+      value: `${knowledgeAvg}%`,
+      badge: pillarBadge(knowledgeAvg).badge,
+      badgeTone: pillarBadge(knowledgeAvg).tone,
     },
   ];
 
@@ -837,7 +837,7 @@ export function buildReadinessMapPayload(input: {
       Pitch: String(pitchAvg),
       Challenges: String(challengesAvg),
       FlightCheck: String(flightCheckAvg),
-      MarketPulse: `${marketPulseAvg}%`,
+      Knowledge: `${knowledgeAvg}%`,
     },
   };
 }

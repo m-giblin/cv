@@ -28,7 +28,7 @@ export type SearchGroup = { id: SearchGroupId; label: string; results: SearchRes
 export const SEARCH_GROUPS: { id: SearchGroupId; label: string; route: string }[] = [
   { id: "ramp", label: "Your ramp", route: "/my-plan" },
   { id: "playbooks", label: "Playbooks", route: "/learn/playbooks" },
-  { id: "checks", label: "Knowledge checks", route: "/learn/knowledge-checks" },
+  { id: "checks", label: "Quizzes", route: "/practice/quizzes" },
   { id: "simulations", label: "Simulations", route: "/practice/simulations" },
   { id: "pitch", label: "Pitch practice", route: "/practice/pitch" },
   { id: "library", label: "Library", route: "/learn" },
@@ -132,7 +132,7 @@ async function searchChecks(tenantId: string, chapters: PlaybookChapterSummary[]
     id: source.key,
     title: source.title,
     detail: `Knowledge check, ${SOURCE_LABEL[source.kind]}`,
-    href: `/learn/knowledge-checks?source=${encodeURIComponent(source.key)}`,
+    href: `/practice/quizzes?source=${encodeURIComponent(source.key)}`,
   }));
 }
 

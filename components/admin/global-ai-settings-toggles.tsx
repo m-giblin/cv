@@ -29,12 +29,6 @@ export const GLOBAL_AI_TOGGLES: ToggleRow[] = [
     description: "Generate concise coaching recaps for managers after reviews.",
     enabled: false,
   },
-  {
-    id: "market-pulse",
-    label: "Market pulse insights",
-    description: "Generate weekly market pulse summaries and quiz prompts for SE teams.",
-    enabled: true,
-  },
 ];
 
 export function GlobalAiSettingsToggles() {

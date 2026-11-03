@@ -186,13 +186,14 @@ export const PLATFORM_FEATURE_FLAG_DEFS: PlatformFeatureFlagDef[] = [
     routePrefixes: ["/resources"],
   },
   {
+    // Kept as "market-pulse" so saved settings still apply; Market Pulse became the question bank quizzes.
     id: "market-pulse",
-    label: "Market Pulse",
-    description: "Weekly market pulse submissions and team insights.",
-    category: "readiness",
+    label: "Quizzes",
+    description: "The weekly mix and topic quizzes from the question bank.",
+    category: "practice",
     defaultEnabled: true,
     kind: "product",
-    routePrefixes: ["/market-pulse", "/practice/quizzes"],
+    routePrefixes: ["/market-pulse", "/practice/quizzes", "/learn/knowledge-checks"],
   },
 
   // ── Practice ─────────────────────────────────────────────────

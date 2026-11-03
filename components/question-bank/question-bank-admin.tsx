@@ -455,7 +455,7 @@ function BankWorkbench({
               <SolutionOptions areas={areasFor(source.kind)} />
             </select>
           </label>
-          <a className="link text-sm" href={`/learn/knowledge-checks?source=${encodeURIComponent(source.key)}`} rel="noreferrer" target="_blank">
+          <a className="link text-sm" href={`/practice/quizzes?source=${encodeURIComponent(source.key)}`} rel="noreferrer" target="_blank">
             Try it as a learner
           </a>
         </div>

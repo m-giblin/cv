@@ -232,6 +232,64 @@ export function pickRotation<T extends Pick<BankQuestion, "id" | "difficulty">>(
     .map(({ entry }) => entry.question);
 }
 
+/** Questions in the weekly mix, and the key it's served under. */
+export const MIX_LENGTH = 10;
+export const MIX_KEY = "mix";
+
+/** A mix needs a few answers in a source before calling it strong or weak. */
+const MIX_MIN_ANSWERS = 3;
+/** Where a source nobody has tried ranks: after weak ones, before strong ones. */
+const MIX_UNTRIED_RATE = 0.65;
+const MIX_PER_SOURCE = 2;
+
+/**
+ * The weekly mix: questions from across the bank instead of one topic. Sources in `focus` (the
+ * chapters someone is assigned) lead, then the ones they get wrong most, then ones they haven't
+ * tried, then their strongest. Each source gives its best question in turn (as a topic quiz would
+ * pick it), then a second, so one topic can't take over the quiz.
+ * `results` is this person's answers per source key.
+ */
+export function pickMix<T extends Pick<BankQuestion, "id" | "difficulty" | "sourceKind" | "playbookId" | "topic">>(
+  questions: T[],
+  lastSeen: Map<string, string>,
+  results: Map<string, { shown: number; correct: number }>,
+  focus: Set<string>,
+  count = MIX_LENGTH,
+  now = Date.now(),
+  random: () => number = Math.random,
+): T[] {
+  const bySource = new Map<string, T[]>();
+  for (const question of questions) bySource.set(sourceKey(question), [...(bySource.get(sourceKey(question)) ?? []), question]);
+  const rank = (key: string) => {
+    if (focus.has(key)) return -1;
+    const result = results.get(key);
+    return result && result.shown >= MIX_MIN_ANSWERS ? result.correct / result.shown : MIX_UNTRIED_RATE;
+  };
+  const order = [...bySource.keys()]
+    .map((key) => ({ key, rank: rank(key), jitter: random() }))
+    .sort((a, b) => a.rank - b.rank || a.jitter - b.jitter)
+    .map((item) => item.key);
+
+  const picked: T[] = [];
+  for (let round = 0; round < MIX_PER_SOURCE && picked.length < count; round += 1) {
+    for (const key of order) {
+      if (picked.length >= count) break;
+      const left = bySource.get(key)!.filter((question) => !picked.includes(question));
+      const [next] = pickRotation(left, lastSeen, 1, now, random);
+      if (next) picked.push(next);
+    }
+  }
+  return picked
+    .map((question) => ({ question, order: random() }))
+    .sort((a, b) => a.order - b.order)
+    .map(({ question }) => question);
+}
+
+/** A graded quiz drew from more than one source: it was a mix, not a topic check. */
+export function isMixQuiz(sourceKeys: Iterable<string>) {
+  return new Set(sourceKeys).size > 1;
+}
+
 /** Shuffles answer choices per quiz so the right answer isn't always in the same spot. */
 export function shuffleChoices(choices: string[], correctIndex: number, random: () => number = Math.random) {
   const order = choices.map((_, index) => ({ index, key: random() })).sort((a, b) => a.key - b.key).map((item) => item.index);

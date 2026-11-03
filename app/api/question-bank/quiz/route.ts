@@ -1,17 +1,20 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAuthenticatedSession } from "@/lib/auth/require-authenticated";
-import { gradeQuiz, loadAvailableChecks, QuizTokenError, serveQuiz } from "@/lib/question-bank/data";
+import { gradeQuiz, loadAvailableChecks, loadMixStatus, QuizTokenError, serveQuiz } from "@/lib/question-bank/data";
 import { resolveEffectiveTenantId } from "@/lib/tenant/resolve-profile-tenant";
 
-/** ?source=key: a quiz in rotation for that source. No source: the checks on offer. */
+/** ?source=key: a quiz in rotation for that source (or "mix" for the weekly mix). No source: the checks on offer and the mix. */
 export async function GET(request: Request) {
   const session = await requireAuthenticatedSession();
   if (session instanceof NextResponse) return session;
   const tenantId = await resolveEffectiveTenantId(session.supabase, session.user.id);
-  if (!tenantId) return NextResponse.json({ checks: [] });
+  if (!tenantId) return NextResponse.json({ checks: [], mix: null });
   const key = new URL(request.url).searchParams.get("source");
-  if (!key) return NextResponse.json({ checks: await loadAvailableChecks(tenantId, session.user.id) });
+  if (!key) {
+    const [checks, mix] = await Promise.all([loadAvailableChecks(tenantId, session.user.id), loadMixStatus(tenantId, session.user.id)]);
+    return NextResponse.json({ checks, mix });
+  }
   const quiz = await serveQuiz(tenantId, session.user.id, key);
   if (!quiz || !quiz.questions.length) return NextResponse.json({ error: "No questions are ready for this yet." }, { status: 404 });
   return NextResponse.json(quiz);

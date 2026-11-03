@@ -102,7 +102,6 @@ describe("API route modules", () => {
     "@/app/api/engagement/route",
     "@/app/api/deal-prep/sessions/route",
     "@/app/api/gamification/scorecard/route",
-    "@/app/api/market-pulse/route",
     "@/app/api/challenges/route",
     "@/app/api/manager/isc-lab-stats/route",
   ];

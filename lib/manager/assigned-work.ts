@@ -353,7 +353,7 @@ async function addQuizItems(
       dueText: dueTextFor(state, row.due_date, today),
       createdAt: row.created_at,
       cancellable: !done,
-      href: `/learn/knowledge-checks?source=${encodeURIComponent(row.source_key)}`,
+      href: `/practice/quizzes?source=${encodeURIComponent(row.source_key)}`,
     });
   }
   if (toComplete.length) {

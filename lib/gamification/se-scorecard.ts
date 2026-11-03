@@ -43,7 +43,6 @@ export function buildSeScorecard(params: {
   reviewedSimCountByUser: Record<string, number>;
   reviewedPitchCountByUser?: Record<string, number>;
   flightCheckScoresByUser?: Record<string, number>;
-  pulseScoresByUser?: Record<string, number>;
 }): SeScorecard {
   const leaderboard = buildTeamLeaderboard({
     org: params.org,
@@ -55,14 +54,12 @@ export function buildSeScorecard(params: {
   const entry = leaderboard.find((row) => row.profileId === params.profileId);
   const pitchBonus = (params.reviewedPitchCountByUser?.[params.profileId] ?? 0) * 20;
   const flightBonus = Math.round((params.flightCheckScoresByUser?.[params.profileId] ?? 0) * 0.3);
-  const pulseBonus = (params.pulseScoresByUser?.[params.profileId] ?? 0) * 5;
-  const points = (entry?.points ?? 0) + pitchBonus + flightBonus + pulseBonus;
+  const points = (entry?.points ?? 0) + pitchBonus + flightBonus;
 
   const breakdown = [
     { label: "Trophies & reviews", points: entry?.points ?? 0 },
     { label: "Pitch excellence", points: pitchBonus },
     { label: "Flight Check signal", points: flightBonus },
-    { label: "Market pulse", points: pulseBonus },
   ].filter((row) => row.points > 0);
 
   const milestone = nextMilestone(points);

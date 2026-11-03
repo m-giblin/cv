@@ -13,7 +13,7 @@ const OPEN_HREF: Record<AssignedWorkKind, string> = {
   simulation: "/practice/simulations",
   pitch: "/practice/pitch",
   ramp_task: "/my-plan",
-  quiz: "/learn/knowledge-checks",
+  quiz: "/practice/quizzes",
   content: "/learn",
 };
 

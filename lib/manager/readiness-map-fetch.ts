@@ -12,7 +12,7 @@ import {
   type ChallengeSubmissionSignal,
   type DealPrepActivity,
   type FlightCheckSignal,
-  type MarketPulseSignal,
+  type KnowledgeSignal,
   type ReadinessMapPayload,
 } from "@/lib/manager/readiness-map-data";
 import { uniqueIds, uniqueProfiles } from "@/lib/utils";
@@ -51,7 +51,7 @@ export async function fetchReadinessMapPayload(
     pitchResult,
     challengeResult,
     flightCheckResult,
-    marketPulseResult,
+    knowledgeResult,
     dealPrepStats,
   ] = await Promise.all([
     preloadedPlans ? Promise.resolve(preloadedPlans) : fetchPlansForUsers(supabase, userIds, tenantId),
@@ -84,11 +84,13 @@ export async function fetchReadinessMapPayload(
       .in("user_id", userIds)
       .eq("status", "completed")
       .order("completed_at", { ascending: false }),
-    supabase
-      .from("market_pulse_results")
-      .select("user_id, score, total, submitted_at")
+    // question_attempts isn't in the generated types yet; RLS lets managers read their people's rows.
+    (supabase as unknown as SupabaseClient)
+      .from("question_attempts")
+      .select("user_id, quiz_id, correct, created_at")
       .in("user_id", userIds)
-      .order("submitted_at", { ascending: false }),
+      .order("created_at", { ascending: false })
+      .limit(4000),
     fetchDealPrepManagerStats(userIds),
   ]);
 
@@ -163,12 +165,19 @@ export async function fetchReadinessMapPayload(
     };
   }
 
-  const marketPulseSignalsByUser: Record<string, MarketPulseSignal[]> = {};
-  for (const row of (marketPulseResult.data ?? []) as Array<{ user_id: string; score: number; total: number }>) {
-    marketPulseSignalsByUser[row.user_id] ??= [];
-    if (marketPulseSignalsByUser[row.user_id].length < 4) {
-      marketPulseSignalsByUser[row.user_id].push({ userId: row.user_id, score: row.score, total: row.total });
-    }
+  // Each graded quiz (the weekly mix or a topic check) is one signal: right answers out of questions.
+  const quizzes = new Map<string, KnowledgeSignal>();
+  for (const row of (knowledgeResult.data ?? []) as Array<{ user_id: string; quiz_id: string; correct: boolean }>) {
+    const quiz = quizzes.get(row.quiz_id) ?? { userId: row.user_id, score: 0, total: 0 };
+    quiz.total += 1;
+    if (row.correct) quiz.score += 1;
+    quizzes.set(row.quiz_id, quiz);
+  }
+  const knowledgeSignalsByUser: Record<string, KnowledgeSignal[]> = {};
+  // Rows come newest first, so each person's first four quizzes are their latest.
+  for (const quiz of quizzes.values()) {
+    knowledgeSignalsByUser[quiz.userId] ??= [];
+    if (knowledgeSignalsByUser[quiz.userId].length < 4) knowledgeSignalsByUser[quiz.userId].push(quiz);
   }
 
   const dealPrepActivityByUser: Record<string, DealPrepActivity> = {};
@@ -188,7 +197,7 @@ export async function fetchReadinessMapPayload(
     pitchGradeByUser,
     challengeSignalsByUser,
     flightCheckByUser,
-    marketPulseSignalsByUser,
+    knowledgeSignalsByUser,
     dealPrepActivityByUser,
     challengeCompetenciesByChallengeId,
   });

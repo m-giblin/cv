@@ -35,7 +35,7 @@ export function competencyStatus(score: number): CompetencyStatus {
 export function suggestedPractice(competency: string): { label: string; href: string } {
   const key = competency.toLowerCase();
   if (key.includes("objection")) return { label: "Objection sim", href: "/practice/simulations" };
-  if (key.includes("competitive")) return { label: "Market Pulse quiz", href: "/practice/quizzes" };
+  if (key.includes("competitive")) return { label: "Weekly quiz", href: "/practice/quizzes?source=mix" };
   if (key.includes("demo")) return { label: "Record a pitch", href: "/practice/pitch" };
   if (key.includes("discovery")) return { label: "Discovery sim", href: "/practice/simulations" };
   if (key.includes("agentic") || key.includes("governance")) return { label: "Learning path", href: "/learn" };
