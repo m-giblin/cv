@@ -6,6 +6,8 @@ import { issueActivationCode } from "@/lib/auth/account-access-server";
 import { validateSailPointEmail, requireAdminSession } from "@/lib/auth/require-admin";
 import { validateEmailForTenant } from "@/lib/auth/tenant-email";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { roleForJobTitle } from "@/lib/tenant/job-titles";
+import { resolveJobTitle } from "@/lib/tenant/job-titles-server";
 import { ProfileRole, SeLevel } from "@/lib/types";
 
 const createUserSchema = z.object({
@@ -29,6 +31,8 @@ const createUserSchema = z.object({
   * must replace at first sign-in, or Supabase's email link (often blocked by corporate filters).
   */
  onboarding: z.enum(["code", "password", "email"]).optional(),
+ /** One of the tenant's job titles; when set, its access level decides the role. */
+ jobTitle: z.string().max(120).nullable().optional(),
 });
 
 export async function GET() {
@@ -49,11 +53,16 @@ export async function GET() {
  // Status and invite date come from a newer migration; fall back without them until it's applied.
  const base = "id, email, full_name, role, level, manager_id, created_at";
  // Members, plus super admins whose home workspace is this one (they train here).
- let { data, error } = await admin
+ const members = (columns: string) =>
+ admin
  .from("profiles")
- .select(`${base}, status, invited_at`)
+ .select(columns)
  .or(`tenant_id.eq.${session.tenantId},home_tenant_id.eq.${session.tenantId}`)
  .order("full_name");
+ // Job titles come from a newer migration still; without them the list reads as before.
+ type Result = { data: { id: string }[] | null; error: { message: string } | null };
+ let { data, error } = (await members(`${base}, status, invited_at, job_title`)) as unknown as Result;
+ if (error) ({ data, error } = (await members(`${base}, status, invited_at`)) as unknown as Result);
  if (error) {
  ({ data, error } = (await admin.from("profiles").select(base).eq("tenant_id", session.tenantId!).order("full_name")) as unknown as {
  data: typeof data;
@@ -100,6 +109,12 @@ export async function POST(request: Request) {
  return NextResponse.json({ error: tenantEmailError }, { status: 400 });
  }
 
+ const jobTitle = parsed.data.jobTitle ? await resolveJobTitle(admin, session.tenantId!, parsed.data.jobTitle) : { title: null };
+ if ("error" in jobTitle) {
+ return NextResponse.json({ error: jobTitle.error }, { status: 400 });
+ }
+ const role = jobTitle.title ? roleForJobTitle(jobTitle.title, parsed.data.role) : parsed.data.role;
+
  const email = parsed.data.email.trim().toLowerCase();
  const onboarding = parsed.data.onboarding ?? (parsed.data.sendInvite ? "email" : parsed.data.password ? "password" : "code");
  // Only a temporary password is ever known to anyone; code and email accounts start with one nobody has.
@@ -123,11 +138,13 @@ export async function POST(request: Request) {
  .from("profiles")
  .update({
  full_name: parsed.data.fullName,
- role: parsed.data.role,
+ role,
  level: parsed.data.level,
  manager_id: parsed.data.managerId ?? null,
  tenant_id: session.tenantId!,
- })
+ // Only sent when set, so adding people works before the job titles migration.
+ ...(jobTitle.title ? { job_title: jobTitle.title.name } : {}),
+ } as never)
  .eq("id", userId);
 
  if (profileError) {
@@ -148,7 +165,7 @@ export async function POST(request: Request) {
  targetType: "profile",
  targetId: userId,
  tenantId: session.tenantId,
- details: { email, role: parsed.data.role, level: parsed.data.level, onboarding },
+ details: { email, role, level: parsed.data.level, onboarding, jobTitle: jobTitle.title?.name ?? null },
  });
 
  return NextResponse.json({
@@ -156,9 +173,10 @@ export async function POST(request: Request) {
  id: userId,
  email,
  full_name: parsed.data.fullName,
- role: parsed.data.role,
+ role,
  level: parsed.data.level,
  manager_id: parsed.data.managerId ?? null,
+ job_title: jobTitle.title?.name ?? null,
  },
  inviteSent: onboarding === "email",
  // Shown to the admin once, to pass on; neither is stored in a readable form.

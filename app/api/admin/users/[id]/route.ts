@@ -5,6 +5,8 @@ import { validateSailPointEmail, requireAdminSession } from "@/lib/auth/require-
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Database } from "@/lib/database.types";
 import { ProfileRole, SeLevel } from "@/lib/types";
+import { roleForJobTitle } from "@/lib/tenant/job-titles";
+import { resolveJobTitle } from "@/lib/tenant/job-titles-server";
 
 const updateUserSchema = z.object({
  fullName: z.string().min(2).optional(),
@@ -22,6 +24,8 @@ const updateUserSchema = z.object({
  .optional(),
  level: z.enum(["Basic", "Senior", "Advisory"] as [SeLevel, ...SeLevel[]]).optional(),
  managerId: z.string().uuid().nullable().optional(),
+ /** One of the tenant's job titles (null clears it); when set, its access level decides the role. */
+ jobTitle: z.string().max(120).nullable().optional(),
 });
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -114,6 +118,15 @@ export async function PATCH(request: Request, context: RouteContext) {
 
  if (parsed.data.role) {
  profileUpdate.role = parsed.data.role;
+ }
+
+ if (parsed.data.jobTitle !== undefined) {
+ const resolved = await resolveJobTitle(admin, session.tenantId!, parsed.data.jobTitle);
+ if ("error" in resolved) {
+ return NextResponse.json({ error: resolved.error }, { status: 400 });
+ }
+ (profileUpdate as { job_title?: string | null }).job_title = resolved.title?.name ?? null;
+ if (resolved.title) profileUpdate.role = roleForJobTitle(resolved.title, parsed.data.role ?? existingProfile.role);
  }
 
  if (parsed.data.level) {

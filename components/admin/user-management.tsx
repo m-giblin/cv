@@ -26,6 +26,7 @@ import { Tag } from "@/components/ui/tag";
 import { allowedEmailDomainsLabel } from "@/lib/auth/email-domain";
 import { ProfileRole, SeLevel } from "@/lib/types";
 import { cn, initials } from "@/lib/utils";
+import { findJobTitle, roleForJobTitle, type JobTitle } from "@/lib/tenant/job-titles";
 
 type AdminUser = {
  id: string;
@@ -37,6 +38,8 @@ type AdminUser = {
  created_at: string;
  /** Missing until the status migration is applied: treat as active. */
  status?: string;
+ /** The tenant's name for their role ("Account Executive"); missing until the job titles migration. */
+ job_title?: string | null;
  invited_at?: string | null;
 };
 
@@ -62,6 +65,7 @@ const emptyForm = {
  level: "Basic" as SeLevel,
  managerId: "",
  onboarding: "code" as Onboarding,
+ jobTitle: "",
 };
 
 /** How a new person gets into their account (see lib/auth/account-access.ts). */
@@ -179,6 +183,14 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  const [showCreate, setShowCreate] = useState(false);
  const [form, setForm] = useState(emptyForm);
  const [issued, setIssued] = useState<IssuedAccess | null>(null);
+ // The tenant's own job titles; with none, the form offers the built-in roles.
+ const [jobTitles, setJobTitles] = useState<JobTitle[]>([]);
+ useEffect(() => {
+ void fetch("/api/admin/job-titles")
+ .then((response) => (response.ok ? response.json() : { titles: [] }))
+ .then((body: { titles?: JobTitle[] }) => setJobTitles(body.titles ?? []))
+ .catch(() => undefined);
+ }, []);
  const [search, setSearch] = useState("");
  const [roleFilter, setRoleFilter] = useState("All roles");
  const [levelFilter, setLevelFilter] = useState("All levels");
@@ -341,6 +353,7 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  level: user.level,
  managerId: user.manager_id ?? "",
  onboarding: "code",
+ jobTitle: user.job_title ?? "",
  });
  }
 
@@ -366,6 +379,7 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  level: form.level,
  managerId: form.managerId || null,
  onboarding: form.onboarding,
+ ...(jobTitles.length ? { jobTitle: form.jobTitle || null } : {}),
  }),
  });
 
@@ -421,6 +435,7 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  role: form.role,
  level: form.level,
  managerId: form.managerId || null,
+ ...(jobTitles.length ? { jobTitle: form.jobTitle || null } : {}),
  }),
  });
 
@@ -643,11 +658,11 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  {user.full_name}
  </button>
  }
- subline={sentenceCase(user.role.replaceAll("_", " "))} />
+ subline={user.job_title || sentenceCase(user.role.replaceAll("_", " "))} />
  </Td>
  <Td className="text-sm text-ink-2">{user.email}</Td>
  <Td>
- <Tag tone={badge.tone}>{badge.label}</Tag>
+ <Tag tone={badge.tone}>{user.job_title || badge.label}</Tag>
  </Td>
  <Td className="text-sm">{user.level}</Td>
  <Td className="max-w-[180px] truncate text-sm">
@@ -749,6 +764,29 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  value={form.email}
  />
  </Field>
+ {jobTitles.length ? (
+ <Field hint="Set up job titles in Settings › General." htmlFor="admin-user-job-title" label="Job title">
+ <SelectInput
+ id="admin-user-job-title"
+ onChange={(event) => {
+ const title = findJobTitle(jobTitles, event.target.value);
+ // The server sets the role from the title too; this keeps the form in step.
+ setForm((current) => ({ ...current, jobTitle: event.target.value, role: title ? roleForJobTitle(title, current.role) : current.role }));
+ }}
+ required
+ value={form.jobTitle}
+ >
+ <option disabled value="">
+ Pick a job title
+ </option>
+ {jobTitles.map((title) => (
+ <option key={title.name} value={title.name}>
+ {title.name}
+ </option>
+ ))}
+ </SelectInput>
+ </Field>
+ ) : (
  <Field htmlFor="admin-user-role" label="Role">
  <SelectInput
  id="admin-user-role"
@@ -764,7 +802,8 @@ export function UserManagement({ initialUsers }: { initialUsers?: AdminUser[] })
  ))}
  </SelectInput>
  </Field>
- <Field htmlFor="admin-user-level" label="SE level">
+ )}
+ <Field htmlFor="admin-user-level" label="Level">
  <SelectInput
  id="admin-user-level"
  onChange={(event) =>

@@ -7,6 +7,7 @@ export type AuditAction =
   | "user.deleted"
   | "user.activation_code_issued"
   | "user.temporary_password_set"
+  | "tenant.job_titles_updated"
   | "user.activated"
   | "user.deactivated"
   | "user.invited"
