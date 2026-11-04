@@ -1,3 +1,4 @@
+import { loadWorkspaceProfileRows } from "@/lib/data/active-profiles";
 import { getAccessTier } from "@/lib/auth/rbac";
 import { getTenantAdminClient } from "@/lib/data/tenant-scoped-query";
 import type { ProfileRole } from "@/lib/types";
@@ -13,8 +14,7 @@ export async function loadAssignablePeople(tenantId: string, viewerId: string, v
   if (!admin) return [];
   // "*" so this still works before the status column exists; inactive people can't be assigned work.
   // Home-workspace super admins count as members here, so they can be assigned training too.
-  let { data, error } = await admin.from("profiles").select("*").or(`tenant_id.eq.${tenantId},home_tenant_id.eq.${tenantId}`).order("full_name");
-  if (error) ({ data, error } = await admin.from("profiles").select("*").eq("tenant_id", tenantId).order("full_name"));
+  const { data } = await loadWorkspaceProfileRows(admin, tenantId, "full_name");
   const profiles = ((data ?? []) as { id: string; full_name: string; role: ProfileRole; manager_id: string | null; status?: string }[]).filter(
     (profile) => profile.status !== "inactive",
   );

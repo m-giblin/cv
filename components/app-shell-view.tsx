@@ -9,7 +9,7 @@ import { TopBar } from "@/components/nav/top-bar";
 import { useNavFlags } from "@/components/nav/use-nav-flags";
 import { ShadowTenantBanner } from "@/components/platform/shadow-tenant-banner";
 import { TenantBrandingProvider, useTenantBranding } from "@/components/tenant/tenant-branding-provider";
-import { WorkspaceSwitcher } from "@/components/workspace-switcher";
+import { WorkspaceSwitcher, type MemberWorkspace } from "@/components/workspace-switcher";
 import type { AccessTier } from "@/lib/auth/rbac";
 import { resolveActiveWorkspace, type WorkspaceHat } from "@/lib/auth/workspace";
 import { pageTitle, paletteEntries } from "@/lib/navigation/nav-model";
@@ -103,6 +103,8 @@ export function AppShellView({
   workspaceHats,
   shadowTenantName,
   shadowMode,
+  memberWorkspaces = [],
+  activeTenantId = null,
   branding,
   people,
   navCounts,
@@ -120,6 +122,10 @@ export function AppShellView({
   workspaceHats: WorkspaceHat[];
   shadowTenantName: string | null;
   shadowMode: "admin" | "manager" | "se" | null;
+  /** Super admins: the workspaces they belong to, for the switcher. */
+  memberWorkspaces?: MemberWorkspace[];
+  /** The tenant a super admin has entered, if any. */
+  activeTenantId?: string | null;
   branding: TenantShellBranding;
   people?: SidebarPerson[];
   navCounts?: Record<string, string | number>;
@@ -197,14 +203,16 @@ export function AppShellView({
           notifications={myNotifications}
           onOpenMenu={() => setDrawerOpen(true)}
           onOpenPalette={() => setPaletteOpen(true)}
+          activeTenantId={activeTenantId}
+          memberWorkspaces={memberWorkspaces}
           workspace={workspace}
           workspaceHats={workspaceHats}
         />
 
         <MobileDrawer onClose={closeDrawer} open={drawerOpen}>
-          {workspaceHats.length > 1 ? (
+          {workspaceHats.length > 1 || memberWorkspaces.length > 0 ? (
             <div className="border-b border-line bg-blue px-6 py-4 sm:hidden">
-              <WorkspaceSwitcher activeHat={workspace} hats={workspaceHats} />
+              <WorkspaceSwitcher activeHat={workspace} activeTenantId={activeTenantId} hats={workspaceHats} workspaces={memberWorkspaces} />
             </div>
           ) : null}
           {sidebar(closeDrawer)}
@@ -217,7 +225,11 @@ export function AppShellView({
 
           <div className="min-w-0 flex-1">
             {shadowTenantName && shadowMode ? (
-              <ShadowTenantBanner mode={shadowMode} tenantName={shadowTenantName} />
+              <ShadowTenantBanner
+                member={Boolean(activeTenantId && memberWorkspaces.some((entry) => entry.id === activeTenantId))}
+                mode={shadowMode}
+                tenantName={shadowTenantName}
+              />
             ) : null}
             <main
               className={cn(

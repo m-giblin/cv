@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/lib/database.types";
+import { isWorkspaceMember } from "@/lib/tenant/workspace-members";
 import {
   EMPTY_RECORDS,
   MENTOR_EVENT_TYPES,
@@ -17,12 +18,17 @@ const ADMIN_ROLES = ["director", "admin", "super_admin"];
 
 export type MenteeRelationship = "admin" | "manager" | "mentor";
 
-/** home_tenant_id isn't in the generated types yet, so profile rows are read with select("*"). */
-export type ViewerProfile = { role: string | null; tenant_id: string | null; home_tenant_id?: string | null };
+/** home_tenant_id and member_tenant_ids aren't in the generated types yet, so profile rows are read with select("*"). */
+export type ViewerProfile = { role: string | null; tenant_id: string | null; home_tenant_id?: string | null; member_tenant_ids?: string[] | null };
 
-/** Super admins have no tenant_id; their home tenant is where they also manage and mentor. */
-export function viewerTenantId(viewer: ViewerProfile | null): string | null {
-  return viewer?.tenant_id ?? viewer?.home_tenant_id ?? null;
+/**
+ * Super admins have no tenant_id; they manage and mentor in the workspaces they belong to. When
+ * they're inside one of those (currentTenantId), that's the one; otherwise their home workspace.
+ */
+export function viewerTenantId(viewer: ViewerProfile | null, currentTenantId?: string | null): string | null {
+  if (viewer?.tenant_id) return viewer.tenant_id;
+  if (currentTenantId && isWorkspaceMember(viewer, currentTenantId)) return currentTenantId;
+  return viewer?.home_tenant_id ?? null;
 }
 
 /**
@@ -35,8 +41,9 @@ export async function menteeRelationship(admin: Db, viewerId: string, menteeId: 
     admin.from("profiles").select("manager_id, tenant_id").eq("id", menteeId).maybeSingle(),
   ]);
   const viewer = viewerRow as ViewerProfile | null;
-  const viewerTenant = viewerTenantId(viewer);
-  if (!viewer || !viewerTenant || !mentee || viewerTenant !== mentee.tenant_id) return null;
+  // The viewer must belong to the mentee's workspace (a super admin may belong to several).
+  if (!viewer || !mentee || !isWorkspaceMember(viewer, mentee.tenant_id)) return null;
+  const viewerTenant = mentee.tenant_id as string;
   if (ADMIN_ROLES.includes(viewer.role ?? "")) return "admin";
   if (mentee.manager_id === viewerId) return "manager";
   const { data: assignments } = await admin

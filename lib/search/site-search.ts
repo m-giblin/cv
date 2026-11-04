@@ -1,3 +1,4 @@
+import { isWorkspaceMember } from "@/lib/tenant/workspace-members";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { SIM_DRAFT_MARKER } from "@/lib/admin/practice-library";
 import { canAccessRoute, type AccessTier } from "@/lib/auth/rbac";
@@ -259,7 +260,7 @@ const RELATION_LABEL: Record<PersonRelation, string> = {
   team: "",
 };
 
-type ProfileLite = { id: string; full_name: string | null; role: ProfileRole; email: string | null; manager_id: string | null; tenant_id: string | null; home_tenant_id?: string | null; status?: string };
+type ProfileLite = { id: string; full_name: string | null; role: ProfileRole; email: string | null; manager_id: string | null; tenant_id: string | null; home_tenant_id?: string | null; member_tenant_ids?: string[] | null; status?: string };
 
 /**
  * The viewer's manager, mentor, mentees and direct reports, in their tenant. Two round trips: the
@@ -304,7 +305,7 @@ export async function loadPeopleYouWorkWith(viewer: Pick<Viewer, "userId" | "ten
     const row = profiles.get(id);
     // Tenant scoping: only people who belong to (or are homed in) the viewer's tenant, and still active.
     if (!row || row.status === "inactive") return [];
-    if (row.tenant_id !== viewer.tenantId && row.home_tenant_id !== viewer.tenantId) return [];
+    if (!isWorkspaceMember(row, viewer.tenantId)) return [];
     return [
       {
         id,

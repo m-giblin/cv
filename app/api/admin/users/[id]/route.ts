@@ -3,6 +3,7 @@ import { z } from "zod";
 import { logAuditEvent } from "@/lib/audit/log-admin-action";
 import { validateSailPointEmail, requireAdminSession } from "@/lib/auth/require-admin";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isWorkspaceMember } from "@/lib/tenant/workspace-members";
 import { Database } from "@/lib/database.types";
 import { ProfileRole, SeLevel } from "@/lib/types";
 import { roleForJobTitle } from "@/lib/tenant/job-titles";
@@ -50,11 +51,11 @@ export async function PATCH(request: Request, context: RouteContext) {
  }
 
  const { data: existingRow } = await admin.from("profiles").select("*").eq("id", id).maybeSingle();
- const existingProfile = existingRow as { role: ProfileRole; level: string; manager_id: string | null; tenant_id: string | null; home_tenant_id?: string | null } | null;
+ const existingProfile = existingRow as { role: ProfileRole; level: string; manager_id: string | null; tenant_id: string | null; home_tenant_id?: string | null; member_tenant_ids?: string[] | null } | null;
 
  // A super admin whose home workspace is this one shows up here for training. Tenant admins may
  // set their manager and level, nothing else: never their role, name, email or account.
- const homeMember = Boolean(existingProfile && existingProfile.role === "super_admin" && existingProfile.home_tenant_id === session.tenantId);
+ const homeMember = Boolean(existingProfile && existingProfile.role === "super_admin" && isWorkspaceMember(existingProfile, session.tenantId));
  if (!existingProfile || (existingProfile.tenant_id !== session.tenantId && !homeMember)) {
  return NextResponse.json({ error: "User not found in your tenant." }, { status: 404 });
  }

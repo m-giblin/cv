@@ -46,7 +46,7 @@ export async function GET() {
   const { admin, userId } = session;
   const { data: viewerRow } = await admin.from("profiles").select("*").eq("id", userId).maybeSingle();
   const viewer = viewerRow as ViewerProfile | null;
-  const viewerTenant = viewerTenantId(viewer);
+  const viewerTenant = viewerTenantId(viewer, session.tenantId);
   const isAdmin = ADMIN_ROLES.includes(viewer?.role ?? "");
 
   const [{ data: reports }, { data: assigned }] = await Promise.all([

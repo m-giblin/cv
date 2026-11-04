@@ -10,6 +10,7 @@ import { isFeatureEnabled } from "@/lib/platform/feature-flags";
 import { loadPlatformSettings } from "@/lib/platform/settings";
 import { getTenantAdminClient } from "@/lib/data/tenant-scoped-query";
 import { createClient } from "@/lib/supabase/server";
+import { workspaceTenantIds, type WorkspaceMemberRow } from "@/lib/tenant/workspace-members";
 import { getTenantShellBranding, type TenantShellBranding } from "@/lib/tenant/shell-branding";
 import type { Notification, Profile, ProfileRole, SeLevel } from "@/lib/types";
 
@@ -21,6 +22,10 @@ export type ShellData = {
   workspaceCookie: string | null;
   shadowMode: "admin" | "manager" | "se" | null;
   shadowTenantName: string | null;
+  /** Super admins: the workspaces they belong to (for the switcher). Empty for everyone else. */
+  memberWorkspaces: { id: string; name: string }[];
+  /** The tenant a super admin has entered, if any. */
+  activeTenantId: string | null;
   people: SidebarPerson[];
   /** Active mentees this person mentors; shown as a badge and used to enable cross-workspace access. */
   menteeCount: number;
@@ -55,6 +60,22 @@ async function countMentees(userId: string) {
     return count ?? 0;
   } catch {
     return 0;
+  }
+}
+
+/** A super admin's workspaces with their names, home first. Best effort: empty on any failure. */
+async function loadMemberWorkspaces(userId: string) {
+  try {
+    const admin = getTenantAdminClient();
+    if (!admin) return [];
+    const { data: row } = await admin.from("profiles").select("*").eq("id", userId).maybeSingle();
+    const ids = workspaceTenantIds(row as WorkspaceMemberRow | null);
+    if (ids.length === 0) return [];
+    const { data: tenants } = await admin.from("tenants").select("id, name").in("id", ids);
+    const nameOf = new Map(((tenants ?? []) as { id: string; name: string }[]).map((tenant) => [tenant.id, tenant.name]));
+    return ids.flatMap((id) => (nameOf.has(id) ? [{ id, name: nameOf.get(id) as string }] : []));
+  } catch {
+    return [];
   }
 }
 
@@ -145,10 +166,11 @@ export const loadShellData = cache(async (): Promise<ShellData | null> => {
     menteeCount > 0 && !resolvedHats.includes("se") ? [...resolvedHats, "se"] : resolvedHats;
   const brandingTenantId = access.isShadowing ? access.tenantId : (currentUser.tenantId ?? access.tenantId);
 
-  const [branding, people, settings] = await Promise.all([
+  const [branding, people, settings, memberWorkspaces] = await Promise.all([
     getTenantShellBranding(brandingTenantId),
     workspaceHats.includes("se") ? loadSeTeam(supabase, currentUser) : Promise.resolve([]),
     loadPlatformSettings(brandingTenantId ?? undefined).catch(() => null),
+    currentUser.role === "super_admin" ? loadMemberWorkspaces(currentUser.id) : Promise.resolve([]),
   ]);
   const assistantEnabled = Boolean(
     settings &&
@@ -174,6 +196,8 @@ export const loadShellData = cache(async (): Promise<ShellData | null> => {
     workspaceCookie: cookieStore.get(WORKSPACE_HAT_COOKIE)?.value ?? null,
     shadowMode: enterMode,
     shadowTenantName: access.isShadowing ? (access.shadowTenantName ?? branding.tenantName ?? branding.productName) : null,
+    memberWorkspaces,
+    activeTenantId: access.isShadowing ? access.tenantId : null,
     people,
     menteeCount,
     forgeEnabled: isForgeConfigured(),

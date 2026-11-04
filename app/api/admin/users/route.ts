@@ -6,6 +6,7 @@ import { issueActivationCode } from "@/lib/auth/account-access-server";
 import { validateSailPointEmail, requireAdminSession } from "@/lib/auth/require-admin";
 import { validateEmailForTenant } from "@/lib/auth/tenant-email";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { legacyWorkspaceMemberFilter, workspaceMemberFilter } from "@/lib/tenant/workspace-members";
 import { roleForJobTitle } from "@/lib/tenant/job-titles";
 import { resolveJobTitle } from "@/lib/tenant/job-titles-server";
 import { ProfileRole, SeLevel } from "@/lib/types";
@@ -52,17 +53,14 @@ export async function GET() {
 
  // Status and invite date come from a newer migration; fall back without them until it's applied.
  const base = "id, email, full_name, role, level, manager_id, created_at";
- // Members, plus super admins whose home workspace is this one (they train here).
- const members = (columns: string) =>
- admin
- .from("profiles")
- .select(columns)
- .or(`tenant_id.eq.${session.tenantId},home_tenant_id.eq.${session.tenantId}`)
- .order("full_name");
- // Job titles come from a newer migration still; without them the list reads as before.
+ // Members, plus super admins who belong to this workspace (home or one of their workspaces).
+ const members = (columns: string, filter: string) =>
+ admin.from("profiles").select(columns).or(filter).order("full_name");
+ // Job titles and workspace lists come from newer migrations; without them the list reads as before.
  type Result = { data: { id: string }[] | null; error: { message: string } | null };
- let { data, error } = (await members(`${base}, status, invited_at, job_title`)) as unknown as Result;
- if (error) ({ data, error } = (await members(`${base}, status, invited_at`)) as unknown as Result);
+ let { data, error } = (await members(`${base}, status, invited_at, job_title`, workspaceMemberFilter(session.tenantId!))) as unknown as Result;
+ if (error) ({ data, error } = (await members(`${base}, status, invited_at, job_title`, legacyWorkspaceMemberFilter(session.tenantId!))) as unknown as Result);
+ if (error) ({ data, error } = (await members(`${base}, status, invited_at`, legacyWorkspaceMemberFilter(session.tenantId!))) as unknown as Result);
  if (error) {
  ({ data, error } = (await admin.from("profiles").select(base).eq("tenant_id", session.tenantId!).order("full_name")) as unknown as {
  data: typeof data;
@@ -119,6 +117,19 @@ export async function POST(request: Request) {
  const onboarding = parsed.data.onboarding ?? (parsed.data.sendInvite ? "email" : parsed.data.password ? "password" : "code");
  // Only a temporary password is ever known to anyone; code and email accounts start with one nobody has.
  const tempPassword = onboarding === "password" ? (parsed.data.password ?? newTemporaryPassword()) : unusablePassword();
+
+ // A platform super admin already has a sign-in; they join workspaces themselves rather than
+ // getting a second account here.
+ const { data: existing } = await admin.from("profiles").select("role").eq("email", email).maybeSingle();
+ if ((existing as { role?: string } | null)?.role === "super_admin") {
+ return NextResponse.json(
+ {
+ error:
+ "That's a platform super admin's sign-in. They can join this workspace with the same sign-in from Account → Your workspaces, then they'll appear here.",
+ },
+ { status: 409 },
+ );
+ }
 
  const { data: authData, error: authError } = await admin.auth.admin.createUser({
  email,

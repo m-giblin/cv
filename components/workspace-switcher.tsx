@@ -11,13 +11,23 @@ import {
 } from "@/lib/auth/workspace";
 import { cn } from "@/lib/utils";
 
-/** Dashed pill in the top bar. Shown only to people with more than one workspace. */
+export type MemberWorkspace = { id: string; name: string };
+
+/**
+ * Dashed pill in the top bar. Shown to people with more than one workspace hat, and to super
+ * admins who belong to workspaces (listed under "Your workspaces" so one sign-in reaches them all).
+ */
 export function WorkspaceSwitcher({
   hats,
   activeHat,
+  workspaces = [],
+  activeTenantId = null,
 }: {
   hats: WorkspaceHat[];
   activeHat: WorkspaceHat;
+  workspaces?: MemberWorkspace[];
+  /** The workspace a super admin is inside right now, if any. */
+  activeTenantId?: string | null;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -40,7 +50,34 @@ export function WorkspaceSwitcher({
     };
   }, [open]);
 
-  if (hats.length <= 1) return null;
+  if (hats.length <= 1 && workspaces.length === 0) return null;
+  const activeWorkspace = workspaces.find((entry) => entry.id === activeTenantId) ?? null;
+
+  async function enterWorkspace(tenantId: string) {
+    if (switching) return;
+    if (tenantId === activeTenantId) {
+      setOpen(false);
+      return;
+    }
+    setSwitching(true);
+    try {
+      const response = await fetch("/api/platform/shadow", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-requested-with": "XMLHttpRequest" },
+        body: JSON.stringify({ tenantId, mode: "admin" }),
+      });
+      const body = (await response.json().catch(() => null)) as { error?: string; redirect?: string } | null;
+      if (!response.ok) {
+        toast.error(body?.error ?? "Couldn't open that workspace. Try again.");
+        return;
+      }
+      setOpen(false);
+      // A new tenant changes the whole shell (branding, people, navigation), so load it fresh.
+      window.location.assign(body?.redirect ?? "/admin");
+    } finally {
+      setSwitching(false);
+    }
+  }
 
   async function switchTo(hat: WorkspaceHat) {
     if (hat === activeHat || switching) return;
@@ -79,6 +116,7 @@ export function WorkspaceSwitcher({
         onClick={() => setOpen((value) => !value)}
         type="button"
       >
+        {activeWorkspace ? <span className="max-w-[160px] truncate font-normal opacity-80">{activeWorkspace.name} ·</span> : null}
         {WORKSPACE_HAT_LABELS[activeHat]}
         <span aria-hidden className="h-1.5 w-1.5 -translate-y-0.5 rotate-45 border-r-[1.5px] border-b-[1.5px] border-white" />
       </button>
@@ -87,7 +125,7 @@ export function WorkspaceSwitcher({
           className="absolute top-[calc(100%+10px)] right-0 z-50 w-72 overflow-hidden rounded-[14px] border border-line bg-white shadow-[var(--shadow-drag)]"
           role="menu"
         >
-          {hats.map((hat) => (
+          {hats.length > 1 ? hats.map((hat) => (
             <button
               className={cn(
                 "block w-full border-b border-divider px-4 py-3 text-left last:border-b-0",
@@ -104,7 +142,32 @@ export function WorkspaceSwitcher({
               </span>
               <span className="block text-[13px] leading-snug text-muted">{WORKSPACE_HAT_DESCRIPTIONS[hat]}</span>
             </button>
-          ))}
+          )) : null}
+          {workspaces.length > 0 ? (
+            <div className={cn(hats.length > 1 && "border-t-4 border-bg")}>
+              <p className="px-4 pt-3 pb-1 text-[11px] font-bold tracking-[0.08em] text-muted uppercase">Your workspaces</p>
+              {workspaces.map((entry) => (
+                <button
+                  className={cn(
+                    "block w-full px-4 py-2.5 text-left",
+                    entry.id === activeTenantId ? "bg-blue-soft shadow-[inset_3px_0_0_var(--color-blue)]" : "hover:bg-bg",
+                  )}
+                  disabled={switching}
+                  key={entry.id}
+                  onClick={() => void enterWorkspace(entry.id)}
+                  role="menuitem"
+                  type="button"
+                >
+                  <span className={cn("block truncate text-[15px] font-bold", entry.id === activeTenantId ? "text-blue" : "text-ink")}>
+                    {entry.name}
+                  </span>
+                  <span className="block text-[13px] leading-snug text-muted">
+                    {entry.id === activeTenantId ? "You're here" : "Open as yourself"}
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>

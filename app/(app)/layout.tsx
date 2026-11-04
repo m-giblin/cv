@@ -20,6 +20,8 @@ export default async function SignedInLayout({ children }: { children: ReactNode
       forgeEnabled={shell.forgeEnabled}
       navCounts={shell.menteeCount > 0 ? { mentoring: shell.menteeCount } : undefined}
       notifications={shell.notifications}
+      activeTenantId={shell.activeTenantId}
+      memberWorkspaces={shell.memberWorkspaces}
       people={shell.people}
       shadowMode={shell.shadowMode}
       shadowTenantName={shell.shadowTenantName}

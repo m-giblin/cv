@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Menu, Search } from "lucide-react";
 import { NotificationFlyout } from "@/components/notifications/notification-flyout";
 import { UserAccountMenu } from "@/components/nav/user-account-menu";
-import { WorkspaceSwitcher } from "@/components/workspace-switcher";
+import { WorkspaceSwitcher, type MemberWorkspace } from "@/components/workspace-switcher";
 import { getWorkspaceHome, type WorkspaceHat } from "@/lib/auth/workspace";
 import { useTenantBranding } from "@/components/tenant/tenant-branding-provider";
 import type { Notification, Profile } from "@/lib/types";
@@ -39,9 +39,13 @@ export function TopBar({
   onOpenPalette,
   onOpenMenu,
   menuOpen,
+  memberWorkspaces,
+  activeTenantId,
 }: {
   workspace: WorkspaceHat;
   workspaceHats: WorkspaceHat[];
+  memberWorkspaces?: MemberWorkspace[];
+  activeTenantId?: string | null;
   currentUser: Profile;
   notifications: Notification[];
   onOpenPalette: () => void;
@@ -80,7 +84,7 @@ export function TopBar({
           <Search aria-hidden className="h-5 w-5" />
         </button>
         <div className="hidden sm:block">
-          <WorkspaceSwitcher activeHat={workspace} hats={workspaceHats} />
+          <WorkspaceSwitcher activeHat={workspace} activeTenantId={activeTenantId} hats={workspaceHats} workspaces={memberWorkspaces} />
         </div>
         <NotificationFlyout align="header" appearance="sidebar-dark" notifications={notifications} />
         <UserAccountMenu appearance="topbar" currentUser={currentUser} />

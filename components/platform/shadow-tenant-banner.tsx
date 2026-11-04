@@ -13,9 +13,12 @@ const MODE_LABEL: Record<"admin" | "manager" | "se", string> = {
 export function ShadowTenantBanner({
   tenantName,
   mode,
+  member = false,
 }: {
   tenantName: string;
   mode: "admin" | "manager" | "se";
+  /** The super admin belongs to this workspace, so they're here as themselves, not visiting. */
+  member?: boolean;
 }) {
   const router = useRouter();
   const [exiting, setExiting] = useState(false);
@@ -57,11 +60,19 @@ export function ShadowTenantBanner({
       className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-signal-edge/40 bg-signal-soft px-[var(--page-pad-x)] py-2.5 text-ink max-lg:px-4"
       role="region"
     >
-      <p className="text-sm leading-snug text-ink">
-        <span className="font-bold">Shadowing</span> {tenantName} as{" "}
-        <span className="font-semibold">{MODE_LABEL[mode].toLowerCase()}</span>.
-        <span className="text-ink-2"> Switch workspaces any time, or return to the platform console.</span>
-      </p>
+      {member ? (
+        <p className="text-sm leading-snug text-ink">
+          You&apos;re in <span className="font-bold">{tenantName}</span> as{" "}
+          <span className="font-semibold">{MODE_LABEL[mode].toLowerCase()}</span>.
+          <span className="text-ink-2"> It&apos;s one of your workspaces. Switch from the workspace menu in the top bar.</span>
+        </p>
+      ) : (
+        <p className="text-sm leading-snug text-ink">
+          <span className="font-bold">Shadowing</span> {tenantName} as{" "}
+          <span className="font-semibold">{MODE_LABEL[mode].toLowerCase()}</span>.
+          <span className="text-ink-2"> Switch workspaces any time, or return to the platform console.</span>
+        </p>
+      )}
       <button className="btn-secondary shrink-0" disabled={exiting} onClick={() => void backToPlatform()} type="button">
         {exiting ? "Returning…" : "Back to platform"}
       </button>
