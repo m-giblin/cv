@@ -886,6 +886,25 @@ function ReadyChecklist({
   );
 }
 
+
+const CHALLENGE_LEVEL_ORDER = ["Basic", "Senior", "Advisory"];
+
+/** Challenges grouped Basic, Senior, Advisory (then anything else), alphabetical within each. */
+function groupChallengesByLevel<T extends { title: string; target_level?: string | null }>(challenges: T[]) {
+  const groups = new Map<string, T[]>();
+  for (const challenge of challenges) {
+    const level = challenge.target_level?.trim() || "Other";
+    groups.set(level, [...(groups.get(level) ?? []), challenge]);
+  }
+  const rank = (level: string) => {
+    const index = CHALLENGE_LEVEL_ORDER.indexOf(level);
+    return index === -1 ? CHALLENGE_LEVEL_ORDER.length : index;
+  };
+  return [...groups.entries()]
+    .sort(([a], [b]) => rank(a) - rank(b) || a.localeCompare(b))
+    .map(([level, items]) => ({ level, items: [...items].sort((a, b) => a.title.localeCompare(b.title)) }));
+}
+
 function StepEditor({
   step,
   onChange,
@@ -900,7 +919,7 @@ function StepEditor({
   onChange: (patch: Partial<BuilderStep>) => void;
   onRemove: () => void;
   assets: { id: string; title: string; url: string }[];
-  challenges: { id: string; title: string; estimated_minutes?: number | null }[];
+  challenges: { id: string; title: string; estimated_minutes?: number | null; target_level?: string | null }[];
   simTemplates: {
     id: string;
     name: string;
@@ -1002,10 +1021,15 @@ function StepEditor({
             value={step.challengeId}
           >
             <option value="">{challenges.length ? "Choose a challenge" : "No challenges"}</option>
-            {challenges.map((challenge) => (
-              <option key={challenge.id} value={challenge.id}>
-                {challenge.title}
-              </option>
+            {groupChallengesByLevel(challenges).map((group) => (
+              <optgroup key={group.level} label={group.level}>
+                {group.items.map((challenge) => (
+                  <option key={challenge.id} value={challenge.id}>
+                    {challenge.title}
+                    {typeof challenge.estimated_minutes === "number" ? ` · ${challenge.estimated_minutes} min` : ""}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </SelectInput>
         </Field>

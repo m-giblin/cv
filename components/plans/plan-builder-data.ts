@@ -22,7 +22,13 @@ export type LibraryItem = {
 export type CompetencyOption = { id: string; name: string };
 
 type ContentAsset = { id: string; title: string; url: string };
-type Challenge = { id: string; title: string; estimated_minutes?: number | null };
+type Challenge = {
+  id: string;
+  title: string;
+  estimated_minutes?: number | null;
+  target_level?: string | null;
+  difficulty?: string | null;
+};
 type SimTemplate = {
   id: string;
   name: string;

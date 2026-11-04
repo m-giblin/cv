@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { generatedChallengeSchema } from "@/lib/ai/schemas";
 import { auditMutation } from "@/lib/audit/audit-mutation";
 import { requireManagerSession } from "@/lib/auth/require-manager";
+import { resolveTenantContext } from "@/lib/auth/tenant-context";
 import { createClient } from "@/lib/supabase/server";
+import { DEFAULT_TENANT_ID } from "@/lib/tenant/types";
 
 export async function GET() {
  const supabase = await createClient();
@@ -19,7 +21,16 @@ export async function GET() {
  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
  }
 
- const { data, error } = await supabase.from("challenges").select("id, title, estimated_minutes").order("title");
+ // Only this workspace's challenges. Super admins can read every tenant's rows, which listed
+ // each cloned challenge once per workspace.
+ const context = await resolveTenantContext();
+ const tenantId = context?.tenantId ?? DEFAULT_TENANT_ID;
+
+ const { data, error } = await supabase
+ .from("challenges")
+ .select("id, title, estimated_minutes, target_level, difficulty")
+ .eq("tenant_id", tenantId)
+ .order("title");
 
  if (error) {
  return NextResponse.json({ error: error.message }, { status: 500 });
