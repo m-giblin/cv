@@ -350,6 +350,13 @@ export function PlanBuilder({
       }),
     });
     setSaving(false);
+    if (response.status === 401) {
+      toast.error("You've been signed out, so this wasn't published.", {
+        description: "Keep this tab open. Sign in again in a new tab, then come back and click Publish. Your work is still here.",
+        duration: Infinity,
+      });
+      return;
+    }
     if (!response.ok) {
       const body = (await response.json().catch(() => null)) as { error?: unknown } | null;
       toast.error(typeof body?.error === "string" ? body.error : "Could not publish plan.");

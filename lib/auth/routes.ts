@@ -10,6 +10,9 @@ export const AUTH_ROUTES = {
   dashboard: "/dashboard",
 } as const;
 
+/** Heartbeat the browser sends while the person is active, so on-page work keeps them signed in. */
+export const SESSION_ACTIVITY_PATH = "/api/platform/session-activity";
+
 export function isAuthRoute(pathname: string) {
   return (
     pathname === AUTH_ROUTES.login ||

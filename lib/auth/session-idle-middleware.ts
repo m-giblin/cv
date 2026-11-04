@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_IDLE_MS } from "@/lib/auth/rbac";
-import { AUTH_ROUTES } from "@/lib/auth/routes";
+import { AUTH_ROUTES, SESSION_ACTIVITY_PATH } from "@/lib/auth/routes";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   DEFAULT_SESSION_IDLE_MINUTES,
@@ -86,7 +86,9 @@ export async function enforceSessionIdle(
   }
 
   const { pathname } = request.nextUrl;
-  const countsAsActivity = !pathname.startsWith("/api/");
+  // Page loads count as activity; API calls don't, except the client heartbeat sent while
+  // someone is typing or clicking on one page (for example building a program in a dialog).
+  const countsAsActivity = !pathname.startsWith("/api/") || pathname === SESSION_ACTIVITY_PATH;
 
   if (countsAsActivity) {
     response.cookies.set(
