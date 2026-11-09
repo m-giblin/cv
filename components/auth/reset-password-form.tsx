@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useState } from "react";
 import { toast } from "sonner";
-import { Input } from "@/components/ui/input";
+import { PasswordInput, PasswordMatchHint } from "@/components/ui/password-input";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
 import { createClient } from "@/lib/supabase/client";
 
@@ -141,14 +141,13 @@ export function ResetPasswordForm() {
  <label className="mb-1.5 block text-sm font-semibold text-ink" htmlFor={passwordId}>
  New password
  </label>
- <Input
+ <PasswordInput
  aria-describedby={`${passwordId}-hint`}
  autoComplete="new-password"
  id={passwordId}
  minLength={8}
  onChange={(event) => setPassword(event.target.value)}
  required
- type="password"
  value={password}
  />
  <p className="mt-1 text-[13px] text-muted" id={`${passwordId}-hint`}>
@@ -160,15 +159,15 @@ export function ResetPasswordForm() {
  <label className="mb-1.5 block text-sm font-semibold text-ink" htmlFor={confirmId}>
  Confirm password
  </label>
- <Input
+ <PasswordInput
  autoComplete="new-password"
  id={confirmId}
  minLength={8}
  onChange={(event) => setConfirmPassword(event.target.value)}
  required
- type="password"
  value={confirmPassword}
  />
+<PasswordMatchHint confirm={confirmPassword} password={password} />
  </div>
 
  <button className="btn-primary inline-flex w-full items-center justify-center gap-2" disabled={isSubmitting} type="submit">

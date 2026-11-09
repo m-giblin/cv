@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { useId, useState } from "react";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { allowedEmailError } from "@/lib/auth/email-domain";
 import { mapAuthErrorMessage } from "@/lib/auth/errors";
 import { isMfaExempt } from "@/lib/auth/mfa";
@@ -173,12 +174,11 @@ export function LoginForm({ initialError }: { initialError?: string | null }) {
             Forgot password?
           </Link>
         </div>
-        <Input
+        <PasswordInput
           autoComplete="current-password"
           id={passwordId}
           onChange={(e) => setPassword(e.target.value)}
           required
-          type="password"
           value={password}
         />
       </div>

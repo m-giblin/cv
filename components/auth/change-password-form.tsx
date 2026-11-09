@@ -4,7 +4,7 @@ import { Loader2 } from "lucide-react";
 import { useId, useState } from "react";
 import { toast } from "sonner";
 import { MfaReauthGate } from "@/components/auth/mfa-reauth-gate";
-import { Input } from "@/components/ui/input";
+import { PasswordInput, PasswordMatchHint } from "@/components/ui/password-input";
 import { createClient } from "@/lib/supabase/client";
 
 /**
@@ -116,13 +116,12 @@ export function ChangePasswordForm({ required = false }: { required?: boolean })
  <label className="mb-1.5 block text-sm font-semibold text-ink" htmlFor={passwordId}>
  New password
  </label>
- <Input
+ <PasswordInput
  autoComplete="new-password"
  id={passwordId}
  minLength={8}
  onChange={(event) => setPassword(event.target.value)}
  required
- type="password"
  value={password}
  />
  </div>
@@ -131,15 +130,15 @@ export function ChangePasswordForm({ required = false }: { required?: boolean })
  <label className="mb-1.5 block text-sm font-semibold text-ink" htmlFor={confirmId}>
  Confirm new password
  </label>
- <Input
+ <PasswordInput
  autoComplete="new-password"
  id={confirmId}
  minLength={8}
  onChange={(event) => setConfirmPassword(event.target.value)}
  required
- type="password"
  value={confirmPassword}
  />
+<PasswordMatchHint confirm={confirmPassword} password={password} />
  </div>
 
  <button className="btn-primary inline-flex items-center gap-2" disabled={isSubmitting} type="submit">
