@@ -23,6 +23,7 @@ import type {
 } from "@/lib/types";
 import type { Database, Json } from "@/lib/database.types";
 import type { DataSource } from "@/lib/data/get-dashboard-data";
+import { DEFAULT_TENANT_ID } from "@/lib/tenant/types";
 
 type DbProfile = Database["public"]["Tables"]["profiles"]["Row"];
 type DbChallenge = Database["public"]["Tables"]["challenges"]["Row"];
@@ -124,6 +125,24 @@ export type ChallengesPageData = Pick<
   "currentUser" | "challenges" | "submissions" | "plans" | "competencies" | "coachingCards" | "notifications"
 >;
 
+/** The one tenant whose library to list. Super admins can read every tenant, so RLS alone returns each copy. */
+async function resolveLibraryTenantId(
+  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
+  userId: string,
+): Promise<string> {
+  const { data } = await supabase.from("profiles").select("role, tenant_id").eq("id", userId).maybeSingle();
+  const profile = data as { role: Profile["role"]; tenant_id: string | null } | null;
+  const cookieStore = await cookies();
+  const access = resolveEffectiveAccess(
+    profile?.role ?? "basic_se",
+    profile?.tenant_id ?? null,
+    cookieStore.get(SHADOW_TENANT_COOKIE)?.value ?? null,
+    cookieStore.get(SHADOW_TENANT_NAME_COOKIE)?.value ?? null,
+    cookieStore.get(SHADOW_MODE_COOKIE)?.value ?? null,
+  );
+  return access.tenantId ?? profile?.tenant_id ?? DEFAULT_TENANT_ID;
+}
+
 async function fetchSupabaseChallengesPageData(): Promise<ChallengesPageData | null> {
   const supabase = await createClient();
   if (!supabase) {
@@ -135,6 +154,8 @@ async function fetchSupabaseChallengesPageData(): Promise<ChallengesPageData | n
   if (!user) {
     return null;
   }
+
+  const libraryTenantId = await resolveLibraryTenantId(supabase, user.id);
 
   const [
     profileResult,
@@ -155,6 +176,7 @@ async function fetchSupabaseChallengesPageData(): Promise<ChallengesPageData | n
       .select(
         "id, title, description, difficulty, estimated_minutes, linked_solutions, target_level, is_ai_generated, created_by, ai_metadata",
       )
+      .eq("tenant_id", libraryTenantId)
       .order("title"),
     supabase
       .from("challenge_submissions")

@@ -6,6 +6,9 @@ import { toast } from "sonner";
 import { FIELD_CLS, LABEL_CLS, LINE_CARD_CLS, TEXTAREA_CLS } from "@/components/se/form-classes";
 import { createClient } from "@/lib/supabase/client";
 
+/** Matches the file_size_limit on the evidence storage bucket. */
+const MAX_EVIDENCE_BYTES = 50 * 1024 * 1024;
+
 export function ChallengeSubmissionForm({
   challengeId,
   defaultReflection = "",
@@ -19,7 +22,21 @@ export function ChallengeSubmissionForm({
   const [evidenceUrl, setEvidenceUrl] = useState("");
   const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [fileError, setFileError] = useState<string | null>(null);
   const formId = useId();
+
+  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null;
+    if (file && file.size > MAX_EVIDENCE_BYTES) {
+      const sizeMb = Math.ceil(file.size / (1024 * 1024));
+      setFileError(`That file is ${sizeMb}MB and the limit is 50MB. Paste a link to it below instead.`);
+      setEvidenceFile(null);
+      event.target.value = "";
+      return;
+    }
+    setFileError(null);
+    setEvidenceFile(file);
+  }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -112,7 +129,7 @@ export function ChallengeSubmissionForm({
             Upload evidence
           </label>
           <p className="text-[13px] text-muted" id={`${fileId}-hint`}>
-            PDF, deck, image or video, max 50MB.
+            PDF, deck, image or video, max 50MB. For a larger video, paste a link below.
           </p>
           <label
             className="flex cursor-pointer flex-wrap items-center justify-between gap-2 rounded-[10px] border border-dashed border-line-strong bg-white px-4 py-3.5 hover:bg-blue-soft has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-blue"
@@ -123,14 +140,19 @@ export function ChallengeSubmissionForm({
             </span>
             <span className="text-[13px] text-muted">{evidenceFile?.name ?? "No file chosen"}</span>
             <input
-              accept=".pdf,.png,.jpg,.jpeg,.webp,.mp4,.pptx,.txt"
+              accept=".pdf,.png,.jpg,.jpeg,.webp,.mp4,.mov,.pptx,.txt"
               aria-describedby={`${fileId}-hint`}
               className="sr-only"
               id={fileId}
-              onChange={(event) => setEvidenceFile(event.target.files?.[0] ?? null)}
+              onChange={handleFileChange}
               type="file"
             />
           </label>
+          {fileError ? (
+            <p className="text-[13px] text-danger" role="alert">
+              {fileError}
+            </p>
+          ) : null}
         </div>
         <div className="flex flex-col gap-1.5">
           <label className={LABEL_CLS} htmlFor={urlId}>

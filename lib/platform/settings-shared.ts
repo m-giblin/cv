@@ -204,7 +204,7 @@ export const PLATFORM_FEATURE_FLAG_DEFS: PlatformFeatureFlagDef[] = [
     category: "practice",
     defaultEnabled: true,
     kind: "product",
-    routePrefixes: ["/challenges", "/practice/challenges", "/api/challenges"],
+    routePrefixes: ["/challenges", "/practice/challenges", "/api/challenges", "/api/submissions"],
   },
   {
     id: "simulations",

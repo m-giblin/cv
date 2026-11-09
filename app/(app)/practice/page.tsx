@@ -157,18 +157,20 @@ export default async function PracticePage() {
   }
 
   const assigned: AssignedPractice[] = [
-    ...openChallengeSteps.map((step) => {
-      const days = daysUntil(step.dueDate);
-      return {
-        id: `step-${step.id}`,
-        title: step.title,
-        source: "Challenge, from your ramp plan",
-        due: formatDay(step.dueDate),
-        overdue: days !== null && days < 0,
-        href: planStepHref(step),
-        sortKey: step.dueDate ?? "9999",
-      };
-    }),
+    ...(flags.challenges
+      ? openChallengeSteps.map((step) => {
+          const days = daysUntil(step.dueDate);
+          return {
+            id: `step-${step.id}`,
+            title: step.title,
+            source: "Challenge, from your ramp plan",
+            due: formatDay(step.dueDate),
+            overdue: days !== null && days < 0,
+            href: planStepHref(step),
+            sortKey: step.dueDate ?? "9999",
+          };
+        })
+      : []),
     ...(flags.simulations
       ? openSims.map((simulation) => {
           const from =
