@@ -31,9 +31,12 @@ export async function GET() {
   }
 
   const managerId = profile?.manager_id ?? null;
-  const { data: manager } = managerId
-    ? await supabase.from("profiles").select("full_name").eq("id", managerId).maybeSingle()
-    : { data: null };
+  // People can't read their manager's profile under RLS, so only the name is fetched server-side.
+  const admin = createAdminClient();
+  const { data: manager } =
+    managerId && admin
+      ? await admin.from("profiles").select("full_name").eq("id", managerId).maybeSingle()
+      : { data: null };
 
   return NextResponse.json({
     attempts: [...latest.values()],

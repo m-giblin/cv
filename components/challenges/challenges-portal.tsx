@@ -650,6 +650,8 @@ export function ChallengesPortal({
  key={selectedChallenge.id}
  managerName={managerName}
  onChanged={() => {
+ // Pin the challenge in the URL so the refresh can't jump to a different one.
+ selectChallenge(selectedChallenge.id);
  loadAttempts();
  router.refresh();
  }}
