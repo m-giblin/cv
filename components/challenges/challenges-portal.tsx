@@ -6,13 +6,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { ChallengeFlow, type ChallengeAttemptSummary } from "@/components/challenges/challenge-flow";
 import { CARD_CLS, FIELD_CLS, LINE_CARD_CLS, SELECT_CLS } from "@/components/se/form-classes";
-import { Chip } from "@/components/ui/chip";
 import { StatusPill } from "@/components/ui/status-pill";
 import { Tag } from "@/components/ui/tag";
 import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import {
  type ChallengeFilter,
  filterChallenges,
+ isAgenticChallenge,
  libraryStatusLabel,
  sortChallenges,
  submissionForChallenge,
@@ -47,6 +47,7 @@ const COMPETENCY_FILTERS = [
  "Competitive positioning",
  "Demo execution",
  "Value articulation",
+ "Agentic AI",
 ] as const;
 const STATUS_FILTERS = [
  "All statuses",
@@ -108,14 +109,11 @@ function primaryCompetency(challenge: Challenge) {
  return names[0] ?? "General";
 }
 
-const FILTER_OPTIONS: { id: ChallengeFilter; label: string }[] = [
- { id: "all", label: "All" },
+const LEVEL_OPTIONS: { id: ChallengeFilter; label: string }[] = [
+ { id: "all", label: "All levels" },
  { id: "basic", label: "Basic" },
  { id: "senior", label: "Senior" },
  { id: "advisory", label: "Advisory" },
- { id: "agentic", label: "Agentic AI" },
- { id: "active", label: "To do" },
- { id: "done", label: "Earned" },
 ];
 
 const EMPTY_CLS =
@@ -229,7 +227,9 @@ export function ChallengesPortal({
  let rows = sortChallenges(filterChallenges(challenges, submissions, query, filter)).filter(
  (challenge) => {
  if (verticalFilter !== "All verticals" && inferVertical(challenge) !== verticalFilter) return false;
- if (competencyFilter !== "All competencies") {
+ if (competencyFilter === "Agentic AI") {
+ if (!isAgenticChallenge(challenge)) return false;
+ } else if (competencyFilter !== "All competencies") {
  const names = competencyNamesForChallenge(challenge).join(" ").toLowerCase();
  if (!names.includes(competencyFilter.toLowerCase().split(" ")[0] ?? "")) return false;
  }
@@ -440,7 +440,8 @@ export function ChallengesPortal({
  <div className="grid min-w-0 grid-cols-1 items-start gap-6 lg:grid-cols-[400px_minmax(0,1fr)]">
  <aside aria-label="Challenge library" className={`${LINE_CARD_CLS} flex min-w-0 flex-col overflow-hidden`}>
  <div className="flex flex-col gap-3 border-b border-divider px-5 py-4">
- <div className="flex flex-col gap-1">
+ <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+<div className="flex flex-col gap-1">
  <label className="text-sm font-bold text-ink" htmlFor="challenge-search">
  Search
  </label>
@@ -456,19 +457,40 @@ export function ChallengesPortal({
  />
  </div>
  </div>
- <div aria-label="Quick filters" className="flex flex-wrap gap-1.5" role="group">
- {FILTER_OPTIONS.map((option) => (
- <Chip active={filter === option.id} key={option.id} onClick={() => setFilter(option.id)}>
- {option.label}
- </Chip>
+<div className="flex flex-col gap-1">
+ <label className="text-sm font-bold text-ink" htmlFor="challenge-sort">
+ Sort
+ </label>
+ <select
+ className={SELECT_CLS}
+ id="challenge-sort"
+ onChange={(e) => setSortBy(e.target.value as (typeof SORT_OPTIONS)[number])}
+ value={sortBy}
+ >
+ {SORT_OPTIONS.map((option) => (
+ <option key={option} value={option}>
+ {option}
+ </option>
  ))}
- {gapRecommendations.length > 0 ? (
- <Chip active={showGapsOnly} onClick={() => setShowGapsOnly((on) => !on)}>
- My gaps only
- </Chip>
- ) : null}
+ </select>
  </div>
- <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+<div className="flex flex-col gap-1">
+ <label className="text-sm font-bold text-ink" htmlFor="challenge-level">
+ Level
+ </label>
+ <select
+ className={SELECT_CLS}
+ id="challenge-level"
+ onChange={(e) => setFilter(e.target.value as ChallengeFilter)}
+ value={filter}
+ >
+ {LEVEL_OPTIONS.map((option) => (
+ <option key={option.id} value={option.id}>
+ {option.label}
+ </option>
+ ))}
+ </select>
+ </div>
  <div className="flex flex-col gap-1">
  <label className="text-sm font-bold text-ink" htmlFor="challenge-vertical">
  Vertical
@@ -520,24 +542,13 @@ export function ChallengesPortal({
  ))}
  </select>
  </div>
- <div className="flex flex-col gap-1">
- <label className="text-sm font-bold text-ink" htmlFor="challenge-sort">
- Sort
+  </div>
+ {gapRecommendations.length > 0 ? (
+ <label className="flex items-center gap-2 text-sm font-semibold text-ink">
+ <input checked={showGapsOnly} className="h-5 w-5" onChange={(e) => setShowGapsOnly(e.target.checked)} type="checkbox" />
+ My gaps only
  </label>
- <select
- className={SELECT_CLS}
- id="challenge-sort"
- onChange={(e) => setSortBy(e.target.value as (typeof SORT_OPTIONS)[number])}
- value={sortBy}
- >
- {SORT_OPTIONS.map((option) => (
- <option key={option} value={option}>
- {option}
- </option>
- ))}
- </select>
- </div>
- </div>
+ ) : null}
  </div>
 
  {gapRecommendations.length > 0 ? (

@@ -44,13 +44,10 @@ export function ChallengesWorkspaceBar({
   );
 
   return (
-    <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-3 pb-5">
-      <p className="text-[13px] text-muted">
-        {stats.total} available. {stats.earned} earned, {stats.inFlight} in progress.
-      </p>
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
       {testMode ? <StatusPill tone="warning">Test mode</StatusPill> : null}
 
-      <div className="ml-auto flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <SegmentedToggle
           label="Challenges view"
           onChange={(id) => setView(id as PortalView)}
@@ -80,8 +77,9 @@ export function ChallengesWorkspaceBar({
 
       <Drawer eyebrow="Challenges" onClose={() => setHelpOpen(false)} open={helpOpen} size="form" title="How it works">
         <p className="text-[15px] leading-[1.5] text-ink-2">
-          Browse curated field scenarios, upload evidence, and submit for manager review. Challenges
-          matching your competency gaps are sorted first.
+          Pick a challenge and press Start. Do the work outside the app, then turn in a link or file within 5
+          working days. Your manager marks each item Met or Not yet, and you earn the badge when it&apos;s approved.
+          Challenges matching your skill gaps are sorted first.
         </p>
       </Drawer>
     </div>
