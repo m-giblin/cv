@@ -1,15 +1,9 @@
 import { NextResponse } from "next/server";
-import { unstable_cache } from "next/cache";
 import { getEffectiveAccess } from "@/lib/auth/effective-access";
 import { loadPlatformSettings } from "@/lib/platform/settings";
 import { createClient } from "@/lib/supabase/server";
 import { DEFAULT_TENANT_ID } from "@/lib/tenant/types";
 import type { ProfileRole } from "@/lib/types";
-
-const cachedTenantSettings = (tenantId: string) =>
- unstable_cache(() => loadPlatformSettings(tenantId), [`platform-settings-${tenantId}`], {
- revalidate: 120,
- });
 
 export async function GET() {
  const supabase = await createClient();
@@ -30,11 +24,11 @@ export async function GET() {
  const access = await getEffectiveAccess(role, profileTenantId);
 
  if (access.actualTier === "super_admin" && !access.isShadowing) {
- const settings = await cachedTenantSettings(DEFAULT_TENANT_ID)();
+ const settings = await loadPlatformSettings(DEFAULT_TENANT_ID);
  return NextResponse.json({ featureFlags: settings.featureFlags, tenantId: null });
  }
 
  const tenantId = access.tenantId ?? profileTenantId ?? DEFAULT_TENANT_ID;
- const settings = await cachedTenantSettings(tenantId)();
+ const settings = await loadPlatformSettings(tenantId);
  return NextResponse.json({ featureFlags: settings.featureFlags, tenantId });
 }
