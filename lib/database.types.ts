@@ -283,6 +283,44 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["challenges"]["Insert"]>;
         Relationships: [];
       };
+      challenge_attempts: {
+        Row: {
+          id: string;
+          user_id: string;
+          challenge_id: string;
+          tenant_id: string | null;
+          status: string;
+          started_at: string;
+          clock_started_at: string;
+          reminder_sent_at: string | null;
+          warning_sent_at: string | null;
+          canceled_at: string | null;
+          restart_allowed_at: string | null;
+          restart_allowed_by: string | null;
+          submission_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          challenge_id: string;
+          tenant_id?: string | null;
+          status?: string;
+          started_at?: string;
+          clock_started_at?: string;
+          reminder_sent_at?: string | null;
+          warning_sent_at?: string | null;
+          canceled_at?: string | null;
+          restart_allowed_at?: string | null;
+          restart_allowed_by?: string | null;
+          submission_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["challenge_attempts"]["Insert"]>;
+        Relationships: [];
+      };
       challenge_submissions: {
         Row: {
           id: string;

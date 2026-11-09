@@ -13,14 +13,19 @@ export function ChallengeSubmissionForm({
   challengeId,
   defaultReflection = "",
   variant = "default",
+  onSubmitted,
+  reviewerName = "your manager",
 }: {
   challengeId: string;
+  onSubmitted?: () => void;
+  reviewerName?: string;
   defaultReflection?: string;
   variant?: "default" | "handoff";
 }) {
   const [reflection, setReflection] = useState(defaultReflection);
   const [evidenceUrl, setEvidenceUrl] = useState("");
   const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
+  const [confirmed, setConfirmed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
   const formId = useId();
@@ -43,6 +48,11 @@ export function ChallengeSubmissionForm({
 
     if (!evidenceFile && !evidenceUrl) {
       toast.error("Upload a file or provide an evidence link.");
+      return;
+    }
+
+    if (!confirmed) {
+      toast.error("Confirm your manager can open it and that it has no customer data, passwords or keys.");
       return;
     }
 
@@ -93,7 +103,8 @@ export function ChallengeSubmissionForm({
     });
 
     if (!response.ok) {
-      toast.error("Submission failed. Try again.");
+      const body = (await response.json().catch(() => null)) as { error?: unknown } | null;
+      toast.error(typeof body?.error === "string" ? body.error : "Submission failed. Try again.");
       setIsSubmitting(false);
       return;
     }
@@ -102,6 +113,7 @@ export function ChallengeSubmissionForm({
     setEvidenceFile(null);
     setEvidenceUrl("");
     setIsSubmitting(false);
+    onSubmitted?.();
   }
 
   const fileId = `${formId}-file`;
@@ -118,18 +130,40 @@ export function ChallengeSubmissionForm({
       {isHandoff ? (
         <div className="border-b border-divider px-5 py-3.5">
           <h3 className="text-base font-bold text-ink" id={`${formId}-title`}>
-            Submit for review
+            Turn in your work
           </h3>
-          <p className="text-[13px] text-muted">Upload evidence and a short reflection. Your manager is notified.</p>
+          <p className="text-[13px] text-muted">Send your proof and a short reflection to {reviewerName}.</p>
         </div>
       ) : null}
       <div className={isHandoff ? "flex flex-col gap-4 p-5" : "flex flex-col gap-4"}>
         <div className="flex flex-col gap-1.5">
+          <label className={LABEL_CLS} htmlFor={urlId}>
+            Paste your link
+          </label>
+          <details className="text-[13px] text-muted">
+            <summary className="cursor-pointer font-semibold text-blue">How to get a Teams video link</summary>
+            <ol className="mt-1.5 list-decimal space-y-1 pl-5">
+              <li>Start a Teams meeting by yourself, share your screen and record.</li>
+              <li>End the meeting, then open the recording from the meeting chat.</li>
+              <li>Select Share and allow people in your company to view it.</li>
+              <li>Select Copy link and paste it here.</li>
+            </ol>
+          </details>
+          <input
+            className={FIELD_CLS}
+            id={urlId}
+            onChange={(event) => setEvidenceUrl(event.target.value)}
+            placeholder="https://..."
+            type="url"
+            value={evidenceUrl}
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
           <label className={LABEL_CLS} htmlFor={fileId}>
-            Upload evidence
+            Or upload a file
           </label>
           <p className="text-[13px] text-muted" id={`${fileId}-hint`}>
-            PDF, deck, image or video, max 50MB. For a larger video, paste a link below.
+            PDF, deck, image or video, max 50MB. For a video, a Teams link is better.
           </p>
           <label
             className="flex cursor-pointer flex-wrap items-center justify-between gap-2 rounded-[10px] border border-dashed border-line-strong bg-white px-4 py-3.5 hover:bg-blue-soft has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-blue"
@@ -155,19 +189,6 @@ export function ChallengeSubmissionForm({
           ) : null}
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className={LABEL_CLS} htmlFor={urlId}>
-            Or paste an evidence link
-          </label>
-          <input
-            className={FIELD_CLS}
-            id={urlId}
-            onChange={(event) => setEvidenceUrl(event.target.value)}
-            placeholder="https://..."
-            type="url"
-            value={evidenceUrl}
-          />
-        </div>
-        <div className="flex flex-col gap-1.5">
           <label className={LABEL_CLS} htmlFor={reflectionId}>
             Reflection
           </label>
@@ -175,15 +196,24 @@ export function ChallengeSubmissionForm({
             className={`${TEXTAREA_CLS} min-h-[96px]`}
             id={reflectionId}
             onChange={(event) => setReflection(event.target.value)}
-            placeholder="What did you learn? What would you do differently?"
+            placeholder="What did you do, what did you learn, and what would you change?"
             required
             value={reflection}
           />
         </div>
+        <label className="flex items-start gap-2.5 text-sm text-ink">
+          <input
+            checked={confirmed}
+            className="mt-0.5 h-5 w-5 shrink-0"
+            onChange={(event) => setConfirmed(event.target.checked)}
+            type="checkbox"
+          />
+          <span>{reviewerName} can open this, and it doesn&apos;t show any customer data, passwords or keys.</span>
+        </label>
         <div>
           <button className="btn-primary inline-flex items-center gap-2" disabled={isSubmitting} type="submit">
             {isSubmitting ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : null}
-            {isSubmitting ? "Submitting..." : "Submit for review"}
+            {isSubmitting ? "Sending..." : `Send to ${reviewerName} for review`}
           </button>
         </div>
       </div>

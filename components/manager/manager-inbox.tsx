@@ -13,6 +13,7 @@ import {
   useCoachingSignoffState,
 } from "@/components/manager/coaching-signoff-form";
 import type { DealPrepReviewItem } from "@/components/manager/deal-prep-review-item";
+import { CanceledChallengesAlert } from "@/components/manager/canceled-challenges-alert";
 import { ChallengeSubmissionReviewPanel } from "@/components/manager/challenge-submission-review-panel";
 import { MentorDateRequestsPanel } from "@/components/manager/mentor-date-requests-panel";
 import { MentorManagerNotesPanel } from "@/components/manager/mentor-manager-notes-panel";
@@ -171,7 +172,7 @@ function helperText(item: InboxItem) {
     case "coaching":
       return `Approving signs off this coaching card and validates ${first}'s simulation step.`;
     case "submission":
-      return `Approving marks the challenge reviewed and records your grade for ${first}.`;
+      return `Mark every item Met to approve. ${first} earns the badge when you do.`;
     case "plan_step":
       return item.isManagerGate
         ? `This step is a stage gate. Approving it opens what comes next for ${first}: the next part of the stage, or the next stage once every gate is signed off.`
@@ -245,7 +246,7 @@ async function sendReview(
 
   switch (item.inboxType) {
     case "submission":
-      return json(`/api/reviews/submissions/${item.id}`, { managerGrade: grade, decision, coachingSignoff });
+      return json(`/api/reviews/submissions/${item.id}`, { decision, coachingSignoff });
     case "coaching":
       return json(`/api/reviews/coaching-cards/${item.id}`, { managerGrade: grade, decision, coachingSignoff });
     case "plan_step":
@@ -294,6 +295,7 @@ export function ManagerInbox({
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const [feedback, setFeedback] = useState("");
   const [grade, setGrade] = useState("4");
+  const [criteriaAllMet, setCriteriaAllMet] = useState(false);
   const [saving, setSaving] = useState<"approve" | "reject" | "bulk" | null>(null);
   const signoff = useCoachingSignoffState();
   const workbenchTitleId = useId();
@@ -399,6 +401,7 @@ export function ManagerInbox({
     signoff.setOpenedAt(new Date().toISOString());
     setFeedback("");
     setGrade("4");
+    setCriteriaAllMet(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeKey]);
 
@@ -537,6 +540,7 @@ export function ManagerInbox({
         eyebrow="Manager"
         title="Inbox."
       />
+      <CanceledChallengesAlert />
 
       <PageBody className="flex flex-col gap-[22px] pb-8">
         <MentorManagerNotesPanel />
@@ -803,7 +807,7 @@ export function ManagerInbox({
                     challengeTitle={activeItem.title}
                     onAppendMoment={appendMoment}
                     onDraft={(text) => signoff.setNextAction(text)}
-                    onSuggestedGrade={(suggested) => setGrade(String(suggested))}
+                    onCriteriaChange={setCriteriaAllMet}
                     submissionId={activeItem.id}
                   />
                 ) : null}
@@ -873,8 +877,7 @@ export function ManagerInbox({
                   </label>
                 )}
 
-                {activeItem.inboxType === "submission" ||
-                activeItem.inboxType === "coaching" ||
+                {activeItem.inboxType === "coaching" ||
                 activeItem.inboxType === "pitch" ? (
                   <label className="flex flex-col gap-1.5 text-sm font-bold text-ink">
                     Grade, 1 to 5
@@ -903,8 +906,8 @@ export function ManagerInbox({
                   {saving === "reject" ? "Sending…" : "Request changes"}
                 </button>
                 <button
-                  className="btn-primary"
-                  disabled={saving !== null}
+                  className="btn-primary disabled:opacity-60"
+                  disabled={saving !== null || (activeItem.inboxType === "submission" && !criteriaAllMet)}
                   onClick={() => void submitReview(activeItem, "approve")}
                   type="button"
                 >

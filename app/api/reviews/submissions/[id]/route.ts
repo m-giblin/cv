@@ -3,7 +3,9 @@ import { z } from "zod";
 import { auditMutation } from "@/lib/audit/audit-mutation";
 import { canReviewUserWork } from "@/lib/auth/can-review";
 import { requireManagerSession } from "@/lib/auth/require-manager";
+import { applyAttemptReview } from "@/lib/challenges/attempts";
 import { createNotification } from "@/lib/notifications/create-notification";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { processReviewSignoff } from "@/lib/coaching/process-review-signoff";
 import {
   approvePlanStepsByType,
@@ -82,10 +84,16 @@ export async function PATCH(request: Request, context: RouteContext) {
  return NextResponse.json({ error: error.message }, { status: 500 });
  }
 
+ const admin = createAdminClient();
+ if (admin) {
+ await applyAttemptReview(admin, { submissionId: id, approved });
+ }
+
  if (approved) {
  await approvePlanStepsByType(session.supabase, {
  userId: data.user_id,
  stepType: "challenge",
+ challengeId: data.challenge_id,
  reviewerId: session.user.id,
  feedback: managerFeedback,
  });
@@ -93,6 +101,7 @@ export async function PATCH(request: Request, context: RouteContext) {
  await rejectPlanStepsByType(session.supabase, {
  userId: data.user_id,
  stepType: "challenge",
+ challengeId: data.challenge_id,
  reviewerId: session.user.id,
  feedback: managerFeedback,
  });

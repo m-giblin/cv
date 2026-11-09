@@ -5,6 +5,7 @@ import { enrollNextProgramStage } from "@/lib/plans/advance-program";
 import { maybeUnlockNextSegment } from "@/lib/plans/segment-gates";
 import { closeStageAfterGates } from "@/lib/plans/test-out";
 import { assertStepAccessible } from "@/lib/plans/step-prerequisites";
+import { planStepMatchesReview } from "@/lib/plans/step-match";
 import {
   canManagerSignOffStep,
   canMentorApproveStep,
@@ -555,6 +556,8 @@ export async function approvePlanStepsByType(
     stepType: string;
     reviewerId: string;
     feedback?: string;
+    /** Limits the decision to the step linked to this challenge. */
+    challengeId?: string;
   },
 ) {
   const { data: assignments } = await supabase
@@ -572,11 +575,11 @@ export async function approvePlanStepsByType(
     for (const step of steps ?? []) {
       const { data: planStep } = await supabase
         .from("plan_steps")
-        .select("step_type")
+        .select("step_type, challenge_id")
         .eq("id", step.plan_step_id)
         .maybeSingle();
 
-      if (planStep?.step_type === params.stepType) {
+      if (planStepMatchesReview(planStep, params)) {
         await approveAssignmentStep(supabase, {
           assignmentStepId: step.id,
           reviewerId: params.reviewerId,
@@ -594,6 +597,8 @@ export async function rejectPlanStepsByType(
     stepType: string;
     reviewerId: string;
     feedback: string;
+    /** Limits the decision to the step linked to this challenge. */
+    challengeId?: string;
   },
 ) {
   const { data: assignments } = await supabase
@@ -611,11 +616,11 @@ export async function rejectPlanStepsByType(
     for (const step of steps ?? []) {
       const { data: planStep } = await supabase
         .from("plan_steps")
-        .select("step_type")
+        .select("step_type, challenge_id")
         .eq("id", step.plan_step_id)
         .maybeSingle();
 
-      if (planStep?.step_type === params.stepType) {
+      if (planStepMatchesReview(planStep, params)) {
         await rejectAssignmentStep(supabase, {
           assignmentStepId: step.id,
           reviewerId: params.reviewerId,
