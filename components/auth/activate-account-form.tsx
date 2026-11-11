@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 import { useId, useState } from "react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
+import { PasswordInput, PasswordMatchHint } from "@/components/ui/password-input";
 import { PASSWORD_MIN_LENGTH } from "@/lib/auth/account-access-rules";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
 import { createClient } from "@/lib/supabase/client";
@@ -66,13 +67,12 @@ export function ActivateAccountForm() {
         <label className="mb-1.5 block text-sm font-semibold text-ink" htmlFor={ids.password}>
           New password
         </label>
-        <Input
+        <PasswordInput
           autoComplete="new-password"
           id={ids.password}
           minLength={PASSWORD_MIN_LENGTH}
           onChange={(event) => setPassword(event.target.value)}
           required
-          type="password"
           value={password}
         />
         <p className="mt-1 text-[13px] text-muted">At least {PASSWORD_MIN_LENGTH} characters.</p>
@@ -81,7 +81,8 @@ export function ActivateAccountForm() {
         <label className="mb-1.5 block text-sm font-semibold text-ink" htmlFor={ids.confirm}>
           Confirm password
         </label>
-        <Input autoComplete="new-password" id={ids.confirm} onChange={(event) => setConfirm(event.target.value)} required type="password" value={confirm} />
+        <PasswordInput autoComplete="new-password" id={ids.confirm} onChange={(event) => setConfirm(event.target.value)} required value={confirm} />
+<PasswordMatchHint confirm={confirm} password={password} />
       </div>
       <button className="btn-primary inline-flex w-full items-center justify-center gap-2" disabled={isSubmitting} type="submit">
         {isSubmitting ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}

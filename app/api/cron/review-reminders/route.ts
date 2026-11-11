@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { processChallengeClocks } from "@/lib/challenges/attempts";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendRampOverdueAlerts } from "@/lib/manager/ramp-overdue-alerts";
 import { sendPlaybookAssignmentReminders } from "@/lib/playbooks/assignment-reminders";
@@ -84,5 +85,8 @@ export async function GET(request: Request) {
   // Managers hear when someone on their team falls behind on onboarding.
   const ramp = await sendRampOverdueAlerts().catch(() => ({ alerted: 0, nudged: 0 }));
 
-  return NextResponse.json({ sent, skipped, failed, playbooks, ramp });
+  // Challenge time limits: day 2 reminder, day 3 warning, day 5 cancel.
+  const challengeClocks = await processChallengeClocks(admin).catch(() => ({ reminded: 0, warned: 0, canceled: 0 }));
+
+  return NextResponse.json({ sent, skipped, failed, playbooks, ramp, challengeClocks });
 }

@@ -1,19 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import type { WorkspaceHat } from "@/lib/auth/workspace";
 import type { PlatformFeatureFlags } from "@/lib/platform/settings-shared";
 import { mergeFeatureFlags } from "@/lib/platform/settings-shared";
 
 const CACHE_KEY = "tenant-feature-flags";
 const CACHE_MS = 2 * 60_000;
+/** The shell stays mounted across navigation, so re-check on page changes, at most this often. */
+const REFRESH_MS = 30_000;
 
 /** Tenant feature flags used to hide nav entries for switched-off areas (SE workspace only). */
 export function useNavFlags(workspace: WorkspaceHat): PlatformFeatureFlags | undefined {
   const [flags, setFlags] = useState<PlatformFeatureFlags | undefined>(undefined);
+  const pathname = usePathname();
+  const lastFetchAt = useRef(0);
 
   useEffect(() => {
     if (workspace !== "se") return;
+    if (Date.now() - lastFetchAt.current < REFRESH_MS) return;
+    lastFetchAt.current = Date.now();
 
     try {
       const cached = sessionStorage.getItem(CACHE_KEY);
@@ -25,7 +32,7 @@ export function useNavFlags(workspace: WorkspaceHat): PlatformFeatureFlags | und
       // storage unavailable or corrupt: fall through to the fetch
     }
 
-    void fetch("/api/tenant/feature-flags")
+    void fetch("/api/tenant/feature-flags", { cache: "no-store" })
       .then((response) => (response.ok ? response.json() : { featureFlags: {} }))
       .then((body: { featureFlags?: PlatformFeatureFlags }) => {
         const merged = mergeFeatureFlags(body.featureFlags);
@@ -37,7 +44,7 @@ export function useNavFlags(workspace: WorkspaceHat): PlatformFeatureFlags | und
         }
       })
       .catch(() => setFlags(mergeFeatureFlags({})));
-  }, [workspace]);
+  }, [workspace, pathname]);
 
   return flags;
 }

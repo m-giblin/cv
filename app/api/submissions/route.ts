@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createNotification } from "@/lib/notifications/create-notification";
 import { submitAssignmentStep } from "@/lib/plans/complete-step";
+import { planStepMatchesReview } from "@/lib/plans/step-match";
 import { resolveProfileTenantId } from "@/lib/tenant/resolve-profile-tenant";
+import { markAttemptSubmitted } from "@/lib/challenges/attempts";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 const submissionSchema = z
@@ -63,6 +66,20 @@ export async function POST(request: Request) {
  }
  }
 
+ const admin = createAdminClient();
+ if (admin) {
+ const { data: attempt } = await admin
+ .from("challenge_attempts")
+ .select("id")
+ .eq("user_id", user.id)
+ .eq("challenge_id", parsed.data.challengeId)
+ .eq("status", "active")
+ .maybeSingle();
+ if (!attempt) {
+ return NextResponse.json({ error: "Start this challenge before turning it in." }, { status: 409 });
+ }
+ }
+
  const tenantId = await resolveProfileTenantId(supabase, user.id);
 
  const { data, error } = await supabase
@@ -81,6 +98,10 @@ export async function POST(request: Request) {
 
  if (error) {
  return NextResponse.json({ error: error.message }, { status: 500 });
+ }
+
+ if (admin) {
+ await markAttemptSubmitted(admin, { userId: user.id, challengeId: parsed.data.challengeId, submissionId: data.id });
  }
 
  await supabase.from("activity_logs").insert({
@@ -129,10 +150,7 @@ export async function POST(request: Request) {
  .eq("id", step.plan_step_id)
  .maybeSingle();
 
- if (
- planStep?.step_type === "challenge" &&
- (!planStep.challenge_id || planStep.challenge_id === parsed.data.challengeId)
- ) {
+ if (planStepMatchesReview(planStep, { stepType: "challenge", challengeId: parsed.data.challengeId })) {
  await submitAssignmentStep(supabase, {
  assignmentStepId: step.id,
  userId: user.id,

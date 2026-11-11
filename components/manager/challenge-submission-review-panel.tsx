@@ -4,11 +4,8 @@ import { Loader2, Plus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ManagerCopilotDraft } from "@/components/manager/manager-copilot-draft";
 import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
-import { ScoreBar } from "@/components/ui/bars";
-import { StatusPill, type StatusTone } from "@/components/ui/status-pill";
 import { Tag } from "@/components/ui/tag";
 import { isPdfEvidence } from "@/lib/evidence/evidence-file-shared";
-import { cn } from "@/lib/utils";
 
 type ChallengeBrief = {
   title: string;
@@ -49,13 +46,6 @@ type ChallengeDetailResponse = {
     source: string;
   } | null;
 };
-
-function scoreTone(score: number): { label: string; pill: StatusTone; text: string } {
-  if (score >= 80) return { label: "Strong", pill: "success", text: "text-blue" };
-  if (score >= 70) return { label: "Developing", pill: "blue", text: "text-blue" };
-  if (score >= 60) return { label: "Below target", pill: "warning", text: "text-warning" };
-  return { label: "Below target", pill: "danger", text: "text-danger" };
-}
 
 const SECTION_TITLE = "label-caps mb-2 block";
 
@@ -173,6 +163,48 @@ function ChallengeBriefModal({ challenge, onClose }: { challenge: ChallengeBrief
   );
 }
 
+function CriteriaChecklist({
+  criteria,
+  onChange,
+}: {
+  criteria: string[];
+  onChange?: (allMet: boolean) => void;
+}) {
+  const [marks, setMarks] = useState<Record<number, boolean>>({});
+
+  useEffect(() => {
+    onChange?.(criteria.every((_, index) => marks[index] === true));
+  }, [criteria, marks, onChange]);
+
+  return (
+    <section>
+      <h3 className={SECTION_TITLE}>Did they meet it?</h3>
+      <ul className="overflow-hidden rounded-[14px] border border-line bg-white">
+        {criteria.map((criterion, index) => (
+          <li className="flex flex-wrap items-center justify-between gap-3 border-b border-divider px-4 py-3 last:border-b-0" key={criterion}>
+            <span className="min-w-0 flex-1 basis-[220px] text-[15px] leading-normal text-ink-2">{criterion}</span>
+            <span aria-label={`Mark: ${criterion}`} className="flex gap-1.5" role="group">
+              {([["Met", true], ["Not yet", false]] as const).map(([label, value]) => (
+                <button
+                  aria-pressed={marks[index] === value}
+                  className={`min-h-11 rounded-full border px-3.5 text-sm font-bold ${
+                    marks[index] === value ? "border-blue bg-blue text-white" : "border-line-strong bg-white text-ink-2"
+                  }`}
+                  key={label}
+                  onClick={() => setMarks((current) => ({ ...current, [index]: value }))}
+                  type="button"
+                >
+                  {label}
+                </button>
+              ))}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 function openEvidence(item: ChallengeDetailResponse["evidence"][number], submissionId: string, index: number) {
   const url = item.href ?? `/api/reviews/submissions/${submissionId}/evidence?index=${index}`;
   window.open(url, "_blank", "noopener,noreferrer");
@@ -180,14 +212,15 @@ function openEvidence(item: ChallengeDetailResponse["evidence"][number], submiss
 
 export function ChallengeSubmissionReviewPanel({
   submissionId,
-  onSuggestedGrade,
+  onCriteriaChange,
   onAppendMoment,
   onDraft,
 }: {
   submissionId: string;
   /** Kept for callers; the panel loads its own title with the submission. */
   challengeTitle: string;
-  onSuggestedGrade?: (grade: number) => void;
+  /** Reports whether every success criterion is marked Met. */
+  onCriteriaChange?: (allMet: boolean) => void;
   onAppendMoment?: (text: string) => void;
   onDraft?: (text: string) => void;
 }) {
@@ -217,9 +250,6 @@ export function ChallengeSubmissionReviewPanel({
       .then((body) => {
         if (cancelled) return;
         setDetail(body);
-        if (body.aiReview?.suggestedGrade && onSuggestedGrade) {
-          onSuggestedGrade(body.aiReview.suggestedGrade);
-        }
       })
       .catch((err: Error) => {
         if (!cancelled) setError(err.message);
@@ -231,7 +261,7 @@ export function ChallengeSubmissionReviewPanel({
     return () => {
       cancelled = true;
     };
-  }, [submissionId, onSuggestedGrade]);
+  }, [submissionId]);
 
   if (loading) {
     return (
@@ -250,8 +280,6 @@ export function ChallengeSubmissionReviewPanel({
     );
   }
 
-  const tone = detail.aiReview ? scoreTone(detail.aiReview.score) : null;
-
   return (
     <>
       {showBrief ? (
@@ -259,44 +287,9 @@ export function ChallengeSubmissionReviewPanel({
       ) : null}
 
       <div className="min-w-0 space-y-6">
-        {detail.aiReview && tone ? (
-          <section className="space-y-3">
-            <div className="flex flex-wrap items-end gap-x-8 gap-y-3">
-              <div className="flex flex-col gap-1">
-                <span className="label-caps">AI initial score</span>
-                <span className={cn("num text-[44px] leading-none font-extrabold tracking-[-0.03em]", tone.text)}>
-                  {detail.aiReview.score}
-                  <span className="ml-1 text-[15px] font-semibold tracking-normal text-muted">of 100</span>
-                </span>
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="label-caps">Suggested grade</span>
-                <span className="num text-[44px] leading-none font-extrabold tracking-[-0.03em] text-ink">
-                  {detail.aiReview.suggestedGrade}
-                  <span className="ml-1 text-[15px] font-semibold tracking-normal text-muted">of 5</span>
-                </span>
-              </div>
-              <StatusPill className="pb-1" tone={tone.pill}>
-                {tone.label}
-              </StatusPill>
-            </div>
-            <ScoreBar value={detail.aiReview.score} />
-          </section>
-        ) : null}
         <button className="btn-secondary" onClick={() => setShowBrief(true)} type="button">
           View challenge brief
         </button>
-
-        {detail.aiReview?.summary ? (
-          <section>
-            <h3 className={SECTION_TITLE}>AI assessment</h3>
-            <p className="text-[15px] leading-normal text-ink-2">{detail.aiReview.summary}</p>
-            {detail.aiReview.evidenceNotes ? (
-              <p className="mt-2 text-sm text-muted">{detail.aiReview.evidenceNotes}</p>
-            ) : null}
-            <p className="mt-2 text-[13px] text-muted">Check it against the evidence before you approve.</p>
-          </section>
-        ) : null}
 
         {detail.submission.reflectionText ? (
           <section>
@@ -367,7 +360,17 @@ export function ChallengeSubmissionReviewPanel({
           )}
         </section>
 
-        {detail.aiReview && (detail.aiReview.strengths.length > 0 || detail.aiReview.gaps.length > 0) ? (
+        <CriteriaChecklist criteria={detail.challenge.successCriteria} onChange={onCriteriaChange} />
+
+        {detail.aiReview ? (
+          <details className="rounded-[14px] border border-line bg-white px-4 py-3">
+            <summary className="cursor-pointer text-[15px] font-bold text-ink">AI first read (only you see this)</summary>
+            <div className="mt-3 space-y-4">
+              {detail.aiReview.summary ? (
+                <p className="text-[15px] leading-normal text-ink-2">{detail.aiReview.summary}</p>
+              ) : null}
+              {detail.aiReview.evidenceNotes ? <p className="text-sm text-muted">{detail.aiReview.evidenceNotes}</p> : null}
+              {detail.aiReview.strengths.length > 0 || detail.aiReview.gaps.length > 0 ? (
           <div className="space-y-5">
             <section>
               <h3 className={SECTION_TITLE}>AI strengths</h3>
@@ -395,6 +398,10 @@ export function ChallengeSubmissionReviewPanel({
               </ul>
             </section>
           </div>
+        ) : null}
+              <p className="text-[13px] text-muted">AI can be wrong. Check it against the proof before you decide.</p>
+            </div>
+          </details>
         ) : null}
 
         {onDraft ? (

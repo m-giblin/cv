@@ -1,18 +1,18 @@
 "use client";
 
-import { ExternalLink, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { ChallengeSubmissionForm } from "@/components/challenges/submission-form";
+import { ChallengeFlow, type ChallengeAttemptSummary } from "@/components/challenges/challenge-flow";
 import { CARD_CLS, FIELD_CLS, LINE_CARD_CLS, SELECT_CLS } from "@/components/se/form-classes";
-import { Chip } from "@/components/ui/chip";
 import { StatusPill } from "@/components/ui/status-pill";
 import { Tag } from "@/components/ui/tag";
 import { useLearnerTerms } from "@/components/tenant/tenant-branding-provider";
 import {
  type ChallengeFilter,
  filterChallenges,
+ isAgenticChallenge,
  libraryStatusLabel,
  sortChallenges,
  submissionForChallenge,
@@ -39,12 +39,6 @@ type PortalView = "browse" | "submissions" | "generate";
 
 const PAGE_SIZE = 12;
 
-const CHALLENGE_TIPS = [
- { label: "Discovery tip", text: "Start with scope: how many identities, and how many of those are non-human?" },
- { label: "Agentic AI hook", text: 'Ask "Who is the human accountable when an agent provisions access?" It lands every time.' },
- { label: "Close with risk", text: "Tie to their last audit. Evidence gap is the pain that creates urgency." },
-] as const;
-
 const VERTICALS = ["All verticals", "Enterprise", "SLED", "Healthcare", "Financial", "Federal"] as const;
 const COMPETENCY_FILTERS = [
  "All competencies",
@@ -53,6 +47,7 @@ const COMPETENCY_FILTERS = [
  "Competitive positioning",
  "Demo execution",
  "Value articulation",
+ "Agentic AI",
 ] as const;
 const STATUS_FILTERS = [
  "All statuses",
@@ -61,6 +56,7 @@ const STATUS_FILTERS = [
  "Submitted",
  "Approved",
  "Redo requested",
+ "Canceled",
 ] as const;
 const SORT_OPTIONS = ["Recommended", "Newest", "Shortest first", "By competency"] as const;
 
@@ -69,7 +65,8 @@ type LibraryStatus =
  | "In progress"
  | "Submitted"
  | "Approved"
- | "Redo requested";
+ | "Redo requested"
+ | "Canceled";
 
 function inferVertical(challenge: Challenge): string {
  const hay = [
@@ -87,7 +84,9 @@ function inferVertical(challenge: Challenge): string {
  return "Enterprise";
 }
 
-function libraryStatus(submission?: ChallengeSubmission): LibraryStatus {
+function libraryStatus(submission?: ChallengeSubmission, attempt?: ChallengeAttemptSummary): LibraryStatus {
+ if (attempt?.status === "canceled") return "Canceled";
+ if (attempt?.status === "active" && !submission?.managerFeedback) return "In progress";
  if (!submission) return "Not started";
  if (submission.status === "reviewed") return "Approved";
  if (submission.status === "submitted") return "Submitted";
@@ -97,6 +96,7 @@ function libraryStatus(submission?: ChallengeSubmission): LibraryStatus {
 }
 
 function StatusTag({ status }: { status: LibraryStatus }) {
+ if (status === "Canceled") return <StatusPill tone="danger">Canceled</StatusPill>;
  if (status === "Approved") return <StatusPill tone="success">Approved</StatusPill>;
  if (status === "Submitted") return <StatusPill tone="blue">Submitted</StatusPill>;
  if (status === "In progress") return <StatusPill tone="blue">In progress</StatusPill>;
@@ -109,14 +109,11 @@ function primaryCompetency(challenge: Challenge) {
  return names[0] ?? "General";
 }
 
-const FILTER_OPTIONS: { id: ChallengeFilter; label: string }[] = [
- { id: "all", label: "All" },
+const LEVEL_OPTIONS: { id: ChallengeFilter; label: string }[] = [
+ { id: "all", label: "All levels" },
  { id: "basic", label: "Basic" },
  { id: "senior", label: "Senior" },
  { id: "advisory", label: "Advisory" },
- { id: "agentic", label: "Agentic AI" },
- { id: "active", label: "To do" },
- { id: "done", label: "Earned" },
 ];
 
 const EMPTY_CLS =
@@ -182,7 +179,25 @@ export function ChallengesPortal({
  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
  const [detailChallenge, setDetailChallenge] = useState<Challenge | null>(null);
  const [detailLoading, setDetailLoading] = useState(false);
+ const [attempts, setAttempts] = useState<Record<string, ChallengeAttemptSummary>>({});
+ const [hasManager, setHasManager] = useState(true);
+ const [managerName, setManagerName] = useState<string | null>(null);
  const [seDraftTextByChallenge, setSeDraftTextByChallenge] = useState<Record<string, string>>({});
+
+ const loadAttempts = useCallback(() => {
+ void fetch("/api/challenge-attempts", { cache: "no-store" })
+ .then((response) => (response.ok ? response.json() : null))
+ .then((body: { attempts: ChallengeAttemptSummary[]; hasManager: boolean; managerName: string | null } | null) => {
+ if (!body) return;
+ setAttempts(Object.fromEntries(body.attempts.map((attempt) => [attempt.challenge_id, attempt])));
+ setHasManager(body.hasManager);
+ setManagerName(body.managerName);
+ });
+ }, []);
+
+ useEffect(() => {
+ loadAttempts();
+ }, [loadAttempts]);
 
  const gapCompetencies = useMemo(
  () => gapRecommendations.slice(0, 2).map((rec) => rec.gapCompetency.toLowerCase()),
@@ -212,12 +227,14 @@ export function ChallengesPortal({
  let rows = sortChallenges(filterChallenges(challenges, submissions, query, filter)).filter(
  (challenge) => {
  if (verticalFilter !== "All verticals" && inferVertical(challenge) !== verticalFilter) return false;
- if (competencyFilter !== "All competencies") {
+ if (competencyFilter === "Agentic AI") {
+ if (!isAgenticChallenge(challenge)) return false;
+ } else if (competencyFilter !== "All competencies") {
  const names = competencyNamesForChallenge(challenge).join(" ").toLowerCase();
  if (!names.includes(competencyFilter.toLowerCase().split(" ")[0] ?? "")) return false;
  }
  if (statusFilter !== "All statuses") {
- if (libraryStatus(submissionForChallenge(submissions, challenge.id)) !== statusFilter) return false;
+ if (libraryStatus(submissionForChallenge(submissions, challenge.id), attempts[challenge.id]) !== statusFilter) return false;
  }
  if (showGapsOnly) {
  if (gapChallengeIds.size > 0 && !gapChallengeIds.has(challenge.id)) return false;
@@ -254,6 +271,7 @@ export function ChallengesPortal({
  verticalFilter,
  competencyFilter,
  statusFilter,
+ attempts,
  showGapsOnly,
  gapChallengeIds,
  gapCompetencies,
@@ -422,7 +440,8 @@ export function ChallengesPortal({
  <div className="grid min-w-0 grid-cols-1 items-start gap-6 lg:grid-cols-[400px_minmax(0,1fr)]">
  <aside aria-label="Challenge library" className={`${LINE_CARD_CLS} flex min-w-0 flex-col overflow-hidden`}>
  <div className="flex flex-col gap-3 border-b border-divider px-5 py-4">
- <div className="flex flex-col gap-1">
+ <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+<div className="flex flex-col gap-1">
  <label className="text-sm font-bold text-ink" htmlFor="challenge-search">
  Search
  </label>
@@ -438,19 +457,40 @@ export function ChallengesPortal({
  />
  </div>
  </div>
- <div aria-label="Quick filters" className="flex flex-wrap gap-1.5" role="group">
- {FILTER_OPTIONS.map((option) => (
- <Chip active={filter === option.id} key={option.id} onClick={() => setFilter(option.id)}>
- {option.label}
- </Chip>
+<div className="flex flex-col gap-1">
+ <label className="text-sm font-bold text-ink" htmlFor="challenge-sort">
+ Sort
+ </label>
+ <select
+ className={SELECT_CLS}
+ id="challenge-sort"
+ onChange={(e) => setSortBy(e.target.value as (typeof SORT_OPTIONS)[number])}
+ value={sortBy}
+ >
+ {SORT_OPTIONS.map((option) => (
+ <option key={option} value={option}>
+ {option}
+ </option>
  ))}
- {gapRecommendations.length > 0 ? (
- <Chip active={showGapsOnly} onClick={() => setShowGapsOnly((on) => !on)}>
- My gaps only
- </Chip>
- ) : null}
+ </select>
  </div>
- <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+<div className="flex flex-col gap-1">
+ <label className="text-sm font-bold text-ink" htmlFor="challenge-level">
+ Level
+ </label>
+ <select
+ className={SELECT_CLS}
+ id="challenge-level"
+ onChange={(e) => setFilter(e.target.value as ChallengeFilter)}
+ value={filter}
+ >
+ {LEVEL_OPTIONS.map((option) => (
+ <option key={option.id} value={option.id}>
+ {option.label}
+ </option>
+ ))}
+ </select>
+ </div>
  <div className="flex flex-col gap-1">
  <label className="text-sm font-bold text-ink" htmlFor="challenge-vertical">
  Vertical
@@ -502,24 +542,13 @@ export function ChallengesPortal({
  ))}
  </select>
  </div>
- <div className="flex flex-col gap-1">
- <label className="text-sm font-bold text-ink" htmlFor="challenge-sort">
- Sort
+  </div>
+ {gapRecommendations.length > 0 ? (
+ <label className="flex items-center gap-2 text-sm font-semibold text-ink">
+ <input checked={showGapsOnly} className="h-5 w-5" onChange={(e) => setShowGapsOnly(e.target.checked)} type="checkbox" />
+ My gaps only
  </label>
- <select
- className={SELECT_CLS}
- id="challenge-sort"
- onChange={(e) => setSortBy(e.target.value as (typeof SORT_OPTIONS)[number])}
- value={sortBy}
- >
- {SORT_OPTIONS.map((option) => (
- <option key={option} value={option}>
- {option}
- </option>
- ))}
- </select>
- </div>
- </div>
+ ) : null}
  </div>
 
  {gapRecommendations.length > 0 ? (
@@ -548,7 +577,7 @@ export function ChallengesPortal({
  <ul>
  {visibleRows.map((challenge) => {
  const submission = submissionForChallenge(submissions, challenge.id);
- const status = libraryStatus(submission);
+ const status = libraryStatus(submission, attempts[challenge.id]);
  const isSelected = challenge.id === selectedId;
  const competency = primaryCompetency(challenge);
 
@@ -600,7 +629,7 @@ export function ChallengesPortal({
  ) : null}
  <Tag tone="neutral">{selectedChallenge.difficulty}</Tag>
  <Tag tone="neutral">{selectedChallenge.isAiGenerated ? "AI" : "Curated"}</Tag>
- <StatusTag status={libraryStatus(selectedSubmission)} />
+ <StatusTag status={libraryStatus(selectedSubmission, attempts[selectedChallenge.id])} />
  </div>
  <h2 className="text-2xl font-extrabold leading-[1.15] tracking-[-0.015em] text-ink">
  {selectedChallenge.title}
@@ -624,95 +653,21 @@ export function ChallengesPortal({
  </p>
  ) : (
  <>
- <section>
- <h3 className="text-[15px] font-bold text-ink">Scenario</h3>
- <p className="mt-1.5 text-[15px] leading-[1.5] text-ink-2">{selectedChallenge.description}</p>
- </section>
-
- <section>
- <h3 className="text-[15px] font-bold text-ink">Coach tips</h3>
- <ul className="mt-2 grid gap-3 sm:grid-cols-3">
- {CHALLENGE_TIPS.map((tip) => (
- <li className={`${LINE_CARD_CLS} px-4 py-3`} key={tip.label}>
- <p className="text-[13px] font-semibold text-blue">{tip.label}</p>
- <p className="mt-1 text-sm leading-[1.5] text-ink-2">{tip.text}</p>
- </li>
- ))}
- </ul>
- </section>
-
- {selectedChallenge.steps.length > 0 ? (
- <section>
- <h3 className="text-[15px] font-bold text-ink">Steps</h3>
- <ol className="mt-2 flex flex-col gap-2.5">
- {selectedChallenge.steps.map((step, index) => (
- <li className="flex items-start gap-3" key={index}>
- <span
- aria-hidden="true"
- className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-soft text-[13px] font-bold text-blue"
- >
- {index + 1}
- </span>
- <span className="sr-only">Step {index + 1}: </span>
- <p className="pt-0.5 text-[15px] leading-[1.5] text-ink-2">{step}</p>
- </li>
- ))}
- </ol>
- </section>
- ) : null}
-
- {selectedChallenge.successCriteria.length > 0 ? (
- <section>
- <h3 className="text-[15px] font-bold text-ink">Success criteria</h3>
- <ul className="mt-2 flex flex-col gap-1.5">
- {selectedChallenge.successCriteria.map((criterion) => (
- <li className="flex items-start gap-2" key={criterion}>
- <span aria-hidden="true" className="mt-[7px] block h-2.5 w-1.5 shrink-0 rotate-45 border-r-2 border-b-2 border-success" />
- <span className="text-[15px] leading-[1.5] text-ink-2">{criterion}</span>
- </li>
- ))}
- </ul>
- </section>
- ) : null}
-
- {selectedChallenge.linkedResources.length > 0 ? (
- <section>
- <h3 className="text-[15px] font-bold text-ink">Resources</h3>
- <ul className="mt-2 flex flex-col gap-1.5">
- {selectedChallenge.linkedResources.map((resource) => (
- <li key={resource}>
- <a
- className="link inline-flex items-center gap-1.5 text-sm"
- href={resource}
- rel="noreferrer"
- target="_blank"
- >
- {resource.replace(/^https?:\/\//, "").slice(0, 64)}
- <ExternalLink aria-hidden="true" className="h-4 w-4" />
- <span className="sr-only">(opens in a new tab)</span>
- </a>
- </li>
- ))}
- </ul>
- </section>
- ) : null}
-
- {selectedSubmission?.managerFeedback ? (
- <section className="rounded-[14px] bg-warning-soft px-4 py-3">
- <h3 className="text-[13px] font-semibold text-warning">
- Manager feedback
- </h3>
- <p className="mt-1.5 text-[15px] leading-[1.5] text-ink">{selectedSubmission.managerFeedback}</p>
- </section>
- ) : null}
-
- <div id="challenge-submit">
- <ChallengeSubmissionForm
- challengeId={selectedChallenge.id}
+ <ChallengeFlow
+ attempt={attempts[selectedChallenge.id]}
+ challenge={selectedChallenge}
  defaultReflection={selectedDraftText}
- variant="handoff"
+ hasManager={hasManager}
+ key={selectedChallenge.id}
+ managerName={managerName}
+ onChanged={() => {
+ // Pin the challenge in the URL so the refresh can't jump to a different one.
+ selectChallenge(selectedChallenge.id);
+ loadAttempts();
+ router.refresh();
+ }}
+ submission={selectedSubmission}
  />
- </div>
  </>
  )}
  </div>

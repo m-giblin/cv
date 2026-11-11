@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Stamp } from "@/components/ui/stamp";
 import { StatusPill } from "@/components/ui/status-pill";
 import { Tag } from "@/components/ui/tag";
+import { TrophyList } from "@/components/account/trophy-list";
 
 /** "Thu, Oct 9" (plus the year when it isn't this year). */
 function formatEarnedDate(iso: string) {
@@ -86,43 +87,6 @@ export async function AccountProfilePanel({
  </section>
 
  <section className="overflow-hidden rounded-[14px] border border-line bg-white">
- <div className="border-b border-divider px-5 py-3.5">
- <h2 className="text-lg leading-[1.3] font-extrabold text-ink">Trophy case</h2>
- <p className="text-sm text-muted">Every challenge and simulation your manager has approved.</p>
- </div>
- {trophies.length > 0 ? (
- <ul>
- {trophies.map((trophy) => (
- <li
- className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-4 border-b border-divider px-5 py-3.5 last:border-b-0 sm:grid-cols-[auto_minmax(0,1fr)_auto]"
- key={trophy.id}
- >
- <Stamp label={`${trophy.funTitle}: earned`} size={30} state="earned" />
- <div className="min-w-0">
- <p className="text-[15px] font-bold text-ink">{trophy.funTitle}</p>
- <p className="text-sm text-ink-2">{trophy.subtitle}</p>
- </div>
- <div className="col-start-2 flex flex-wrap items-center gap-2 sm:col-start-auto sm:justify-end">
- <Tag tone="blue">{trophy.kind === "challenge" ? "Challenge" : "Simulation"}</Tag>
- <span className="text-[13px] text-muted">{formatEarnedDate(trophy.earnedAt)}</span>
- </div>
- </li>
- ))}
- </ul>
- ) : (
- <div className="px-5 py-6">
- <p className="text-[15px] font-semibold text-ink">No trophies yet</p>
- <p className="mt-1 text-sm text-ink-2">
- Finish a challenge or simulation and submit it for review. It shows up here when your manager approves it.
- </p>
- <Link className="link mt-3 inline-block text-sm" href="/practice">
- Go to Practice
- </Link>
- </div>
- )}
- </section>
-
- <section className="overflow-hidden rounded-[14px] border border-line bg-white">
  <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-divider px-5 py-3.5">
  <h2 className="text-lg leading-[1.3] font-extrabold text-ink">Career milestones</h2>
  <span className="num text-[13px] text-muted">
@@ -154,6 +118,26 @@ export async function AccountProfilePanel({
  </li>
  ))}
  </ul>
+ </section>
+
+ <section className="overflow-hidden rounded-[14px] border border-line bg-white">
+ <div className="border-b border-divider px-5 py-3.5">
+ <h2 className="text-lg leading-[1.3] font-extrabold text-ink">Trophy case</h2>
+ <p className="text-sm text-muted">Every challenge and simulation your manager has approved, newest first.</p>
+ </div>
+ {trophies.length > 0 ? (
+ <TrophyList trophies={trophies} />
+ ) : (
+ <div className="px-5 py-6">
+ <p className="text-[15px] font-semibold text-ink">No trophies yet</p>
+ <p className="mt-1 text-sm text-ink-2">
+ Finish a challenge or simulation and submit it for review. It shows up here when your manager approves it.
+ </p>
+ <Link className="link mt-3 inline-block text-sm" href="/practice">
+ Go to Practice
+ </Link>
+ </div>
+ )}
  </section>
  </div>
 

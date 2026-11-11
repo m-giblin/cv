@@ -33,9 +33,10 @@ export function ChallengesShell({
     const earned = new Set(
       submissions.filter((s) => s.status === "reviewed").map((s) => s.challengeId),
     ).size;
-    const inFlight = submissions.filter(
-      (s) => s.status === "submitted" || s.status === "in_progress",
-    ).length;
+    // A resubmission adds a row, so count challenges rather than submissions.
+    const inFlight = new Set(
+      submissions.filter((s) => s.status === "submitted" || s.status === "in_progress").map((s) => s.challengeId),
+    ).size;
     const submittedCount = submissions.filter(
       (s) => s.status === "submitted" || s.status === "reviewed",
     ).length;
@@ -43,14 +44,20 @@ export function ChallengesShell({
   }, [challenges.length, submissions]);
 
   return (
-    <PracticeToolPage subtitle="Hands-on work, reviewed by your manager." testMode={testMode} title="Challenges">
-      <ChallengesWorkspaceBar
-        backHref={backHref}
-        showGenerator={showGenerator}
-        stats={stats}
-        testMode={testMode}
-        tier={tier}
-      />
+    <PracticeToolPage
+      actions={
+        <ChallengesWorkspaceBar
+          backHref={backHref}
+          showGenerator={showGenerator}
+          stats={stats}
+          testMode={testMode}
+          tier={tier}
+        />
+      }
+      subtitle={`${stats.total} available. ${stats.earned} earned, ${stats.inFlight} in progress.`}
+      testMode={testMode}
+      title="Challenges"
+    >
       <ChallengesPortal
         challenges={challenges}
         gapRecommendations={gapRecommendations}
