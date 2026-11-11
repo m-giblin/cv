@@ -27,7 +27,7 @@ export async function completePlaybookSteps(input: { tenantId: string; userId: s
   if (!matching.length) return [];
 
   const now = new Date().toISOString();
-  const completed: string[] = [];
+  const completed: { planStepId: string; title: string }[] = [];
   for (const step of matching) {
     for (const assignment of assignmentRows.filter((row) => row.plan_id === step.plan_id)) {
       const { data: existing } = await admin
@@ -47,7 +47,7 @@ export async function completePlaybookSteps(input: { tenantId: string; userId: s
             plan_step_id: step.id,
             tenant_id: input.tenantId,
           });
-      if (!error) completed.push(step.title);
+      if (!error) completed.push({ planStepId: step.id, title: step.title });
     }
   }
   return completed;
