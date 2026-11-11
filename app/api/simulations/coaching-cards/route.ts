@@ -5,6 +5,7 @@ import { coachingCardSchema } from "@/lib/ai/schemas";
 import { shareWithMentor } from "@/lib/mentoring/share-with-mentor";
 import { createNotification } from "@/lib/notifications/create-notification";
 import { submitSimulationPlanSteps } from "@/lib/plans/complete-step";
+import { nextUpAfterSubmit } from "@/lib/plans/next-up";
 import { resolveProfileTenantId } from "@/lib/tenant/resolve-profile-tenant";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -173,14 +174,18 @@ export async function POST(request: Request) {
  // prerequisite, submitAssignmentStep throws — and letting that escape used to 500 the
  // whole request, discarding a coaching card that had already been written.
  let linkedPlanStep = true;
+ let submittedPlanStepId: string | null = null;
  try {
- await submitSimulationPlanSteps(supabase, {
+ const submitted = await submitSimulationPlanSteps(supabase, {
  userId: user.id,
  simulationAssignmentId: parsed.data.simulationAssignmentId,
  });
+ submittedPlanStepId = submitted?.planStepId ?? null;
  } catch {
  linkedPlanStep = false;
  }
+ // The plan's next step, offered once the simulation is in.
+ const nextUp = submittedPlanStepId ? await nextUpAfterSubmit({ userId: user.id, planStepId: submittedPlanStepId }) : null;
 
  await supabase.from("activity_logs").insert({
  user_id: user.id,
@@ -216,7 +221,7 @@ export async function POST(request: Request) {
  : null;
  // No mentor on an active plan any more: fall back to the manager, as a plain submit would.
  if (mentor) {
- return NextResponse.json({ id: data.id, isPractice: false, practiceRoundsCompleted, linkedPlanStep, sharedWith: mentor.mentorName });
+ return NextResponse.json({ id: data.id, isPractice: false, practiceRoundsCompleted, linkedPlanStep, sharedWith: mentor.mentorName, nextUp });
  }
  }
 
@@ -235,5 +240,5 @@ export async function POST(request: Request) {
  });
  }
 
- return NextResponse.json({ id: data.id, isPractice: false, practiceRoundsCompleted, linkedPlanStep, sharedWith: null });
+ return NextResponse.json({ id: data.id, isPractice: false, practiceRoundsCompleted, linkedPlanStep, sharedWith: null, nextUp });
 }

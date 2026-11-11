@@ -6,10 +6,12 @@ import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
 import { CorpusFeedbackWidget } from "@/components/corpus/corpus-feedback-widget";
+import { NextUpPrompt } from "@/components/plans/next-up-prompt";
 import { TextArea, TextInput } from "@/components/admin/admin-ui";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Modal } from "@/components/ui/modal";
 import { StatusPill } from "@/components/ui/status-pill";
+import type { NextUpStep } from "@/lib/plans/next-up";
 import { isPitchStep, PITCH_STEP_DONE_WHEN, pitchStudioHref, type AttachedPitch } from "@/lib/pitch/pitch-step";
 import { MIN_EVIDENCE_CHARS, submitReviewerName, uncheckedNote } from "@/lib/plans/step-submit-copy";
 import { PlanStep } from "@/lib/types";
@@ -164,6 +166,8 @@ export function PlanStepActions({
   const router = useRouter();
   const fieldId = useId();
   const [isSaving, setIsSaving] = useState(false);
+  // After a submit: the plan's next step, offered on this step (keyed by it, so another step never shows it).
+  const [submitted, setSubmitted] = useState<{ stepId: string; next: NextUpStep } | null>(null);
   const [shadowNotes, setShadowNotes] = useState("");
   const [mentorTopic, setMentorTopic] = useState("");
   const [contentNotes, setContentNotes] = useState("");
@@ -228,6 +232,33 @@ export function PlanStepActions({
     />
   );
 
+  /** Offer the plan's next step after a submit; with nothing to offer, back to the plan as before. */
+  async function afterSubmit(response: Response) {
+    const body = (await response.json().catch(() => null)) as { nextUp?: NextUpStep | null } | null;
+    if (body?.nextUp) {
+      setSubmitted({ stepId: step.id, next: body.nextUp });
+      setIsSaving(false);
+      router.refresh();
+      return;
+    }
+    router.push("/my-plan");
+    router.refresh();
+  }
+
+  if (submitted && submitted.stepId === step.id) {
+    return (
+      <div className="flex max-w-[680px] flex-col gap-4">
+        <div className="flex flex-col gap-2 rounded-[14px] border border-line bg-white p-5" role="status">
+          <div>
+            <StatusPill tone="warning">Submitted</StatusPill>
+          </div>
+          <p className="text-[15px] text-ink-2">Sent to {reviewer}. You&apos;ll get a notification when it&apos;s reviewed.</p>
+        </div>
+        <NextUpPrompt next={submitted.next} onLater={() => router.push("/my-plan")} />
+      </div>
+    );
+  }
+
   if (step.locked) {
     return (
       <div className="flex max-w-[680px] flex-col gap-2 rounded-[14px] border border-dashed border-line-strong p-5">
@@ -263,8 +294,7 @@ export function PlanStepActions({
     }
 
     toast.success(`Submitted for review by ${reviewer}.`);
-    router.push("/my-plan");
-    router.refresh();
+    await afterSubmit(response);
   }
 
   if (awaitingReview) {
@@ -422,8 +452,7 @@ export function PlanStepActions({
                 return;
               }
               toast.success("Shadow log submitted for review.");
-              router.push("/my-plan");
-              router.refresh();
+              await afterSubmit(response);
           })());
         }}
       >
@@ -508,8 +537,7 @@ export function PlanStepActions({
                 return;
               }
               toast.success("Submitted for manager sign-off.");
-              router.push("/my-plan");
-              router.refresh();
+              await afterSubmit(response);
           })());
         }}
       >
@@ -574,8 +602,7 @@ export function PlanStepActions({
                   ? `Submitted. ${mentorName ? `${mentorName} adds a recommendation, then your` : "Your"} manager signs it off.`
                   : "Submitted for mentor review.",
               );
-              router.push("/my-plan");
-              router.refresh();
+              await afterSubmit(response);
           })());
         }}
       >

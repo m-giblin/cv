@@ -9,6 +9,7 @@ import { z } from "zod";
 import { coachingCardSchema, type CoachingCardOutput } from "@/lib/ai/schemas";
 import { difficultyToPromptLabel, isElevatorPitchTemplate } from "@/lib/simulations/prompt-template";
 import { scenarioFromScoring, simulationRubricCriteria } from "@/lib/simulations/session-rubric";
+import { NextUpPrompt } from "@/components/plans/next-up-prompt";
 import { AssignmentDoneNote, type FinishedAssignment } from "@/components/playbooks/assignment-done-note";
 import { SimulationCoachingRail } from "@/components/simulation/simulation-coaching-rail";
 import { SimulationScenarioBrief } from "@/components/simulation/simulation-scenario-brief";
@@ -20,6 +21,7 @@ import { splitCoachMessage } from "@/lib/simulations/coach-message";
 import { cn } from "@/lib/utils";
 import { stripPersonaCard } from "@/lib/simulations/persona-card";
 import type { AssignedChapter } from "@/lib/playbooks/assignment-context";
+import type { NextUpStep } from "@/lib/plans/next-up";
 
 const formSchema = z.object({
   message: z.string().min(1, "Add a response for the persona."),
@@ -73,6 +75,8 @@ export function SimulationWorkspace({
   const [isThinking, setIsThinking] = useState(false);
   const [roleplayEnded, setRoleplayEnded] = useState(false);
   const [finishedAssignment, setFinishedAssignment] = useState<FinishedAssignment | null>(null);
+  // Once submitted (or shared): who has it, and the plan's next step to go to.
+  const [submittedTo, setSubmittedTo] = useState<{ who: string; nextUp: NextUpStep | null } | null>(null);
   const [practiceRoundsCompleted, setPracticeRoundsCompleted] = useState(
     assignment.practiceRoundsCompleted ?? 0,
   );
@@ -366,7 +370,7 @@ export function SimulationWorkspace({
         return;
       }
 
-      const body = (await saveResponse.json()) as { practiceRoundsCompleted?: number; sharedWith?: string | null };
+      const body = (await saveResponse.json()) as { practiceRoundsCompleted?: number; sharedWith?: string | null; nextUp?: NextUpStep | null };
 
       if (mode === "practice") {
         const completed = body.practiceRoundsCompleted ?? practiceRoundsCompleted + 1;
@@ -378,6 +382,7 @@ export function SimulationWorkspace({
       }
 
       toast.success(body.sharedWith ? `Shared with ${body.sharedWith}.` : "Submitted for manager review.");
+      setSubmittedTo({ who: body.sharedWith ?? "your manager", nextUp: body.nextUp ?? null });
       setShowReflectionPrompt(false);
     } catch (error) {
       toast.error("Could not save coaching card", {
@@ -555,6 +560,13 @@ export function SimulationWorkspace({
         <div className="flex min-h-[min(50vh,28rem)] flex-col">
           {chatMessages}
           {finishedAssignment ? <AssignmentDoneNote className="mx-4 mb-3 sm:mx-5" finished={finishedAssignment} /> : null}
+          {submittedTo ? (
+            <SubmittedNote
+              nextUp={submittedTo.nextUp}
+              onLater={() => setSubmittedTo((current) => (current ? { ...current, nextUp: null } : current))}
+              who={submittedTo.who}
+            />
+          ) : null}
           {chatInput}
         </div>
         {coachingCard ? (
@@ -609,6 +621,13 @@ export function SimulationWorkspace({
           </header>
           {chatMessages}
           {finishedAssignment ? <AssignmentDoneNote className="mx-4 mb-3 sm:mx-5" finished={finishedAssignment} /> : null}
+          {submittedTo ? (
+            <SubmittedNote
+              nextUp={submittedTo.nextUp}
+              onLater={() => setSubmittedTo((current) => (current ? { ...current, nextUp: null } : current))}
+              who={submittedTo.who}
+            />
+          ) : null}
           {chatInput}
         </section>
 
@@ -630,6 +649,18 @@ export function SimulationWorkspace({
           showReflectionPrompt={showReflectionPrompt}
         />
       </div>
+    </div>
+  );
+}
+
+/** After a submit: who has the work now, and the plan's next step when there is one. */
+function SubmittedNote({ who, nextUp, onLater }: { who: string; nextUp: NextUpStep | null; onLater: () => void }) {
+  return (
+    <div className="mx-4 mb-3 flex flex-col gap-3 sm:mx-5">
+      <p className="m-0 rounded-[12px] border border-success bg-success-soft px-4 py-3 text-sm text-ink" role="status">
+        <strong>Submitted.</strong> {who === "your manager" ? "Your manager" : who} has your transcript and coaching card to review.
+      </p>
+      {nextUp ? <NextUpPrompt next={nextUp} onLater={onLater} /> : null}
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { resolveProfileTenantId } from "@/lib/tenant/resolve-profile-tenant";
 import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/database.types";
 import { linkDealPrepPlanSteps } from "@/lib/plans/complete-step";
+import { nextUpAfterSubmit } from "@/lib/plans/next-up";
 
 const schema = z.object({
  accountName: z.string().min(2),
@@ -260,20 +261,24 @@ export async function POST(request: Request) {
  // submitAssignmentStep throws — and letting that escape used to 500 the whole request,
  // discarding work the user had already had written to the database.
  let linkedPlanStep = true;
+ let submittedPlanStepId: string | null = null;
  try {
- await linkDealPrepPlanSteps(supabase, {
+ const linked = await linkDealPrepPlanSteps(supabase, {
  userId: user.id,
  sessionId: data.id,
  accountName: parsed.data.accountName,
  assignmentStepId: parsed.data.assignmentStepId,
  });
+ submittedPlanStepId = linked?.planStepId ?? null;
  } catch {
  linkedPlanStep = false;
  }
+ const nextUp = submittedPlanStepId ? await nextUpAfterSubmit({ userId: user.id, planStepId: submittedPlanStepId }) : null;
 
  return NextResponse.json({
  id: data.id,
  versionNumber: data.version_number,
  linkedPlanStep,
+ nextUp,
  });
 }

@@ -5,10 +5,12 @@ import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ChallengeSubmissionForm } from "@/components/challenges/submission-form";
+import { NextUpPrompt } from "@/components/plans/next-up-prompt";
 import { LINE_CARD_CLS } from "@/components/se/form-classes";
 import { funChallengeBadge } from "@/lib/account/completion-badges";
 import { LIMIT_WORKING_DAYS, REMINDER_WORKING_DAYS, WARNING_WORKING_DAYS, workingDaysElapsed } from "@/lib/challenges/attempt-clock";
 import { competencyNamesForChallenge } from "@/lib/challenges/lookup-competencies";
+import type { NextUpStep } from "@/lib/plans/next-up";
 import type { Challenge, ChallengeSubmission } from "@/lib/types";
 
 export type ChallengeAttemptSummary = {
@@ -80,6 +82,8 @@ export function ChallengeFlow({
   managerName,
   defaultReflection,
   onChanged,
+  nextUp = null,
+  onNextUp,
 }: {
   challenge: Challenge;
   attempt?: ChallengeAttemptSummary;
@@ -88,6 +92,9 @@ export function ChallengeFlow({
   managerName: string | null;
   defaultReflection: string;
   onChanged: () => void;
+  /** After turning it in: the plan's next step. Held by the page, since the panel reloads on submit. */
+  nextUp?: NextUpStep | null;
+  onNextUp?: (next: NextUpStep | null) => void;
 }) {
   const [showForm, setShowForm] = useState(false);
   const [starting, setStarting] = useState(false);
@@ -249,9 +256,11 @@ export function ChallengeFlow({
 
           {status === "submitted" ? (
             <p className="rounded-[10px] bg-blue-soft px-3 py-2 text-sm text-ink" role="status">
-              <strong>With {reviewer} for review.</strong> Nothing else to do for now. You&apos;ll get a notification either way.
+              <strong>With {reviewer} for review.</strong>{" "}
+              {nextUp ? "Keep going with your plan while it's reviewed." : "Nothing else to do for now."} You&apos;ll get a notification either way.
             </p>
           ) : null}
+          {status === "submitted" && nextUp ? <NextUpPrompt next={nextUp} onLater={() => onNextUp?.(null)} /> : null}
 
           {status === "approved" ? (
             <div className="rounded-[10px] bg-success-soft px-3 py-2 text-sm text-ink" role="status">
@@ -271,7 +280,10 @@ export function ChallengeFlow({
           <ChallengeSubmissionForm
             challengeId={challenge.id}
             defaultReflection={defaultReflection}
-            onSubmitted={onChanged}
+            onSubmitted={(next) => {
+              onNextUp?.(next);
+              onChanged();
+            }}
             reviewerName={reviewer}
             variant="handoff"
           />

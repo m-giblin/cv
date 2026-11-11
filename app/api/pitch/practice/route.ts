@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { submitAssignmentStep, StepSegmentLockedError } from "@/lib/plans/complete-step";
+import { nextUpAfterSubmit } from "@/lib/plans/next-up";
 import {
   PITCH_SAVED_EVENT,
   overallPitchScore,
@@ -126,7 +127,8 @@ export async function POST(request: Request) {
     }
   }
 
-  return NextResponse.json({ session: data, score, submitted: submitting });
+  const nextUp = stepId && submitting ? await nextUpAfterSubmit({ userId: user.id, assignmentStepId: stepId }) : null;
+  return NextResponse.json({ session: data, score, submitted: submitting, nextUp });
 }
 
 /** The latest pitch attached to one of the SE's ramp steps, for the step workbench. */

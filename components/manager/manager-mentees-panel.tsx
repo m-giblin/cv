@@ -215,6 +215,16 @@ export function ManagerMenteesPanel({
       ? openMentee?.track?.stages.find((stage) => stage.planId === openStep.stagePlanId)
       : undefined;
   const openSteps = openStage ? byOrder(openStage.steps) : openMentee ? byOrder(openMentee.plan.steps) : [];
+  // After approving one step: the next one waiting on this mentor, this mentee's first, then everyone else's.
+  const nextWaiting = (() => {
+    if (!openStep) return null;
+    const ordered = openMentee ? [openMentee, ...mentees.filter((item) => item !== openMentee)] : mentees;
+    for (const item of ordered) {
+      const step = byOrder(item.plan.steps).find((entry) => isWaitingOnMentor(entry) && entry.id !== openStep.stepId);
+      if (step) return { assignmentId: item.plan.id, step, name: item.profile.fullName };
+    }
+    return null;
+  })();
   const checkinMentee = checkinFor ? mentees.find((item) => item.plan.id === checkinFor) : undefined;
   const noteMentee = noteFor ? mentees.find((item) => item.plan.id === noteFor) : undefined;
   const scheduleMentee = scheduleFor ? mentees.find((item) => item.plan.id === scheduleFor) : undefined;
@@ -338,6 +348,14 @@ export function ManagerMenteesPanel({
           records={openMentee.records}
           resources={openMentee.resources}
           stageName={openStage?.name}
+          reviewNext={
+            nextWaiting
+              ? {
+                  label: `${nextWaiting.name.split(" ")[0]}: ${nextWaiting.step.title}`,
+                  onOpen: () => setOpenStep({ assignmentId: nextWaiting.assignmentId, stepId: nextWaiting.step.id }),
+                }
+              : null
+          }
           step={openSteps.find((step) => step.id === openStep?.stepId) ?? null}
           steps={openSteps}
         />

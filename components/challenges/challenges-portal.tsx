@@ -20,6 +20,7 @@ import {
 import { competencyNamesForChallenge } from "@/lib/challenges/lookup-competencies";
 import type { GapChallengeRecommendation } from "@/lib/challenges/gap-recommendations";
 import type { Challenge, ChallengeSubmission } from "@/lib/types";
+import type { NextUpStep } from "@/lib/plans/next-up";
 
 const ChallengeGenerator = dynamic(
  () => import("@/components/challenge-generator").then((mod) => mod.ChallengeGenerator),
@@ -179,6 +180,8 @@ export function ChallengesPortal({
  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
  const [detailChallenge, setDetailChallenge] = useState<Challenge | null>(null);
  const [detailLoading, setDetailLoading] = useState(false);
+ // The plan's next step after a turn-in, kept here because the challenge panel reloads on submit.
+ const [turnedIn, setTurnedIn] = useState<{ challengeId: string; next: NextUpStep } | null>(null);
  const [attempts, setAttempts] = useState<Record<string, ChallengeAttemptSummary>>({});
  const [hasManager, setHasManager] = useState(true);
  const [managerName, setManagerName] = useState<string | null>(null);
@@ -660,6 +663,8 @@ export function ChallengesPortal({
  hasManager={hasManager}
  key={selectedChallenge.id}
  managerName={managerName}
+ nextUp={turnedIn?.challengeId === selectedChallenge.id ? turnedIn.next : null}
+ onNextUp={(next) => setTurnedIn(next ? { challengeId: selectedChallenge.id, next } : null)}
  onChanged={() => {
  // Pin the challenge in the URL so the refresh can't jump to a different one.
  selectChallenge(selectedChallenge.id);

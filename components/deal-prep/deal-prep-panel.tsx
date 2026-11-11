@@ -6,8 +6,10 @@ import { DealPrepBrief, DealPrepBriefEmpty } from "@/components/deal-prep/deal-p
 import { DealPrepForm, EMPTY_FORM, type DealPrepFormValues } from "@/components/deal-prep/deal-prep-form";
 import { DealPrepHistory } from "@/components/deal-prep/deal-prep-history";
 import { ObjectionPracticePanel } from "@/components/deal-prep/objection-practice-panel";
+import { NextUpPrompt } from "@/components/plans/next-up-prompt";
 import { Drawer } from "@/components/ui/drawer";
 import type { DealPrepOutput } from "@/lib/ai/schemas";
+import type { NextUpStep } from "@/lib/plans/next-up";
 import type { SeLevel } from "@/lib/types";
 
 type SessionRecord = {
@@ -50,6 +52,8 @@ export function DealPrepPanel({
   const [debriefNotes, setDebriefNotes] = useState("");
   const [outcome, setOutcome] = useState<"pending" | "won" | "lost">("pending");
   const [isLoading, setIsLoading] = useState(false);
+  // Saving the brief submits a deal-prep plan step; this is the plan's next step after it.
+  const [nextUp, setNextUp] = useState<NextUpStep | null>(null);
   const [historyRefresh, setHistoryRefresh] = useState(0);
   const [practiceObjection, setPracticeObjection] = useState<string | null>(null);
 
@@ -141,7 +145,8 @@ export function DealPrepPanel({
         toast.error("Brief generated but could not save to history.");
         setActiveSessionId(null);
       } else {
-        const saved = (await saveResponse.json()) as { id: string };
+        const saved = (await saveResponse.json()) as { id: string; nextUp?: NextUpStep | null };
+        setNextUp(saved.nextUp ?? null);
         setActiveSessionId(saved.id);
         setParentSessionId(saved.id);
         setSharedWithManager(false);
@@ -149,6 +154,8 @@ export function DealPrepPanel({
         setOutcome("pending");
         if (assignmentStepId) {
           toast.success("Deal prep saved and submitted for plan review.");
+        } else if (saved.nextUp) {
+          toast.success("Deal prep saved. It also counts for the deal-prep step on your plan.");
         }
       }
 
@@ -213,6 +220,7 @@ export function DealPrepPanel({
 
   return (
     <div className="flex flex-col gap-6">
+      {nextUp ? <NextUpPrompt next={nextUp} onLater={() => setNextUp(null)} /> : null}
       <div
         className={
           practiceObjection

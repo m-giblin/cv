@@ -10,7 +10,16 @@ import type { PlanStep } from "@/lib/types";
 const CARD_CLS = "flex flex-col gap-3 rounded-[14px] border border-line bg-white p-4";
 
 /** Approve or send back an everyday step the mentee submitted. Their manager signs off the stage gates. */
-export function StepApprovalPanel({ step, firstName }: { step: PlanStep; firstName: string }) {
+export function StepApprovalPanel({
+  step,
+  firstName,
+  reviewNext = null,
+}: {
+  step: PlanStep;
+  firstName: string;
+  /** The next step waiting on this mentor, so a queue of reviews runs without going back to the list. */
+  reviewNext?: { label: string; onOpen: () => void } | null;
+}) {
   const router = useRouter();
   const noteId = useId();
   const [note, setNote] = useState("");
@@ -54,6 +63,16 @@ export function StepApprovalPanel({ step, firstName }: { step: PlanStep; firstNa
             : `${firstName} has your note and the step is open again. It comes back to you when they resubmit.`}
         </p>
         {decided.note ? <p className="whitespace-pre-wrap rounded-[10px] bg-bg p-3 text-[15px] text-ink-2">{decided.note}</p> : null}
+        {reviewNext ? (
+          <div className="flex flex-col gap-1.5">
+            <p className="text-sm font-bold text-ink">Next waiting on you</p>
+            <button className="btn-primary self-start" onClick={reviewNext.onOpen} type="button">
+              Review {reviewNext.label}
+            </button>
+          </div>
+        ) : (
+          <p className="text-[13px] text-muted">Nothing else is waiting on your review.</p>
+        )}
       </section>
     );
   }

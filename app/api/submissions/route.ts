@@ -5,6 +5,7 @@ import { submitAssignmentStep } from "@/lib/plans/complete-step";
 import { planStepMatchesReview } from "@/lib/plans/step-match";
 import { resolveProfileTenantId } from "@/lib/tenant/resolve-profile-tenant";
 import { markAttemptSubmitted } from "@/lib/challenges/attempts";
+import { nextUpAfterSubmit } from "@/lib/plans/next-up";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -136,6 +137,7 @@ export async function POST(request: Request) {
  .eq("user_id", user.id)
  .neq("status", "completed");
 
+ let submittedPlanStepId: string | null = null;
  for (const assignment of assignments ?? []) {
  const { data: steps } = await supabase
  .from("plan_assignment_steps")
@@ -151,14 +153,17 @@ export async function POST(request: Request) {
  .maybeSingle();
 
  if (planStepMatchesReview(planStep, { stepType: "challenge", challengeId: parsed.data.challengeId })) {
- await submitAssignmentStep(supabase, {
+ const submitted = await submitAssignmentStep(supabase, {
  assignmentStepId: step.id,
  userId: user.id,
  });
+ submittedPlanStepId = submitted.planStepId;
  break;
  }
  }
  }
 
- return NextResponse.json({ id: data.id });
+ // The plan's next step, so turning a challenge in doesn't end on "nothing else to do".
+ const nextUp = submittedPlanStepId ? await nextUpAfterSubmit({ userId: user.id, planStepId: submittedPlanStepId }) : null;
+ return NextResponse.json({ id: data.id, nextUp });
 }

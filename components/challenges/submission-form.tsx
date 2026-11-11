@@ -5,6 +5,7 @@ import { useId, useState } from "react";
 import { toast } from "sonner";
 import { FIELD_CLS, LABEL_CLS, LINE_CARD_CLS, TEXTAREA_CLS } from "@/components/se/form-classes";
 import { createClient } from "@/lib/supabase/client";
+import type { NextUpStep } from "@/lib/plans/next-up";
 
 /** Matches the file_size_limit on the evidence storage bucket. */
 const MAX_EVIDENCE_BYTES = 50 * 1024 * 1024;
@@ -17,7 +18,8 @@ export function ChallengeSubmissionForm({
   reviewerName = "your manager",
 }: {
   challengeId: string;
-  onSubmitted?: () => void;
+  /** Called after a successful turn-in, with the plan's next step when there is one. */
+  onSubmitted?: (nextUp: NextUpStep | null) => void;
   reviewerName?: string;
   defaultReflection?: string;
   variant?: "default" | "handoff";
@@ -109,11 +111,12 @@ export function ChallengeSubmissionForm({
       return;
     }
 
+    const body = (await response.json().catch(() => null)) as { nextUp?: NextUpStep | null } | null;
     toast.success("Submitted for manager review.");
     setEvidenceFile(null);
     setEvidenceUrl("");
     setIsSubmitting(false);
-    onSubmitted?.();
+    onSubmitted?.(body?.nextUp ?? null);
   }
 
   const fileId = `${formId}-file`;
