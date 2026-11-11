@@ -94,6 +94,43 @@ function stepStatus(step: PlanStep) {
   return <StatusPill tone="neutral">Not started</StatusPill>;
 }
 
+type StatKey = "open" | "done" | "week" | "overdue";
+
+/** "1 day", "12 days": counted on calendar dates, the same way everywhere on this panel. */
+function daysLate(dueDate: string, now: number) {
+  const days = differenceInCalendarDays(now, parseDateOnly(dueDate));
+  return `${days} day${days === 1 ? "" : "s"}`;
+}
+
+const STAT_TITLES: Record<StatKey, string> = {
+  open: "Open work",
+  done: "Done",
+  week: "Due this week",
+  overdue: "Overdue",
+};
+
+function StepRow({ step, number, late, now }: { step: PlanStep; number?: number; late: boolean; now: number }) {
+  return (
+    <li className={`flex items-start gap-3 border-b border-divider px-4 py-3 last:border-b-0 ${late ? "bg-danger-soft" : ""}`}>
+      {number ? <span className="num w-6 shrink-0 pt-px text-[13px] font-bold text-muted">{number}</span> : null}
+      <span className="flex min-w-0 flex-1 flex-col gap-1">
+        <span className="block text-sm font-bold text-ink">{step.title}</span>
+        <span className="text-[13px] text-muted">
+          {step.isSegmentGate ? "Stage gate, you sign off" : stepKindLabel(step.type)}
+          {step.isSegmentGate ? ", unlocks the next stage" : ""}
+          {step.dueDate ? (
+            <span className={late ? "font-bold text-danger" : ""}>
+              {" "}
+              · {late ? `${daysLate(step.dueDate, now)} overdue, was due ${shortDate(step.dueDate)}` : `due ${shortDate(step.dueDate)}`}
+            </span>
+          ) : null}
+        </span>
+      </span>
+      <span className="shrink-0">{stepStatus(step)}</span>
+    </li>
+  );
+}
+
 function certStatus(status: string) {
   if (status === "approved") return <StatusPill tone="success">Cleared</StatusPill>;
   if (status === "submitted") return <StatusPill tone="warning">Ready for review</StatusPill>;
@@ -303,9 +340,9 @@ export function ManagerSeDetailPanel({
   const overdue = open.filter((item) => item.state === "overdue").length;
   const attention: string[] = [];
   if (overdueSteps.length) {
-    const oldest = Math.max(...overdueSteps.map((step) => differenceInCalendarDays(now, new Date(step.dueDate!))));
+    const oldest = [...overdueSteps].sort((a, b) => a.dueDate!.localeCompare(b.dueDate!))[0]!;
     attention.push(
-      `${overdueSteps.length} of ${steps.length} onboarding steps overdue, the oldest by ${oldest} days.`,
+      `${overdueSteps.length} of ${steps.length} onboarding steps overdue, the oldest by ${daysLate(oldest.dueDate!, now)}.`,
     );
   }
   if (coaching.lastActiveDays !== null && coaching.lastActiveDays >= 14) {
@@ -313,20 +350,26 @@ export function ManagerSeDetailPanel({
   }
   if (overdue) attention.push(`${overdue} assigned item${overdue === 1 ? " is" : "s are"} past due.`);
   // The counters cover everything on their plate: onboarding steps plus work assigned on top of them.
-  const stepsDueThisWeek = remainingSteps.filter((step) => step.dueDate && !isOverdue(step) && step.dueDate <= weekAhead).length;
-  const overdueTotal = overdue + overdueSteps.length;
-  const stats: Array<{ label: string; value: ReactNode; tone: string }> = [
-    { label: "Open", value: work ? open.length + remainingSteps.length : "…", tone: "text-blue" },
-    { label: "Done", value: work ? work.length - open.length + doneSteps.length : "…", tone: "text-success" },
-    {
-      label: "Due this week",
-      value: work
-        ? open.filter((item) => item.state !== "overdue" && item.dueDate && item.dueDate <= weekAhead).length + stepsDueThisWeek
-        : "…",
-      tone: "text-blue",
+  const isDueThisWeek = (dueDate: string | null | undefined) => Boolean(dueDate) && dueDate! <= weekAhead;
+  // Each counter opens the steps and work behind it, so a manager can see what "4 overdue" is.
+  const statItems: Record<StatKey, { steps: PlanStep[]; work: AssignedWorkItem[] }> = {
+    open: { steps: remainingSteps, work: open },
+    done: { steps: doneSteps, work: (work ?? []).filter((item) => item.state === "done") },
+    week: {
+      steps: remainingSteps.filter((step) => !isOverdue(step) && isDueThisWeek(step.dueDate)),
+      work: open.filter((item) => item.state !== "overdue" && isDueThisWeek(item.dueDate)),
     },
-    { label: "Overdue", value: work ? overdueTotal : "…", tone: overdueTotal ? "text-danger" : "text-blue" },
+    overdue: { steps: overdueSteps, work: open.filter((item) => item.state === "overdue") },
+  };
+  const overdueTotal = statItems.overdue.steps.length + statItems.overdue.work.length;
+  const stats: Array<{ key: StatKey; label: string; tone: string }> = [
+    { key: "open", label: "Open", tone: "text-blue" },
+    { key: "done", label: "Done", tone: "text-success" },
+    { key: "week", label: "Due this week", tone: "text-blue" },
+    { key: "overdue", label: "Overdue", tone: overdueTotal ? "text-danger" : "text-blue" },
   ];
+  const [statView, setStatView] = useState<StatKey | null>(null);
+  const closeStatView = useCallback(() => setStatView(null), []);
 
   return (
     <Drawer
@@ -376,79 +419,6 @@ export function ManagerSeDetailPanel({
               />
             ) : null}
             <ManagerCoachingNotes initialNotes={managerNotes} seUserId={profile.id} />
-          </Section>
-
-          <div className="scroll-mt-4" id="profile-onboarding-steps" />
-          <Section title="Onboarding steps">
-            {plan ? (
-              <>
-                <p className="text-sm">
-                  <span className="font-bold text-ink">{plan.name}</span>
-                  {mentor ? (
-                    <>
-                      . Mentored by <span className="font-bold text-ink">{mentor.fullName}</span>.
-                    </>
-                  ) : null}
-                </p>
-                <p className="text-sm text-ink">
-                  <span className="font-bold">
-                    {doneSteps.length} of {steps.length} done
-                  </span>
-                  {overdueSteps.length ? <span className="font-bold text-danger"> · {overdueSteps.length} overdue</span> : null}
-                  {nextStep ? <span className="text-muted"> · next: {nextStep.title}</span> : null}
-                </p>
-                {remainingSteps.length ? (
-                  <ol className="overflow-hidden rounded-[14px] border border-line bg-white shadow-[var(--shadow-card)]">
-                    {remainingSteps.map((step) => {
-                      const late = isOverdue(step);
-                      return (
-                        <li
-                          className={`flex items-start gap-3 border-b border-divider px-4 py-3 last:border-b-0 ${late ? "bg-danger-soft" : ""}`}
-                          key={step.id}
-                        >
-                          <span className="num w-6 shrink-0 pt-px text-[13px] font-bold text-muted">{steps.indexOf(step) + 1}</span>
-                          <span className="flex min-w-0 flex-1 flex-col gap-1">
-                            <span className="block text-sm font-bold text-ink">{step.title}</span>
-                            <span className="text-[13px] text-muted">
-                              {step.isSegmentGate ? "Stage gate, you sign off" : stepKindLabel(step.type)}
-                              {step.isSegmentGate ? ", unlocks the next stage" : ""}
-                              {step.dueDate ? (
-                                <span className={late ? "font-bold text-danger" : ""}>
-                                  {" "}
-                                  · {late ? `${differenceInCalendarDays(now, parseDateOnly(step.dueDate))} days overdue` : `due ${shortDate(step.dueDate)}`}
-                                </span>
-                              ) : null}
-                            </span>
-                          </span>
-                          <span className="shrink-0">{stepStatus(step)}</span>
-                        </li>
-                      );
-                    })}
-                  </ol>
-                ) : (
-                  <p className="text-sm">Every onboarding step is done.</p>
-                )}
-                {doneSteps.length ? (
-                  <details className="text-sm">
-                    <summary className="link cursor-pointer">Show {doneSteps.length} finished</summary>
-                    <ul className="mt-2 flex flex-col gap-1 pl-1">
-                      {doneSteps.map((step) => (
-                        <li className="text-muted" key={step.id}>
-                          ✓ {step.title}
-                        </li>
-                      ))}
-                    </ul>
-                  </details>
-                ) : null}
-              </>
-            ) : (
-              <>
-                <p className="text-sm">No onboarding plan assigned yet.</p>
-                <button className="btn-primary self-start" onClick={() => setAssigningPlan(true)} type="button">
-                  Assign a plan
-                </button>
-              </>
-            )}
           </Section>
 
           <Section title="Certification gates">
@@ -622,18 +592,37 @@ export function ManagerSeDetailPanel({
                 <li key={line}>• {line}</li>
               ))}
             </ul>
-            <p className="text-[13px] text-muted">Schedule a 1:1 below, or move the dates if the plan no longer fits.</p>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              {overdueTotal ? (
+                <button className="link text-sm font-bold" onClick={() => setStatView("overdue")} type="button">
+                  See the {overdueTotal} overdue
+                </button>
+              ) : null}
+              <p className="text-[13px] text-muted">Schedule a 1:1 below, or move the dates if the plan no longer fits.</p>
+            </div>
           </div>
         ) : null}
 
-        <dl className="grid grid-cols-4 overflow-hidden rounded-[14px] border border-line bg-white">
-          {stats.map((stat) => (
-            <div className="flex flex-col gap-1.5 border-r border-divider px-3 py-3 last:border-r-0" key={stat.label}>
-              <dt className="label-caps whitespace-nowrap">{stat.label}</dt>
-              <dd className={`num text-[24px] leading-none font-extrabold tracking-[-0.03em] ${stat.tone}`}>{stat.value}</dd>
-            </div>
-          ))}
-        </dl>
+        <div className="grid grid-cols-4 overflow-hidden rounded-[14px] border border-line bg-white">
+          {stats.map((stat) => {
+            const count = statItems[stat.key].steps.length + statItems[stat.key].work.length;
+            return (
+              <button
+                aria-label={`${stat.label}: ${work ? count : "loading"}. Show them`}
+                className="flex flex-col gap-1.5 border-r border-divider px-3 py-3 text-left last:border-r-0 hover:bg-blue-soft disabled:hover:bg-white"
+                disabled={!work}
+                key={stat.key}
+                onClick={() => setStatView(stat.key)}
+                type="button"
+              >
+                <span className="label-caps whitespace-nowrap">{stat.label}</span>
+                <span className={`num text-[24px] leading-none font-extrabold tracking-[-0.03em] ${stat.tone}`}>
+                  {work ? count : "…"}
+                </span>
+              </button>
+            );
+          })}
+        </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-line bg-white px-4 py-3 shadow-[var(--shadow-card)]">
           <p className="min-w-0 flex-1 text-sm text-ink">
@@ -700,7 +689,93 @@ export function ManagerSeDetailPanel({
           />
         ) : null}
 
+        {statView ? (
+          <Drawer
+            eyebrow={profile.fullName}
+            onClose={closeStatView}
+            open
+            size="form"
+            title={STAT_TITLES[statView]}
+          >
+            {statItems[statView].steps.length === 0 && statItems[statView].work.length === 0 ? (
+              <p className="text-sm">Nothing here.</p>
+            ) : null}
+            {statItems[statView].steps.length ? (
+              <Section title={plan ? `Onboarding steps · ${plan.name}` : "Onboarding steps"}>
+                <ol className="overflow-hidden rounded-[14px] border border-line bg-white shadow-[var(--shadow-card)]">
+                  {statItems[statView].steps.map((step) => (
+                    <StepRow key={step.id} late={isOverdue(step)} now={now} number={steps.indexOf(step) + 1} step={step} />
+                  ))}
+                </ol>
+              </Section>
+            ) : null}
+            {statItems[statView].work.length ? (
+              <Section title="Assigned work">
+                <AssignedWorkList items={statItems[statView].work} onChanged={reloadWork} />
+              </Section>
+            ) : null}
+          </Drawer>
+        ) : null}
+
+          <div className="scroll-mt-4" id="profile-onboarding-steps" />
+          <Section title="Onboarding steps">
+            {plan ? (
+              <>
+                <p className="text-sm">
+                  <span className="font-bold text-ink">{plan.name}</span>
+                  {plan.startDate ? (
+                    <span className="text-muted">
+                      {" "}
+                      · {shortDate(plan.startDate)} to {plan.targetCompletion ? shortDate(plan.targetCompletion) : "no target date"}
+                    </span>
+                  ) : null}
+                  {mentor ? (
+                    <>
+                      . Mentored by <span className="font-bold text-ink">{mentor.fullName}</span>.
+                    </>
+                  ) : null}
+                </p>
+                <p className="text-sm text-ink">
+                  <span className="font-bold">
+                    {doneSteps.length} of {steps.length} done
+                  </span>
+                  {overdueSteps.length ? <span className="font-bold text-danger"> · {overdueSteps.length} overdue</span> : null}
+                  {nextStep ? <span className="text-muted"> · next: {nextStep.title}</span> : null}
+                </p>
+                {remainingSteps.length ? (
+                  <ol className="overflow-hidden rounded-[14px] border border-line bg-white shadow-[var(--shadow-card)]">
+                    {remainingSteps.map((step) => (
+                      <StepRow key={step.id} late={isOverdue(step)} now={now} number={steps.indexOf(step) + 1} step={step} />
+                    ))}
+                  </ol>
+                ) : (
+                  <p className="text-sm">Every onboarding step is done.</p>
+                )}
+                {doneSteps.length ? (
+                  <details className="text-sm">
+                    <summary className="link cursor-pointer">Show {doneSteps.length} finished</summary>
+                    <ul className="mt-2 flex flex-col gap-1 pl-1">
+                      {doneSteps.map((step) => (
+                        <li className="text-muted" key={step.id}>
+                          ✓ {step.title}
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                ) : null}
+              </>
+            ) : (
+              <>
+                <p className="text-sm">No onboarding plan assigned yet.</p>
+                <button className="btn-primary self-start" onClick={() => setAssigningPlan(true)} type="button">
+                  Assign a plan
+                </button>
+              </>
+            )}
+          </Section>
+
         <Section title="Assigned work">
+          <p className="text-[13px] text-muted">Work you assigned on top of the onboarding plan.</p>
           <AssignedWorkList initialOpenId={openWorkId} items={work} onChanged={reloadWork} />
         </Section>
 
