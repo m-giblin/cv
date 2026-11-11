@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { currentPlanFirst } from "@/lib/data/fetch-plans-bundle";
 import type { Database } from "@/lib/database.types";
 import { loadMentorInvites } from "@/lib/manager/one-on-ones";
 import { MENTOR_EVENT } from "@/lib/mentoring/mentor-records-model";
@@ -21,16 +22,21 @@ export type TodayMentee = {
   nextOneOnOneLabel: string | null;
 };
 
-/** People the signed-in SE mentors, for the Today page: one row per active program, newest first. */
+/**
+ * People the signed-in SE mentors, for the Today page: one row per person, for the program they are on now.
+ * Months assigned up front wait until their start date; reviews waiting on any of them still count.
+ */
 export async function loadTodayMentees(admin: Db, mentorId: string): Promise<TodayMentee[]> {
   const { data: rows } = await admin
     .from("plan_assignments")
-    .select("id, user_id, plan_id, start_date, target_completion")
+    .select("id, user_id, plan_id, start_date, target_completion, status, created_at")
     .eq("mentor_id", mentorId)
-    .neq("status", "completed")
-    .order("start_date", { ascending: false });
-  const assignments = rows ?? [];
-  if (!assignments.length) return [];
+    .neq("status", "completed");
+  const all = [...(rows ?? [])].sort((a, b) => currentPlanFirst(a, b));
+  if (!all.length) return [];
+  const seen = new Set<string>();
+  const assignments = all.filter((row) => !seen.has(row.user_id) && Boolean(seen.add(row.user_id)));
+  const assignmentOwner = new Map(all.map((row) => [row.id, row.user_id]));
 
   const menteeIds = [...new Set(assignments.map((row) => row.user_id))];
   const [{ data: people }, { data: plans }, { data: events }, { data: submitted }, invites, { data: recommended }] = await Promise.all([
@@ -45,7 +51,7 @@ export async function loadTodayMentees(admin: Db, mentorId: string): Promise<Tod
     admin
       .from("plan_assignment_steps")
       .select("id, assignment_id")
-      .in("assignment_id", assignments.map((row) => row.id))
+      .in("assignment_id", all.map((row) => row.id))
       .eq("status", "submitted"),
     loadMentorInvites(admin, mentorId, menteeIds),
     admin
@@ -68,7 +74,8 @@ export async function loadTodayMentees(admin: Db, mentorId: string): Promise<Tod
   const waiting = new Map<string, number>();
   for (const row of submitted ?? []) {
     if (handedOn.has(row.id)) continue;
-    waiting.set(row.assignment_id, (waiting.get(row.assignment_id) ?? 0) + 1);
+    const owner = assignmentOwner.get(row.assignment_id);
+    if (owner) waiting.set(owner, (waiting.get(owner) ?? 0) + 1);
   }
 
   return assignments.map((row) => ({
@@ -79,7 +86,7 @@ export async function loadTodayMentees(admin: Db, mentorId: string): Promise<Tod
     startDate: row.start_date,
     scheduleSet: scheduled.has(row.id),
     targetCompletion: row.target_completion,
-    waitingOnReview: waiting.get(row.id) ?? 0,
+    waitingOnReview: waiting.get(row.user_id) ?? 0,
     nextOneOnOneLabel: invites.get(row.user_id)?.label ?? null,
   }));
 }

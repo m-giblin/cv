@@ -52,12 +52,9 @@ async function countMentees(userId: string) {
   try {
     const admin = getTenantAdminClient();
     if (!admin) return 0;
-    const { count } = await admin
-      .from("plan_assignments")
-      .select("id", { count: "exact", head: true })
-      .eq("mentor_id", userId)
-      .neq("status", "completed");
-    return count ?? 0;
+    // People, not programs: someone given months 1, 2 and 3 up front is one mentee.
+    const { data } = await admin.from("plan_assignments").select("user_id").eq("mentor_id", userId).neq("status", "completed");
+    return new Set(((data ?? []) as { user_id: string }[]).map((row) => row.user_id)).size;
   } catch {
     return 0;
   }

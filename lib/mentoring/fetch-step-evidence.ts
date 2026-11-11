@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { getTenantAdminClient } from "@/lib/data/tenant-scoped-query";
 import type { Database } from "@/lib/database.types";
 import type { StepEvidence } from "@/lib/mentoring/mentor-records-model";
 import { PITCH_SAVED_EVENT, PITCH_SHARED_EVENT, overallPitchScore, readPitchSavedMetadata } from "@/lib/pitch/pitch-step";
@@ -151,7 +152,9 @@ export async function fetchStepEvidence(admin: Db, userId: string, steps: PlanSt
   const attempts = (attemptRows.data ?? []) as { question_id: string; quiz_id: string; correct: boolean; created_at: string }[];
   const questionIds = [...new Set(attempts.map((row) => row.question_id))];
   const { data: questionRows } = questionIds.length
-    ? await loose.from("question_bank").select("id, source_kind, playbook_id, topic").in("id", questionIds)
+    ? // question_bank has no read policy (only the server grades quizzes), so a manager's own session sees none of it.
+      // These ids come from attempts the viewer may already read; only which check each question belongs to is looked up.
+      await ((getTenantAdminClient() as unknown as Loose | null) ?? loose).from("question_bank").select("id, source_kind, playbook_id, topic").in("id", questionIds)
     : { data: [] };
   const keyOfQuestion = new Map(
     ((questionRows ?? []) as { id: string; source_kind: string; playbook_id: string | null; topic: string }[]).map((row) => [

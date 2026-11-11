@@ -50,7 +50,10 @@ export async function fetchMenteeAssignments(
   const plans = await fetchPlansForUsers(supabase, userIds, tenantId);
   const profileById = new Map(profiles.map((profile) => [profile.id, profile]));
   const assignmentIds = new Set(assignments.map((assignment) => assignment.id));
-  const mentored = plans.filter((plan) => assignmentIds.has(plan.id));
+  // One row per person: the program they are on now. Plans come current-first, so months assigned
+  // up front stay out of the way until their start date.
+  const seen = new Set<string>();
+  const mentored = plans.filter((plan) => assignmentIds.has(plan.id) && !seen.has(plan.userId) && Boolean(seen.add(plan.userId)));
   const [records, tracks, evidence, invites] = await Promise.all([
     loadMentorRecords(supabase, userIds),
     Promise.all(mentored.map((plan) => fetchMenteeTrack(supabase, plan))),
