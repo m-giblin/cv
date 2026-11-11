@@ -2,8 +2,10 @@
 
 import { ExternalLink, Loader2, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { NextUpPrompt } from "@/components/plans/next-up-prompt";
 import { AssignmentDoneNote, type FinishedAssignment } from "@/components/playbooks/assignment-done-note";
 import { StatusPill } from "@/components/ui/status-pill";
+import type { NextUpStep } from "@/lib/plans/next-up";
 import type { MixStatus, QuizQuestion } from "@/lib/question-bank/data";
 import { MIX_KEY, MIX_LENGTH, MIX_PASS_MARK, SOURCE_LABEL, solutionOrder, type QuestionSourceKind } from "@/lib/question-bank/model";
 
@@ -45,13 +47,16 @@ export function QuizPlayer({
     results: Result[];
     completedSteps?: string[];
     assignmentCompleted?: FinishedAssignment | null;
+    nextUp?: NextUpStep | null;
   } | null>(null);
+  const [nextUpDismissed, setNextUpDismissed] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const start = useCallback(() => {
     setQuiz(null);
     setAnswers({});
     setGraded(null);
+    setNextUpDismissed(false);
     setError("");
     void fetch(`/api/question-bank/quiz?source=${encodeURIComponent(check.key)}`)
       .then(async (response) => {
@@ -121,6 +126,7 @@ export function QuizPlayer({
           Passed. This completes your plan step{graded.completedSteps.length === 1 ? "" : "s"}: {graded.completedSteps.join(", ")}.
         </p>
       ) : null}
+      {graded?.nextUp && !nextUpDismissed ? <NextUpPrompt next={graded.nextUp} onLater={() => setNextUpDismissed(true)} /> : null}
 
       <ol className="flex flex-col gap-4">
         {quiz.questions.map((question, number) => {

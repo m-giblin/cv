@@ -4,6 +4,7 @@ import { requireAuthenticatedSession } from "@/lib/auth/require-authenticated";
 import { getTenantAdminClient } from "@/lib/data/tenant-scoped-query";
 import { settleAssignment } from "@/lib/playbooks/assignments";
 import { completePlaybookSteps } from "@/lib/playbooks/plan-completion";
+import { fetchNextUpStep } from "@/lib/plans/next-up";
 import { resolveEffectiveTenantId } from "@/lib/tenant/resolve-profile-tenant";
 
 /** Marks a published playbook as read by the signed-in person. */
@@ -33,7 +34,11 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
       { onConflict: "playbook_id,user_id" },
     );
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  await completePlaybookSteps({ tenantId, userId: session.user.id, playbookId: id }).catch(() => []);
-  const assignmentCompleted = await settleAssignment({ tenantId, userId: session.user.id, playbookId: id }).catch(() => null);
-  return NextResponse.json({ readAt, assignmentCompleted });
+  const completed = await completePlaybookSteps({ tenantId, userId: session.user.id, playbookId: id }).catch(() => []);
+  const [assignmentCompleted, nextUp] = await Promise.all([
+    settleAssignment({ tenantId, userId: session.user.id, playbookId: id }).catch(() => null),
+    // Finishing a plan step offers the next one, so the reader doesn't have to go back to the plan for it.
+    fetchNextUpStep({ tenantId, userId: session.user.id, finishedPlanStepIds: completed.map((step) => step.planStepId) }).catch(() => null),
+  ]);
+  return NextResponse.json({ readAt, assignmentCompleted, nextUp });
 }

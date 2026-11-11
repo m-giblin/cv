@@ -29,7 +29,7 @@ export async function completeKnowledgeCheckSteps(input: { tenantId: string; use
   if (!matching.length) return [];
 
   const now = new Date().toISOString();
-  const completed: string[] = [];
+  const completed: { planStepId: string; title: string }[] = [];
   for (const step of matching) {
     for (const assignment of assignmentRows.filter((row) => row.plan_id === step.plan_id)) {
       const { data: existing } = await admin
@@ -44,7 +44,7 @@ export async function completeKnowledgeCheckSteps(input: { tenantId: string; use
       const { error } = row
         ? await admin.from("plan_assignment_steps").update(fields).eq("id", row.id)
         : await admin.from("plan_assignment_steps").insert({ ...fields, assignment_id: assignment.id, plan_step_id: step.id, tenant_id: input.tenantId });
-      if (!error) completed.push(step.title);
+      if (!error) completed.push({ planStepId: step.id, title: step.title });
     }
   }
   return completed;

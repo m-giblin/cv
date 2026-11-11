@@ -14,6 +14,7 @@ import type { AssignablePerson } from "@/lib/playbooks/assignment-access";
 import { dueLabel, type PlaybookAssignment } from "@/lib/playbooks/assignment-model";
 import { Drawer } from "@/components/ui/drawer";
 import type { CapabilityPlaybook, PlaybookGuide } from "@/lib/playbooks/types";
+import type { NextUpStep } from "@/lib/plans/next-up";
 import { QUIZ_LENGTH } from "@/lib/question-bank/model";
 
 function matches(playbook: CapabilityPlaybook, query: string, leadWhen = "") {
@@ -65,6 +66,11 @@ export function PlaybookLibrary({
   const [read, setRead] = useState(() => new Set(readIds));
   const [marking, setMarking] = useState(false);
   const [finished, setFinished] = useState<FinishedAssignment | null>(null);
+  // After Mark as read: the plan's next step, offered right here (chapter id it was offered on, and the step).
+  const [nextUp, setNextUp] = useState<{ playbookId: string; step: NextUpStep } | null>(null);
+  // A plan quiz opened from that offer, over the chapter it was offered on. Following its own
+  // "Read it now" opens another chapter, and the quiz then gives way.
+  const [planQuizState, setPlanQuiz] = useState<{ playbookSlug: string | null; step: NextUpStep } | null>(null);
   // "Read to the end" means it: Mark as read unlocks once the end of the chapter has been on screen.
   const [reachedEndOf, setReachedEndOf] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
@@ -104,11 +110,22 @@ export function PlaybookLibrary({
     const response = await fetch(`/api/playbooks/${playbookId}/read`, { method: "POST" }).catch(() => null);
     setMarking(false);
     if (response?.ok) {
-      const body = (await response.json().catch(() => null)) as { assignmentCompleted?: FinishedAssignment | null } | null;
+      const body = (await response.json().catch(() => null)) as {
+        assignmentCompleted?: FinishedAssignment | null;
+        nextUp?: NextUpStep | null;
+      } | null;
       if (body?.assignmentCompleted) setFinished(body.assignmentCompleted);
+      setNextUp(body?.nextUp ? { playbookId, step: body.nextUp } : null);
       setRead((set) => new Set(set).add(playbookId));
       router.refresh();
     }
+  }
+  const planQuiz = planQuizState && planQuizState.playbookSlug === openSlug ? planQuizState.step : null;
+  const offered = open && nextUp?.playbookId === open.id ? nextUp.step : null;
+  function takeNextUp(step: NextUpStep) {
+    setNextUp(null);
+    if (step.type === "knowledge_check" && step.questionSource) setPlanQuiz({ playbookSlug: openSlug, step });
+    else router.push(step.href);
   }
   const setOpen = (slug: string | null) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -137,7 +154,20 @@ export function PlaybookLibrary({
       <div className="flex flex-col gap-6">
         <ViewSwitch onChange={setView} value={view} />
         <TeamAssignments assignments={teamAssignments} onAssign={() => setAssigning([])} />
-        {assignWorkbench}
+        {planQuiz?.questionSource ? (
+        <Drawer
+          eyebrow="Knowledge check · your plan"
+          onClose={() => setPlanQuiz(null)}
+          open
+          size="form"
+          subtitle={planQuiz.passScore ? `Pass at ${planQuiz.passScore}% to complete this step on your plan.` : "Passing completes this step on your plan."}
+          title={planQuiz.title}
+        >
+          <QuizPlayer check={planCheck(planQuiz.questionSource, planQuiz.title)} onDone={() => router.refresh()} />
+        </Drawer>
+      ) : null}
+
+      {assignWorkbench}
       </div>
     );
   }
@@ -243,6 +273,23 @@ export function PlaybookLibrary({
           eyebrow={`Playbook ${open.chapter} · ${guide.title}`}
           footer={
             <>
+              {offered ? (
+                <>
+                  <button className="btn-primary" onClick={() => takeNextUp(offered)} type="button">
+                    {offered.label}
+                  </button>
+                  <button
+                    className="btn-secondary"
+                    onClick={() => {
+                      setNextUp(null);
+                      setOpen(null);
+                    }}
+                    type="button"
+                  >
+                    Later
+                  </button>
+                </>
+              ) : null}
               {read.has(open.id) ? (
                 <span className="inline-flex items-center gap-1.5 px-2 text-[14px] font-bold text-success">
                   <Check aria-hidden className="h-4 w-4" /> Read
@@ -257,7 +304,7 @@ export function PlaybookLibrary({
                   {marking ? "Saving…" : "Mark as read"}
                 </button>
               )}
-              {canAssign ? (
+              {canAssign && !offered ? (
                 <button className="btn-secondary" onClick={() => setAssigning([open.id])} type="button">
                   Assign
                 </button>
@@ -265,7 +312,9 @@ export function PlaybookLibrary({
             </>
           }
           footerNote={
-            openAssignment
+            offered
+              ? `Next up on your plan: ${offered.title}${offered.passScore ? ` (pass at ${offered.passScore}%)` : ""}. Do it now?`
+              : openAssignment
               ? `Assigned to you${openAssignment.assignedByName ? ` by ${openAssignment.assignedByName}` : ""} · ${dueLabel(openAssignment.progress, openAssignment.dueDate)}`
               : read.has(open.id) || reachedEnd
                 ? "Mark it read when you've worked through it."
@@ -291,6 +340,11 @@ export function PlaybookLibrary({
       {aboutOpen ? <GuideOverview guide={guide} onClose={() => setAboutOpen(false)} /> : null}
     </div>
   );
+}
+
+/** QuizPlayer only needs the question bank's key; the rest describes the check in lists. */
+function planCheck(key: string, title: string): KnowledgeCheck {
+  return { key, kind: "playbook", solution: "", chapter: null, playbookSlug: null, title, questions: 0, lastScore: null, lastTakenAt: null };
 }
 
 /** "Pitch 1: The Exposed Secret…", matching the chapter's "Test yourself"; the cold open keeps its own name. */

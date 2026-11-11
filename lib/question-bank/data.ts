@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getTenantAdminClient } from "@/lib/data/tenant-scoped-query";
+import { fetchNextUpStep } from "@/lib/plans/next-up";
 import { settleAssignment } from "@/lib/playbooks/assignments";
 import type { DraftQuestion } from "@/lib/question-bank/generate";
 import { completeKnowledgeCheckSteps } from "@/lib/question-bank/plan-completion";
@@ -541,15 +542,18 @@ export async function gradeQuiz(input: { tenantId: string; userId: string; token
 
   // A quiz comes from one bank; passing it can complete knowledge check steps on the person's plans.
   const keys = new Set(results.map((result) => sourceKey(byId.get(result.questionId)!)));
-  const completedSteps =
+  const completed =
     keys.size === 1
       ? await completeKnowledgeCheckSteps({ tenantId: input.tenantId, userId: input.userId, sourceKey: [...keys][0]!, score }).catch(() => [])
       : [];
   // A chapter quiz can finish that chapter's assignment.
   const playbookIds = [...new Set(results.map((result) => byId.get(result.questionId)!.playbookId).filter((id): id is string => Boolean(id)))];
-  const assignmentCompleted =
-    playbookIds.length === 1 ? await settleAssignment({ tenantId: input.tenantId, userId: input.userId, playbookId: playbookIds[0]! }).catch(() => null) : null;
-  return { score, results, completedSteps, assignmentCompleted };
+  const [assignmentCompleted, nextUp] = await Promise.all([
+    playbookIds.length === 1 ? settleAssignment({ tenantId: input.tenantId, userId: input.userId, playbookId: playbookIds[0]! }).catch(() => null) : null,
+    // Passing a plan's check offers the plan's next step.
+    fetchNextUpStep({ tenantId: input.tenantId, userId: input.userId, finishedPlanStepIds: completed.map((step) => step.planStepId) }).catch(() => null),
+  ]);
+  return { score, results, completedSteps: completed.map((step) => step.title), assignmentCompleted, nextUp };
 }
 
 export async function loadQuestion(tenantId: string, id: string) {
