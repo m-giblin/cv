@@ -116,17 +116,27 @@ export async function fetchPlansForUsers(
   });
 }
 
+type PlanOrderRow = { status: string; start_date: string | null; created_at?: string | null };
+
+/** 0 = started and open, 1 = scheduled for a later date, 2 = completed. */
+function planRank(row: PlanOrderRow, today: string) {
+  if (row.status === "completed") return 2;
+  return row.start_date && row.start_date.slice(0, 10) > today ? 1 : 0;
+}
+
 /**
  * Callers take a person's plan with plans.find(userId), so the stage they're on must come first: once a
- * stage is signed off the next one is assigned and the finished one stays, completed. Newest first after that.
+ * stage is signed off the next one is assigned and the finished one stays, completed. A plan whose start
+ * date is still ahead waits behind the ones that have started, so assigning month 1, 2 and 3 up front
+ * keeps month 1 on Today until month 2's date. Started and finished plans go newest first; scheduled
+ * ones soonest first.
  */
-export function currentPlanFirst(
-  a: { status: string; start_date: string | null; created_at?: string | null },
-  b: { status: string; start_date: string | null; created_at?: string | null },
-) {
-  const done = Number(a.status === "completed") - Number(b.status === "completed");
-  if (done !== 0) return done;
-  return `${b.start_date ?? ""}${b.created_at ?? ""}`.localeCompare(`${a.start_date ?? ""}${a.created_at ?? ""}`);
+export function currentPlanFirst(a: PlanOrderRow, b: PlanOrderRow, today = new Date().toISOString().slice(0, 10)) {
+  const rank = planRank(a, today) - planRank(b, today);
+  if (rank !== 0) return rank;
+  const keyA = `${a.start_date ?? ""}${a.created_at ?? ""}`;
+  const keyB = `${b.start_date ?? ""}${b.created_at ?? ""}`;
+  return planRank(a, today) === 1 ? keyA.localeCompare(keyB) : keyB.localeCompare(keyA);
 }
 
 /** A template step, merged with one person's progress on it when they have been assigned the plan. */
