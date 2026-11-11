@@ -2,7 +2,9 @@
   "framework": "nextjs",
   "buildCommand": "npm run build",
   "installCommand": "npm ci",
-  "regions": ["cle1"],
+  "regions": [
+    "cle1"
+  ],
   "crons": [
     {
       "path": "/api/cron/manager-digest",
@@ -16,5 +18,12 @@
       "path": "/api/cron/mentor-alerts",
       "schedule": "30 13 * * *"
     }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "dev": false,
+      "claude/*": false
+    }
+  },
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ':!docs' ':!tests' ':!*.md'"
 }
