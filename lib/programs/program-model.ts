@@ -1,3 +1,4 @@
+import { localToday } from "@/lib/utils/date-only";
 import { PLAN_WEEKS, resolvePhaseNames, SEGMENT_NAMES, type DbTemplate } from "@/lib/admin/plan-builder";
 import { isStepValidated } from "@/lib/se/ramp-model";
 import type { PlanStep, Profile, UserPlan } from "@/lib/types";
@@ -72,8 +73,9 @@ export type ProgramSummary = {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+/** The calendar day on the viewer's clock, so a step due today isn't overdue in a US evening. */
 function isoDay(date: Date): string {
-  return date.toISOString().slice(0, 10);
+  return localToday(date);
 }
 
 /** Phase (1-4) of a step: its segment when set, otherwise its quarter of the plan by order. */

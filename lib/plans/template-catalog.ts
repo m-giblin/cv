@@ -37,6 +37,14 @@ export function templateDurationDays(steps: { metadata?: unknown }[]): number {
   return max;
 }
 
+/**
+ * Weeks a program runs, from the same step offsets that set an enrollment's target date. Rounded the
+ * way rampTotalWeeks rounds a person's start-to-target span, so "over 4 weeks" matches "week 3 of 4".
+ */
+export function templateWeeks(steps: { metadata?: unknown }[] | null | undefined): number | null {
+  return steps?.length ? Math.max(1, Math.round(templateDurationDays(steps) / 7)) : null;
+}
+
 export function templateDurationLabel(days: number): string {
   if (days <= 7) return "Week 1";
   if (days <= 14) return "Week 2";

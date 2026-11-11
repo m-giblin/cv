@@ -14,6 +14,7 @@ import { Stat, StatStrip } from "@/components/ui/stat";
 import { StatusPill } from "@/components/ui/status-pill";
 import { TableCard, TwoLineCell, tdCls, thCls } from "@/components/ui/table";
 import type { DbTemplate } from "@/lib/admin/plan-builder";
+import { templateWeeks } from "@/lib/plans/template-catalog";
 import {
   PROGRAM_PHASES,
   PROGRAM_WEEKS,
@@ -299,7 +300,10 @@ export function ProgramsWorkspace({
                       type="button"
                     >
                       <TwoLineCell
-                        subline={program.description || `${program.stepCount} steps over ${PROGRAM_WEEKS} weeks`}
+                        subline={
+                          program.description ||
+                          `${program.stepCount} steps over ${templateWeeks(templates?.find((item) => item.id === program.id)?.steps) ?? PROGRAM_WEEKS} weeks`
+                        }
                         title={
                           <span className="decoration-blue decoration-2 underline-offset-4 group-hover:text-blue group-hover:underline">
                             {program.name}

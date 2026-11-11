@@ -18,7 +18,9 @@ import {
   templateToBuilderSteps,
   type DbTemplate,
 } from "@/lib/admin/plan-builder";
-import { addDaysToIsoDate, templateDurationDays } from "@/lib/plans/template-catalog";
+import { addDaysToIsoDate, templateDurationDays, templateWeeks } from "@/lib/plans/template-catalog";
+import { rampCurrentWeek, rampTotalWeeks } from "@/lib/se/ramp-model";
+import { localToday } from "@/lib/utils/date-only";
 import {
   PROGRAM_PHASES,
   PROGRAM_WEEKS,
@@ -75,8 +77,9 @@ function shortDate(iso: string | undefined | null) {
   return new Date(`${iso.slice(0, 10)}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+/** Today on the viewer's own calendar; a UTC date turns "due today" into "overdue" in a US evening. */
 function todayIso() {
-  return new Date().toISOString().slice(0, 10);
+  return localToday();
 }
 
 function stepStatus(step: PlanStep, today: string): { tone: StatusTone; label: string } {
@@ -171,7 +174,7 @@ export function ProgramWorkbench({
 
   const subtitle = isNew
     ? "Outline the phases and steps, then publish to start enrolling people."
-    : `${program?.stepCount ?? 0} steps over ${PROGRAM_WEEKS} weeks, ${enrollments.length} ${
+    : `${program?.stepCount ?? 0} steps over ${templateWeeks(template?.steps) ?? PROGRAM_WEEKS} weeks, ${enrollments.length} ${
         enrollments.length === 1 ? "person" : "people"
       } enrolled${program?.atRisk ? `, ${program.atRisk} at risk` : ""}`;
 
@@ -385,7 +388,7 @@ function ProgressGrid({
                 <PersonCell
                   initials={initials(item.person?.fullName ?? learner.one)}
                   name={item.person?.fullName ?? "Former team member"}
-                  subline={`Week ${item.week} of ${PROGRAM_WEEKS}${item.overdue ? `, ${item.overdue} overdue` : ""}`}
+                  subline={`Week ${rampCurrentWeek(item.plan)} of ${rampTotalWeeks(item.plan)}${item.overdue ? `, ${item.overdue} overdue` : ""}`}
                 />
               </button>
             </td>
@@ -430,12 +433,16 @@ function Journey({
         Everyone in this program
       </button>
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <PersonCell
-          initials={initials(name)}
-          name={<span className="text-[20px] font-extrabold">{name}</span>}
-          subline={`Started ${shortDate(enrollment.plan.startDate)}, target ${shortDate(enrollment.plan.targetCompletion)}`}
-        />
+        <PersonCell initials={initials(name)} name={<span className="text-[20px] font-extrabold">{name}</span>} />
         <div className="flex items-center gap-6">
+          <span className="flex flex-col items-end">
+            <span className="label-caps">Start</span>
+            <span className="num text-[20px] font-extrabold text-ink">{shortDate(enrollment.plan.startDate)}</span>
+          </span>
+          <span className="flex flex-col items-end">
+            <span className="label-caps">Target</span>
+            <span className="num text-[20px] font-extrabold text-ink">{shortDate(enrollment.plan.targetCompletion)}</span>
+          </span>
           <span className="flex flex-col items-end">
             <span className="label-caps">Progress</span>
             <span className="num text-[28px] font-extrabold text-blue">{enrollment.progress}%</span>
