@@ -21,6 +21,21 @@ import type { MenteeRecords, StepEvidence } from "@/lib/mentoring/mentor-records
 import { isStepOverdue } from "@/lib/programs/program-model";
 import type { AssignmentStatus, PlanStep } from "@/lib/types";
 
+/** The headline result from the step's evidence: a check's best score and attempts, or a practice score. */
+function scoreSummary(evidence: StepEvidence[]) {
+  for (const item of evidence) {
+    const fact = (label: string) => item.facts.find((entry) => entry.label === label)?.value;
+    const best = fact("Best score");
+    if (best) {
+      const attempts = Number(fact("Attempts") ?? 0);
+      return `${best}${attempts ? ` · ${attempts} attempt${attempts === 1 ? "" : "s"}` : ""}`;
+    }
+    const score = fact("Score") ?? fact("AI score");
+    if (score && score !== "Not scored") return score;
+  }
+  return null;
+}
+
 const H3_CLS = "text-lg font-extrabold text-ink";
 const CARD_CLS = "flex flex-col gap-3 rounded-[14px] border border-line bg-white p-[18px]";
 
@@ -98,6 +113,8 @@ export function MentorStepWorkbench({
   const firstName = menteeName.split(" ")[0] ?? menteeName;
   const stepFeedback = records.feedback.filter((item) => item.assignmentStepId === step.assignmentStepId);
   const gateRecommendation = records.gateRecommendations.find((item) => item.assignmentStepId === step.assignmentStepId);
+  const stepEvidence = evidence[step.id] ?? [];
+  const result = scoreSummary(stepEvidence);
 
   return (
     <Drawer
@@ -149,6 +166,12 @@ export function MentorStepWorkbench({
                 <>
                   <dt className="text-muted">Finished</dt>
                   <dd className="m-0 font-bold text-ink">{longDate(step.completedAt)}</dd>
+                </>
+              ) : null}
+              {result ? (
+                <>
+                  <dt className="text-muted">Score</dt>
+                  <dd className="m-0 font-bold text-ink">{result}</dd>
                 </>
               ) : null}
               <dt className="text-muted">Approval</dt>
@@ -207,6 +230,9 @@ export function MentorStepWorkbench({
         <p className="max-w-[680px] text-[15px] text-muted">{guide.purpose}</p>
       </section>
 
+      {/* What they did comes first: it's what the mentor opened the step to see. */}
+      {preview ? null : <StepEvidenceView evidence={stepEvidence} firstName={firstName} hasWrittenAnswer={Boolean(step.submissionNotes)} />}
+
       <section className="grid gap-3 md:grid-cols-2">
         <article className={CARD_CLS}>
           <h3 className="text-sm font-bold text-ink">A strong attempt</h3>
@@ -252,7 +278,6 @@ export function MentorStepWorkbench({
         </section>
       ) : null}
 
-      {preview ? null : <StepEvidenceView evidence={evidence[step.id] ?? []} firstName={firstName} hasWrittenAnswer={Boolean(step.submissionNotes)} />}
     </Drawer>
   );
 }
