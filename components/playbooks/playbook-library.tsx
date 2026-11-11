@@ -154,20 +154,7 @@ export function PlaybookLibrary({
       <div className="flex flex-col gap-6">
         <ViewSwitch onChange={setView} value={view} />
         <TeamAssignments assignments={teamAssignments} onAssign={() => setAssigning([])} />
-        {planQuiz?.questionSource ? (
-        <Drawer
-          eyebrow="Knowledge check · your plan"
-          onClose={() => setPlanQuiz(null)}
-          open
-          size="form"
-          subtitle={planQuiz.passScore ? `Pass at ${planQuiz.passScore}% to complete this step on your plan.` : "Passing completes this step on your plan."}
-          title={planQuiz.title}
-        >
-          <QuizPlayer check={planCheck(planQuiz.questionSource, planQuiz.title)} onDone={() => router.refresh()} />
-        </Drawer>
-      ) : null}
-
-      {assignWorkbench}
+        {assignWorkbench}
       </div>
     );
   }
@@ -332,6 +319,19 @@ export function PlaybookLibrary({
             <PlaybookView body={open.body} />
             <div aria-hidden ref={endRef} />
           </div>
+        </Drawer>
+      ) : null}
+
+      {planQuiz?.questionSource ? (
+        <Drawer
+          eyebrow="Knowledge check · your plan"
+          onClose={() => setPlanQuiz(null)}
+          open
+          size="form"
+          subtitle={planQuiz.passScore ? `Pass at ${planQuiz.passScore}% to complete this step on your plan.` : "Passing completes this step on your plan."}
+          title={planQuiz.title}
+        >
+          <QuizPlayer check={planCheck(planQuiz.questionSource, planQuiz.title)} onDone={() => router.refresh()} />
         </Drawer>
       ) : null}
 
