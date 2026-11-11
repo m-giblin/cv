@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { completeAssignmentStep } from "@/lib/plans/complete-step";
+import { nextUpAfterSubmit } from "@/lib/plans/next-up";
 import { createNotification } from "@/lib/notifications/create-notification";
 import { createClient } from "@/lib/supabase/server";
 
@@ -61,5 +62,6 @@ export async function POST(request: Request) {
  });
  }
 
- return NextResponse.json({ success: true });
+ const nextUp = parsed.data.assignmentStepId ? await nextUpAfterSubmit({ userId: user.id, assignmentStepId: parsed.data.assignmentStepId }) : null;
+ return NextResponse.json({ success: true, nextUp });
 }

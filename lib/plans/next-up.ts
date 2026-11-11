@@ -50,10 +50,35 @@ export function pickNextUpStep(plans: UserPlan[], finishedPlanStepIds: string[])
   };
 }
 
-export async function fetchNextUpStep(input: { tenantId: string; userId: string; finishedPlanStepIds: string[] }) {
+export async function fetchNextUpStep(input: { tenantId?: string | null; userId: string; finishedPlanStepIds: string[] }) {
   if (!input.finishedPlanStepIds.length) return null;
   const admin = getTenantAdminClient() as unknown as SupabaseClient<Database> | null;
   if (!admin) return null;
-  const plans = await fetchPlansForUsers(admin, [input.userId], input.tenantId);
+  const plans = await fetchPlansForUsers(admin, [input.userId], input.tenantId ?? null);
   return pickNextUpStep(plans, input.finishedPlanStepIds);
+}
+
+/**
+ * The next step after one the person just submitted, from its assignment step id. Ad-hoc steps carry
+ * their "adhoc-" id on the plan too, so they're matched as they are. Never throws: a missing offer
+ * just means the old behaviour.
+ */
+export async function nextUpAfterSubmit(input: { userId: string; assignmentStepId?: string | null; planStepId?: string | null }) {
+  try {
+    let planStepId = input.planStepId ?? null;
+    if (!planStepId && input.assignmentStepId) {
+      if (input.assignmentStepId.startsWith("adhoc-")) {
+        planStepId = input.assignmentStepId;
+      } else {
+        const admin = getTenantAdminClient() as unknown as SupabaseClient<Database> | null;
+        const { data } = admin
+          ? await admin.from("plan_assignment_steps").select("plan_step_id").eq("id", input.assignmentStepId).maybeSingle()
+          : { data: null };
+        planStepId = data?.plan_step_id ?? null;
+      }
+    }
+    return planStepId ? await fetchNextUpStep({ userId: input.userId, finishedPlanStepIds: [planStepId] }) : null;
+  } catch {
+    return null;
+  }
 }

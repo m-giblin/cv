@@ -3,6 +3,7 @@ import { z } from "zod";
 import { approveAssignmentStep, rejectAssignmentStep, submitAssignmentStep } from "@/lib/plans/complete-step";
 import { parsePlanStepMetadata } from "@/lib/corpus/parse-step-metadata";
 import { createNotification } from "@/lib/notifications/create-notification";
+import { nextUpAfterSubmit } from "@/lib/plans/next-up";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET() {
@@ -151,7 +152,8 @@ export async function POST(request: Request) {
  });
  }
 
- return NextResponse.json({ success: true });
+ const nextUp = parsed.data.assignmentStepId ? await nextUpAfterSubmit({ userId: user.id, assignmentStepId: parsed.data.assignmentStepId }) : null;
+ return NextResponse.json({ success: true, nextUp });
 }
 
 export async function PATCH(request: Request) {

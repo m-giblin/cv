@@ -467,10 +467,15 @@ export function ManagerInbox({
       return;
     }
 
+    // Straight on to the next item in the list, so reviewing a queue isn't close, click, close, click.
+    const position = visible.findIndex((entry) => itemKey(entry) === itemKey(item));
+    const rest = visible.filter((entry) => itemKey(entry) !== itemKey(item));
+    const nextItem = rest[Math.min(Math.max(position, 0), rest.length - 1)] ?? null;
     removeItems([itemKey(item)]);
-    setActiveKey(null);
+    setActiveKey(nextItem ? itemKey(nextItem) : null);
     const first = itemPerson(item).split(" ")[0];
-    toast.success(decision === "approve" ? `Approved. ${first} has been notified.` : `Changes requested. ${first} has been notified.`);
+    const done = decision === "approve" ? `Approved. ${first} has been notified.` : `Changes requested. ${first} has been notified.`;
+    toast.success(nextItem ? `${done} Next: ${itemPerson(nextItem)}.` : `${done} That's everything in this list.`);
     router.refresh();
   }
 

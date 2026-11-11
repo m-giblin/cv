@@ -5,6 +5,7 @@ import { Check, Clock, Loader2, Mic, Send, Trash2, Video } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
+import { NextUpPrompt } from "@/components/plans/next-up-prompt";
 import { AssignmentDoneNote, type FinishedAssignment } from "@/components/playbooks/assignment-done-note";
 import { PitchCoachingRail, type PitchScoreRow } from "@/components/pitch/pitch-coaching-rail";
 import { CARD_CLS, LABEL_CLS, TEXTAREA_CLS } from "@/components/se/form-classes";
@@ -17,6 +18,7 @@ import type { PitchQueueSlot, PitchScenarioRow } from "@/lib/pitch/pitch-queue";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { AssignedChapter } from "@/lib/playbooks/assignment-context";
+import type { NextUpStep } from "@/lib/plans/next-up";
 
 type StudioMode = "assigned" | "practice";
 
@@ -152,6 +154,8 @@ export function VideoPitchCapture({
   const [sharing, setSharing] = useState(false);
   const [sharedWithMentor, setSharedWithMentor] = useState(false);
   const [stepSubmitted, setStepSubmitted] = useState(rampStep?.status === "submitted");
+  // After submitting the ramp step: the plan's next step to go to.
+  const [nextUp, setNextUp] = useState<NextUpStep | null>(null);
   // The last scored take stays on screen after saving or editing, until the scenario changes.
   const [lastScored, setLastScored] = useState<{ scores: PitchScoreRow[]; note: string | null } | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -559,7 +563,7 @@ export function VideoPitchCapture({
     });
 
     setUploading(false);
-    const body = (await response.json().catch(() => null)) as { session?: { id: string }; error?: string } | null;
+    const body = (await response.json().catch(() => null)) as { session?: { id: string }; error?: string; nextUp?: NextUpStep | null } | null;
     if (body?.session?.id) {
       setSavedPractice(true);
       setSavedSessionId(body.session.id);
@@ -571,6 +575,7 @@ export function VideoPitchCapture({
 
     if (rampStep && opts?.submit) {
       setStepSubmitted(true);
+      setNextUp(body?.nextUp ?? null);
       toast.success(`Submitted for review. ${mentorName ?? "Your manager"} reviews it.`);
     } else if (rampStep) {
       toast.success("Pitch saved to your ramp step. Submit it when you're ready.");
@@ -941,9 +946,11 @@ export function VideoPitchCapture({
                 <span className="ml-auto inline-flex items-center gap-2 text-[14px] text-ink-2" role="status">
                   <Check aria-hidden="true" className="h-4 w-4 text-blue" />
                   Submitted. {reviewerName} reviews it.
-                  <Link className="link" href={`/my-plan?step=${rampStep.assignmentStepId}`}>
-                    Back to my plan
-                  </Link>
+                  {nextUp ? null : (
+                    <Link className="link" href={`/my-plan?step=${rampStep.assignmentStepId}`}>
+                      Back to my plan
+                    </Link>
+                  )}
                 </span>
               ) : (
                 <>
@@ -1025,6 +1032,7 @@ export function VideoPitchCapture({
           <section className="flex flex-col gap-3 border-t border-divider px-5 py-4">
             <h3 className="label-caps">Compared with the guide</h3>
             {finishedAssignment ? <AssignmentDoneNote finished={finishedAssignment} /> : null}
+            {nextUp ? <NextUpPrompt next={nextUp} onLater={() => setNextUp(null)} /> : null}
             {overTime ? (
               <p className="m-0 text-[14px] text-danger">
                 You ran over the {scenario.maxDurationSec}-second limit. Cut to the problem, the outcome and one proof point.

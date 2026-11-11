@@ -445,7 +445,7 @@ export function RampStepDetail({
           </Note>
         ) : (
           /* PlanStepActions renders the step brief, "Done when" criteria, evidence and the submit action. */
-          <PlanStepActions mentorName={mentor?.fullName} step={step} />
+          <PlanStepActions key={step.id} mentorName={mentor?.fullName} step={step} />
         )}
         {feedbackFirst ? null : <MentorFeedbackForStep assignmentStepId={step.assignmentStepId} />}
       </div>

@@ -531,11 +531,9 @@ export async function submitSimulationPlanSteps(
         continue;
       }
 
-      if (
-        templateId &&
-        planStep.simulation_template_id &&
-        planStep.simulation_template_id !== templateId
-      ) {
+      // A step tied to a scenario only counts that scenario. A run with no scenario (a drill someone
+      // started from a playbook with no template) used to match any simulation step on the plan.
+      if (planStep.simulation_template_id && planStep.simulation_template_id !== templateId) {
         continue;
       }
 
@@ -641,12 +639,11 @@ export async function linkDealPrepPlanSteps(
   },
 ) {
   if (params.assignmentStepId) {
-    await submitAssignmentStep(supabase, {
+    return submitAssignmentStep(supabase, {
       assignmentStepId: params.assignmentStepId,
       userId: params.userId,
       notes: `Deal prep completed for ${params.accountName} (session ${params.sessionId}).`,
     });
-    return;
   }
 
   const { data: assignments } = await supabase
@@ -656,7 +653,7 @@ export async function linkDealPrepPlanSteps(
     .neq("status", "completed");
 
   if (!assignments?.length) {
-    return;
+    return null;
   }
 
   for (const assignment of assignments) {
@@ -677,12 +674,12 @@ export async function linkDealPrepPlanSteps(
         continue;
       }
 
-      await submitAssignmentStep(supabase, {
+      return submitAssignmentStep(supabase, {
         assignmentStepId: assignmentStep.id,
         userId: params.userId,
         notes: `Deal prep completed for ${params.accountName} (session ${params.sessionId}).`,
       });
-      return;
     }
   }
+  return null;
 }

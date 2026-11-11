@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { submitAssignmentStep } from "@/lib/plans/complete-step";
 import { parseAdHocStepId, submitAdHocStep } from "@/lib/plans/ad-hoc-steps";
+import { nextUpAfterSubmit } from "@/lib/plans/next-up";
 import { StepSegmentLockedError } from "@/lib/plans/segment-lock";
 import { createClient } from "@/lib/supabase/server";
 
@@ -42,7 +43,8 @@ export async function PATCH(
  userId: user.id,
  notes: parsed.data.notes,
  });
- return NextResponse.json({ success: true, ...result });
+ const nextUp = await nextUpAfterSubmit({ userId: user.id, assignmentStepId: id });
+ return NextResponse.json({ success: true, ...result, nextUp });
  }
 
  const result = await submitAssignmentStep(supabase, {
@@ -50,8 +52,9 @@ export async function PATCH(
  userId: user.id,
  notes: parsed.data.notes,
  });
+ const nextUp = await nextUpAfterSubmit({ userId: user.id, planStepId: result.planStepId });
 
- return NextResponse.json({ success: true, ...result });
+ return NextResponse.json({ success: true, ...result, nextUp });
  } catch (error) {
  if (error instanceof StepSegmentLockedError) {
  return NextResponse.json({ error: error.message }, { status: 403 });

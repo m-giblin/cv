@@ -82,6 +82,7 @@ export function MentorStepWorkbench({
   preview = false,
   onClose,
   onSelect,
+  reviewNext = null,
 }: {
   step: PlanStep | null;
   /** The assignment these steps belong to; the due date can only be set when it is known. */
@@ -96,6 +97,8 @@ export function MentorStepWorkbench({
   preview?: boolean;
   onClose: () => void;
   onSelect: (step: PlanStep) => void;
+  /** The next step waiting on this mentor's review, offered once this one is approved or sent back. */
+  reviewNext?: { label: string; onOpen: () => void } | null;
 }) {
   if (!step) return null;
 
@@ -187,7 +190,16 @@ export function MentorStepWorkbench({
           )}
 
           {!preview && step.status === "submitted" && !step.isSegmentGate && step.type !== "mentor_review" ? (
-            <StepApprovalPanel firstName={firstName} step={step} />
+            <StepApprovalPanel firstName={firstName} key={step.id} reviewNext={reviewNext} step={step} />
+          ) : null}
+          {/* Once this step is decided (or never needed you), carry on with the queue from here. */}
+          {!preview && step.status !== "submitted" && reviewNext ? (
+            <section className={CARD_CLS}>
+              <h3 className={H3_CLS}>Next waiting on you</h3>
+              <button className="btn-primary self-start" onClick={reviewNext.onOpen} type="button">
+                Review {reviewNext.label}
+              </button>
+            </section>
           ) : null}
           {!preview && step.isSegmentGate ? (
             <GateRecommendationPanel current={gateRecommendation} firstName={firstName} step={step} />
