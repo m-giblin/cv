@@ -313,7 +313,7 @@ export function firstMeetingAgenda(brief: HiringBrief | null): AgendaItem[] {
     },
     {
       kind: "kickoff",
-      text: "The 120 days: four stages, a manager gate at the end of each, and approval opens the next stage.",
+      text: "The 130 days: four stages, a manager gate at the end of each, and approval opens the next stage.",
     },
     {
       kind: "kickoff",
