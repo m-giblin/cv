@@ -57,7 +57,7 @@ export const SE_ARTICLES: HelpArticle[] = [
     summary: "Your onboarding program runs in 30-day stages. Each stage is a list of steps closed by a gate your manager signs off; your mentor reviews the everyday steps.",
     audience: ["se", "manager"],
     category: "My ramp",
-    keywords: ["ramp", "onboarding", "plan", "program", "stages", "phases", "segments", "gates", "30 days", "120 days", "locked", "validated", "calendar"],
+    keywords: ["ramp", "onboarding", "plan", "program", "stages", "phases", "segments", "gates", "30 days", "120 days", "130 days", "locked", "validated", "calendar"],
     overview: [
       "Your onboarding program runs in stages of about 30 days, for example Days 1–30 Foundation, then Platform and discovery, and so on. My ramp shows the stage you're in; \"Week 1 of 4\" is the week of that stage, not of the whole program. Steps come in different types: Content, Pitch, Playbook, Knowledge check, Challenge, Practice (simulation), Shadow, Review (mentor check-in) and Task.",
       "Each stage ends with a gate. Your mentor reviews the everyday steps; your manager signs off the gate once the steps before it are validated, and that opens the next stage. If you miss a gate date, the gate moves later. Your progress is never reset.",

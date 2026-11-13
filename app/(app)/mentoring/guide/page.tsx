@@ -41,12 +41,12 @@ const STAGES = [
     ask: "Do they ask about the problem before they show anything?",
   },
   {
-    name: "Days 61–90: machine and agent identity",
-    focus: "Machine identities, AI agents, Agentic Fabric and Credentials Management, plus the common competitive objections.",
+    name: "Days 61–100: SailPoint Agentic Fabric",
+    focus: "Machine identities, AI agents, Agentic Fabric and Credentials Management, then Protect: the Risk Center, behavior monitoring, prompt security and automated enforcement. Plus the common competitive objections.",
     ask: "Can they tell a human, a machine and an agent identity apart, and say why each needs governing?",
   },
   {
-    name: "Days 91–120: field readiness",
+    name: "Days 101–130: field readiness",
     focus: "The executive narrative, competitive conversations, deal prep and customer simulations at executive level.",
     ask: "Would you put them in front of a customer on their own next week?",
   },
